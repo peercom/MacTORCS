@@ -70,14 +70,19 @@ public struct DrivingRuntime: Sendable {
             do {
                 previous=current
                 startClock.step()
+                let tick=PerformanceSignposts.begin("Simulation tick")
                 try simulation.step(command:command,mode:startClock.prestart ? .prestart:.running)
+                PerformanceSignposts.end("Simulation tick",tick)
                 let life=simulation.lifecycle
                 // Capture publication before race-status changes can mask an active physics step.
                 try collisionHistory.observe(tick:simulation.tick,flags:life.flags,accumulatedCollision:life.publishedCollision,stepCollision:life.publishedSimCollision)
                 let sample=RaceLapSample(position:life.trackPosition,speed:life.publicBody.velocity.x,
                     width:simulation.vehicle.definition.chassis.runningGear.mass.dimensions.y,
                     flags:life.flags,collision:life.publishedSimCollision)
-                if let lap=try timing.update(sample,time:startClock.time,road:simulation.road) { completedLaps.append(lap) }
+                let queries=PerformanceSignposts.begin("Track queries")
+                let lap=try timing.update(sample,time:startClock.time,road:simulation.road)
+                PerformanceSignposts.end("Track queries",queries)
+                if let lap { completedLaps.append(lap) }
                 if timing.flags != life.flags { try simulation.updateCarStatus(flags:timing.flags) }
                 current=simulation.visualSnapshot
                 try didStep?(simulation,timing,startClock.time)

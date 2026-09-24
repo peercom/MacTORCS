@@ -2,6 +2,7 @@
 // Stage ordering follows TORCS 1.3.9 racemain.cpp and raceengine.cpp.
 // Copyright (C) Eric Espie, Bernhard Wymann; upstream GPL-2.0-or-later.
 import Foundation
+import TORCSCore
 import TORCSConfiguration
 import TORCSSimulation
 import TORCSTrack
@@ -55,7 +56,9 @@ public struct BTSoloRuntime: Sendable {
         if clock.time-lastRobotTime>=0.02 {
             lastRobotDelta=clock.time-lastRobotTime
             if simulation.lifecycle[0].flags & 0xFF == 0 {
+                let thinking=PerformanceSignposts.begin("AI update")
                 let decision=try driver.drive(observation)
+                PerformanceSignposts.end("AI update",thinking)
                 lastDecision=decision;command=decision.command;lastDriveTick=simulation.tick+1
                 try pits.setCommand(car:0,raceCommand:decision.pitRequested ? 1:0,service:pits.cars[0].command)
             }

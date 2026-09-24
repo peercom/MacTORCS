@@ -1546,6 +1546,24 @@ the count and that the car's box moves by under five centimetres;
 and the two normal directions survive; the octahedron test checks the
 smooth case rounds and welds.
 
+## The seven signposts
+
+Section 24 of the specification lists seven things to instrument; the app
+had two batch-level intervals. `PerformanceSignposts` in TORCSCore now
+holds one signposter under `org.torcs.mac / Performance` and the list of
+the seven names, and each has a call site: **Simulation tick** around each
+fixed step and **Track queries** around the lap-timing update in the
+driving runtime, **AI update** around the robot's decision in the solo
+runtime, **Collision processing** around the contact phase of the
+multi-vehicle step, **Asset loading** around a session's content load, and
+in presentation **Draw preparation** from the frame's start to commit and
+**GPU duration** from commit to the completion handler, which the
+signposter allows to end on another thread. An interval on a signposter
+with no instrument attached returns immediately, so the hot paths keep
+them on. `testEveryListedNameHasACallSite` reads the sources and fails if a
+name on the list has no `begin` of it, so the list cannot drift from the
+code.
+
 ## Licensing
 
 No third-party artwork is imported by this work. New render source is

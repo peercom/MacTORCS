@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 import Foundation
+import TORCSCore
 import TORCSAssets
 import TORCSConfiguration
 import TORCSTrack
@@ -36,6 +37,8 @@ public struct DrivingContent: Sendable {
     // after initWheel has loaded speed meshes 0...3 for the last wheel.
     public var carShadowLoaderBounds: ACLoaderBounds? { scenes[4].asset.scene.loaderBounds }
     public static func load(_ directory: URL) throws -> DrivingContent {
+        let loading=PerformanceSignposts.begin("Asset loading")
+        defer { PerformanceSignposts.end("Asset loading",loading) }
         let search=ContentSearchPath(roots:[directory])
         func read(_ name: String) throws -> Data { try ContentSearchPath.readBounded(search.resolve(name),maximumBytes:8*1024*1024) }
         let index=try JSONDecoder().decode(DrivingSessionIndex.self,from:ContentSearchPath.readBounded(search.resolve("driving.json"),maximumBytes:65_536))

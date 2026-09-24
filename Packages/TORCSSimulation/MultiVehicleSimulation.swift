@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 // Stage order follows TORCS 1.3.9 simuv2/simu.cpp and collide.cpp.
 // Copyright (C) 2000-2017 Eric Espie, Bernhard Wymann; upstream GPL-2.0-or-later.
+import TORCSCore
 import TORCSTrack
 
 /// Ordered vehicle simulation with removal/towing and original SMART contacts.
@@ -105,6 +106,7 @@ public struct MultiVehicleSimulation: Sendable {
         for i in cars.indices where lifecycle[i].flags & 0xFF == 0 {
             collisionTransforms[i] = lifecycle[i].publicTransform; collisionTransformLoaded[i] = true
         }
+        let collisions = PerformanceSignposts.begin("Collision processing")
         var bodies = cars.indices.map { cars[$0].objectCollisionBody(index:$0,publicTransform:lifecycle[$0].publicTransform) }
         for i in bodies.indices {
             bodies[i].publicOrientation = lifecycle[i].publicBody.orientation
@@ -147,6 +149,7 @@ public struct MultiVehicleSimulation: Sendable {
         }
         if detectedPairs+detectedWallPairs+detectedFixedPairs==0 { previousTransforms = bodies.indices.map { contactTransform(bodies[$0],index:$0) } }
         for i in bodies.indices { bodies[i].commitVelocity(); cars[i].applyObjectCollision(bodies[i]) }
+        PerformanceSignposts.end("Collision processing", collisions)
         for i in cars.indices {
             accumulated[i] = bodies[i].accumulated
             if bodies[i].transformWasRefreshed {

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 import Foundation
+import TORCSCore
 import Metal
 import MetalKit
 import QuartzCore
@@ -41,6 +42,7 @@ public extension ForwardRenderer {
         }
 
         animationTime = CACurrentMediaTime()
+        let preparation = PerformanceSignposts.begin("Draw preparation")
         // Every scaler the resolution ladder can ask for, built before the
         // first frame at this size rather than on the frame that steps.
         try prewarmIfNeeded(outputWidth: width, outputHeight: height)
@@ -67,7 +69,12 @@ public extension ForwardRenderer {
         // GPU time is sampled on completion, which is one frame behind. That is
         // what dynamic resolution wants anyway: it reacts to measured cost, and
         // blocking to make the measurement current would cost more than it saves.
+        PerformanceSignposts.end("Draw preparation", preparation)
+        // The GPU interval spans commit to completion; it ends on the
+        // completion handler's thread, which the signposter allows.
+        let gpu = PerformanceSignposts.begin("GPU duration")
         let recordTime: (MTLCommandBuffer) -> Void = { [weak self] buffer in
+            PerformanceSignposts.end("GPU duration", gpu)
             guard let self, buffer.gpuEndTime > buffer.gpuStartTime else { return }
             self.recordFrameTime(buffer.gpuEndTime - buffer.gpuStartTime)
         }
