@@ -1,0 +1,96 @@
+{
+  "initialization": "501 original SimUpdate ticks at race state zero with full brake throughout; scripted harness setup, not complete race-engine startup",
+  "limitations": [
+    "Cornering is a scripted steering response and reaches the barrier; it is not a validated steady-state cornering case.",
+    "No race-engine, robot, lap, pit, qualifying or native whole-vehicle parity coverage."
+  ],
+  "provenance": {
+    "archiveSHA256": "f9c69e86d290295467451b01d7838d85005ba613644a6fe8a3f85a7c6a03cd4c",
+    "carSpacingMetres": 10,
+    "executableSHA256": "7e5a2273e10083a54d4635db151db6862f909dd1a2aad2e5a2433a0e35eacc60",
+    "parser": "Original params.cpp, macOS Expat; staged objects.xml encoding declaration corrected to ISO-8859-1",
+    "seed": 12345,
+    "settlingTicks": 501,
+    "sourceHashes": {
+      "155-DTM.xml": "7b069b816636ed85ace6b440d87aa400c3e54716170766df3e7a7483475f52bb",
+      "Track-4WD-GrB.xml": "b08bc4a12ccfeff49ce1d608583a858cec69985d94aa057640d231016fed37eb",
+      "aalborg.xml": "bfd4bfc66977a515e1d5bafb37e1698adaa9b05808d4da003f94d98a570a7b57",
+      "objects.xml": "446e70833abb16942559315db5c4d224bd5a2a2da72b526e5d097c52fb2f0b37",
+      "surfaces.xml": "9e0c5fb78cd7d9fd635beed670750f69c851ab14a83e275fab2973330797bbb9"
+    },
+    "startDistanceMetres": 10,
+    "stepSeconds": 0.002,
+    "trackLengthMetres": 2587.54345703125,
+    "trackSegments": 371
+  },
+  "scenarios": {
+    "acceleration": {
+      "cars": 1,
+      "collisionTicks": 0,
+      "fieldsPerCar": 142,
+      "finalLocalSpeed": 22.258670806884766,
+      "identicalAcrossProcesses": true,
+      "maximumLocalSpeed": 22.258670806884766,
+      "maximumTotalDamage": 0,
+      "sha256": "579d321f296b3edf0745f2477b07f39b96ef6f35ed784652f899d3349a7aca0f",
+      "ticks": 3000
+    },
+    "braking": {
+      "cars": 1,
+      "collisionTicks": 0,
+      "fieldsPerCar": 142,
+      "finalLocalSpeed": 0.021088669076561928,
+      "identicalAcrossProcesses": true,
+      "maximumLocalSpeed": 22.008140563964844,
+      "maximumTotalDamage": 0,
+      "sha256": "fce13f7784455622298437c6ded714f4790c33af0aa30983ee10dfbb22f58f66",
+      "ticks": 3000
+    },
+    "car-collision": {
+      "cars": 2,
+      "collisionTicks": 165,
+      "fieldsPerCar": 142,
+      "finalLocalSpeed": 0.7590285539627075,
+      "identicalAcrossProcesses": true,
+      "maximumLocalSpeed": 10.043171882629395,
+      "maximumTotalDamage": 8672,
+      "sha256": "4bb1f2f3707fa2910a3517f44c387981508ec6f135ee83fbd9b41dd117723209",
+      "ticks": 2000
+    },
+    "combined": {
+      "cars": 1,
+      "collisionTicks": 0,
+      "fieldsPerCar": 142,
+      "finalLocalSpeed": 0.006798789370805025,
+      "identicalAcrossProcesses": true,
+      "maximumLocalSpeed": 22.008140563964844,
+      "maximumTotalDamage": 0,
+      "sha256": "ef8c1dd5438e86f8cf88476ab46e57e1f546bd8adc1a87969d18ba9ec085f872",
+      "ticks": 3000
+    },
+    "cornering": {
+      "cars": 1,
+      "collisionTicks": 1517,
+      "fieldsPerCar": 142,
+      "finalLocalSpeed": 0.24464257061481476,
+      "identicalAcrossProcesses": true,
+      "maximumLocalSpeed": 11.293929100036621,
+      "maximumTotalDamage": 51,
+      "sha256": "88db37aca76950cc7d8e69254633734d44d63acdb83d76b8a40dd3967ad761e7",
+      "ticks": 4000
+    },
+    "stationary": {
+      "cars": 1,
+      "collisionTicks": 0,
+      "fieldsPerCar": 142,
+      "finalLocalSpeed": 0.000996593153104186,
+      "identicalAcrossProcesses": true,
+      "maximumLocalSpeed": 0.0010316449915990233,
+      "maximumTotalDamage": 0,
+      "sha256": "e553be5954bd1d88fe134cdcbccea8770bd73f1f193a1e4b29060e873d10029f",
+      "ticks": 1000
+    }
+  },
+  "schema": 1,
+  "scope": "Original physics repeatability, not native whole-vehicle parity"
+}

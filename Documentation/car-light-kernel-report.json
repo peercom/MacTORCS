@@ -1,0 +1,205 @@
+{
+  "schema": 1,
+  "date": "2026-09-23",
+  "increment": "Original car-light configuration, state, billboard and texture-rotation kernels; immutable command publication",
+  "reference": "TORCS 1.3.9",
+  "goalComplete": false,
+  "tests": {
+    "fullDebug": 252,
+    "selectedRelease": 29,
+    "selectedASan": 29,
+    "inventory": 252,
+    "failures": 0,
+    "newTests": 6,
+    "xmlFixtures": 15,
+    "lightDefinitions": 29,
+    "configurationMaximumAbsoluteError": 0,
+    "updateCases": 1008,
+    "worldPositionMaximumAbsoluteError": 0,
+    "enablementAndVisibilityExact": true,
+    "billboardCases": 2400,
+    "vertexScalars": 28800,
+    "vertexMaximumAbsoluteError": 0,
+    "textureMatrixMaximumAbsoluteError": 0,
+    "colorAndUVExact": true,
+    "originalDrawStateCallsCaptured": true,
+    "randomSequenceDraws": 8000,
+    "randomSeeds": 4,
+    "randomAngleMaximumAbsoluteError": 0,
+    "disabledDrawConsumesNoRandom": true,
+    "invalidDrawRollsBackRandom": true,
+    "nativePublicationTicks": 2000,
+    "nativeIsolationDraws": 800,
+    "isolationCompared": [
+      "body position",
+      "body velocity",
+      "engine speed",
+      "physics RNG state",
+      "physics RNG draw count"
+    ]
+  },
+  "implementation": {
+    "configurationInDrivingContent": true,
+    "currentBrakeAndLightCommandSnapshot": true,
+    "headlightInputBindings": false,
+    "originalNumberedLookupAndUnknownTypeDefaults": true,
+    "originalFixedCapacityNativeGuard": 14,
+    "drawRandomness": "Isolated presentation stream matches this host libc; does not reproduce original graphics/physics global RNG coupling",
+    "renderedLights": false,
+    "GPUIntegrationPending": true,
+    "newGPUPerformanceClaim": false
+  },
+  "regression": {
+    "diagnostic": "BrakeVisualSmoke",
+    "imageHashesAndAllRecordsUnchanged": 24,
+    "immediateExactRepeatPairs": 24,
+    "nativePhysicsTicks": 4500,
+    "baseline": "Artifacts/brake-preview-first/report.json",
+    "new": "Artifacts/car-light-brake-regression/report.json"
+  },
+  "build": {
+    "releaseNativeBinarySHA256": "0c45687700dea2a8bbac150e01c7f7b7d0b53d085ab9566f40973ccac9ded765",
+    "nativeBinaryNoDirectCPlusPlusOrExpat": true,
+    "newPreviewPackaged": false,
+    "latestVisiblePreview": "build/TORCSBrakePreview.app"
+  },
+  "provenance": {
+    "archiveSHA256": "f9c69e86d290295467451b01d7838d85005ba613644a6fe8a3f85a7c6a03cd4c",
+    "verifiedPinnedEntries": 223,
+    "sourceAndLicenseEntries": 177,
+    "contentEntries": 46,
+    "newPinnedSources": [
+      "grcarlight.cpp",
+      "grcarlight.h"
+    ],
+    "byteVerifiedExcerpts": 4,
+    "newArtworkImported": 0,
+    "GLAdapter": "Captures calls from unchanged original draw; composes texture matrices with original PLIB, not original GL driver output"
+  },
+  "preserved": {
+    "build/TORCSBrakePreview.app/Contents/MacOS/TORCSMac": "2cf7fd17b97d151ce5ebab5f851beab4cbbee7eb04e3ba825aace178b1d052ac",
+    "Packages/TORCSMetal/SceneRenderer.swift": "0623407de59093f4b34bc598c803f83ec2ac6930fb57bf55d3a8c220b07b48a9",
+    "Packages/TORCSMetal/Scene.metal": "4396144a2cfc7eb97ad10ddcc09d898b01d979b328bb4f15de8742b2e62e3e66",
+    "/Users/holgervonameln/Library/Application Support/TORCSMac/cameras.json": "b62c5a2a334ac0748b201b64b9dbe3ade377d796a596fcba7bd38833a4c084e8"
+  },
+  "sourceSnapshot": [
+    {
+      "path": "Packages/TORCSRaceEngine/CarLightDefinition.swift",
+      "sha256": "6bbe70942146ad1ce3f1ad8083e1b87de1cc25feebbb41c85b6e310c3aab5e70"
+    },
+    {
+      "path": "Packages/TORCSMetal/CarLightGeometry.swift",
+      "sha256": "8dad8594219fa791b1136d37b5e0d91d614a3e8736e17fce8824fd232231fb0c"
+    },
+    {
+      "path": "Packages/TORCSRaceEngine/DrivingContent.swift",
+      "sha256": "d83cdf7d61f3ce875ac4ddceecc92171274d713e2dd7037a6718c0f45968467a"
+    },
+    {
+      "path": "Packages/TORCSSimulation/DriverCommand.swift",
+      "sha256": "b37a2dfa8aaad29a88e79458fe09f4803fcdf4484fa08446633d58b0dd3aead1"
+    },
+    {
+      "path": "Packages/TORCSSimulation/VehicleVisualSnapshot.swift",
+      "sha256": "38d9cd844e401d77cdc9f3f7df1b0927c7bcb27fd0b925ed9f516182df17fba5"
+    },
+    {
+      "path": "Tests/UnitTests/CarLightTests.swift",
+      "sha256": "f1ce510a3c985db85847201c37d115347757fe11208d542ce0cf95cebc1b91dc"
+    },
+    {
+      "path": "Upstream/Reference/carlight-instrumentation.cpp",
+      "sha256": "709c9ad0e0c9887e339d551669f0ab6a97ac63b126f82e1c7794221b0fb8489b"
+    },
+    {
+      "path": "Upstream/Reference/include/CReference.h",
+      "sha256": "66fb55fd3bb6e670b701169f0316e01dc26ef54814058f6fab81edb01380e380"
+    },
+    {
+      "path": "Upstream/Reference/graphics/grcarlight.cpp",
+      "sha256": "1cef763ed2f19d2a0e96c265487d3330fab4105ab7ab5208f4fb6ffd6a3c3ccb"
+    },
+    {
+      "path": "Upstream/Reference/graphics/grcarlight.h",
+      "sha256": "e613ebb4b59a6261e955a40b492d2f41dc19d9cc46b4cd5cdcb50a642e71b352"
+    },
+    {
+      "path": "Upstream/Reference/graphics/carlight-config.inc",
+      "sha256": "343f858e96f2e52c7c647d90aeda60b61c17ba9529991189f63dd6db5dacf35a"
+    },
+    {
+      "path": "Upstream/Reference/graphics/carlight-update.inc",
+      "sha256": "44161c639c4e20e5e786fe3b9f3257c7b98dda03b2a60c50b6722e05529847c6"
+    },
+    {
+      "path": "Upstream/Reference/graphics/carlight-draw.inc",
+      "sha256": "d71293462d356dadc2452c2236280f2b161e1af11d5bfbeace820e98e35439da"
+    },
+    {
+      "path": "Upstream/Reference/graphics/carlight-constants.inc",
+      "sha256": "d0e3bbe8c21c9901cf890664de37b6d5c754a2f69a07c7c50062ab8a11581a71"
+    },
+    {
+      "path": "Scripts/verify-provenance.py",
+      "sha256": "2b0e12efbe7b68301109346f554cd51aeb0a3a92b490ba1ef3ebe130019f372c"
+    },
+    {
+      "path": "Upstream/source-manifest.json",
+      "sha256": "561e2ba0a05039f76c634d80b2d4e0e8d1db5e8a7434726d89e8524e032c702a"
+    },
+    {
+      "path": "Package.swift",
+      "sha256": "d86c7e7ee0f33224c99ac8e1cba21aac04e978e2a4218a11f777f7e1797f9300"
+    }
+  ],
+  "evidenceSnapshot": [
+    {
+      "path": "Artifacts/car-light-full-debug.log",
+      "sha256": "1c6abb78cc0e659463ad3abd00274501fc88a536ba03f6f6634e4a42739ecdbd"
+    },
+    {
+      "path": "Artifacts/car-light-release.log",
+      "sha256": "91d54ef365e96e952cc6da850a29d934e79f6757e5768a17d6518648d0099507"
+    },
+    {
+      "path": "Artifacts/car-light-asan.log",
+      "sha256": "9c7173792e048aa6470c36f1b36c8a6a8876425494901869becd3a47984540f8"
+    },
+    {
+      "path": "Artifacts/car-light-inventory.log",
+      "sha256": "d1961b29a179e7ccc52e93f508c18dea47bf9c2143fd6c81061d0e0cc43cfeae"
+    },
+    {
+      "path": "Artifacts/car-light-provenance.log",
+      "sha256": "97d482a124871eb17aa7377598b5ff2b103774ce5325596b266ea149e083e524"
+    },
+    {
+      "path": "Artifacts/car-light-archive.log",
+      "sha256": "429b5500b68ce0a378536d6899fd2d408d3e9b6af53fe3f2ac8de549404a656b"
+    },
+    {
+      "path": "Artifacts/car-light-runtime-libraries.log",
+      "sha256": "8b7740d7a22bbede01fae569b39350a51f087ee57e525820bce519e4bc526e57"
+    },
+    {
+      "path": "Artifacts/car-light-brake-regression.log",
+      "sha256": "41570eb8d74c571d3cf46f310137cd6d1b87e8fa9f46c8ba3f2bb9b18464119f"
+    },
+    {
+      "path": "Artifacts/car-light-brake-regression/report.json",
+      "sha256": "c17177ed872f864b1fee453614c256add6f03d306209159d134e8cac194f5254"
+    },
+    {
+      "path": "Artifacts/car-light-source-textures.json",
+      "sha256": "0a3ec63df770005d4f71ddb97e95f98cc967075743f202a33e2dcf66a6b2d2bb"
+    }
+  ],
+  "remaining": [
+    "texture-backed Metal light submission and GPU tests",
+    "original one-point culling, transparent ordering and per-view draw random scheduling",
+    "light nodes in Fly scene bounds",
+    "actual native brake-light captures and isolated performance measurement",
+    "headlight input bindings and artwork attribution",
+    "remaining full port scope: racing, AI, audio, replay, content, profiling and distribution"
+  ]
+}

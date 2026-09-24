@@ -1,0 +1,1403 @@
+{
+  "release": "TORCS 1.3.9",
+  "archive_sha256": "f9c69e86d290295467451b01d7838d85005ba613644a6fe8a3f85a7c6a03cd4c",
+  "files": [
+    {
+      "path": "Upstream/Reference/susp.cpp",
+      "source": "src/modules/simu/simuv2/susp.cpp",
+      "sha256": "05a6075c968089fb61b34a9b40f6cc0ba3c7456ad3943ff446c5d39aefb625e8",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2000-2016 by Eric Espie, Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/brake.cpp",
+      "source": "src/modules/simu/simuv2/brake.cpp",
+      "sha256": "1f7b7adc4fa04630059d72974d5fe2feffd8face8eb23525de1018b34b3cd0e9",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2000-2026 by Eric Espie, Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/steer.cpp",
+      "source": "src/modules/simu/simuv2/steer.cpp",
+      "sha256": "b6147f9670122988c012ed3a23c539a2c393095044b0982ab04dd8038c793344",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2000-2026 by Eric Espie, Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/private/differential.h",
+      "source": "src/modules/simu/simuv2/differential.h",
+      "sha256": "b330feffbc029be992bbc9963e93c956c55e51e66afbe0fbf64b56ad3c04721c",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2000 by Eric Espie"
+    },
+    {
+      "path": "Upstream/Reference/private/susp.h",
+      "source": "src/modules/simu/simuv2/susp.h",
+      "sha256": "164e17ee323965885397c82d4e808b6b9661431d618f83e2a5963e3f07e3fe88",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2000-2016 by Eric Espie, Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/private/aero.h",
+      "source": "src/modules/simu/simuv2/aero.h",
+      "sha256": "4eb0e292b5ab3670072bf8152a4d838bc8b0cf8d69ae5e65a1e53b72cd4c96a1",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2000 by Eric Espie"
+    },
+    {
+      "path": "Upstream/Reference/private/engine.h",
+      "source": "src/modules/simu/simuv2/engine.h",
+      "sha256": "ebf83b124cb5eb966c13caa9f103f6d9f26249e1d5817e2037db78c1b7a6fa03",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2000 by Eric Espie"
+    },
+    {
+      "path": "Upstream/Reference/private/axle.h",
+      "source": "src/modules/simu/simuv2/axle.h",
+      "sha256": "5d1f29e83c290e1efb3addec5e207413c1582a5217314417adacd63cd753db26",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2000-2013 by Eric Espie, Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/private/wheel.h",
+      "source": "src/modules/simu/simuv2/wheel.h",
+      "sha256": "fae0a1a997b842527cc906904c53b6e77f6610846791b318d491adb7f4d71b63",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2000-2017 by Eric Espie, Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/private/sim.h",
+      "source": "src/modules/simu/simuv2/sim.h",
+      "sha256": "308036d005d0236e67815732793117d7f6c28e6aa850bfa6634a372e1df4ac34",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2000-2017 by Eric Espie, Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/private/brake.h",
+      "source": "src/modules/simu/simuv2/brake.h",
+      "sha256": "8b56bfac46f4e8d6902de6b7004ca54f75422f7ddff681cd520a3f749c206a82",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2000-2024 by Eric Espie, Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/private/steer.h",
+      "source": "src/modules/simu/simuv2/steer.h",
+      "sha256": "a5ebb6cb237d1f8686aeca875d11cb386e175bb5363a5e849f0ccf3cb3fe6cbb",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2000 by Eric Espie"
+    },
+    {
+      "path": "Upstream/Reference/private/transmission.h",
+      "source": "src/modules/simu/simuv2/transmission.h",
+      "sha256": "9129ca592ed5fcdf6ca4055f7c3db70eb348cc7fe2e3b56793c7c6b6eb2ae3c0",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2001 by Eric Espi\ufffd"
+    },
+    {
+      "path": "Upstream/Reference/private/carstruct.h",
+      "source": "src/modules/simu/simuv2/carstruct.h",
+      "sha256": "9deaee74d8e8894dbe0dbed7b20f17d0cfa7db77bba9193495d2b6fb9473ef4c",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2000-2013 by Eric Espie, Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/private/playerpref.h",
+      "source": "src/interfaces/playerpref.h",
+      "sha256": "7d2142dc1c5d4cb6193f8d3d62b45b9fae7d462f0c123ba36bd5d03e98b25fbd",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2001-2024 by Eric Espie, Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/private/car.h",
+      "source": "src/interfaces/car.h",
+      "sha256": "6925000ae7bfa0b2101824dcb245b80ef8d025209276cf06bfcbd1510304940c",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2000-2024 by Eric Espie, Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/private/track.h",
+      "source": "src/interfaces/track.h",
+      "sha256": "2b15f1c20c8983cf9feb3b7d6d3cf1673ca34c178b39f46653107d2be98fe54d",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2000-2024 by Eric Espie, Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/private/replay.h",
+      "source": "src/interfaces/replay.h",
+      "sha256": "65b7565fbabd4caf09bc1eb75a95bf5969a5f6ed74b293d2e4418d7ff2143f32",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2000 by Eric Espie"
+    },
+    {
+      "path": "Upstream/Reference/private/robot.h",
+      "source": "src/interfaces/robot.h",
+      "sha256": "add6dc48a9eb72baf32bb9a98a08d3a7dd034400c52196aaa29b50f40af943f0",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2000-2014 by Eric Espie, Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/private/simu.h",
+      "source": "src/interfaces/simu.h",
+      "sha256": "913c0d919fe3ffdc64e96a1a75c2cff58eb2bba9adfc5f0d618255a7893aa4ab",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2000-2017 by Eric Espie, Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/private/raceman.h",
+      "source": "src/interfaces/raceman.h",
+      "sha256": "6aafddd56f73ed13c80852d7448f2a5b624026ab8051e75a75d287cd9525650c",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2000,2002-2017 by Eric Espie, Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/private/graphic.h",
+      "source": "src/interfaces/graphic.h",
+      "sha256": "9fc9296c4687db4808e502a5458cf5ce6cabf6e1ae41dc77f123035ee0ae3e8c",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2000-2013 by Eric Espie, Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/private/telemetry.h",
+      "source": "src/interfaces/telemetry.h",
+      "sha256": "2a3f108af8952c1a0df0b8730923e6351d511a261b0b177a60ff66042aa9249a",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2000 by Eric Espie"
+    },
+    {
+      "path": "Upstream/Reference/private/tmath/v4_t.h",
+      "source": "src/libs/math/v4_t.h",
+      "sha256": "98a2143f81e6a19ffb725dcaaca1cdf2509b5e46531d53b8fcfe907c67f00cdd",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2005 by Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/private/tmath/v3_t.h",
+      "source": "src/libs/math/v3_t.h",
+      "sha256": "d97581b163d685bb0bffd4f61c815df00cf71741c459ee35336aee1bf245278a",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2005 by Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/private/tmath/v2_t.h",
+      "source": "src/libs/math/v2_t.h",
+      "sha256": "f38d9a531eec8db257197a9746aeb65272b4da70c2a269830edb0ce9272480b6",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2005 by Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/private/tmath/linalg_t.h",
+      "source": "src/libs/math/linalg_t.h",
+      "sha256": "16031b66e4252f2f4c03bcb757e83163dbabf2cdb215effd83a9b99ace5c599b",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2002-2005 by Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/private/tmath/straight2_t.h",
+      "source": "src/libs/math/straight2_t.h",
+      "sha256": "467c314b07604344f0b7faf8d31a2a7cf7516800fc939479decd123977c864bc",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2005 by Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/private/tgf.h",
+      "source": "src/libs/tgf/tgf.h",
+      "sha256": "0e65ffbeaf411826cf1427ae2e9bff556c72c636e71862022eec1be6b4299e2a",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 1999-2026 by Eric Espie, Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/private/osspec.h",
+      "source": "src/linux/osspec.h",
+      "sha256": "836a1dcdd5208a317bfa5a061a8cf2a05f4f32fead0e019ec4c2494a01b8e08e",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2000 by Eric Espie"
+    },
+    {
+      "path": "Upstream/Reference/private/robottools.h",
+      "source": "src/libs/robottools/robottools.h",
+      "sha256": "fd70461fadd6a39a0735ca44a0bbd832f627522234e84f6a9f250833bfe3388d",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2000 by Eric Espie"
+    },
+    {
+      "path": "Upstream/Reference/private/SOLID/solid.h",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/include/SOLID/solid.h",
+      "sha256": "eef676643798b16069634bb912014ae844ba2294c1ac634354dc707cbad8c695",
+      "modified": false,
+      "license": "LGPL-2.0-or-later",
+      "copyright": "Copyright (C) 1997-1998 Gino van den Bergen"
+    },
+    {
+      "path": "Upstream/Reference/simu.cpp",
+      "source": "src/modules/simu/simuv2/simu.cpp",
+      "sha256": "d5638f23811069e489acc5c6f736c0b897291dd107bd05a44bc181b792737e38",
+      "modified": false,
+      "license": "GPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/car.cpp",
+      "source": "src/modules/simu/simuv2/car.cpp",
+      "sha256": "dcdf23c12c6a8207baa6d00cb4def869dd903ae48797ad201419b34484e7c966",
+      "modified": false,
+      "license": "GPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/aero.cpp",
+      "source": "src/modules/simu/simuv2/aero.cpp",
+      "sha256": "45e7b1d62d7c94000c2ecd6a2682a8d6af2ceb74fb70faec346bc6228521fdd9",
+      "modified": false,
+      "license": "GPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/engine.cpp",
+      "source": "src/modules/simu/simuv2/engine.cpp",
+      "sha256": "5908f58ae310926bdb6b766b6a061ecab3ea7178ef4bfbbc2aa520ba59ffbd55",
+      "modified": false,
+      "license": "GPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/axle.cpp",
+      "source": "src/modules/simu/simuv2/axle.cpp",
+      "sha256": "8a93b97dd8ad6aa6126bf0c622fdf0cb7468c37a439c413b61eb503a1dae009d",
+      "modified": false,
+      "license": "GPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/wheel.cpp",
+      "source": "src/modules/simu/simuv2/wheel.cpp",
+      "sha256": "7228fe05860615082f075cd2970c4bcdf48a242623a609427da34227b15125ec",
+      "modified": false,
+      "license": "GPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/transmission.cpp",
+      "source": "src/modules/simu/simuv2/transmission.cpp",
+      "sha256": "8598ffc4323a95e14aba789ebe45c13760dabdf47c1aced559936d80c253a610",
+      "modified": false,
+      "license": "GPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/differential.cpp",
+      "source": "src/modules/simu/simuv2/differential.cpp",
+      "sha256": "aa8ef862e3f2e5df5fdbf84c23f38c6bf8f045a26ac144c26b76d60cab69262d",
+      "modified": false,
+      "license": "GPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/collide.cpp",
+      "source": "src/modules/simu/simuv2/collide.cpp",
+      "sha256": "d72b3b5585cf34da5d3649b8d3199663be088fff24b0736cb281908d660ce230",
+      "modified": false,
+      "license": "GPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/categories.cpp",
+      "source": "src/modules/simu/simuv2/categories.cpp",
+      "sha256": "91a1f703593d75fe47f3af8b5535579da7ee931c1482b406dae16c2e677ef2c6",
+      "modified": false,
+      "license": "GPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/atmosphere.cpp",
+      "source": "src/modules/simu/simuv2/atmosphere.cpp",
+      "sha256": "3141cc1b0d9bd354e6ceab425faa281cc51bacedd971467defc12f3943a0daff",
+      "modified": false,
+      "license": "GPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/track/track.cpp",
+      "source": "src/modules/track/track.cpp",
+      "sha256": "f83652adbd8608933327d8a4841d02ffe0318ff6a665de8c20be551907984bb0",
+      "modified": false,
+      "license": "GPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/track/track3.cpp",
+      "source": "src/modules/track/track3.cpp",
+      "sha256": "0f791bf5d5123aa139f60395b60754d5d42117ae20d70921b5321fca577d3778",
+      "modified": false,
+      "license": "GPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/track/track4.cpp",
+      "source": "src/modules/track/track4.cpp",
+      "sha256": "8f6c75a53f83212c98865d13d24c00ab4cfdc3ad9feb2056084bc153aefebb8f",
+      "modified": false,
+      "license": "GPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/track/trackutil.cpp",
+      "source": "src/modules/track/trackutil.cpp",
+      "sha256": "af35921c9754cd9b3955fa6143f03143b7343d78ca89a400faca3337d7e23b70",
+      "modified": false,
+      "license": "GPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/track/trackinc.h",
+      "source": "src/modules/track/trackinc.h",
+      "sha256": "87455df9648548852f1386becbd173656378d7228f731a74c95b129d536863c2",
+      "modified": false,
+      "license": "GPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/rttrack.cpp",
+      "source": "src/libs/robottools/rttrack.cpp",
+      "sha256": "d9d88f248493c5f67670d496350f3c1d82dbb7da4fd92de0105d05d6aa10e59d",
+      "modified": false,
+      "license": "GPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/params.cpp",
+      "source": "src/libs/tgf/params.cpp",
+      "sha256": "acabf8e0cd8a1d4de819b12ca5102b39999ed05e0eab4c81cfa2d04fb94bf84e",
+      "modified": false,
+      "license": "GPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/hash.cpp",
+      "source": "src/libs/tgf/hash.cpp",
+      "sha256": "48ded1466d37eab0fc37878dc3cc6e4b5eaff049f757e858ed0379e3a216d5ed",
+      "modified": false,
+      "license": "GPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/private/portability.h",
+      "source": "src/libs/portability/portability.h",
+      "sha256": "9ab1a545332750bec0c17850bcefd81703b058f8982770f3981e5a31a9bbd7e5",
+      "modified": false,
+      "license": "GPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/private/plib/sg.h",
+      "source": "src/windows/dependencies/vs2022_win32/plib-code-r2173-trunk-vsproj/src/sg/sg.h",
+      "sha256": "9d2bf096f7a6bf2d7b1a4d6b6efdb445638330336e1c8066cd87a2d62b04a631",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/private/plib/ul.h",
+      "source": "src/windows/dependencies/vs2022_win32/plib-code-r2173-trunk-vsproj/src/util/ul.h",
+      "sha256": "3cfcfee26ae45c1ff9b3ff3ee209b2710f704c34b8f6bc91538ac2d6e3d2cb63",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/plib/sg.cxx",
+      "source": "src/windows/dependencies/vs2022_win32/plib-code-r2173-trunk-vsproj/src/sg/sg.cxx",
+      "sha256": "df99a14128ae32ea98f20fed4340f9967187d56d9c2a2b4733a96092d12c31ce",
+      "modified": true,
+      "license": "LGPL-2.0-or-later",
+      "source_sha256": "32c0f7b752555a0fdcd03ed9e87a4824eacaa8f3d9ae5cbe7cfe19b1b77b627d",
+      "notes": "macOS portability: obsolete finite predicate renamed to isfinite; no change to numerical semantics."
+    },
+    {
+      "path": "Upstream/Reference/plib/sgd.cxx",
+      "source": "src/windows/dependencies/vs2022_win32/plib-code-r2173-trunk-vsproj/src/sg/sgd.cxx",
+      "sha256": "83701966f7e0cdb5a67400c3275625be8a9c2b9fc441daadcbf8a44f8d23c182",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/plib/ulError.cxx",
+      "source": "src/windows/dependencies/vs2022_win32/plib-code-r2173-trunk-vsproj/src/util/ulError.cxx",
+      "sha256": "71dc7e13c8393b3f20b4ee4bdc58281a421d547fab70d0fd3ac3629cf351f2c8",
+      "modified": true,
+      "license": "LGPL-2.0-or-later",
+      "source_sha256": "7634de14dd41b37b1a7af5d6b5759339a27da31c283c1512677c07ed9e80dd95",
+      "notes": "Bound the diagnostic formatting buffer; no physics behavior change."
+    },
+    {
+      "path": "Upstream/Reference/solid/Cone.h",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/Cone.h",
+      "sha256": "fd7189c044cb0a8071b5ad113a82d82ee63fd89c04913c7e1ad0dce08b1c2df5",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/BBox.h",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/BBox.h",
+      "sha256": "d31409aeb19800b52fd675babab07b7787ca8fd736e3277e27461fbc87ffc380",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/Box.h",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/Box.h",
+      "sha256": "e94be99946662da9473386e212f30d0ce71e2538442e42cc5b2c7cf3bab810fc",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/Endpoint.h",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/Endpoint.h",
+      "sha256": "6b76f868bae909a4b5240a4036c4321fb6b07cc08b7e3ca1e2ded4b39e5f27de",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/AlgoTable.h",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/AlgoTable.h",
+      "sha256": "42eb5410f4e138defe29c7a9ec10eec724b356c5217c357189dc17092c524928",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/C-api.cpp",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/C-api.cpp",
+      "sha256": "f5a238f6cca0992593d81e37069689ac37652dc630622d6c263bb104d6c26fe7",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/Polygon.h",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/Polygon.h",
+      "sha256": "808c83bb639024e07067bac02d8f46ff5087f846132d6448e10afe823f0e6a9b",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/Cylinder.cpp",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/Cylinder.cpp",
+      "sha256": "3c97d3d60ed70294e7576aee976e7a225c8f1f4c695223a8012376dca69a88a4",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/Simplex.cpp",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/Simplex.cpp",
+      "sha256": "3d5779f7d8c3369c728fd9836a5d759fb0dcb05231fb20dd47600867af67facd",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/Response.h",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/Response.h",
+      "sha256": "4e46a3092ca588a40aca8cbc2a5bc16ad68df5d22869dd96b467933c612ece82",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/Polyhedron.h",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/Polyhedron.h",
+      "sha256": "9bb69908d2cc8d348f934b8a7c5c93929019bd7f7847c9c7245b5d065579989a",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/Box.cpp",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/Box.cpp",
+      "sha256": "03700795061959a7bda5181a455abcf4bacb40499d4c7c517b7c506738076a64",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/Encounter.h",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/Encounter.h",
+      "sha256": "77d9cc4065b5a1ac78eb02c2660ab7a49fb3acd19b078a48cd94d10e823a5f70",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/RespTable.cpp",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/RespTable.cpp",
+      "sha256": "f8ec053ff119cfad2bcef044835f4ed55f8cc582b7df40d56ce904b3b6df63fe",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/Sphere.h",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/Sphere.h",
+      "sha256": "450115cbde1fb3cdcfaba7e55895101b5b3556f56298fe0c8d5616d0297db4fa",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/Object.cpp",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/Object.cpp",
+      "sha256": "ab7df8d24cdbff30a50bc424352a911ca30c9d5fea826869c64a9d620420e0f0",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/Simplex.h",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/Simplex.h",
+      "sha256": "57add87438cf7bfdee2017f28df1c74c51121cd5890bffa4ce7e3f889deed519",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/Cylinder.h",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/Cylinder.h",
+      "sha256": "cfe5107bfec6b6cee29e7b15b54fe3343fef9e38a82ad246fa9e02d8ed28c594",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/VertexBase.h",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/VertexBase.h",
+      "sha256": "888928f38133193eee7136f90e50d77253169140abbbc2e1c5e29bf464644f11",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/Endpoint.cpp",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/Endpoint.cpp",
+      "sha256": "a66dc04feadadeb6080b4a330c9124ad5e9ba3935cc0b244825ab8c0aa7e51aa",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/Shape.h",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/Shape.h",
+      "sha256": "f1889acd940f49119344735b7d228e0af75288766d0b71894e82252d47fcb501",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/RespTable.h",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/RespTable.h",
+      "sha256": "8d31951e27a7cc36726d0650bf0a89af8c33d92f79390baacdd22912f8e73a75",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/BBoxTree.cpp",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/BBoxTree.cpp",
+      "sha256": "1f10fb884840fbcdcb8bf99beace7ecfedf54a209248cd18bf1b3ab0d07986ed",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/Cone.cpp",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/Cone.cpp",
+      "sha256": "ca4195fd3b0f2c67f5db97cbe551bbe573b6885aec7f4ce492b3127bfbc5130e",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/Complex.cpp",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/Complex.cpp",
+      "sha256": "0ae8420ca8f17935784c5892fcbabc90c9ee9dcbbf3e1d1333e126d0b2563b0d",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/Transform.cpp",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/Transform.cpp",
+      "sha256": "d04fc8999c05303d602e1ed7b55049ff7a405f9c1ef59776677b4da4d165e0e1",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/Response.cpp",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/Response.cpp",
+      "sha256": "22e6e29c8b0036096d6468c83d340895461894fc871fec8a6455a93ffeedb372",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/IndexArray.h",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/IndexArray.h",
+      "sha256": "088fe40ade6ea4c48438508aa5b28d5a230798345b2522a0cc3ff891d09dc363",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/Transform.h",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/Transform.h",
+      "sha256": "d20becd1ffea062cdc5b3c8afb5bdd4ed3bd0c5636b615882be1755431866b5b",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/Polytope.h",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/Polytope.h",
+      "sha256": "712ab00c1f5e668baaae4a3698d2201c52118a5ebae2a70b2a3a57e00ecba5d5",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/Polygon.cpp",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/Polygon.cpp",
+      "sha256": "4ec04969579b93587e1f0654b76e904b763e8086c90ead1702e0ca1dc19cd625",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/BBoxTree.h",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/BBoxTree.h",
+      "sha256": "36a4a6eac5cb9193e35cc5c52b722c66927cb72c6d18ad2b7870380db74e9041",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/Object.h",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/Object.h",
+      "sha256": "8647a6db4f27ade2e05644c9d6cff55d96685972dc6f606ce3582b8c36012014",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/Sphere.cpp",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/Sphere.cpp",
+      "sha256": "08177fd51a7d1915a80cd8558b23d1207423253cbeb90d566c92b16892cfaf82",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/Convex.h",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/Convex.h",
+      "sha256": "496f614eed287c62dcc1346b3599a86f7a84abe861c0b014727c9b88e13dea98",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/Polyhedron.cpp",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/Polyhedron.cpp",
+      "sha256": "50a67f38d57c5f366745d6e55196ee94cff678f697a13d006af20b98a3f1e929",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/Convex.cpp",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/Convex.cpp",
+      "sha256": "a4c6f0c0ede82d9817e2b481cad2416629924e035932e40377fc02272c5b86c3",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/Complex.h",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/Complex.h",
+      "sha256": "d7347671067950d24388ddf37ef1102d8ae03226439f62c245ae4ed225c8b42a",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/private/3D/Point.h",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/include/3D/Point.h",
+      "sha256": "20dc36590570c10bcd0d404981594c8cecc2e5836d9b6f2b5ecdc25944a3cf93",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/private/3D/Quaternion.h",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/include/3D/Quaternion.h",
+      "sha256": "6123d22f6fd7f40c424b94686f9a6d04932aa201e049041f030d636efdbe6837",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/private/3D/Matrix.h",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/include/3D/Matrix.h",
+      "sha256": "22bad8d741e741106a9a32e9ec0e6b82b2d7f502ecf33017c5d6bf2c019cd254",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/private/3D/Basic.h",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/include/3D/Basic.h",
+      "sha256": "efb6a8fba80d85a703ccda79f5d31fa134404c786186d5049513a481f4e5d871",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/private/3D/Tuple4.h",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/include/3D/Tuple4.h",
+      "sha256": "203abaabb0a92f0670941974377fa58cf165e5c651f7b6bc6ba3e2555cc09361",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/private/3D/Tuple3.h",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/include/3D/Tuple3.h",
+      "sha256": "a09ca0534b39d5533afcbf378deb9cc4eb64e4938725be311823b2cdd3f907b0",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/private/3D/Vector.h",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/include/3D/Vector.h",
+      "sha256": "5ecf534dd1913b0fb4dde284de03599278f0a85b063d8f185dec4dbdeeaeafb8",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Licenses/PLIB-LGPL-2.0.txt",
+      "source": "src/windows/dependencies/vs2022_win32/plib-code-r2173-trunk-vsproj/COPYING",
+      "license": "LGPL-2.0-or-later with retained special exception",
+      "modified": false,
+      "sha256": "180716246fbd680c95b2ccfbba221f7fde4c832a73612c13208187c10e435aaa"
+    },
+    {
+      "path": "Upstream/Reference/race/raceengine.cpp",
+      "source": "src/libs/raceengineclient/raceengine.cpp",
+      "sha256": "9be98c869b2631f76e49977b435bb3ead3b9314b309b318bb2621dfca8cf6f92",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "Eric Espie, Bernhard Wymann; original notices retained"
+    },
+    {
+      "path": "Upstream/Reference/race/raceinit.cpp",
+      "source": "src/libs/raceengineclient/raceinit.cpp",
+      "sha256": "cee496f75ec24c6ac4a690b07a50274cc5c2ad521999c5689c7c7cfc8227635e",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "Eric Espie, Bernhard Wymann; original notices retained"
+    },
+    {
+      "path": "Upstream/Reference/race/racemain.h",
+      "source": "src/libs/raceengineclient/racemain.h",
+      "sha256": "375d66ff715684ed5e049aa9163b80d86755965e17356e5e134ffe2094fdc2e8",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "Eric Espie, Bernhard Wymann; original notices retained"
+    },
+    {
+      "path": "Upstream/Reference/race/racegl.h",
+      "source": "src/libs/raceengineclient/racegl.h",
+      "sha256": "dd122e93158f0a91f1f18e7e28be06c1648e1af84feb6c7ad03a3cb3a5395ca1",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "Eric Espie, Bernhard Wymann; original notices retained"
+    },
+    {
+      "path": "Upstream/Reference/race/raceinit.h",
+      "source": "src/libs/raceengineclient/raceinit.h",
+      "sha256": "b244dba819d054bf744976f82739dd46565bfbf26f913b88895a1e1d52d23822",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "Eric Espie, Bernhard Wymann; original notices retained"
+    },
+    {
+      "path": "Upstream/Reference/race/raceresults.h",
+      "source": "src/libs/raceengineclient/raceresults.h",
+      "sha256": "b11e78937ae3ecbb0996f16b42961dc1b814d55747e84cf49feddfea3ca7b9f3",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "Eric Espie, Bernhard Wymann; original notices retained"
+    },
+    {
+      "path": "Upstream/Reference/race/raceengine.h",
+      "source": "src/libs/raceengineclient/raceengine.h",
+      "sha256": "24e743beaf36dd1f5ab6753db9e851794f99c245b7bdd9a77c5433a97baf722b",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "Eric Espie, Bernhard Wymann; original notices retained"
+    },
+    {
+      "path": "Upstream/Reference/assets/grloadac.cpp",
+      "source": "src/modules/graphic/ssggraph/grloadac.cpp",
+      "sha256": "394e688f67de895a563011dcf2619a5a3f952990074c87882da4ebf83d0eaf79",
+      "modified": false,
+      "license": "LGPL-2.0-or-later",
+      "copyright": "(C) 2001 Steve Baker; original PLIB notice retained"
+    },
+    {
+      "path": "Upstream/Reference/plib/ul.cxx",
+      "source": "src/windows/dependencies/vs2022_win32/plib-code-r2173-trunk-vsproj/src/util/ul.cxx",
+      "sha256": "05ce932c76cd9048c07270c54107dc20319d9469e97553bd1c73ca3f4e52697b",
+      "modified": false,
+      "license": "LGPL-2.0-or-later",
+      "copyright": "(C) 1998,2002 Steve Baker"
+    },
+    {
+      "path": "Upstream/Reference/textures/ssgLoadSGI.cxx",
+      "source": "src/windows/dependencies/vs2022_win32/plib-code-r2173-trunk-vsproj/src/ssg/ssgLoadSGI.cxx",
+      "license": "LGPL-2.0-or-later",
+      "copyright": "(C) 1998,2002 Steve Baker",
+      "modified": false,
+      "sha256": "9d61687f9795bc9a9267bbda7f0ada5d42144eec70458a7e234cb7ace33c6e03"
+    },
+    {
+      "path": "Upstream/Reference/textures/grtexture.cpp",
+      "source": "src/modules/graphic/ssggraph/grtexture.cpp",
+      "license": "GPL-2.0-or-later; PLIB-derived portions LGPL-2.0-or-later",
+      "copyright": "(C) 2005 Bernhard Wymann; PLIB portions (C) 1998,2002 Steve Baker",
+      "modified": false,
+      "sha256": "22fe6269fa06b2c618eea5ab779c66129a42e89809d84337a340583fc866f4d9"
+    },
+    {
+      "path": "Upstream/PNGReference/png.c",
+      "source": "src/windows/dependencies/vs2022_win32/lpng1650/png.c",
+      "sha256": "c439e93c040d6c0913f6e6e3847c44d985a3a7cefc60158deece24ab55dfd92b",
+      "modified": false,
+      "license": "Libpng-2.0",
+      "copyright": "The PNG Reference Library Authors; individual notices retained in each file"
+    },
+    {
+      "path": "Upstream/PNGReference/pngerror.c",
+      "source": "src/windows/dependencies/vs2022_win32/lpng1650/pngerror.c",
+      "sha256": "9918080bc68b31801f9a8349146c9494b355e3b16a26cc4bcb10fa1e993b4167",
+      "modified": false,
+      "license": "Libpng-2.0",
+      "copyright": "The PNG Reference Library Authors; individual notices retained in each file"
+    },
+    {
+      "path": "Upstream/PNGReference/pngget.c",
+      "source": "src/windows/dependencies/vs2022_win32/lpng1650/pngget.c",
+      "sha256": "7fe9aa76f804c564570c36975b7b92c063254820de582447820d2c0d5940f242",
+      "modified": false,
+      "license": "Libpng-2.0",
+      "copyright": "The PNG Reference Library Authors; individual notices retained in each file"
+    },
+    {
+      "path": "Upstream/PNGReference/pngmem.c",
+      "source": "src/windows/dependencies/vs2022_win32/lpng1650/pngmem.c",
+      "sha256": "9a28d9e571887c72cdbae73d1865c6fba497b6e02adf3a5515edf93fd972df60",
+      "modified": false,
+      "license": "Libpng-2.0",
+      "copyright": "The PNG Reference Library Authors; individual notices retained in each file"
+    },
+    {
+      "path": "Upstream/PNGReference/pngpread.c",
+      "source": "src/windows/dependencies/vs2022_win32/lpng1650/pngpread.c",
+      "sha256": "230e4e01a9748922a33a936d1c4a2f599d61fc6425b49270197949fd3f38443e",
+      "modified": false,
+      "license": "Libpng-2.0",
+      "copyright": "The PNG Reference Library Authors; individual notices retained in each file"
+    },
+    {
+      "path": "Upstream/PNGReference/pngread.c",
+      "source": "src/windows/dependencies/vs2022_win32/lpng1650/pngread.c",
+      "sha256": "9106d0df385e051d46b007e402eabec18b5fce44fdfefed6e964a09008910e21",
+      "modified": false,
+      "license": "Libpng-2.0",
+      "copyright": "The PNG Reference Library Authors; individual notices retained in each file"
+    },
+    {
+      "path": "Upstream/PNGReference/pngrio.c",
+      "source": "src/windows/dependencies/vs2022_win32/lpng1650/pngrio.c",
+      "sha256": "3c710643f274fd2b4aa2bc154c9dc53a512edae773dda1434f205fb005f2e93e",
+      "modified": false,
+      "license": "Libpng-2.0",
+      "copyright": "The PNG Reference Library Authors; individual notices retained in each file"
+    },
+    {
+      "path": "Upstream/PNGReference/pngrtran.c",
+      "source": "src/windows/dependencies/vs2022_win32/lpng1650/pngrtran.c",
+      "sha256": "59753c1591d9eb8798b5e4270353c0d7da122ef6f1af2bfd83ff7b335fb2fea3",
+      "modified": false,
+      "license": "Libpng-2.0",
+      "copyright": "The PNG Reference Library Authors; individual notices retained in each file"
+    },
+    {
+      "path": "Upstream/PNGReference/pngrutil.c",
+      "source": "src/windows/dependencies/vs2022_win32/lpng1650/pngrutil.c",
+      "sha256": "2042d92c70b587a4ad2cf98f0e74279b12ceb11a88fd1f6622306928c9af68fd",
+      "modified": false,
+      "license": "Libpng-2.0",
+      "copyright": "The PNG Reference Library Authors; individual notices retained in each file"
+    },
+    {
+      "path": "Upstream/PNGReference/pngset.c",
+      "source": "src/windows/dependencies/vs2022_win32/lpng1650/pngset.c",
+      "sha256": "9bd59a79669db37b2ecc481439481eb5f49bf77bee0de4b1aba649915609b3d0",
+      "modified": false,
+      "license": "Libpng-2.0",
+      "copyright": "The PNG Reference Library Authors; individual notices retained in each file"
+    },
+    {
+      "path": "Upstream/PNGReference/pngtrans.c",
+      "source": "src/windows/dependencies/vs2022_win32/lpng1650/pngtrans.c",
+      "sha256": "6398722afbad3f54beed1e6fefa4f4a96fa0b6e45dd24120c688f67b740a7eb2",
+      "modified": false,
+      "license": "Libpng-2.0",
+      "copyright": "The PNG Reference Library Authors; individual notices retained in each file"
+    },
+    {
+      "path": "Upstream/PNGReference/pngwio.c",
+      "source": "src/windows/dependencies/vs2022_win32/lpng1650/pngwio.c",
+      "sha256": "a25def3351807ed3f2e12a02a7801d4208f0033516185f4ad524d804d2f00ce3",
+      "modified": false,
+      "license": "Libpng-2.0",
+      "copyright": "The PNG Reference Library Authors; individual notices retained in each file"
+    },
+    {
+      "path": "Upstream/PNGReference/pngwrite.c",
+      "source": "src/windows/dependencies/vs2022_win32/lpng1650/pngwrite.c",
+      "sha256": "e2079b6a8010ef8ecff771c81b8aa0e654a710b4232078a2ab277069441deb4b",
+      "modified": false,
+      "license": "Libpng-2.0",
+      "copyright": "The PNG Reference Library Authors; individual notices retained in each file"
+    },
+    {
+      "path": "Upstream/PNGReference/pngwtran.c",
+      "source": "src/windows/dependencies/vs2022_win32/lpng1650/pngwtran.c",
+      "sha256": "6355098f20b9058ab607cebd01f3130c61ac858dceb339c3a7d83407c1067b94",
+      "modified": false,
+      "license": "Libpng-2.0",
+      "copyright": "The PNG Reference Library Authors; individual notices retained in each file"
+    },
+    {
+      "path": "Upstream/PNGReference/pngwutil.c",
+      "source": "src/windows/dependencies/vs2022_win32/lpng1650/pngwutil.c",
+      "sha256": "3167c7e997f8a7db6c6ab4b816298aea0ad3189bea960ece984881cffba92a5f",
+      "modified": false,
+      "license": "Libpng-2.0",
+      "copyright": "The PNG Reference Library Authors; individual notices retained in each file"
+    },
+    {
+      "path": "Upstream/PNGReference/include/png.h",
+      "source": "src/windows/dependencies/vs2022_win32/lpng1650/png.h",
+      "sha256": "3c3b27f3e9b3030f7d234cb491b524fcc765345ced5a5dbce9e882cc35a1167f",
+      "modified": false,
+      "license": "Libpng-2.0",
+      "copyright": "The PNG Reference Library Authors; individual notices retained in each file"
+    },
+    {
+      "path": "Upstream/PNGReference/include/pngconf.h",
+      "source": "src/windows/dependencies/vs2022_win32/lpng1650/pngconf.h",
+      "sha256": "b92d648561f31b884be944720d5eb56eae1949b39e6b70ca70d8ed4a0f4b7349",
+      "modified": false,
+      "license": "Libpng-2.0",
+      "copyright": "The PNG Reference Library Authors; individual notices retained in each file"
+    },
+    {
+      "path": "Upstream/PNGReference/pngpriv.h",
+      "source": "src/windows/dependencies/vs2022_win32/lpng1650/pngpriv.h",
+      "sha256": "23fcf7fc89fc28073aed686207626753933f0dbcff360024f0378b112dca30b4",
+      "modified": false,
+      "license": "Libpng-2.0",
+      "copyright": "The PNG Reference Library Authors; individual notices retained in each file"
+    },
+    {
+      "path": "Upstream/PNGReference/pngstruct.h",
+      "source": "src/windows/dependencies/vs2022_win32/lpng1650/pngstruct.h",
+      "sha256": "498aa14b9af46bce8677ceb39d0ecd28f54bbad6a5ba29930984b38f97012571",
+      "modified": false,
+      "license": "Libpng-2.0",
+      "copyright": "The PNG Reference Library Authors; individual notices retained in each file"
+    },
+    {
+      "path": "Upstream/PNGReference/pnginfo.h",
+      "source": "src/windows/dependencies/vs2022_win32/lpng1650/pnginfo.h",
+      "sha256": "95fd19c965b86c6f279e426b9ee42c62e83af41a372b51fe8feb52a3427cb44d",
+      "modified": false,
+      "license": "Libpng-2.0",
+      "copyright": "The PNG Reference Library Authors; individual notices retained in each file"
+    },
+    {
+      "path": "Upstream/PNGReference/pngdebug.h",
+      "source": "src/windows/dependencies/vs2022_win32/lpng1650/pngdebug.h",
+      "sha256": "dcc808a35628d28e5aca1297e8ebe7c376f12448f65b72214b7271a2e1fc865e",
+      "modified": false,
+      "license": "Libpng-2.0",
+      "copyright": "The PNG Reference Library Authors; individual notices retained in each file"
+    },
+    {
+      "path": "Upstream/PNGReference/LICENSE",
+      "source": "src/windows/dependencies/vs2022_win32/lpng1650/LICENSE",
+      "sha256": "16d9daaafbf63a31a5bdc91d4600972548fef5aaa1244202393288dbd079c49a",
+      "modified": false,
+      "license": "Libpng-2.0",
+      "copyright": "The PNG Reference Library Authors; individual notices retained in each file"
+    },
+    {
+      "path": "Upstream/PNGReference/include/pnglibconf.h",
+      "source": "src/windows/dependencies/vs2022_win32/lpng1650/scripts/pnglibconf.h.prebuilt",
+      "sha256": "d510d301910871746a7059fbc9be0035e0f91502ea248c23c9d95fafc4afc646",
+      "modified": false,
+      "license": "Libpng-2.0",
+      "copyright": "The PNG Reference Library Authors; configuration from pinned release"
+    },
+    {
+      "path": "Upstream/Reference/textures/img.cpp",
+      "source": "src/libs/tgfclient/img.cpp",
+      "sha256": "171984803e08c852acc3cbb7f427be45a7c500431330939cfe1aaabeddc5ca70",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 1999-2014 Eric Espie, Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/graphics/grcar.cpp",
+      "source": "src/modules/graphic/ssggraph/grcar.cpp",
+      "sha256": "8aadd4ec9604854ec9822362a93dde32d31b944cef7f640fe0e63076686408ea",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2000 Eric Espie"
+    },
+    {
+      "path": "Upstream/Reference/graphics/grcam.cpp",
+      "source": "src/modules/graphic/ssggraph/grcam.cpp",
+      "sha256": "a954225bc4d2ca16c8d55fdc494fd54553e804996d44a205d46f7b7f1fe1eeb3",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2000 by Eric Espie"
+    },
+    {
+      "path": "Upstream/Reference/input/human.cpp",
+      "source": "src/drivers/human/human.cpp",
+      "sha256": "d43feebc78a10956dcd8c97b5f709e09eac15d2c1da2db10f329c88d1f8566b2",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2000-2024 by Eric Espie, Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/input/pref.h",
+      "source": "src/drivers/human/pref.h",
+      "sha256": "c77b834506f5c7b206bbab6bc2ba97071ea0eb35f9419eef1c75f9ebf5437fc0",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2000-2024 by Eric Espie, Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/robots/bt/bt.cpp",
+      "source": "src/drivers/bt/bt.cpp",
+      "sha256": "2479d35fb3a72c21b1a3d8e765de52f76cf13c8bfa9a142d49b947661905ebb5",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "copyright            : (C) 2002-2004 Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/robots/bt/cardata.cpp",
+      "source": "src/drivers/bt/cardata.cpp",
+      "sha256": "1d38f3c6304a71b277498b607c11e39c9a9b97f3e6667d6c09fc2784198f4b7a",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "copyright            : (C) 2004 Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/robots/bt/cardata.h",
+      "source": "src/drivers/bt/cardata.h",
+      "sha256": "72f7a41a1c6805387933605915727a5d0aa0eb799356a6648769b89dd264f619",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "copyright            : (C) 2004 Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/robots/bt/driver.cpp",
+      "source": "src/drivers/bt/driver.cpp",
+      "sha256": "685f265201477679b3d7bfb1e29e430fc56c86c7f9686b8cb4e657d97a4e3cab",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "copyright            : (C) 2002-2004 Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/robots/bt/driver.h",
+      "source": "src/drivers/bt/driver.h",
+      "sha256": "f9270d25f4237ddcaeedb154790012ddf84dc1000090c3dbf249400167622213",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "copyright            : (C) 2002-2004 Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/robots/bt/learn.cpp",
+      "source": "src/drivers/bt/learn.cpp",
+      "sha256": "0094d81527a0b73cc91b0c5600a5eb7575b4295dd29368e074ef0e082227c1b9",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "copyright            : (C) 2004 by Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/robots/bt/learn.h",
+      "source": "src/drivers/bt/learn.h",
+      "sha256": "37fbc535a9f82e58f32c665158228f11dbaf3195eed396793f145d3e6c080bff",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "copyright            : (C) 2004 by Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/robots/bt/opponent.cpp",
+      "source": "src/drivers/bt/opponent.cpp",
+      "sha256": "71eadd14c0cc53097a3b2343532fb77b37bba6fbad2893aa437ffd2d3f552c17",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "copyright            : (C) 2003-2004 Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/robots/bt/opponent.h",
+      "source": "src/drivers/bt/opponent.h",
+      "sha256": "06fbda94e04d34b03626a367a990beb6fd2e12fd5841d1a220bb4ef8262ca039",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "copyright            : (C) 2003-2004 Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/robots/bt/pit.cpp",
+      "source": "src/drivers/bt/pit.cpp",
+      "sha256": "28aa26956e24d7684827fa645933bac6d364d392b8d21cd38a004a0881f15099",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "copyright            : (C) 2003-2004 by Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/robots/bt/pit.h",
+      "source": "src/drivers/bt/pit.h",
+      "sha256": "28f0cb2e65f7733fe7ae408ddc1557335960fe649f7eb6cc38a88e6463691e57",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "copyright            : (C) 2003-2004 by Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/robots/bt/spline.cpp",
+      "source": "src/drivers/bt/spline.cpp",
+      "sha256": "fa4487a967bc3c717ac059606d5bbbd456e8126467b15f0218af9b53d8ab7540",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "copyright            : (C) 2003-2004 by Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/robots/bt/spline.h",
+      "source": "src/drivers/bt/spline.h",
+      "sha256": "02d0832acd92cfd17b421bd87dd310aaba170488fa4d47a6311131cbdabfe9f5",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "copyright            : (C) 2003-2004 by Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/robots/bt/strategy.cpp",
+      "source": "src/drivers/bt/strategy.cpp",
+      "sha256": "25673e2b8e13f54775718581d54732748b7ee3e2526ca0449bda796c27d04446",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "copyright            : (C) 2004 Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/robots/bt/strategy.h",
+      "source": "src/drivers/bt/strategy.h",
+      "sha256": "710c83a62a5e5d6d68e0fd4d1996c34f9a537746d202f4abc223662fac068c57",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "copyright            : (C) 2004 Bernhard Wymann"
+    },
+    {
+      "path": "Tests/UnitTests/Fixtures/Robots/bt/0/default.xml",
+      "source": "src/drivers/bt/0/default.xml",
+      "sha256": "f8ba8bf45d243986b52d2b2ed924d17c1b11937dfc31132b6341b8b7004003f2",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "copyright            : (C) 2000 by Eric Espie"
+    },
+    {
+      "path": "Upstream/Reference/graphics/grshadow.cpp",
+      "source": "src/modules/graphic/ssggraph/grshadow.cpp",
+      "sha256": "f91ae2ac9d23ab04a6640f108e12a8b07f5adc4dc2f439be164991f8c6ac73fd",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2001 by Christophe Guionneau"
+    },
+    {
+      "path": "Upstream/Reference/graphics/grscene.cpp",
+      "source": "src/modules/graphic/ssggraph/grscene.cpp",
+      "sha256": "bfa31a95bbde6f319569c2c59e554880fc1e7c59c6b1bd0894973a8b63963fde",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "See original retained copyright notice"
+    },
+    {
+      "path": "Upstream/Reference/graphics/grscreen.cpp",
+      "source": "src/modules/graphic/ssggraph/grscreen.cpp",
+      "sha256": "20a7450f94fd451f859d4228567710ad91ce5141aec567555073a45e5914b562",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "See original retained copyright notice"
+    },
+    {
+      "path": "Upstream/Reference/graphics/grcam.h",
+      "source": "src/modules/graphic/ssggraph/grcam.h",
+      "sha256": "0a93f2afdceab46add3ad881db0b95315c1f7ffee76fe72c327c4b1af1b63282",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "See original retained copyright notice"
+    },
+    {
+      "path": "Upstream/Reference/graphics/grutil.cpp",
+      "source": "src/modules/graphic/ssggraph/grutil.cpp",
+      "sha256": "6ffe004803e2a025f44c1817c321d49f3401264775ffee515c8cf499236626ed",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "See retained original copyright notice"
+    },
+    {
+      "path": "Upstream/Reference/graphics/grvtxtable.cpp",
+      "source": "src/modules/graphic/ssggraph/grvtxtable.cpp",
+      "sha256": "3f19888d22dee98aa6c83c200bcf3ef905899264034e98ba6104ed7510a6bf47",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2001 by Christophe Guionneau"
+    },
+    {
+      "path": "Upstream/Reference/graphics/grmultitexstate.cpp",
+      "source": "src/modules/graphic/ssggraph/grmultitexstate.cpp",
+      "sha256": "dfe2158c411565fc446ae9d7eea715a45737af2dcee98a7525a244dc0bc005ca",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2001 by Christophe Guionneau"
+    },
+    {
+      "path": "Upstream/Reference/graphics/height/ssgIsect.cxx",
+      "source": "src/windows/dependencies/vs2022_win32/plib-code-r2173-trunk-vsproj/src/ssg/ssgIsect.cxx",
+      "sha256": "9aa755571d2a21f93dbfb0e5fc51c8fd80fe982e58ef3d3c667385717865c787",
+      "modified": false,
+      "license": "LGPL-2.0-or-later",
+      "copyright": "Copyright (C) 1998,2002  Steve Baker"
+    },
+    {
+      "path": "Upstream/Reference/graphics/height/ssgEntity.cxx",
+      "source": "src/windows/dependencies/vs2022_win32/plib-code-r2173-trunk-vsproj/src/ssg/ssgEntity.cxx",
+      "sha256": "24e016c588d6b5f9cb04835acd843647246d123e7118fd5461586f466a104dcb",
+      "modified": false,
+      "license": "LGPL-2.0-or-later",
+      "copyright": "Copyright (C) 1998,2002  Steve Baker"
+    },
+    {
+      "path": "Upstream/Reference/graphics/height/ssgLeaf.cxx",
+      "source": "src/windows/dependencies/vs2022_win32/plib-code-r2173-trunk-vsproj/src/ssg/ssgLeaf.cxx",
+      "sha256": "c8bd08dd7e475c8c97e4940dd90a6f8e1d7c5a050645b905c6555718f856a66b",
+      "modified": false,
+      "license": "LGPL-2.0-or-later",
+      "copyright": "Copyright (C) 1998,2002  Steve Baker"
+    },
+    {
+      "path": "Upstream/Reference/graphics/height/ssgBranch.cxx",
+      "source": "src/windows/dependencies/vs2022_win32/plib-code-r2173-trunk-vsproj/src/ssg/ssgBranch.cxx",
+      "sha256": "9233126e74c59b2c3eb21c2800ebc9e23a46655acef661f4a2949f69a4e834a7",
+      "modified": false,
+      "license": "LGPL-2.0-or-later",
+      "copyright": "Copyright (C) 1998,2002  Steve Baker"
+    },
+    {
+      "path": "Upstream/Reference/graphics/height/ssgTransform.cxx",
+      "source": "src/windows/dependencies/vs2022_win32/plib-code-r2173-trunk-vsproj/src/ssg/ssgTransform.cxx",
+      "sha256": "03907a99da7d6e9338a25a0091df42a2ff8ac415685bffd29e6cff450ae6cf74",
+      "modified": false,
+      "license": "LGPL-2.0-or-later",
+      "copyright": "Copyright (C) 1998,2002  Steve Baker"
+    },
+    {
+      "path": "Upstream/Reference/graphics/height/ssgVtxTable.cxx",
+      "source": "src/windows/dependencies/vs2022_win32/plib-code-r2173-trunk-vsproj/src/ssg/ssgVtxTable.cxx",
+      "sha256": "6662071d7c75c0b5e4fa56a803ce2178daaaf00e5c332e0dca78973db2b5a619",
+      "modified": false,
+      "license": "LGPL-2.0-or-later",
+      "copyright": "Copyright (C) 1998,2002  Steve Baker"
+    },
+    {
+      "path": "Upstream/Reference/graphics/height/grvtxtable.h",
+      "source": "src/modules/graphic/ssggraph/grvtxtable.h",
+      "sha256": "6a408d22e1a377a66087b45cb11cdca6591b2a8d4e59d4603fe4f95acd5571cb",
+      "modified": false,
+      "license": "GPL-2.0-or-later; includes LGPL-2.0-or-later notices",
+      "copyright": "(C) 2001 Christophe Guionneau; (C) 2001 Steve Baker"
+    },
+    {
+      "path": "Upstream/Reference/graphics/height/ssgSelector.cxx",
+      "source": "src/windows/dependencies/vs2022_win32/plib-code-r2173-trunk-vsproj/src/ssg/ssgSelector.cxx",
+      "sha256": "7354a5b6ad1484a2961c8ec427bfa0d9cc698e6629c2f3085a71073237c6c9eb",
+      "modified": false,
+      "license": "LGPL-2.0-or-later",
+      "copyright": "Copyright (C) 1998,2002 Steve Baker; original notices retained"
+    },
+    {
+      "path": "Upstream/Reference/graphics/height/ssgRangeSelector.cxx",
+      "source": "src/windows/dependencies/vs2022_win32/plib-code-r2173-trunk-vsproj/src/ssg/ssgRangeSelector.cxx",
+      "sha256": "0a69154b6c73a0ec4c03eedb0c1a04da188968034237ca002c5b467ba7042556",
+      "modified": false,
+      "license": "LGPL-2.0-or-later",
+      "copyright": "Copyright (C) 1998,2002 Steve Baker; original notices retained"
+    },
+    {
+      "path": "Upstream/Reference/graphics/grmain.h",
+      "source": "src/modules/graphic/ssggraph/grmain.h",
+      "sha256": "72d25d7a2a03fbdd7abdc3a056244f6f5916302bcf7e596c2e22ce0ec5141c56",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2000-2013 Eric Espie, Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/graphics/grcarlight.cpp",
+      "source": "src/modules/graphic/ssggraph/grcarlight.cpp",
+      "sha256": "1cef763ed2f19d2a0e96c265487d3330fab4105ab7ab5208f4fb6ffd6a3c3ccb",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2001 by Christophe Guionneau"
+    },
+    {
+      "path": "Upstream/Reference/graphics/grcarlight.h",
+      "source": "src/modules/graphic/ssggraph/grcarlight.h",
+      "sha256": "e613ebb4b59a6261e955a40b492d2f41dc19d9cc46b4cd5cdcb50a642e71b352",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2003 by Christophe Guionneau"
+    },
+    {
+      "path": "Upstream/Reference/graphics/order/ssgDList.cxx",
+      "source": "src/windows/dependencies/vs2022_win32/plib-code-r2173-trunk-vsproj/src/ssg/ssgDList.cxx",
+      "sha256": "914abb141eb055a9e96a9f42ea758b2c1be948a7fb79c620b79e456fc3a0df80",
+      "modified": false,
+      "license": "LGPL-2.0-or-later",
+      "copyright": "Copyright (C) 1998,2002 Steve Baker; original notices retained"
+    },
+    {
+      "path": "Upstream/Reference/graphics/grmain.cpp",
+      "source": "src/modules/graphic/ssggraph/grmain.cpp",
+      "sha256": "06af6f01621a4f5096c5ae220ea44aaee2b59b62f19211d1f6e1906741a25ed0",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2000-2013 Eric Espie and contributors; original notices retained"
+    },
+    {
+      "path": "Upstream/Reference/graphics/order/ssg.cxx",
+      "source": "src/windows/dependencies/vs2022_win32/plib-code-r2173-trunk-vsproj/src/ssg/ssg.cxx",
+      "sha256": "6c6362021d87a9a38a687d49335a58ac8bacf15fcbfbfbf3aeea2f64d1d038b2",
+      "modified": false,
+      "license": "LGPL-2.0-or-later",
+      "copyright": "Copyright (C) 1998,2002 Steve Baker; original notices retained"
+    },
+    {
+      "path": "Upstream/Reference/graphics/state/ssgSimpleState.cxx",
+      "source": "src/windows/dependencies/vs2022_win32/plib-code-r2173-trunk-vsproj/src/ssg/ssgSimpleState.cxx",
+      "sha256": "54de17d60723352cd6f906702478b8f0d8afc27ef8916879a50625e443734cf6",
+      "modified": false,
+      "license": "LGPL-2.0-or-later",
+      "copyright": "Steve Baker and PLIB contributors; original notice retained"
+    },
+    {
+      "path": "Upstream/Reference/graphics/state/ssgContext.cxx",
+      "source": "src/windows/dependencies/vs2022_win32/plib-code-r2173-trunk-vsproj/src/ssg/ssgContext.cxx",
+      "sha256": "ecd1244cfe96b7fe3b6560e1e825e376a185885b578be4b24ab8393fdd0c3434",
+      "modified": false,
+      "license": "LGPL-2.0-or-later",
+      "copyright": "Steve Baker and PLIB contributors; original notice retained"
+    },
+    {
+      "path": "Upstream/Reference/graphics/state/ssg.h",
+      "source": "src/windows/dependencies/vs2022_win32/plib-code-r2173-trunk-vsproj/src/ssg/ssg.h",
+      "sha256": "9c7ca8737cd14c8fc1e7a7e8d5f36011d6bfbeed69ae4b2aa557ac531cd960ed",
+      "modified": false,
+      "license": "LGPL-2.0-or-later",
+      "copyright": "Steve Baker and PLIB contributors; original notice retained"
+    }
+  ]
+}

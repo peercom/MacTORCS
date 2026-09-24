@@ -1,0 +1,447 @@
+{
+  "upstream": "TORCS 1.3.9",
+  "scope": "Selected body/track mesh references, car shadow/legacy-wheel/instrument names and four speed-dependent trb1-3 wheel meshes with wheel3d.png. Environment/race overlays and robot overrides remain outside this inventory.",
+  "dependencies": [
+    {
+      "owner": "155-DTM",
+      "reference": "155-DTM.rgb",
+      "candidates": [
+        "data/cars/models/155-DTM/155-DTM.rgb"
+      ],
+      "selected": "data/cars/models/155-DTM/155-DTM.rgb",
+      "sha256": "6cd46a4da3723df64fe731458b0fcbb881aeb0a2d32c1f1c12273195a5851ce8",
+      "bytes": 4778767,
+      "status": "Imported SGI test fixture under retained directory Free Art notice"
+    },
+    {
+      "owner": "155-DTM",
+      "reference": "driver.rgb",
+      "candidates": [
+        "data/cars/models/155-DTM/driver.rgb"
+      ],
+      "selected": "data/cars/models/155-DTM/driver.rgb",
+      "sha256": "26d246d06ffb5766d03880b51e75c78c3bf417daae8b0ebbcd8d13fb7a7a7c9b",
+      "bytes": 126285,
+      "status": "Imported SGI test fixture under retained directory Free Art notice"
+    },
+    {
+      "owner": "155-DTM",
+      "reference": "rpm8500.rgb",
+      "candidates": [
+        "data/data/textures/rpm8500.rgb"
+      ],
+      "selected": "data/data/textures/rpm8500.rgb",
+      "sha256": "5d1d9e8e851c10fe416f035f4049b5d302b57ad5bacf554a5c0b26a9f05f2b60",
+      "bytes": 46461,
+      "status": "Not imported: shared-file author/license attribution needs more precise evidence than root GPL-or-Free-Art statement"
+    },
+    {
+      "owner": "155-DTM",
+      "reference": "shadow.rgb",
+      "candidates": [
+        "data/cars/models/155-DTM/shadow.rgb"
+      ],
+      "selected": "data/cars/models/155-DTM/shadow.rgb",
+      "sha256": "de7da701970c3644b7915355d8e3f2f2ac031cf8bf35bd081d8d8949b172c62e",
+      "bytes": 15615,
+      "status": "Imported SGI test fixture under retained directory Free Art notice"
+    },
+    {
+      "owner": "155-DTM",
+      "reference": "speed300.rgb",
+      "candidates": [
+        "data/data/textures/speed300.rgb"
+      ],
+      "selected": "data/data/textures/speed300.rgb",
+      "sha256": "7be2276e5db46ba3deaf40f2ebcfd08303e534a7cbca03d008133d049efcd765",
+      "bytes": 47381,
+      "status": "Not imported: shared-file author/license attribution needs more precise evidence than root GPL-or-Free-Art statement"
+    },
+    {
+      "owner": "155-DTM",
+      "reference": "tex-wheel.rgb",
+      "candidates": [
+        "data/cars/models/155-DTM/tex-wheel.rgb"
+      ],
+      "selected": "data/cars/models/155-DTM/tex-wheel.rgb",
+      "sha256": "16d7692d7eff88247a3e947151f06ef0a8a818f27b852353524bc05c5bb20d9c",
+      "bytes": 55555,
+      "status": "Imported SGI test fixture under retained directory Free Art notice"
+    },
+    {
+      "owner": "aalborg",
+      "reference": "allborg-trees_n.rgb",
+      "candidates": [
+        "data/tracks/aalborg/allborg-trees_n.rgb"
+      ],
+      "selected": "data/tracks/aalborg/allborg-trees_n.rgb",
+      "sha256": "8975fcd9fdc02ae21c3c942ece0e1434d4b6a1e9f396b72a1fb06dd0f1d472ab",
+      "bytes": 488123,
+      "status": "Imported SGI test fixture under retained directory Free Art notice"
+    },
+    {
+      "owner": "aalborg",
+      "reference": "barr1.rgb",
+      "candidates": [
+        "data/tracks/aalborg/barr1.rgb"
+      ],
+      "selected": "data/tracks/aalborg/barr1.rgb",
+      "sha256": "3389917a4b54069f8b43372ab8471e60a3ca53ab4e4a1339062e5c5b8187d3cd",
+      "bytes": 4772,
+      "status": "Imported SGI test fixture under retained directory Free Art notice"
+    },
+    {
+      "owner": "aalborg",
+      "reference": "concrete.rgb",
+      "candidates": [
+        "data/data/textures/concrete.rgb"
+      ],
+      "selected": "data/data/textures/concrete.rgb",
+      "sha256": "66c8599d4673295aea6e167b1ba17f16e7a79c27e3f57a507c574eab56de3a20",
+      "bytes": 18423,
+      "status": "Not imported: shared-file author/license attribution needs more precise evidence than root GPL-or-Free-Art statement"
+    },
+    {
+      "owner": "aalborg",
+      "reference": "concrete2.rgb",
+      "candidates": [
+        "data/data/textures/concrete2.rgb"
+      ],
+      "selected": "data/data/textures/concrete2.rgb",
+      "sha256": "634a386bdd232a27c50f2f25e70126890f691323ce0c0dc9d473ebc73b0129c1",
+      "bytes": 53778,
+      "status": "Not imported: shared-file author/license attribution needs more precise evidence than root GPL-or-Free-Art statement"
+    },
+    {
+      "owner": "aalborg",
+      "reference": "grass-aa.rgb",
+      "candidates": [
+        "data/tracks/aalborg/grass-aa.rgb"
+      ],
+      "selected": "data/tracks/aalborg/grass-aa.rgb",
+      "sha256": "88d5d3171b1903ad12cd12d442393d590b59b3b7ca9a0a5afa0e2c61e8272e2c",
+      "bytes": 211175,
+      "status": "Imported SGI test fixture under retained directory Free Art notice"
+    },
+    {
+      "owner": "aalborg",
+      "reference": "poutre4.rgb",
+      "candidates": [
+        "data/tracks/aalborg/poutre4.rgb"
+      ],
+      "selected": "data/tracks/aalborg/poutre4.rgb",
+      "sha256": "68a908569fd6e6eb26afb6d78e1b77e6247f000413de296c0d35ca88d001788c",
+      "bytes": 15623,
+      "status": "Imported SGI test fixture under retained directory Free Art notice"
+    },
+    {
+      "owner": "aalborg",
+      "reference": "pylon1.rgb",
+      "candidates": [
+        "data/data/textures/pylon1.rgb"
+      ],
+      "selected": "data/data/textures/pylon1.rgb",
+      "sha256": "1ca7a5c920252a49f13f3b2fdb04ce4c90a30b993ae8c5d240ce53cfa4d47b29",
+      "bytes": 1795,
+      "status": "Not imported: shared-file author/license attribution needs more precise evidence than root GPL-or-Free-Art statement"
+    },
+    {
+      "owner": "aalborg",
+      "reference": "pylon2.rgb",
+      "candidates": [
+        "data/data/textures/pylon2.rgb"
+      ],
+      "selected": "data/data/textures/pylon2.rgb",
+      "sha256": "04a0a2098a3425fa804c181214867bc38a7a2970adfe26d40c73d3f4848dc06b",
+      "bytes": 11567,
+      "status": "Not imported: shared-file author/license attribution needs more precise evidence than root GPL-or-Free-Art statement"
+    },
+    {
+      "owner": "aalborg",
+      "reference": "pylon3.rgb",
+      "candidates": [
+        "data/data/textures/pylon3.rgb"
+      ],
+      "selected": "data/data/textures/pylon3.rgb",
+      "sha256": "e211fe9cf5139793b2156f47fddf2778a79458331f264d470bb86ec3f5a331fd",
+      "bytes": 42257,
+      "status": "Not imported: shared-file author/license attribution needs more precise evidence than root GPL-or-Free-Art statement"
+    },
+    {
+      "owner": "aalborg",
+      "reference": "raceline.png",
+      "candidates": [
+        "data/tracks/aalborg/raceline.png",
+        "data/data/textures/raceline.png"
+      ],
+      "selected": "data/tracks/aalborg/raceline.png",
+      "sha256": "e0e3a7f10848b55aa00d50f5e6fd2aa30e67443e30804d952da26c9a9660b21f",
+      "bytes": 8980,
+      "status": "Imported PNG fixture under retained directory Free Art notice; native PNG/cache parity verified"
+    },
+    {
+      "owner": "aalborg",
+      "reference": "shadow2.rgb",
+      "candidates": [
+        "data/tracks/aalborg/shadow2.rgb"
+      ],
+      "selected": "data/tracks/aalborg/shadow2.rgb",
+      "sha256": "4c7c05eb0cfd4f157b37377702747e25ced0f79746383b918c172f76c20b9b30",
+      "bytes": 350929,
+      "status": "Imported SGI test fixture under retained directory Free Art notice"
+    },
+    {
+      "owner": "aalborg",
+      "reference": "spectator.rgb",
+      "candidates": [
+        "data/tracks/aalborg/spectator.rgb"
+      ],
+      "selected": "data/tracks/aalborg/spectator.rgb",
+      "sha256": "c21ca1fc0f1c7312aa4991adae9912931a4c2d255c0766b6ed9fdc5ef66271bd",
+      "bytes": 39807,
+      "status": "Imported SGI test fixture under retained directory Free Art notice"
+    },
+    {
+      "owner": "aalborg",
+      "reference": "tarmac-wall-1-g2.rgb",
+      "candidates": [
+        "data/tracks/aalborg/tarmac-wall-1-g2.rgb"
+      ],
+      "selected": "data/tracks/aalborg/tarmac-wall-1-g2.rgb",
+      "sha256": "57f047e5e6c08ee6f705cdbc8185f6b77af536184fb5871811152381da623f68",
+      "bytes": 811213,
+      "status": "Imported SGI test fixture under retained directory Free Art notice"
+    },
+    {
+      "owner": "aalborg",
+      "reference": "tarmac-wall-2-g2.rgb",
+      "candidates": [
+        "data/tracks/aalborg/tarmac-wall-2-g2.rgb"
+      ],
+      "selected": "data/tracks/aalborg/tarmac-wall-2-g2.rgb",
+      "sha256": "65d3c18d50b13ad5068f2fee3d5c53754653b9fb80e5a0fbff8a3701b6db4643",
+      "bytes": 810104,
+      "status": "Imported SGI test fixture under retained directory Free Art notice"
+    },
+    {
+      "owner": "aalborg",
+      "reference": "torcs1.rgb",
+      "candidates": [
+        "data/tracks/aalborg/torcs1.rgb"
+      ],
+      "selected": "data/tracks/aalborg/torcs1.rgb",
+      "sha256": "ec1e7e0fb438c171bbbc603e7202aab653c5211c3a27aa0ee703fbd1e68c860f",
+      "bytes": 15634,
+      "status": "Imported SGI test fixture under retained directory Free Art notice"
+    },
+    {
+      "owner": "aalborg",
+      "reference": "tr-asphalt-2-aa-r_n.rgb",
+      "candidates": [
+        "data/tracks/aalborg/tr-asphalt-2-aa-r_n.rgb"
+      ],
+      "selected": "data/tracks/aalborg/tr-asphalt-2-aa-r_n.rgb",
+      "sha256": "a8a079e87f13c51d71750ee869a60afa0219eddc5dfbb088c38677e83efdb39e",
+      "bytes": 211247,
+      "status": "Imported SGI test fixture under retained directory Free Art notice"
+    },
+    {
+      "owner": "aalborg",
+      "reference": "tr-asphalt-aa-bw1_n.rgb",
+      "candidates": [
+        "data/tracks/aalborg/tr-asphalt-aa-bw1_n.rgb"
+      ],
+      "selected": "data/tracks/aalborg/tr-asphalt-aa-bw1_n.rgb",
+      "sha256": "0f9b072ec3428b51f2c2eae1b0ed9797995ad74ce17f3b0a441c8d74d82d2eb3",
+      "bytes": 210326,
+      "status": "Imported SGI test fixture under retained directory Free Art notice"
+    },
+    {
+      "owner": "aalborg",
+      "reference": "tr-asphalt-aa-bw2-e_n.rgb",
+      "candidates": [
+        "data/tracks/aalborg/tr-asphalt-aa-bw2-e_n.rgb"
+      ],
+      "selected": "data/tracks/aalborg/tr-asphalt-aa-bw2-e_n.rgb",
+      "sha256": "4252ec456d0e5bb1886fc09044ac1e4792d4f67e0cbd197db94a257667ca491e",
+      "bytes": 210806,
+      "status": "Imported SGI test fixture under retained directory Free Art notice"
+    },
+    {
+      "owner": "aalborg",
+      "reference": "tr-asphalt-aa-bw2-s_n.rgb",
+      "candidates": [
+        "data/tracks/aalborg/tr-asphalt-aa-bw2-s_n.rgb"
+      ],
+      "selected": "data/tracks/aalborg/tr-asphalt-aa-bw2-s_n.rgb",
+      "sha256": "32c02b88aef7d21b3c833c1a15393183695ebfd066b02311a3a9d2f9033a745a",
+      "bytes": 210752,
+      "status": "Imported SGI test fixture under retained directory Free Art notice"
+    },
+    {
+      "owner": "aalborg",
+      "reference": "tr-asphalt-aa-bw2_n.rgb",
+      "candidates": [
+        "data/tracks/aalborg/tr-asphalt-aa-bw2_n.rgb"
+      ],
+      "selected": "data/tracks/aalborg/tr-asphalt-aa-bw2_n.rgb",
+      "sha256": "76c8b9cf8d81d4c573cd26a8f03296bdf0878efe01d6f315360150c89735cab1",
+      "bytes": 211301,
+      "status": "Imported SGI test fixture under retained directory Free Art notice"
+    },
+    {
+      "owner": "aalborg",
+      "reference": "tr-asphalt-aa-l_n.rgb",
+      "candidates": [
+        "data/tracks/aalborg/tr-asphalt-aa-l_n.rgb"
+      ],
+      "selected": "data/tracks/aalborg/tr-asphalt-aa-l_n.rgb",
+      "sha256": "d5757e71a86a5b9dd05c2f4d053806f5554420a6a22f8f2e7681371a994b6658",
+      "bytes": 209267,
+      "status": "Imported SGI test fixture under retained directory Free Art notice"
+    },
+    {
+      "owner": "aalborg",
+      "reference": "tr-asphalt-aa-pe-bw1_n.rgb",
+      "candidates": [
+        "data/tracks/aalborg/tr-asphalt-aa-pe-bw1_n.rgb"
+      ],
+      "selected": "data/tracks/aalborg/tr-asphalt-aa-pe-bw1_n.rgb",
+      "sha256": "7ea3588c89d4f89fccf360f2ffca23dbcac3bba6f3ab464c94145af7ea12870a",
+      "bytes": 210836,
+      "status": "Imported SGI test fixture under retained directory Free Art notice"
+    },
+    {
+      "owner": "aalborg",
+      "reference": "tr-asphalt-aa-pt-bw1_n.rgb",
+      "candidates": [
+        "data/tracks/aalborg/tr-asphalt-aa-pt-bw1_n.rgb"
+      ],
+      "selected": "data/tracks/aalborg/tr-asphalt-aa-pt-bw1_n.rgb",
+      "sha256": "3cf232dc4ba082785537bf1e11056449aad2aff3223d8c3d6bbd1a920768598e",
+      "bytes": 210872,
+      "status": "Imported SGI test fixture under retained directory Free Art notice"
+    },
+    {
+      "owner": "aalborg",
+      "reference": "tr-asphalt-aa-ro-bw1_n.rgb",
+      "candidates": [
+        "data/tracks/aalborg/tr-asphalt-aa-ro-bw1_n.rgb"
+      ],
+      "selected": "data/tracks/aalborg/tr-asphalt-aa-ro-bw1_n.rgb",
+      "sha256": "f4f76f6b2e27e0426af171fd3d1e5ee3a4575578d548096f52e45093e7412cf5",
+      "bytes": 210329,
+      "status": "Imported SGI test fixture under retained directory Free Art notice"
+    },
+    {
+      "owner": "aalborg",
+      "reference": "tr-asphalt-to-g-aa-l_n.rgb",
+      "candidates": [
+        "data/tracks/aalborg/tr-asphalt-to-g-aa-l_n.rgb"
+      ],
+      "selected": "data/tracks/aalborg/tr-asphalt-to-g-aa-l_n.rgb",
+      "sha256": "e59e9d54f3d844de630dc1d951425ccfb039cf6a79e800a8ccce21fbf1fd13c7",
+      "bytes": 210521,
+      "status": "Imported SGI test fixture under retained directory Free Art notice"
+    },
+    {
+      "owner": "aalborg",
+      "reference": "tr-barrier-aa-1.rgb",
+      "candidates": [
+        "data/tracks/aalborg/tr-barrier-aa-1.rgb"
+      ],
+      "selected": "data/tracks/aalborg/tr-barrier-aa-1.rgb",
+      "sha256": "98a21cda85d525cc212a4e265935891e9337fa43af5a533e061844ef93fff901",
+      "bytes": 183732,
+      "status": "Imported SGI test fixture under retained directory Free Art notice"
+    },
+    {
+      "owner": "aalborg",
+      "reference": "tr-curb-bw-aa-r.rgb",
+      "candidates": [
+        "data/tracks/aalborg/tr-curb-bw-aa-r.rgb"
+      ],
+      "selected": "data/tracks/aalborg/tr-curb-bw-aa-r.rgb",
+      "sha256": "4b72fc9e07b549400e83913c26dc93e2da647ff0c78a0b070a2c0922bbed2c90",
+      "bytes": 10791,
+      "status": "Imported SGI test fixture under retained directory Free Art notice"
+    },
+    {
+      "owner": "aalborg",
+      "reference": "tr-g-to-asphalt-aa-l_n.rgb",
+      "candidates": [
+        "data/tracks/aalborg/tr-g-to-asphalt-aa-l_n.rgb"
+      ],
+      "selected": "data/tracks/aalborg/tr-g-to-asphalt-aa-l_n.rgb",
+      "sha256": "b9237d7eb093cd49075746fa54e9face211f554adbcc72d4e3af0572d00f2e73",
+      "bytes": 210396,
+      "status": "Imported SGI test fixture under retained directory Free Art notice"
+    },
+    {
+      "owner": "aalborg",
+      "reference": "tr-grass-aa-l_n.rgb",
+      "candidates": [
+        "data/tracks/aalborg/tr-grass-aa-l_n.rgb"
+      ],
+      "selected": "data/tracks/aalborg/tr-grass-aa-l_n.rgb",
+      "sha256": "b065a43289cb09bdcdd63a662f94b61ab8d85b6c51345235a843671c31641c32",
+      "bytes": 211305,
+      "status": "Imported SGI test fixture under retained directory Free Art notice"
+    },
+    {
+      "owner": "155-DTM detailed wheels",
+      "reference": "wheel3d.png",
+      "candidates": [
+        "data/cars/wheels/trb1-3/wheel3d.png"
+      ],
+      "selected": "data/cars/wheels/trb1-3/wheel3d.png",
+      "sha256": "4f1f2017cb000cabfcdae5866d7e4eaca1efc18f2dedfcb38fa651a90e4dbb6b",
+      "bytes": 352151,
+      "status": "Imported under retained trb1-3 Free Art notice; parser/texture cache tests"
+    },
+    {
+      "owner": "155-DTM detailed wheels",
+      "reference": "wheel0.acc",
+      "candidates": [
+        "data/cars/wheels/trb1-3/wheel0.acc"
+      ],
+      "selected": "data/cars/wheels/trb1-3/wheel0.acc",
+      "sha256": "66518e398e104f64cf2c996f01b95920dd3b0d79e28c8c3d09e29a5ee124fe1c",
+      "bytes": 74451,
+      "status": "Imported under retained trb1-3 Free Art notice; parser/texture cache tests"
+    },
+    {
+      "owner": "155-DTM detailed wheels",
+      "reference": "wheel1.acc",
+      "candidates": [
+        "data/cars/wheels/trb1-3/wheel1.acc"
+      ],
+      "selected": "data/cars/wheels/trb1-3/wheel1.acc",
+      "sha256": "af486c705840230e83d5f3fd3e54ff937fd1399e3a6c7b67a03fed9c3edd8bae",
+      "bytes": 74451,
+      "status": "Imported under retained trb1-3 Free Art notice; parser/texture cache tests"
+    },
+    {
+      "owner": "155-DTM detailed wheels",
+      "reference": "wheel2.acc",
+      "candidates": [
+        "data/cars/wheels/trb1-3/wheel2.acc"
+      ],
+      "selected": "data/cars/wheels/trb1-3/wheel2.acc",
+      "sha256": "f43472f4b0a2e29269469d27370405439a14a8b3e82d47f66fc5fa03d335178e",
+      "bytes": 74451,
+      "status": "Imported under retained trb1-3 Free Art notice; parser/texture cache tests"
+    },
+    {
+      "owner": "155-DTM detailed wheels",
+      "reference": "wheel3.acc",
+      "candidates": [
+        "data/cars/wheels/trb1-3/wheel3.acc"
+      ],
+      "selected": "data/cars/wheels/trb1-3/wheel3.acc",
+      "sha256": "bfffb1c80470f272462faf27a4429d9cafb0658d42da11e95509c245071142cd",
+      "bytes": 74451,
+      "status": "Imported under retained trb1-3 Free Art notice; parser/texture cache tests"
+    }
+  ]
+}

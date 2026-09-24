@@ -1,0 +1,350 @@
+{
+  "schema": 1,
+  "date": "2026-09-24",
+  "goalComplete": false,
+  "status": "Procedural crowns refined to individually oriented foliage sprays; complete diagnostic retains repeat and restoration failures",
+  "acceptedAsLatestValidatedPreview": false,
+  "implementation": {
+    "placements": 169,
+    "familyCounts": [
+      81,
+      79,
+      9
+    ],
+    "replacedSourceBatches": 676,
+    "otherAtlasBatchesRetained": 5,
+    "sharedMeshes": 18,
+    "variantsPerFamily": 3,
+    "geometryLODs": 2,
+    "nearMinimumProjectedHeightPixels": 160,
+    "middleMinimumProjectedHeightPixels": 35,
+    "distantMode": "original source planes",
+    "defaultEnabled": false,
+    "instancedGroupsAtMostPerTrackView": 18,
+    "instanceUploadChunk": 512,
+    "sourceAtlasReused": true,
+    "newTextures": 0,
+    "foliage": "Two-triangle folded blades distributed through a crown volume with deterministic per-mesh integer seeds; modeled trunks/branches retained",
+    "mirrorSelectionIndependent": true,
+    "flyCanopyHeightIncludedWhenEnabled": true,
+    "physicsChanged": false,
+    "treeShadowsImplemented": false,
+    "geometryLicense": "CC-BY-SA-4.0 for new untextured generated geometry; source code GPL-2.0-only; existing atlas remains under original artwork terms",
+    "submission": "Opaque tree block precedes original draw stream; original states still apply at skipped replacement-tree leaves",
+    "newPerFrameGeometryWork": false,
+    "newExternalArtwork": false
+  },
+  "tests": {
+    "focusedRelease": 38,
+    "treeAddressSanitizer": 3,
+    "finalDiagnosticRelease": 3,
+    "failuresInThoseSuites": 0,
+    "addedAssertions": [
+      "Generated position/normal/UV determinism",
+      "Finite normals and preserved source bounds"
+    ],
+    "fullReleaseLastRun": {
+      "count": 274,
+      "appliesToPrecedingTreeOrderSource": true,
+      "report": "Documentation/vegetation-order-report.json"
+    }
+  },
+  "captures": {
+    "normalViews": 56,
+    "normalFailures": [
+      {
+        "changedChannels": 1403,
+        "error": "unavailable(\"Repeated scene render differs: 1403 channels, maximum 14\")",
+        "maximumByteDelta": 14,
+        "name": "Chase-classic-volume"
+      },
+      {
+        "changedChannels": 31,
+        "error": "unavailable(\"Repeated scene render differs: 31 channels, maximum 13\")",
+        "maximumByteDelta": 13,
+        "name": "Driver-quality-volume"
+      },
+      {
+        "changedChannels": 52,
+        "error": "unavailable(\"Repeated scene render differs: 52 channels, maximum 5\")",
+        "maximumByteDelta": 5,
+        "name": "tv-quality-volume"
+      }
+    ],
+    "normalOriginalRestorationExact": true,
+    "normalOriginalImagesMatchingPreviousPackage": 28,
+    "validationViews": 56,
+    "validationAcceptancePassed": false,
+    "validationFailures": [
+      {
+        "changedChannels": 1352,
+        "error": "unavailable(\"Repeated scene render differs: 1352 channels, maximum 14\")",
+        "maximumByteDelta": 14,
+        "name": "Chase-classic-volume"
+      },
+      {
+        "changedChannels": 42,
+        "error": "unavailable(\"Repeated scene render differs: 42 channels, maximum 9\")",
+        "maximumByteDelta": 9,
+        "name": "tv-quality-volume"
+      }
+    ],
+    "firstValidationAbortedOnOriginalRestoration": true,
+    "finalDiagnosticRetainsRestorationFailures": true,
+    "imageToleranceChanged": false,
+    "acceptanceFramesDiscarded": false,
+    "benchmarkTimingSkippedOnFailure": true,
+    "localization": [
+      {
+        "name": "Chase-classic-volume",
+        "pixels": 658,
+        "bounds": [
+          80,
+          82,
+          912,
+          441
+        ],
+        "pixelsWhereBothDifferFromOriginal": 9
+      },
+      {
+        "name": "Driver-quality-volume",
+        "pixels": 17,
+        "bounds": [
+          436,
+          316,
+          540,
+          345
+        ],
+        "pixelsWhereBothDifferFromOriginal": 17
+      },
+      {
+        "name": "tv-quality-volume",
+        "pixels": 35,
+        "bounds": [
+          24,
+          4,
+          153,
+          225
+        ],
+        "pixelsWhereBothDifferFromOriginal": 35
+      }
+    ],
+    "fixedMipProbe": {
+      "productionSourceChanged": false,
+      "failures": [
+        {
+          "changedChannels": 1352,
+          "error": "unavailable(\"Repeated scene render differs: 1352 channels, maximum 14\")",
+          "maximumByteDelta": 14,
+          "name": "Chase-classic-volume"
+        },
+        {
+          "changedChannels": 11,
+          "error": "unavailable(\"Repeated scene render differs: 11 channels, maximum 2\")",
+          "maximumByteDelta": 2,
+          "name": "tv-quality-volume"
+        }
+      ],
+      "conclusion": "Fixed foliage mip level zero does not resolve repeat failures"
+    },
+    "rootCauseEstablished": false
+  },
+  "appearance": {
+    "change": "Finer silhouette and gaps replace smooth closed ellipsoids; blade orientation corrected after side-view inspection",
+    "remaining": "Procedural tall-tree branch clusters, moving LOD transitions, tree shadows and final visual acceptance"
+  },
+  "performance": {
+    "renderTimingAccepted": false,
+    "reason": "Image acceptance failed before timing loop; no prior-geometry timing carried forward",
+    "chaseDraws": 10,
+    "chaseTreeTriangles": 145824,
+    "precedingChaseTreeTriangles": 131696,
+    "triangleIncreasePercent": 10.727736605515737,
+    "canopyQuery": {
+      "canopyQueries": {
+        "maximumUS": 49058.208242058754,
+        "medianUS": 160.83335503935814,
+        "p95US": 1809.3751277774572,
+        "samples": 1014
+      },
+      "checksum": -223978801.77042294,
+      "outsideQueries": {
+        "maximumUS": 100.04173964262009,
+        "medianUS": 0.33318065106868744,
+        "p95US": 0.41676685214042664,
+        "samples": 192
+      },
+      "schema": 1,
+      "scope": "Release CPU timing of the additional detailed-canopy query at all 169 tree centers and outside the forest; one warmup sweep, six measured sweeps. Excludes original scene-height query, loading, simulation and rendering.",
+      "trees": 169
+    },
+    "canopyTimingCaveat": "Wall-clock probe has large outliers on the active desktop; no worst-case bound or no-regression claim",
+    "fullRaceFPSClaimed": false
+  },
+  "package": {
+    "path": "build/TORCSFoliagePreview.app",
+    "binarySHA256": "6ef663cbc5b986a4f793f5426c459a2e92132fc3f25db74cdd91d79383570c90",
+    "status": "Experimental; optional tree mode remains off by default",
+    "adHocSignatureVerified": true,
+    "metalSmokePassed": true,
+    "noDirectCPlusPlusOrExpatDependency": true,
+    "artworkBundled": false,
+    "priorTreePreviewPreserved": true,
+    "latestValidatedBaseline": "build/TORCSOrderPreview.app"
+  },
+  "preservationAudit": [
+    {
+      "path": "build/TORCSOrderPreview.app/Contents/MacOS/TORCSMac",
+      "baselineSHA256": "36e40369ec24b7e8b71551a349ba6b82ee4b18c77c8f1d89e87c5502591f6b74",
+      "currentSHA256": "36e40369ec24b7e8b71551a349ba6b82ee4b18c77c8f1d89e87c5502591f6b74",
+      "unchanged": true
+    },
+    {
+      "path": "build/TORCSLightPreview.app/Contents/MacOS/TORCSMac",
+      "baselineSHA256": "90fbc86e1a479b37d5cc3c7a8dc23d4c3148e2d69af5498bc12b2275bbae181f",
+      "currentSHA256": "90fbc86e1a479b37d5cc3c7a8dc23d4c3148e2d69af5498bc12b2275bbae181f",
+      "unchanged": true
+    },
+    {
+      "path": "/Users/holgervonameln/Library/Application Support/TORCSMac/cameras.json",
+      "baselineSHA256": "7493b4ac79f8bc9058190ea5218c47ddf3f67552d8f6d3ed39da49ab40374dda",
+      "currentSHA256": "7493b4ac79f8bc9058190ea5218c47ddf3f67552d8f6d3ed39da49ab40374dda",
+      "unchanged": true
+    }
+  ],
+  "sourceSnapshot": [
+    {
+      "path": "Packages/TORCSMetal/VegetationForest.swift",
+      "sha256": "ffd01482db8b50d8ddc25ec6c638ac025458ae2d086ad851264495e8fd459111"
+    },
+    {
+      "path": "Packages/TORCSMetal/VegetationRenderState.swift",
+      "sha256": "d1d0708d951763576787254205ad3611c2345fd05e3fe2e1035e4619846356ad"
+    },
+    {
+      "path": "Packages/TORCSMetal/SceneRenderer.swift",
+      "sha256": "10900ef3acb7b36635c3bbdf8e965f8032b207d755bee9dd959d9acf0bcad10c"
+    },
+    {
+      "path": "Packages/TORCSMetal/Scene.metal",
+      "sha256": "d13910858d9642d78d193f37f09c338191a6b85c140480092517d9afa128b27d"
+    },
+    {
+      "path": "Packages/TORCSMetal/SceneDrawOrder.swift",
+      "sha256": "f7bba22bc15bc52e11a2133db8110a92c2a421cf70f23f482c55c04d45909636"
+    },
+    {
+      "path": "Packages/TORCSMetal/DrivingSceneHeight.swift",
+      "sha256": "68800a6d402bf5243773731b0105f049873c7a9479fe10370f4b64f3b2019cd4"
+    },
+    {
+      "path": "App/DrivingSession.swift",
+      "sha256": "fb6400a685013895f6171844a9ad850027ffd5aa4d8bec203d1f07f250438849"
+    },
+    {
+      "path": "App/VegetationVisualSmoke.swift",
+      "sha256": "c02c9fd2bdd68e91839f9cd9811af71493035fed12370e615d2bc3c98d87e47a"
+    },
+    {
+      "path": "App/TORCSMacApp.swift",
+      "sha256": "88fe53f6de00e3dfda93d20ab95694e1bceb6d45390c59ad56bb54b5c4be0b53"
+    },
+    {
+      "path": "Tests/UnitTests/VegetationTests.swift",
+      "sha256": "90a6f38279e45558d0a3de0110461f981f0532904a792724d2391d31c226d8e6"
+    }
+  ],
+  "evidenceSnapshot": [
+    {
+      "path": "Artifacts/vegetation-oriented-sprays-tests.log",
+      "sha256": "716ae3e538ad53fa3c1646b685c7c17f88e9571785d112d2611f16bc217192c2"
+    },
+    {
+      "path": "Artifacts/vegetation-sprays-asan.log",
+      "sha256": "bb38bfadfa52145bc63beec6395633e1a68ff4ef4b74bc99a85daf8eea06b99f"
+    },
+    {
+      "path": "Artifacts/foliage-diagnostic-final-tests.log",
+      "sha256": "513ec3b65eeb97764441d46a5668cf32d0a97e4fe94dc4855974b3e0a5f1a009"
+    },
+    {
+      "path": "Artifacts/vegetation-sprays-first.log",
+      "sha256": "c32602e013a76942c4180e2703c294b30d2893e194a85b18796f6de1f537fecc"
+    },
+    {
+      "path": "Artifacts/vegetation-sprays-all/report.json",
+      "sha256": "851aaafb349aac68b0c70bcdf4954d87ce7fc39ef9f42bf0498892365f952225"
+    },
+    {
+      "path": "Artifacts/foliage-preview-benchmark.log",
+      "sha256": "baeb13a94a6d45c3e968b3972959f8afc5577d02371fe29db0662d99e89600cf"
+    },
+    {
+      "path": "Artifacts/foliage-preview-benchmark/report.json",
+      "sha256": "fc863320475eabef775747002fefe79e1d2cc762c4501fa043ecbcee5cf8a648"
+    },
+    {
+      "path": "Artifacts/foliage-preview-validation.log",
+      "sha256": "c3d5125f29e76b7b1bd76350e28b1eac70ba30a34cfff5699c74f25a8651d815"
+    },
+    {
+      "path": "Artifacts/foliage-preview-final-validation.log",
+      "sha256": "4cb43345515919bb20c2cf12458944e65b0d348e2ee3ab1a557cc1051ee9833f"
+    },
+    {
+      "path": "Artifacts/foliage-preview-final-validation/report.json",
+      "sha256": "d688dd8859a6dd30056e2e089fd2ea9561b8ff54ab4e174a08160ed7d6437c27"
+    },
+    {
+      "path": "Artifacts/foliage-lod0-probe.log",
+      "sha256": "557017fb92b8d4fad4c990ce4c59de9be02201a951f369599eeb5cbf4d8f85df"
+    },
+    {
+      "path": "Artifacts/foliage-lod0-probe-captures/report.json",
+      "sha256": "98864e39ff6333eb5f44603668ff497b98f541687cd12150d38eff63ea246661"
+    },
+    {
+      "path": "Artifacts/foliage-difference-localization.json",
+      "sha256": "9a5005e717073b4319b83e3b8a378eb54b37ae83ab9871fbb5b4ae9b0bcf222c"
+    },
+    {
+      "path": "Artifacts/foliage-height-timing.json",
+      "sha256": "2ce1f69778a03872c5bd49da1927f0f31dc542417076ca8e2f9c316a97ad5e35"
+    },
+    {
+      "path": "Artifacts/foliage-height-bench-command.json",
+      "sha256": "77c5c4574872ccb884dacf08295f3c704eacbecb9041f9568783a436febc3cb2"
+    },
+    {
+      "path": "Artifacts/foliage-preview-final-package.log",
+      "sha256": "bd0b1d7ea9ede32ea68946cdee97bf97ee140474e14c291ed1faf386395fdcf8"
+    },
+    {
+      "path": "Artifacts/foliage-preview-final-signature.log",
+      "sha256": "a0990abb9f38c68f653ba6a14201daee5436b3145922eb1b8f408cd27c510bb3"
+    },
+    {
+      "path": "Artifacts/foliage-preview-final-smoke.log",
+      "sha256": "7c307493192b70189dfcb95937600d572fed01a81f577ac8302965950bc5ab5f"
+    },
+    {
+      "path": "Artifacts/foliage-preview-libraries.log",
+      "sha256": "eb1ea6022b4732a2eedb26e3451b73d29ba2c6412376fe0b035e6e843ae44a80"
+    },
+    {
+      "path": "Artifacts/foliage-preview-provenance.log",
+      "sha256": "7afd9018e488fb36b235e2f4693c3bba97eea66019545ffa1d9cf211b8d646ed"
+    },
+    {
+      "path": "Artifacts/foliage-preview-performance-processes.txt",
+      "sha256": "d436352946e07f5633fe9acf6b010c5fe29fb9299dc005b4f0f96b233c2de193"
+    }
+  ],
+  "next": [
+    "Isolate shared scene state/rendering after optional geometry, including original-mode failures; do not relax acceptance",
+    "Refine procedural crowns and moving detail transitions; evaluate authored foliage if it gives better fidelity at measured cost",
+    "Measure full rendering cost after image acceptance and profile/accelerate canopy queries as needed",
+    "Add measured nearby tree shadows before default enablement",
+    "Continue original camera acceptance, race lifecycle, native robots, audio, replay, content and distribution; controller work remains deferred"
+  ]
+}

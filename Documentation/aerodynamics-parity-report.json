@@ -1,0 +1,147 @@
+{
+  "absoluteTolerance": 1e-05,
+  "archiveSHA256": "f9c69e86d290295467451b01d7838d85005ba613644a6fe8a3f85a7c6a03cd4c",
+  "excluded": [
+    "Chassis force/motion integration",
+    "Native multi-car update scheduling",
+    "Pit-time wing reconfiguration",
+    "Whole-vehicle/race parity",
+    "Collision/damage generation",
+    "Gameplay",
+    "Cross-platform bit identity"
+  ],
+  "fixtureSHA256": {
+    "155-DTM.xml": "7b069b816636ed85ace6b440d87aa400c3e54716170766df3e7a7483475f52bb",
+    "Track-4WD-GrB.xml": "b08bc4a12ccfeff49ce1d608583a858cec69985d94aa057640d231016fed37eb"
+  },
+  "observations": {
+    "addressSanitizer": [
+      {
+        "cases": 2380,
+        "check": "AERO_DRAFTING",
+        "fields": 23800,
+        "maxAbsolute": 0.0
+      },
+      {
+        "cases": 1084,
+        "check": "AERO_FORCES",
+        "fields": 10840,
+        "maxAbsolute": 0.0
+      },
+      {
+        "cases": 11,
+        "check": "AERO_CONFIG",
+        "fields": 176,
+        "maxAbsolute": 0.0
+      },
+      {
+        "cases": 500,
+        "check": "AERO_ORIGINAL_CAR",
+        "fields": 5000,
+        "maxAbsolute": 0.0
+      },
+      {
+        "cars": 4,
+        "check": "AERO_MOVING_TRAFFIC",
+        "fields": 100000,
+        "maxAbsolute": 0.0,
+        "ticks": 10000
+      }
+    ],
+    "debug": [
+      {
+        "cases": 2380,
+        "check": "AERO_DRAFTING",
+        "fields": 23800,
+        "maxAbsolute": 0.0
+      },
+      {
+        "cases": 1084,
+        "check": "AERO_FORCES",
+        "fields": 10840,
+        "maxAbsolute": 0.0
+      },
+      {
+        "cases": 11,
+        "check": "AERO_CONFIG",
+        "fields": 176,
+        "maxAbsolute": 0.0
+      },
+      {
+        "cases": 500,
+        "check": "AERO_ORIGINAL_CAR",
+        "fields": 5000,
+        "maxAbsolute": 0.0
+      },
+      {
+        "cars": 4,
+        "check": "AERO_MOVING_TRAFFIC",
+        "fields": 100000,
+        "maxAbsolute": 0.0,
+        "ticks": 10000
+      }
+    ],
+    "release": [
+      {
+        "cases": 2380,
+        "check": "AERO_DRAFTING",
+        "fields": 23800,
+        "maxAbsolute": 0.0
+      },
+      {
+        "cases": 1084,
+        "check": "AERO_FORCES",
+        "fields": 10840,
+        "maxAbsolute": 0.0
+      },
+      {
+        "cases": 11,
+        "check": "AERO_CONFIG",
+        "fields": 176,
+        "maxAbsolute": 0.0
+      },
+      {
+        "cases": 500,
+        "check": "AERO_ORIGINAL_CAR",
+        "fields": 5000,
+        "maxAbsolute": 0.0
+      },
+      {
+        "cars": 4,
+        "check": "AERO_MOVING_TRAFFIC",
+        "fields": 100000,
+        "maxAbsolute": 0.0,
+        "ticks": 10000
+      }
+    ]
+  },
+  "preservedQuirks": [
+    "Only rear wing contributes to drafting coefficient",
+    "Strict speed and angle gates, Float-step/Double-bound yaw normalization",
+    "Minimum drafting candidate rather than compounded effects",
+    "Original NaN candidate from coincident zero-coefficient opponent is ignored by strict comparison",
+    "Only lower cosine clamp for ground-effect direction",
+    "Body and wing drag damage multiplier does not affect wing lift",
+    "Nonpositive forward velocity produces no wing force"
+  ],
+  "reference": "Unchanged SimAeroConfig, SimWingConfig, SimAeroUpdate and SimWingUpdate. Temporary car table restored after update; live-world test verifies unchanged telemetry and successful continued stepping.",
+  "relativeTolerance": 1e-06,
+  "schema": 1,
+  "scope": "Fresh body/wing configuration, aerodynamic body drag and ground effect, wing angle-of-attack forces and multi-car drafting under externally supplied motion, damage and ride heights",
+  "sourceSHA256": {
+    "Package.swift": "88262940476314f5392581880757c11689f2f36bfbd155cbdbdd6cb223d5dd23",
+    "Packages/TORCSSimulation/Aerodynamics.swift": "2f4eeca38a2734d29d0dbf4876d4ff558692eeb234b480f3e8a3d40cadc5cd2e",
+    "Packages/TORCSSimulation/RunningGearConfiguration.swift": "e0414426d0ef6581e5f363c41b3d432ea9253292867742fa4c24f8bcb3cfd143",
+    "Packages/TORCSSimulation/VehicleMassProperties.swift": "bf9d7f13a90014f25aeeed4f98dd8865d9f0e715997660596d4545a09b91ead3",
+    "Tests/UnitTests/AerodynamicsTests.swift": "d6ebfdff964c9e90eb836167e05a01e8b2c425625acd028e076d3bf2a0c24454",
+    "Tests/UnitTests/EngineTests.swift": "e8d00cf2700306175a2ef5c3ca34bd5261bdc79c3e5ac31f21ab25b985511b56",
+    "Tools/TORCSReferenceSupport/ReferenceWorld.swift": "074aaa75e519f3685e25dcce9d3b110e09b1d3f081c2df4fb1aa3ffa177c9782",
+    "Upstream/Reference/aero.cpp": "45e7b1d62d7c94000c2ecd6a2682a8d6af2ceb74fb70faec346bc6228521fdd9",
+    "Upstream/Reference/include/CReference.h": "0242e9271e1e59082dfed15b2b9cc777e5b378ed4b2001b1194149fb227d40f6",
+    "Upstream/Reference/private/aero.h": "4eb0e292b5ab3670072bf8152a4d838bc8b0cf8d69ae5e65a1e53b72cd4c96a1",
+    "Upstream/Reference/private/tgf.h": "0e65ffbeaf411826cf1427ae2e9bff556c72c636e71862022eec1be6b4299e2a",
+    "Upstream/Reference/world.cpp": "25bdd0002c7af23c130bd6a76636219a78fb189efcd5194020cffa7e7a7baf4c"
+  },
+  "toolchain": "Swift 6.3.3 / Xcode 26.6 / Apple Silicon",
+  "upstream": "TORCS 1.3.9"
+}

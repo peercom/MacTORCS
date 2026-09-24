@@ -1,0 +1,81 @@
+{
+  "schema": 1,
+  "date": "2026-09-24",
+  "priority": "Gameplay; foliage and further visual experiments deferred",
+  "upstream": "TORCS 1.3.9",
+  "package": {
+    "path": "build/TORCSGameplayPreview.app",
+    "binarySHA256": "dd6d510030cc5d46f677c4f020cf6bab765c642659f8b9769219d9e0a00bf62d",
+    "linkedReleaseSHA256": "ab45f9ac1fcfb78fcb1a2b51f31ac8d32c14ab7174b14e10166eacd20ef1d258",
+    "matchingMachOUUID": "6AAE583D-5837-3992-966C-06A063210631",
+    "signature": "ad hoc, strict verification passed; signing changes file hash",
+    "metalSmoke": "passed",
+    "originalRuntimeDependency": false,
+    "bundledOriginalArtwork": false
+  },
+  "implemented": [
+    "Driving as primary window; component lab retained in menu",
+    "Configurable practice and solo qualifying, 1\u2013100 UI laps",
+    "Original two-second fixed-step prestart, pause and restart",
+    "Completion, retirement and early-ending results; JSON export",
+    "Standalone multi-car race ordering, lap timing, crossing gaps and finish progression"
+  ],
+  "verification": {
+    "release": {
+      "tests": 282,
+      "failures": 0,
+      "seconds": 144.917
+    },
+    "addressSanitizer": {
+      "tests": 7,
+      "failures": 0,
+      "seconds": 3.484
+    },
+    "originalCountdownTicks": 10000,
+    "originalOrderingCases": 5000,
+    "originalFieldTiming": {
+      "cars": 8,
+      "steps": 500,
+      "fieldsPerCar": 23,
+      "finishedSessions": 7,
+      "invalidLaps": 46
+    },
+    "publishedFinishCrossing": "matched original",
+    "provenance": "229 pinned source/content files verified",
+    "uiAcceptance": "Pending: UI automation yielded to concurrent user interaction; final window flow not claimed as manually validated."
+  },
+  "limits": [
+    "Native AI and integrated human-versus-AI races unfinished",
+    "RaceProgress consumes authored samples in reference tests, not a physical eight-car race",
+    "Original grid, qualifying-to-grid flow, race penalties and championships pending",
+    "Physical five-lap human and ten-lap native AI acceptance pending",
+    "Audio and deterministic replay pending",
+    "Known foliage/alpha raster limitations retained; foliage remains off by default",
+    "No new full-race performance or distribution acceptance claim"
+  ],
+  "sourceSHA256": {
+    "App/DrivingSession.swift": "407d46d8d4944897093e8d850321b5dfe73982bdd85eb0450d0fd920df2288c7",
+    "App/DrivingSessionSetup.swift": "9097aeecff1c5552a45884428fff949a9f1e67a3a5de0694579be82993c1c346",
+    "App/TORCSMacApp.swift": "fb019ce8b4ffcdeff7fbcfc78902597477ff50d494ef8318a1aefde79710301d",
+    "Packages/TORCSRaceEngine/DrivingRuntime.swift": "8c80b2e6e54cb4ff0075d8ef5a04bafe22fbe0403cd1d98146b6c1dc430569c2",
+    "Packages/TORCSRaceEngine/RaceLapTiming.swift": "d5193ce525e1ab825e93132bca17f58d31de5e8622d09691db9e1402f6f77f5e",
+    "Packages/TORCSRaceEngine/RacePitController.swift": "78ffee062401af8214319576dd4f4edefe5d2efc24b4169a52e9be88d2f7b6f3",
+    "Packages/TORCSRaceEngine/RaceSession.swift": "fd97307497f67ac151e38f3b9c4d1b210c9ee8d3b0b1847dddbb6d2056150359",
+    "Packages/TORCSRaceEngine/RaceProgress.swift": "346478d89217e480ce55031d41f7b31e9cd8916b288e43afe6dcde3b8abad04a",
+    "Tests/UnitTests/RaceSessionTests.swift": "945312002878fe28000f45e8e081fa4b5d07ba783740c4cb72683f63113fd0fa",
+    "Upstream/Reference/race-instrumentation.cpp": "1e47bf79e7673bdae09f52260d24a493cd1488891fcd78ae7e55e5427305a86f",
+    "Upstream/Reference/world.cpp": "e017d352f70cecb1098d9281ec7354df39ef4fbd2bddb666fa3b2e86912e3d0f",
+    "Upstream/Reference/include/CReference.h": "341d6e37d3ae2fdd2c6d89bca06b63b5704164b44110d84709d81e46a4679788",
+    "Tools/TORCSReferenceSupport/ReferenceWorld.swift": "c9ebad162f6574c58b864ccea59b30e7e80e2d32b13c871c0bee618365287d70"
+  },
+  "evidenceSHA256": {
+    "Artifacts/gameplay-final-tests.log": "b8c2a284a7bed87520c819dd4f95f93ba08dbbc23e4048221d8edc49765b5158",
+    "Artifacts/gameplay-asan-tests.log": "a844e75ff7e992fc92a46a741ddff4c89335235337e494c5d4ba22b99659cf26",
+    "Artifacts/gameplay-package.log": "95916d70e7d0e57ab345784c9a8d9e3717f38df70e091e3bed88ceea08a486b5",
+    "Artifacts/gameplay-signature.log": "5fc1ea28097b6ad928e94c06bef8c03950cad5a30590fc9bbe9d0cf9e4581cf4",
+    "Artifacts/gameplay-libraries.log": "3f77519b92607a80fa96fc5bbba64ed2cd55c116cab58c4893677d4e3b8ce686",
+    "Artifacts/gameplay-metal-smoke.log": "7c307493192b70189dfcb95937600d572fed01a81f577ac8302965950bc5ab5f",
+    "Artifacts/gameplay-provenance.log": "7afd9018e488fb36b235e2f4693c3bba97eea66019545ffa1d9cf211b8d646ed",
+    "Artifacts/gameplay-binary-identity.log": "df6f293ea3b724fade10cc1753343e9cb0423f007e9d822571b9300ffd99eb8e"
+  }
+}

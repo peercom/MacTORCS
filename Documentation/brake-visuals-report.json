@@ -1,0 +1,341 @@
+{
+  "schema": 1,
+  "date": "2026-09-23",
+  "increment": "Original generated hub, brake disc and caliper geometry with published heat color and Fly scene-height integration",
+  "goalComplete": false,
+  "reference": "TORCS 1.3.9",
+  "tests": {
+    "fullDebug": 246,
+    "selectedRelease": 33,
+    "selectedASan": 33,
+    "inventory": 246,
+    "failures": 0,
+    "originalGeometryCases": 960,
+    "originalParts": 2880,
+    "vertexScalars": 141120,
+    "maximumVertexAbsoluteError": 0,
+    "normalsColorsPrimitiveCullingExact": true,
+    "authoredVehicleCases": 300,
+    "authoredVehicleScalars": 46800,
+    "authoredVehicleMaximumAbsoluteError": 9.536743e-07,
+    "nativeVisualPublications": 2002,
+    "nativeMatrixScalars": 312312,
+    "nativeMaximumAbsoluteError": 3.0517578e-05,
+    "heightQueries": 20736,
+    "brakeHeightHits": 8630,
+    "heightMaximumAbsoluteError": 0,
+    "originalPLIBHitAndTriangleCountsExact": true,
+    "gpuTemperatureCases": 4,
+    "spinIndependentAndDiscColorIsolation": true,
+    "invalidColorAtomic": true
+  },
+  "rendering": {
+    "generatedPartsPerCar": 12,
+    "verticesPerCar": 196,
+    "trianglesPerCar": 172,
+    "additionalDrawsPerVisibleCarPerView": 12,
+    "newTextures": 0,
+    "newRenderPasses": 0,
+    "shaderSourceUnchanged": true,
+    "cameraCount": 31,
+    "nativePhysicsTicks": 4500,
+    "hottestTick": 3087,
+    "highestPublishedBrakeTemperature": 0.2132691740989685,
+    "imagesPerProcess": 24,
+    "immediateExactRepeatPairsPerProcess": 24,
+    "matchingProcesses": 5,
+    "matchingReleaseProcesses": 4,
+    "includesDebugReleaseComparison": true,
+    "metalAPIAndGPUValidationFaultsReported": 0,
+    "geometryChangedChannels": 207240,
+    "heatChangedChannels": 65758,
+    "scope": "Actual native accelerate/brake snapshots. Omitted geometry and fixed cold color are presentation controls; no physics state is changed. Wheel-detail view is an inspection camera. No GL pixel parity or race FPS claim.",
+    "visualInspection": [
+      "heated wheel detail in quality mode",
+      "original side view in quality mode"
+    ]
+  },
+  "performance": {
+    "host": "Apple M2, 8 GiB, macOS 26.2",
+    "scope": "960x640 stationary side view, original artwork plus optional generated brakes; 60 interleaved samples per classic/quality and brake-off/on mode after 10 warmups. Excludes physics, resource loading and file IO.",
+    "width": 960,
+    "height": 640,
+    "samplesPerMode": 60,
+    "warmupsPerMode": 10,
+    "modes": [
+      {
+        "brakes": false,
+        "gpuMedianMS": 0.5407501012086868,
+        "gpuP95MS": 0.8849999867379665,
+        "offscreenWallMedianMS": 4.359708400443196,
+        "quality": false,
+        "samples": 60
+      },
+      {
+        "brakes": true,
+        "gpuMedianMS": 0.5436250939965248,
+        "gpuP95MS": 0.7793749682605267,
+        "offscreenWallMedianMS": 4.425291670486331,
+        "quality": false,
+        "samples": 60
+      },
+      {
+        "brakes": false,
+        "gpuMedianMS": 0.6072083488106728,
+        "gpuP95MS": 0.6333750206977129,
+        "offscreenWallMedianMS": 4.3582499492913485,
+        "quality": true,
+        "samples": 60
+      },
+      {
+        "brakes": true,
+        "gpuMedianMS": 0.6090833339840174,
+        "gpuP95MS": 0.674000009894371,
+        "offscreenWallMedianMS": 4.412041511386633,
+        "quality": true,
+        "samples": 60
+      }
+    ],
+    "interpretation": "Stationary offscreen side-view sample only; no gameplay FPS, long-race or other-GPU claim. Render resources are already loaded and physics is excluded."
+  },
+  "cameraRegressions": [
+    {
+      "capture": "brake-tv",
+      "baseline": "multi-shadow-single-tv",
+      "images": 24,
+      "changedImagesFromAddedGeometry": 10,
+      "cameraAndPhysicsMetadataUnchanged": true,
+      "immediateExactRepeatPairs": 24
+    },
+    {
+      "capture": "brake-fly",
+      "baseline": "multi-shadow-single-fly",
+      "images": 24,
+      "changedImagesFromAddedGeometry": 0,
+      "cameraAndPhysicsMetadataUnchanged": true,
+      "immediateExactRepeatPairs": 24
+    },
+    {
+      "capture": "brake-traffic",
+      "baseline": "traffic-shadows-first",
+      "images": 80,
+      "changedImagesFromAddedGeometry": 24,
+      "cameraAndPhysicsMetadataUnchanged": true,
+      "immediateExactRepeatPairs": 80
+    }
+  ],
+  "traffic": {
+    "cars": 3,
+    "images": 80,
+    "immediateExactRepeatPairs": 80,
+    "nativeRuns": 2,
+    "totalAutomaticTVSwitches": 12,
+    "shadowChangedChannels": 550912,
+    "metalValidationEnabled": true,
+    "fixedLaunchOrderNoNativeAIOrStandings": true
+  },
+  "packaged": {
+    "path": "build/TORCSBrakePreview.app",
+    "adHocSignatureVerified": true,
+    "binarySHA256": "2cf7fd17b97d151ce5ebab5f851beab4cbbee7eb04e3ba825aace178b1d052ac",
+    "nativeBinaryHasNoDirectCPlusPlusOrExpat": true
+  },
+  "provenance": {
+    "verifiedPinnedEntries": 221,
+    "newPinnedOriginalSources": 0,
+    "newOriginalArtwork": 0,
+    "newVerbatimExcerpt": "brake-init.inc from already pinned grcar.cpp"
+  },
+  "preserved": {
+    "build/TORCSMultiShadowPreview.app/Contents/MacOS/TORCSMac": "15775a8b90d53a671fe4fc1f12eeeb80188fcb2dc099834c45ab76bb5cc5ac8f",
+    "build/TORCSTVPreview.app/Contents/MacOS/TORCSMac": "9f393c487a68e7a409152f77a80159b695ac34411cec035a78906a039e2faf0f",
+    "build/TORCSFlyPreview.app/Contents/MacOS/TORCSMac": "a144864b22b58651e22bf9c4bde50f83f55dd230c593f5048f8bf0541d9f097e",
+    "Packages/TORCSMetal/Scene.metal": "4396144a2cfc7eb97ad10ddcc09d898b01d979b328bb4f15de8742b2e62e3e66",
+    "/Users/holgervonameln/Library/Application Support/TORCSMac/cameras.json": "b62c5a2a334ac0748b201b64b9dbe3ade377d796a596fcba7bd38833a4c084e8"
+  },
+  "sourceSnapshot": [
+    {
+      "path": "Packages/TORCSAssets/BrakeGeometry.swift",
+      "sha256": "1e99f60dcb50fc8984f313b4ed3ba1e2409e7ee3d992b560633641c35a49a6e3"
+    },
+    {
+      "path": "Packages/TORCSSimulation/VehicleVisualSnapshot.swift",
+      "sha256": "b8335f1804edd824b2d5a404f57f2f31505673da2635d1ee84ee46917d3b28f7"
+    },
+    {
+      "path": "Packages/TORCSMetal/VehiclePresentation.swift",
+      "sha256": "f323367355c0fa79bb8e87852ab28b7cb4b3a550f5674105f5b3d3a1aedbde48"
+    },
+    {
+      "path": "Packages/TORCSMetal/SceneRenderer.swift",
+      "sha256": "0623407de59093f4b34bc598c803f83ec2ac6930fb57bf55d3a8c220b07b48a9"
+    },
+    {
+      "path": "Packages/TORCSMetal/Scene.metal",
+      "sha256": "4396144a2cfc7eb97ad10ddcc09d898b01d979b328bb4f15de8742b2e62e3e66"
+    },
+    {
+      "path": "Packages/TORCSMetal/DrivingSceneHeight.swift",
+      "sha256": "f3f3453f3e8202fdb435b1b7b8499502c86b7753b05379828d479db747edab83"
+    },
+    {
+      "path": "Packages/TORCSRaceEngine/DrivingContent.swift",
+      "sha256": "641ae194a58dda58f8fe202f61f1afdb84247874ce9f0b508bf670e97ddd0b51"
+    },
+    {
+      "path": "App/DrivingSession.swift",
+      "sha256": "082edf668da6dce76a40161d01cf85ef24274b5ec976c17d0a25373a6ef074ec"
+    },
+    {
+      "path": "App/BrakeVisualSmoke.swift",
+      "sha256": "ef63d4d465f242bb198e48e1ca4da77e706e34d75c5c9ea886ad20b2f76d5ed3"
+    },
+    {
+      "path": "App/FlyVisualSmoke.swift",
+      "sha256": "528f5d506bcdbe03d6b1351780baa6061590b4f6063feddd733d56e20ded1b32"
+    },
+    {
+      "path": "App/TVVisualSmoke.swift",
+      "sha256": "65ca8da023cce0f2efc516bc01747b0af4daf746293e193f9b11dc4c5619b294"
+    },
+    {
+      "path": "App/TrafficVisualSmoke.swift",
+      "sha256": "b476276fd94a2f421382eefe562b5a014f87e1c1435a3b30db25945468c79f81"
+    },
+    {
+      "path": "App/TORCSMacApp.swift",
+      "sha256": "c7ea8ba8077e93ef7dbc9f80a212508672707318df9560a944c399f19e085cff"
+    },
+    {
+      "path": "Tests/UnitTests/BrakeGeometryTests.swift",
+      "sha256": "6f2f0c9302a8d1778cfcdf6da8d4473b54161b06172445690791e217f91f71d2"
+    },
+    {
+      "path": "Tests/UnitTests/VehiclePresentationTests.swift",
+      "sha256": "ad3e6565790707d03d8543f2705f69ab3227d8708b04a46546b774b096f164f2"
+    },
+    {
+      "path": "Upstream/Reference/graphics-instrumentation.cpp",
+      "sha256": "2b2a74259fd5fc6ade6a32a1bd6f0c8be07688acb4dafee4c798b8ac78a87b40"
+    },
+    {
+      "path": "Upstream/Reference/include/CReference.h",
+      "sha256": "355b3b99a4b42770614e06eaef776bcfd073a55cec9c0a386977015f5df9beed"
+    },
+    {
+      "path": "Upstream/Reference/graphics/brake-init.inc",
+      "sha256": "70f1baef6785cbf5d8cd847e339a3d50012ef8fa42d4103a5ef018bd9f4043f7"
+    },
+    {
+      "path": "Scripts/verify-provenance.py",
+      "sha256": "f78e64b024a85823f4102a3be5c1e5ccdcbd2494a998cc07d01bcdee0ef11694"
+    }
+  ],
+  "evidenceSnapshot": [
+    {
+      "path": "Artifacts/brake-full-debug.log",
+      "sha256": "68c75eedc2e3588f9cd3fca2aa72c520c6d15382c80d9625f9a26c5e7407577c"
+    },
+    {
+      "path": "Artifacts/brake-release.log",
+      "sha256": "12fdd17c3df39a82405a2308e196d422bd00477536bf08d685a786537ffdb0d6"
+    },
+    {
+      "path": "Artifacts/brake-asan.log",
+      "sha256": "a41837dd4a014d5004241c4d9cc321ac5a7df08d5d60fa6cab362697b90f5536"
+    },
+    {
+      "path": "Artifacts/brake-test-inventory.log",
+      "sha256": "71b9226e56a7827d4eea0126c93c987edf232413f8397694517760c57de944b3"
+    },
+    {
+      "path": "Artifacts/brake-provenance.log",
+      "sha256": "7eb4502dfffa29caa212a12c158076ebf209611e2725e490d829e1fef60c81ad"
+    },
+    {
+      "path": "Artifacts/brake-package.log",
+      "sha256": "c02c0f1be23b90cde9bb96bb70eb55dfdcc0c2f4691f3151128e87d439e9dae6"
+    },
+    {
+      "path": "Artifacts/brake-runtime-libraries.log",
+      "sha256": "ea8d2bfe761de781361484b8730aa29fc68544cefd357ebe7eb17d8b3a842e53"
+    },
+    {
+      "path": "Artifacts/brake-pre-benchmark-processes.log",
+      "sha256": "81fe617d07097bacb4ffbd766909b82c06b0e7eceb9c0a762781787355921ee3"
+    },
+    {
+      "path": "Artifacts/brake-debug-capture.log",
+      "sha256": "41570eb8d74c571d3cf46f310137cd6d1b87e8fa9f46c8ba3f2bb9b18464119f"
+    },
+    {
+      "path": "Artifacts/brake-preview-first.log",
+      "sha256": "41570eb8d74c571d3cf46f310137cd6d1b87e8fa9f46c8ba3f2bb9b18464119f"
+    },
+    {
+      "path": "Artifacts/brake-preview-second.log",
+      "sha256": "41570eb8d74c571d3cf46f310137cd6d1b87e8fa9f46c8ba3f2bb9b18464119f"
+    },
+    {
+      "path": "Artifacts/brake-preview-validation.log",
+      "sha256": "b640bbf811c928f5b9c39255f87cefe0051de63ee7a6ecdf739761e0520748fd"
+    },
+    {
+      "path": "Artifacts/brake-benchmark.log",
+      "sha256": "41570eb8d74c571d3cf46f310137cd6d1b87e8fa9f46c8ba3f2bb9b18464119f"
+    },
+    {
+      "path": "Artifacts/brake-debug-first/report.json",
+      "sha256": "c17177ed872f864b1fee453614c256add6f03d306209159d134e8cac194f5254"
+    },
+    {
+      "path": "Artifacts/brake-preview-first/report.json",
+      "sha256": "c17177ed872f864b1fee453614c256add6f03d306209159d134e8cac194f5254"
+    },
+    {
+      "path": "Artifacts/brake-preview-second/report.json",
+      "sha256": "c17177ed872f864b1fee453614c256add6f03d306209159d134e8cac194f5254"
+    },
+    {
+      "path": "Artifacts/brake-preview-validation/report.json",
+      "sha256": "c17177ed872f864b1fee453614c256add6f03d306209159d134e8cac194f5254"
+    },
+    {
+      "path": "Artifacts/brake-benchmark/report.json",
+      "sha256": "b10de8294fc73e106f1b8700a7ef6f318bdff030f75cbd71d3bec9dcce41fd78"
+    },
+    {
+      "path": "Artifacts/brake-tv.log",
+      "sha256": "d73e2acce0b98acba2bf2bc034e717a4bb22cc051aae98fed0d9ef6ddb478a57"
+    },
+    {
+      "path": "Artifacts/brake-tv/report.json",
+      "sha256": "bc7606729748a30987ef86763ed2f7507a90d2976d5b79f17b9e299014694d9d"
+    },
+    {
+      "path": "Artifacts/brake-fly.log",
+      "sha256": "121da35d55765d5743a4409a45c5bc1bad76f4e98c4166031a8f37b0767ab157"
+    },
+    {
+      "path": "Artifacts/brake-fly/report.json",
+      "sha256": "2d42a092fb4a732616cf2affc5ba0a25a83aa01af9da243383319c9c156c179e"
+    },
+    {
+      "path": "Artifacts/brake-traffic.log",
+      "sha256": "0c96acc31055740af315e28c541a71009ab36fb81a875d123de891d68da1e50f"
+    },
+    {
+      "path": "Artifacts/brake-traffic/report.json",
+      "sha256": "9afb5db12bdf766e4c139284524591aa2f2e87c3d241c1dfcc5cd5f57eb42cec"
+    }
+  ],
+  "remaining": [
+    "other original effects, LODs and complete original scene",
+    "multi-car Fly scene height and interactive multi-car racing",
+    "native Fly/TV picker/zoom/relaunch acceptance",
+    "scene-wide dynamic shadows and broader visual/performance coverage",
+    "full race lifecycle, native AI, audio and replay",
+    "physical GameController/HID validation after visual priorities",
+    "asset attribution, full-race profiling, distribution and notarization"
+  ]
+}

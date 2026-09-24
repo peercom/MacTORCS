@@ -1,0 +1,263 @@
+{
+  "schema": 1,
+  "date": "2026-09-23",
+  "increment": "F10 driving integration and mutable selected-scene height assembly",
+  "goalComplete": false,
+  "pickerCameras": 30,
+  "flyInPicker": true,
+  "reference": {
+    "release": "TORCS 1.3.9",
+    "archiveSHA256": "f9c69e86d290295467451b01d7838d85005ba613644a6fe8a3f85a7c6a03cd4c",
+    "sourceLicenseEntries": 174,
+    "contentEntries": 46,
+    "wholeOriginalSceneParity": false,
+    "newArtwork": 0,
+    "movingGraphQueries": 12960,
+    "movingGraphHeightHitsTrianglesSpheresMaximumError": 0,
+    "flyZoomUpdates": 1218,
+    "flyZoomFactoryLimitsKeys": "exact"
+  },
+  "nativeScene": {
+    "anchors": "Original landscape,pits,skid,shadow,carlight,cars,smoke,sun order; unsupported anchors empty",
+    "geometry": "Selected track, full-detail car/driver, four modeled wheels with all four speed choices in bounds, projected six-vertex shadow",
+    "hiddenShadow": "No hits or bounds, matching leaf removal",
+    "ordering": "F10 queries preceding published draw geometry, then current physical snapshot updates graph; visible geometry still interpolated",
+    "pickerSwitches": "Retain clock/motion/RNG; elapsed-time rules handle resets",
+    "initialDegeneratePose": "Retain preceding valid renderer view",
+    "rollback": "Invalid transform/resource/geometry publication rolls back bounds, motion and camera RNG",
+    "missing": [
+      "Other car LODs",
+      "Generated brakes and pits",
+      "Skidmarks, smoke, lights and other generated effects",
+      "Body damage deformation",
+      "Multiple cars and anchor sorting",
+      "Traversal callbacks and optional loader optimization for other content"
+    ],
+    "transformScope": "Existing native body/wheel transform tolerance applies; exact height comparisons use identical supplied matrices"
+  },
+  "validation": {
+    "logs": [
+      {
+        "path": "Artifacts/fly-integration-debug-full.log",
+        "cases": 225,
+        "sha256": "cbbb134c6e39a9f0de68d7875b56f89ac8e20760b948f7e5739905ed69adc00f"
+      },
+      {
+        "path": "Artifacts/fly-integration-debug-final.log",
+        "cases": 70,
+        "sha256": "bbdd64290b30cd291f017f2c22aaa2911dd61a1a029a36c184a462035a57a4ee"
+      },
+      {
+        "path": "Artifacts/fly-integration-release.log",
+        "cases": 70,
+        "sha256": "a692d2cfe25aabaa1c2952ed931ffdacbe1cce8d9a224598c81154004088a2b3"
+      },
+      {
+        "path": "Artifacts/fly-integration-asan-before-shadow-fix.log",
+        "cases": 70,
+        "sha256": "93fdcd1e1e54908a0cb2b01c09350026a3f7ac590255e968a67b740bb8326ba6"
+      },
+      {
+        "path": "Artifacts/fly-integration-asan-final.log",
+        "cases": 7,
+        "sha256": "48139b8b0917442ba4fbea485c10854a5fac15cfe65f4e387b6807c4377b20e3"
+      }
+    ],
+    "inventory": 225,
+    "scope": "Full debug and 70-case ASan suite passed before final hidden-shadow bounds correction. All 70 selected debug/release cases and 7 affected ASan cases pass on final source. No final full-release-suite claim.",
+    "sourceCompilationNotes": "Initial authored test fixture needed matrix-shape correction; no source edits occurred during compilation. Final shadow correction followed upstream source review."
+  },
+  "rendering": {
+    "packagedProcesses": 3,
+    "imagesPerProcess": 24,
+    "immediateRasterRepeatPairsPerProcess": 24,
+    "nativePhysicsRunsPerProcess": 2,
+    "drawFramesPerRun": 901,
+    "deselectedFrames": [
+      301,
+      360
+    ],
+    "pausedZooms": [
+      67.5,
+      30,
+      90
+    ],
+    "modes": [
+      "Classic",
+      "4x MSAA and 4x anisotropic filtering"
+    ],
+    "crossProcessImagesAndCameraStates": "exact",
+    "metalValidation": "Third process with API and shader validation; no reported fault",
+    "originalGLPixelParity": false,
+    "gameplayPerformanceClaim": false,
+    "rendererAndShaderUnchanged": true,
+    "previousBaselinePNGsPreserved": 120,
+    "previousBaselineRerenderedThisIncrement": false
+  },
+  "packaged": {
+    "path": "build/TORCSFlyPreview.app",
+    "binarySHA256": "a144864b22b58651e22bf9c4bde50f83f55dd230c593f5048f8bf0541d9f097e",
+    "signing": "Ad-hoc; strict verification passed; not Developer ID/notarized",
+    "nativeUIAcceptance": "Pending; existing user driving session was not automated",
+    "runningZoomPreviewAndPreferencesPreserved": true
+  },
+  "sourceSnapshot": [
+    {
+      "path": "Packages/TORCSMetal/SceneHeightQuery.swift",
+      "sha256": "323d43faf43cda45750d977d98f11909ab70bad9a7519932d660029dd57987ac"
+    },
+    {
+      "path": "Packages/TORCSMetal/SceneHeightAssembly.swift",
+      "sha256": "1a7a1030e343c0ec2993ef92d0c7930698508f0b190f443eee27913153269959"
+    },
+    {
+      "path": "Packages/TORCSMetal/DrivingSceneHeight.swift",
+      "sha256": "aca12e74d20baccf8f202bab4953ea012d4ed4d53c2c3a55ffc3c0f3c02b3b68"
+    },
+    {
+      "path": "Packages/TORCSMetal/FlyCamera.swift",
+      "sha256": "68168b41a9f98fb2eb18c50c2bc5d6fd8da836f48771c713c0bf6b7fc8d604ad"
+    },
+    {
+      "path": "Packages/TORCSMetal/DrivingCamera.swift",
+      "sha256": "c9863af798ee8e4450ddb7f50a723d1e0c061abc52b83a72243a1c391cc0228c"
+    },
+    {
+      "path": "Packages/TORCSMetal/CameraZoom.swift",
+      "sha256": "fa9204982826314e9560d04553ae437de8b06861833341ac635b70b5bfa41822"
+    },
+    {
+      "path": "Packages/TORCSMetal/SceneRenderer.swift",
+      "sha256": "752fbbe1bedf4f98d80ee072f928dfcf93f025804e1cf8efbd12a441354f59b9"
+    },
+    {
+      "path": "Packages/TORCSMetal/Scene.metal",
+      "sha256": "4396144a2cfc7eb97ad10ddcc09d898b01d979b328bb4f15de8742b2e62e3e66"
+    },
+    {
+      "path": "App/DrivingSession.swift",
+      "sha256": "98a5d787ed0c6b0709caab300339e6ef698ef2059cc491653b246aae947c908b"
+    },
+    {
+      "path": "App/DrivingVisualSmoke.swift",
+      "sha256": "373082e0d988752f2920c4d9f6c9b79a69e23da2664664b340d4448804ee477c"
+    },
+    {
+      "path": "App/FlyVisualSmoke.swift",
+      "sha256": "8453791075a5d77dd7d268e0a288000293b92bd3bc0825d011caf85dbd2112b6"
+    },
+    {
+      "path": "App/TORCSMacApp.swift",
+      "sha256": "d6566a765426ca9738eec98531d934b2126d3855ea796ffd432cefcc4a5450a2"
+    },
+    {
+      "path": "Tests/UnitTests/SceneHeightAssemblyTests.swift",
+      "sha256": "49592f465b42465323f511f09a872d731573075217b6c68ba8fe63bee168fd23"
+    },
+    {
+      "path": "Tests/UnitTests/DrivingFlyCameraTests.swift",
+      "sha256": "fc098b2d84f0a7e0b1699dbc24c23652adbfee5ea9b886ceace3c24fb6bee9b3"
+    },
+    {
+      "path": "Tests/UnitTests/CameraZoomTests.swift",
+      "sha256": "9954cb881076afc0614257cfab26fc56fbe6d1687ffdcd3809e73be5ca6a3ea9"
+    },
+    {
+      "path": "Tests/UnitTests/ExteriorCameraTests.swift",
+      "sha256": "4daf509c80a66ee2032a5e00eff13b43a7600c546f3afb77ce1acf303aa8a583"
+    },
+    {
+      "path": "Upstream/Reference/graphics-instrumentation.cpp",
+      "sha256": "ce1ec81bb640826dcab4947d022d0e2736aa7e59e9616baa4dfcddce0a24cb63"
+    },
+    {
+      "path": "Upstream/Reference/height-instrumentation.cpp",
+      "sha256": "b3e90bd993feea65e90b69242ec1f66490fa01a5af98c1ecb2a43cbe7cc1fc24"
+    },
+    {
+      "path": "Upstream/Reference/include/CReference.h",
+      "sha256": "a27eb6ed6518bd5a63c040170e8e24bf9bf840c7c40cdd3503527797f86487b5"
+    },
+    {
+      "path": "Upstream/Reference/graphics/height/ssgSelector.cxx",
+      "sha256": "7354a5b6ad1484a2961c8ec427bfa0d9cc698e6629c2f3085a71073237c6c9eb"
+    },
+    {
+      "path": "Upstream/Reference/graphics/height/ssgRangeSelector.cxx",
+      "sha256": "0a69154b6c73a0ec4c03eedb0c1a04da188968034237ca002c5b467ba7042556"
+    },
+    {
+      "path": "Upstream/Reference/graphics/height/selector-traverse.inc",
+      "sha256": "16c84a59e735eac78fb2575f9fb02a75cd60086cca54556077c040cd2fd43816"
+    },
+    {
+      "path": "Upstream/Reference/graphics/height/range-traverse.inc",
+      "sha256": "c8fde4fb4ee07cd72278c9958460f222ad620b11e7d850e4208eb95e71247a65"
+    },
+    {
+      "path": "Upstream/source-manifest.json",
+      "sha256": "8237a4a33ccc0e51f12530a088225b035a88958939e60529004144b84adea9d3"
+    }
+  ],
+  "evidenceSnapshot": [
+    {
+      "path": "Artifacts/fly-visual-inspection.json",
+      "sha256": "00e8a07a8b27178d79ca4f7b10f427bd07452db0c208602c87c8ce8483b272b8"
+    },
+    {
+      "path": "Artifacts/fly-integration-provenance.log",
+      "sha256": "babca9637343bd849390771d8e46a8262f8f342bd407415cc1c2c1fc4e11836b"
+    },
+    {
+      "path": "Artifacts/fly-integration-archive.log",
+      "sha256": "54cb2a2ba628b3aac48062507a10a3d9379785bbce26092214b6aa6ca6cce70c"
+    },
+    {
+      "path": "Artifacts/fly-integration-package.log",
+      "sha256": "8ed3d85fa7dbac500a39442273035f8baf3b5f9814a137c7e817e07062a62176"
+    },
+    {
+      "path": "Artifacts/fly-integration-runtime-libraries.log",
+      "sha256": "553c0d53db81a95aae833da8086530521632833e041de45e57c07e748c2a74ae"
+    },
+    {
+      "path": "Artifacts/fly-integration-metal-smoke.log",
+      "sha256": "7c307493192b70189dfcb95937600d572fed01a81f577ac8302965950bc5ab5f"
+    },
+    {
+      "path": "Artifacts/fly-preservation-before.json",
+      "sha256": "19ab15b1b74e7a036e86d5e5fc0fedecd7ae02a31592f6042f70c82357657b83"
+    },
+    {
+      "path": "Artifacts/fly-preview-first.log",
+      "sha256": "121da35d55765d5743a4409a45c5bc1bad76f4e98c4166031a8f37b0767ab157"
+    },
+    {
+      "path": "Artifacts/fly-preview-second.log",
+      "sha256": "121da35d55765d5743a4409a45c5bc1bad76f4e98c4166031a8f37b0767ab157"
+    },
+    {
+      "path": "Artifacts/fly-preview-validation.log",
+      "sha256": "649c4a31ff895fcf8787cb8db4c971b9159c8fe0f13dafd6b3a42de074fffbcb"
+    },
+    {
+      "path": "Artifacts/fly-preview-first/report.json",
+      "sha256": "04b8e8f273665f16e643ac548cfa2a07ef2a11d63e98589fa43089bd0ae9905f"
+    },
+    {
+      "path": "Artifacts/fly-preview-second/report.json",
+      "sha256": "04b8e8f273665f16e643ac548cfa2a07ef2a11d63e98589fa43089bd0ae9905f"
+    },
+    {
+      "path": "Artifacts/fly-preview-validation/report.json",
+      "sha256": "04b8e8f273665f16e643ac548cfa2a07ef2a11d63e98589fa43089bd0ae9905f"
+    }
+  ],
+  "remaining": [
+    "Interactive Fly selection, zoom/reset and relaunch acceptance",
+    "Automatic TV camera selection",
+    "Broader original scene effects, LODs and shadows",
+    "Actual race profiling",
+    "Complete race lifecycle, AI, audio, replay, content and distribution acceptance"
+  ]
+}

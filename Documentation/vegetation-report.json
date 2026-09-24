@@ -1,0 +1,251 @@
+{
+  "schema": 1,
+  "date": "2026-09-23",
+  "goalComplete": false,
+  "status": "Optional volume-tree prototype implemented; first enhanced frame fails full-resolution repeat acceptance",
+  "acceptedAsLatestValidatedPreview": false,
+  "implementation": {
+    "placements": 169,
+    "familyCounts": [
+      81,
+      79,
+      9
+    ],
+    "replacedSourceBatches": 676,
+    "otherAtlasBatchesRetained": 5,
+    "sharedMeshes": 18,
+    "variantsPerFamily": 3,
+    "geometryLODs": 2,
+    "nearMinimumProjectedHeightPixels": 160,
+    "middleMinimumProjectedHeightPixels": 35,
+    "distantMode": "original source planes",
+    "defaultEnabled": false,
+    "instancedGroupsAtMostPerTrackView": 18,
+    "instanceUploadChunk": 512,
+    "sourceAtlasReused": true,
+    "newTextures": 0,
+    "foliage": "Opaque irregular procedural clusters with source-family foliage patches; modeled trunks and branches",
+    "mirrorSelectionIndependent": true,
+    "flyCanopyHeightIncludedWhenEnabled": true,
+    "physicsChanged": false,
+    "treeShadowsImplemented": false,
+    "geometryLicense": "CC-BY-SA-4.0 for new untextured generated geometry; source code GPL-2.0-only; existing atlas remains under original artwork terms"
+  },
+  "tests": {
+    "fullRelease": 274,
+    "selectedRelease": 38,
+    "selectedAddressSanitizer": 38,
+    "failuresInThoseSuites": 0,
+    "newTests": 3,
+    "gpuTreeViews": 18,
+    "gpuImmediateRepeatPairs": 18,
+    "originalRestorationExact": true,
+    "mirrorNearMainFarAndHiddenInstanceChecks": true,
+    "existingCarRasterRepeats": 720,
+    "existingCarRasterChangedChannels": 0
+  },
+  "visualInvestigation": {
+    "lathedShellRejectedForAppearance": true,
+    "clusterCutoutAndOpaqueVariantsExposedRepeatFailure": true,
+    "priorRevisedClusterDebugCapturePairs": 52,
+    "priorCaptureSourceIsFinal": false,
+    "metalValidationReportedNoResourceFault": true,
+    "finalPackagedCapturePassed": false,
+    "finalFirstFrameChangedChannels": 3787,
+    "finalMaximumByteDelta": 52,
+    "followingThreeFramesIdentical": true,
+    "recordedCommandsIdentical": true,
+    "rootCauseEstablished": false,
+    "imageToleranceChanged": false,
+    "appearance": "Initial procedural treatment remains stylized; close foliage and moving LOD transitions need refinement"
+  },
+  "performance": {
+    "benchmarkCompleted": false,
+    "reason": "Image acceptance failed before timing loop",
+    "noPerformanceImprovementClaimed": true,
+    "fullRaceFPSClaimed": false,
+    "flyHeightQueryNotProfiled": true
+  },
+  "package": {
+    "path": "build/TORCSVegetationPreview.app",
+    "status": "Experimental; initial frame capture failure remains open",
+    "binarySHA256": "d17a47e421d95bb4322c7e4c9e12a00c76826265d8c76de4e25815b042fa58ea",
+    "adHocSignatureVerified": true,
+    "metalSmokePassed": true,
+    "noDirectCPlusPlusOrExpatDependency": true,
+    "artworkBundled": false,
+    "latestValidatedBaseline": "build/TORCSOrderPreview.app"
+  },
+  "preservationAudit": [
+    {
+      "path": "build/TORCSOrderPreview.app/Contents/MacOS/TORCSMac",
+      "baselineSHA256": "36e40369ec24b7e8b71551a349ba6b82ee4b18c77c8f1d89e87c5502591f6b74",
+      "currentSHA256": "36e40369ec24b7e8b71551a349ba6b82ee4b18c77c8f1d89e87c5502591f6b74",
+      "unchanged": true
+    },
+    {
+      "path": "build/TORCSLightPreview.app/Contents/MacOS/TORCSMac",
+      "baselineSHA256": "90fbc86e1a479b37d5cc3c7a8dc23d4c3148e2d69af5498bc12b2275bbae181f",
+      "currentSHA256": "90fbc86e1a479b37d5cc3c7a8dc23d4c3148e2d69af5498bc12b2275bbae181f",
+      "unchanged": true
+    },
+    {
+      "path": "/Users/holgervonameln/Library/Application Support/TORCSMac/cameras.json",
+      "baselineSHA256": "7493b4ac79f8bc9058190ea5218c47ddf3f67552d8f6d3ed39da49ab40374dda",
+      "currentSHA256": "7493b4ac79f8bc9058190ea5218c47ddf3f67552d8f6d3ed39da49ab40374dda",
+      "unchanged": true
+    }
+  ],
+  "sourceSnapshot": [
+    {
+      "path": "Packages/TORCSMetal/VegetationForest.swift",
+      "sha256": "381941e4ff3d2dcac097d1f9afd1547ea3b1804dc4553330fa07315bd0749750"
+    },
+    {
+      "path": "Packages/TORCSMetal/VegetationRenderState.swift",
+      "sha256": "d1d0708d951763576787254205ad3611c2345fd05e3fe2e1035e4619846356ad"
+    },
+    {
+      "path": "Packages/TORCSMetal/SceneRenderer.swift",
+      "sha256": "a378c0805530312a7ae1f46dc850e6608e9e1ac1fbd09962eaae566cd2003459"
+    },
+    {
+      "path": "Packages/TORCSMetal/Scene.metal",
+      "sha256": "d13910858d9642d78d193f37f09c338191a6b85c140480092517d9afa128b27d"
+    },
+    {
+      "path": "Packages/TORCSMetal/SceneDrawOrder.swift",
+      "sha256": "f7bba22bc15bc52e11a2133db8110a92c2a421cf70f23f482c55c04d45909636"
+    },
+    {
+      "path": "Packages/TORCSMetal/DrivingSceneHeight.swift",
+      "sha256": "68800a6d402bf5243773731b0105f049873c7a9479fe10370f4b64f3b2019cd4"
+    },
+    {
+      "path": "App/DrivingSession.swift",
+      "sha256": "fb6400a685013895f6171844a9ad850027ffd5aa4d8bec203d1f07f250438849"
+    },
+    {
+      "path": "App/VegetationVisualSmoke.swift",
+      "sha256": "18968d8c20d98b6dcb8f633ff43ec0ca62f5f7dba5635adced7ddd804cb3fcac"
+    },
+    {
+      "path": "App/TORCSMacApp.swift",
+      "sha256": "88fe53f6de00e3dfda93d20ab95694e1bceb6d45390c59ad56bb54b5c4be0b53"
+    },
+    {
+      "path": "Tests/UnitTests/VegetationTests.swift",
+      "sha256": "edcc026f5453df33efea824904d96d108ffc02a2943447084036225157add288"
+    }
+  ],
+  "evidenceSnapshot": [
+    {
+      "path": "Artifacts/vegetation-full-release.log",
+      "sha256": "bdf5f5360b3badb93dfa51a5a18d43ee14e3aadfe509d45d695b4adb0eac1026"
+    },
+    {
+      "path": "Artifacts/vegetation-release-tests.log",
+      "sha256": "df36ea9756985a6c3fdabcbd2a2a05ddcc2aefa44b85408ea3c8d89a8e336ddb"
+    },
+    {
+      "path": "Artifacts/vegetation-asan-tests.log",
+      "sha256": "6e7bd787f0f21920b133f1a30287935efb86174b27601012a5dd706c27956c55"
+    },
+    {
+      "path": "Artifacts/vegetation-initial-tests.log",
+      "sha256": "a1a66eb5bc952dc2d210538e31092803ec4cccf3e2b3ae5f64bc7ea79f262446"
+    },
+    {
+      "path": "Artifacts/vegetation-second-tests.log",
+      "sha256": "34882b6028ee9f1d550001581f5505da0d3b75200bdaa8bf286a5ed0094f57e2"
+    },
+    {
+      "path": "Artifacts/vegetation-third-tests.log",
+      "sha256": "e76bb4513250ee37da6c98982a93f729ffbdb07948e896cb0697fa3c487f9d64"
+    },
+    {
+      "path": "Artifacts/vegetation-cluster-tests.log",
+      "sha256": "675c65ed7ce79626d7664408172f9f9ae2c72de9b822f2e5845112b62b88614b"
+    },
+    {
+      "path": "Artifacts/vegetation-initial-captures.log",
+      "sha256": "5b66782c1e0c2e7e7f34f28fc40bd0aa66d8bceeb25442862d27d36f5b93238a"
+    },
+    {
+      "path": "Artifacts/vegetation-initial-captures/report.json",
+      "sha256": "d480ca0eaadcf42816dc2059e27e4de794928baf06bdaeb0f72843e191b4c666"
+    },
+    {
+      "path": "Artifacts/vegetation-cluster-captures.log",
+      "sha256": "691d6e19ee5340767a598fab77163cc70d58acf4ce7239b61514920fb8188c8f"
+    },
+    {
+      "path": "Artifacts/vegetation-opaque-captures.log",
+      "sha256": "41402cecde5490ce8dd9d9e0ffe66d5776557f6f6043abfa975e6974c4a6c78e"
+    },
+    {
+      "path": "Artifacts/vegetation-repeat-diagnostic.log",
+      "sha256": "aa0e45ecd51e7e5a8922cb5cc7eca70e76283a5e4ac516830337c01b8a408b17"
+    },
+    {
+      "path": "Artifacts/vegetation-repeat-sequence.log",
+      "sha256": "5b66782c1e0c2e7e7f34f28fc40bd0aa66d8bceeb25442862d27d36f5b93238a"
+    },
+    {
+      "path": "Artifacts/vegetation-repeat-sequence/report.json",
+      "sha256": "385447fcec3fb60c63857eeacf58b2443f2f056c7c1863a1394a9894f3082951"
+    },
+    {
+      "path": "Artifacts/vegetation-release-benchmark.log",
+      "sha256": "f202c4047ed6a1a70d051ce11d2cf89dc29dd99d5e55333dffc9e99f8443a58a"
+    },
+    {
+      "path": "Artifacts/vegetation-package.log",
+      "sha256": "96e16dbf0f695fa638eac57d383e139a5fdfcdca1699110b752c62ffcacdfbdc"
+    },
+    {
+      "path": "Artifacts/vegetation-signature.log",
+      "sha256": "9178672e6d4ff21088399883732c04afc7cdbdb5647f7c22ccb4b16428147461"
+    },
+    {
+      "path": "Artifacts/vegetation-runtime-libraries.log",
+      "sha256": "ad18688a047c0251d4d7ce027a0b303a96ebf0853469d1f340acd5e873f53f22"
+    },
+    {
+      "path": "Artifacts/vegetation-smoke.log",
+      "sha256": "7c307493192b70189dfcb95937600d572fed01a81f577ac8302965950bc5ab5f"
+    },
+    {
+      "path": "Artifacts/vegetation-provenance.log",
+      "sha256": "7afd9018e488fb36b235e2f4693c3bba97eea66019545ffa1d9cf211b8d646ed"
+    },
+    {
+      "path": "Artifacts/vegetation-performance-processes.txt",
+      "sha256": "e181bcbb7c0ee658b14ee45407d8bf3a29141a80a297f24acec9a5f3f4a31efa"
+    },
+    {
+      "path": "Artifacts/vegetation-release-benchmark/failed-first.png",
+      "sha256": "d00c3d615ba843e43739bff74433f553cb0f3c0f5a063534bc15ab813ad85aaa"
+    },
+    {
+      "path": "Artifacts/vegetation-release-benchmark/failed-repeat.png",
+      "sha256": "ba8992cee0901ab71fdcc68553d0977f26d5f890567fd0fdcba4f7c604e29951"
+    },
+    {
+      "path": "Artifacts/vegetation-release-benchmark/failed-next-0.png",
+      "sha256": "ba8992cee0901ab71fdcc68553d0977f26d5f890567fd0fdcba4f7c604e29951"
+    },
+    {
+      "path": "Artifacts/vegetation-release-benchmark/failed-next-1.png",
+      "sha256": "ba8992cee0901ab71fdcc68553d0977f26d5f890567fd0fdcba4f7c604e29951"
+    }
+  ],
+  "next": [
+    "Isolate first enhanced frame versus three stable successors without discarding frames or relaxing tolerance",
+    "Complete 56 matched release views including actual Fly view and Metal validation",
+    "Measure rendering and Fly height-query cost, then refine foliage and moving LOD transitions",
+    "Add measured nearby tree shadows",
+    "Resolve separate inherited-alpha wheel repeat regression",
+    "Continue full TORCS race lifecycle, robots, audio, replay, content and distribution"
+  ]
+}

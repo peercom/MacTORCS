@@ -1,0 +1,570 @@
+{
+  "schema": 1,
+  "date": "2026-09-24",
+  "goalComplete": false,
+  "status": "Tree fog recovers eye depth from fragment position; large classic first-frame difference removed in tested runs, quality validation differences remain",
+  "acceptedAsLatestValidatedPreview": false,
+  "implementation": {
+    "placements": 169,
+    "familyCounts": [
+      81,
+      79,
+      9
+    ],
+    "replacedSourceBatches": 676,
+    "otherAtlasBatchesRetained": 5,
+    "sharedMeshes": 18,
+    "variantsPerFamily": 3,
+    "geometryLODs": 2,
+    "nearMinimumProjectedHeightPixels": 160,
+    "middleMinimumProjectedHeightPixels": 35,
+    "distantMode": "original source planes",
+    "defaultEnabled": false,
+    "instancedGroupsAtMostPerTrackView": 18,
+    "instanceUploadChunk": 512,
+    "sourceAtlasReused": true,
+    "newTextures": 0,
+    "foliage": "Two-triangle folded blades distributed through a crown volume with deterministic per-mesh integer seeds; modeled trunks/branches retained",
+    "mirrorSelectionIndependent": true,
+    "flyCanopyHeightIncludedWhenEnabled": true,
+    "physicsChanged": false,
+    "treeShadowsImplemented": false,
+    "geometryLicense": "CC-BY-SA-4.0 for new untextured generated geometry; source code GPL-2.0-only; existing atlas remains under original artwork terms",
+    "submission": "Opaque tree block precedes original draw stream; original states still apply at skipped replacement-tree leaves",
+    "newPerFrameGeometryWork": false,
+    "newExternalArtwork": false,
+    "fogDepth": "1 / fragment position.w for the existing perspective SceneCamera; original linear fog function, range, color and fragment clamp retained",
+    "extraFogVaryingRemoved": true,
+    "originalSceneShadersChanged": false,
+    "failedBindingAndMathOptionsRestored": true
+  },
+  "correctness": {
+    "specificationURL": "https://developer.apple.com/metal/Metal-Shading-Language-Specification.pdf",
+    "specificationDate": "2026-06-04",
+    "specificationPage": 146,
+    "specificationSHA256": "41538b30d2f1140a5b2a0c84ce0a9f7b67bf0c707e224cfea0bfe5a44aa26cf5",
+    "fragmentPositionW": "Reciprocal clip-space w",
+    "cameraProjection": "SceneCamera.viewProjection has clip w = -eye z",
+    "gpuOracle": "Vertical center pixel at odd image dimensions, CPU detailed-canopy intersection gives independent eye depth. Partial fog checked for all three families; full fog and exact fog-off restoration checked in both quality modes.",
+    "partialFogCases": 3,
+    "fullFogCases": 6,
+    "fogOffRestorations": 6,
+    "underlyingDriverOrCompilerCauseEstablished": false
+  },
+  "tests": {
+    "focusedRelease": 43,
+    "treeAndFogAddressSanitizer": 4,
+    "failuresInThoseSuites": 0,
+    "newTests": 1,
+    "lastFullSuite": {
+      "count": 274,
+      "currentSource": false,
+      "report": "Documentation/vegetation-order-report.json"
+    }
+  },
+  "investigation": {
+    "probeScope": "Each variant renders two original, four enhanced and two restored chase frames in classic and quality modes. Enhanced repeats compare to their first enhanced frame; restoration compares to the original image. No acceptance frames are discarded.",
+    "probes": [
+      {
+        "variant": "baseline",
+        "frames": 16,
+        "maximumChangedChannels": 1352,
+        "maximumByteDelta": 14,
+        "withinExistingTolerance": false,
+        "retainedInProduction": false
+      },
+      {
+        "variant": "culled",
+        "frames": 16,
+        "maximumChangedChannels": 0,
+        "maximumByteDelta": 0,
+        "withinExistingTolerance": true,
+        "retainedInProduction": false
+      },
+      {
+        "variant": "constant",
+        "frames": 16,
+        "maximumChangedChannels": 0,
+        "maximumByteDelta": 0,
+        "withinExistingTolerance": true,
+        "retainedInProduction": false
+      },
+      {
+        "variant": "gradients",
+        "frames": 16,
+        "maximumChangedChannels": 1344,
+        "maximumByteDelta": 14,
+        "withinExistingTolerance": false,
+        "retainedInProduction": false
+      },
+      {
+        "variant": "branchless",
+        "frames": 16,
+        "maximumChangedChannels": 1403,
+        "maximumByteDelta": 14,
+        "withinExistingTolerance": false,
+        "retainedInProduction": false
+      },
+      {
+        "variant": "texture-only",
+        "frames": 16,
+        "maximumChangedChannels": 5,
+        "maximumByteDelta": 1,
+        "withinExistingTolerance": true,
+        "retainedInProduction": false
+      },
+      {
+        "variant": "untextured",
+        "frames": 16,
+        "maximumChangedChannels": 1403,
+        "maximumByteDelta": 14,
+        "withinExistingTolerance": false,
+        "retainedInProduction": false
+      },
+      {
+        "variant": "no-grain",
+        "frames": 16,
+        "maximumChangedChannels": 1403,
+        "maximumByteDelta": 14,
+        "withinExistingTolerance": false,
+        "retainedInProduction": false
+      },
+      {
+        "variant": "no-front",
+        "frames": 16,
+        "maximumChangedChannels": 1403,
+        "maximumByteDelta": 14,
+        "withinExistingTolerance": false,
+        "retainedInProduction": false
+      },
+      {
+        "variant": "no-fog",
+        "frames": 16,
+        "maximumChangedChannels": 3,
+        "maximumByteDelta": 1,
+        "withinExistingTolerance": true,
+        "retainedInProduction": false
+      },
+      {
+        "variant": "vertex-fog",
+        "frames": 16,
+        "maximumChangedChannels": 1616,
+        "maximumByteDelta": 14,
+        "withinExistingTolerance": false,
+        "retainedInProduction": false
+      },
+      {
+        "variant": "rebound",
+        "frames": 16,
+        "maximumChangedChannels": 1403,
+        "maximumByteDelta": 14,
+        "withinExistingTolerance": false,
+        "retainedInProduction": false
+      },
+      {
+        "variant": "literal-fog-color",
+        "frames": 16,
+        "maximumChangedChannels": 1352,
+        "maximumByteDelta": 14,
+        "withinExistingTolerance": false,
+        "retainedInProduction": false
+      },
+      {
+        "variant": "literal-fog-factor",
+        "frames": 16,
+        "maximumChangedChannels": 3,
+        "maximumByteDelta": 1,
+        "withinExistingTolerance": true,
+        "retainedInProduction": false
+      },
+      {
+        "variant": "packed-fog",
+        "frames": 16,
+        "maximumChangedChannels": 1403,
+        "maximumByteDelta": 14,
+        "withinExistingTolerance": false,
+        "retainedInProduction": false
+      },
+      {
+        "variant": "flat-tint",
+        "frames": 16,
+        "maximumChangedChannels": 1352,
+        "maximumByteDelta": 14,
+        "withinExistingTolerance": false,
+        "retainedInProduction": false
+      },
+      {
+        "variant": "centroid-fog",
+        "frames": 16,
+        "maximumChangedChannels": 1352,
+        "maximumByteDelta": 14,
+        "withinExistingTolerance": false,
+        "retainedInProduction": false
+      },
+      {
+        "variant": "safe-math",
+        "frames": 16,
+        "maximumChangedChannels": 1352,
+        "maximumByteDelta": 14,
+        "withinExistingTolerance": false,
+        "retainedInProduction": false
+      },
+      {
+        "variant": "fragment-depth",
+        "frames": 16,
+        "maximumChangedChannels": 3,
+        "maximumByteDelta": 1,
+        "withinExistingTolerance": true,
+        "retainedInProduction": true
+      }
+    ],
+    "limitations": "Diagnostic visual simplifications were controls only. Failure depends on more than simple draw setup; no broad hardware diagnosis is claimed."
+  },
+  "captures": {
+    "normalProcesses": 2,
+    "viewsPerProcess": 56,
+    "normalAcceptancePassed": true,
+    "exactImmediatePairsPerProcess": 55,
+    "remainingImmediatePair": {
+      "changedChannels": 3,
+      "maximumByteDelta": 1,
+      "withinUnchangedTolerance": true
+    },
+    "all56CrossProcessImageHashesEqual": true,
+    "allCameraPhysicsAndDrawRecordsEqual": true,
+    "original28ImagesMatchPrecedingFoliage": true,
+    "originalModeRestorationExactInFinalRuns": true,
+    "validationAcceptancePassed": false,
+    "validationFailures": [
+      {
+        "changedChannels": 92,
+        "error": "unavailable(\"Repeated scene render differs: 92 channels, maximum 10\")",
+        "maximumByteDelta": 10,
+        "name": "Chase-quality-volume"
+      },
+      {
+        "changedChannels": 53,
+        "error": "unavailable(\"Repeated scene render differs: 53 channels, maximum 2\")",
+        "maximumByteDelta": 2,
+        "name": "tree-2-front-quality-volume"
+      }
+    ],
+    "precedingValidationFailures": [
+      {
+        "changedChannels": 28,
+        "error": "unavailable(\"Repeated scene render differs: 28 channels, maximum 2\")",
+        "maximumByteDelta": 2,
+        "name": "tv-quality-volume"
+      },
+      {
+        "changedChannels": 1,
+        "error": "Original tree restoration changed pixels",
+        "maximumByteDelta": 1,
+        "name": "tree-2-front-quality-restoration"
+      },
+      {
+        "changedChannels": 96,
+        "error": "unavailable(\"Repeated scene render differs: 96 channels, maximum 5\")",
+        "maximumByteDelta": 5,
+        "name": "tree-2-oblique-quality-volume"
+      }
+    ],
+    "imageToleranceChanged": false,
+    "acceptanceFramesDiscarded": false
+  },
+  "performance": {
+    "scope": "Optional volume enhancement using existing local artwork. Fixed native settled pose and matched camera views; Fly canopy height tested separately. Tree shadows and moving LOD transition acceptance remain pending. Stationary offscreen timings exclude loading and physics; no full-race FPS claim.",
+    "host": "Apple M2, 8 GiB, macOS 26.2",
+    "resolution": [
+      960,
+      640
+    ],
+    "timings": [
+      {
+        "enhanced": false,
+        "gpuMedianMS": 0.6487499922513962,
+        "gpuP95MS": 2.262416761368513,
+        "quality": false,
+        "samples": 60,
+        "wallMedianMS": 5.8851249050349
+      },
+      {
+        "enhanced": true,
+        "gpuMedianMS": 0.9142500348389149,
+        "gpuP95MS": 3.4582498483359814,
+        "quality": false,
+        "samples": 60,
+        "wallMedianMS": 5.606166552752256
+      },
+      {
+        "enhanced": false,
+        "gpuMedianMS": 0.7945417892187834,
+        "gpuP95MS": 2.5499165058135986,
+        "quality": true,
+        "samples": 60,
+        "wallMedianMS": 5.962375085800886
+      },
+      {
+        "enhanced": true,
+        "gpuMedianMS": 1.0050416458398104,
+        "gpuP95MS": 3.350374987348914,
+        "quality": true,
+        "samples": 60,
+        "wallMedianMS": 5.6136250495910645
+      }
+    ],
+    "gpuMedianIncreaseClassicMS": 0.2655000425875187,
+    "gpuMedianIncreaseQualityMS": 0.210499856621027,
+    "chaseTreeDraws": 10,
+    "chaseTreeTriangles": 145824,
+    "desktopActivityRecorded": true,
+    "fullRaceFPSClaimed": false,
+    "performanceAcceptedForWholeGame": false
+  },
+  "package": {
+    "path": "build/TORCSFoliageDepthPreview.app",
+    "binarySHA256": "aa2a5cf6dc7311d7eb26a12d03d24c16fe5b8bad0d9e04646d37991f20fe38a0",
+    "status": "Experimental; optional tree mode remains off by default",
+    "adHocSignatureVerified": true,
+    "metalSmokePassed": true,
+    "noDirectCPlusPlusOrExpatDependency": true,
+    "artworkBundled": false,
+    "priorFoliagePreviewPreserved": true,
+    "latestValidatedBaseline": "build/TORCSOrderPreview.app"
+  },
+  "preservationAudit": [
+    {
+      "path": "build/TORCSOrderPreview.app/Contents/MacOS/TORCSMac",
+      "baselineSHA256": "36e40369ec24b7e8b71551a349ba6b82ee4b18c77c8f1d89e87c5502591f6b74",
+      "currentSHA256": "36e40369ec24b7e8b71551a349ba6b82ee4b18c77c8f1d89e87c5502591f6b74",
+      "unchanged": true
+    },
+    {
+      "path": "build/TORCSLightPreview.app/Contents/MacOS/TORCSMac",
+      "baselineSHA256": "90fbc86e1a479b37d5cc3c7a8dc23d4c3148e2d69af5498bc12b2275bbae181f",
+      "currentSHA256": "90fbc86e1a479b37d5cc3c7a8dc23d4c3148e2d69af5498bc12b2275bbae181f",
+      "unchanged": true
+    },
+    {
+      "path": "/Users/holgervonameln/Library/Application Support/TORCSMac/cameras.json",
+      "baselineSHA256": "7493b4ac79f8bc9058190ea5218c47ddf3f67552d8f6d3ed39da49ab40374dda",
+      "currentSHA256": "7493b4ac79f8bc9058190ea5218c47ddf3f67552d8f6d3ed39da49ab40374dda",
+      "unchanged": true
+    }
+  ],
+  "sourceSnapshot": [
+    {
+      "path": "Packages/TORCSMetal/VegetationForest.swift",
+      "sha256": "ffd01482db8b50d8ddc25ec6c638ac025458ae2d086ad851264495e8fd459111"
+    },
+    {
+      "path": "Packages/TORCSMetal/VegetationRenderState.swift",
+      "sha256": "d1d0708d951763576787254205ad3611c2345fd05e3fe2e1035e4619846356ad"
+    },
+    {
+      "path": "Packages/TORCSMetal/SceneRenderer.swift",
+      "sha256": "10900ef3acb7b36635c3bbdf8e965f8032b207d755bee9dd959d9acf0bcad10c"
+    },
+    {
+      "path": "Packages/TORCSMetal/Scene.metal",
+      "sha256": "700c7cfff2c56c5f0a50c0e0477ce0b387355e07ced812c002c95fe1c7051600"
+    },
+    {
+      "path": "Packages/TORCSMetal/SceneDrawOrder.swift",
+      "sha256": "f7bba22bc15bc52e11a2133db8110a92c2a421cf70f23f482c55c04d45909636"
+    },
+    {
+      "path": "Packages/TORCSMetal/DrivingSceneHeight.swift",
+      "sha256": "68800a6d402bf5243773731b0105f049873c7a9479fe10370f4b64f3b2019cd4"
+    },
+    {
+      "path": "App/DrivingSession.swift",
+      "sha256": "fb6400a685013895f6171844a9ad850027ffd5aa4d8bec203d1f07f250438849"
+    },
+    {
+      "path": "App/VegetationVisualSmoke.swift",
+      "sha256": "c02c9fd2bdd68e91839f9cd9811af71493035fed12370e615d2bc3c98d87e47a"
+    },
+    {
+      "path": "App/TORCSMacApp.swift",
+      "sha256": "88fe53f6de00e3dfda93d20ab95694e1bceb6d45390c59ad56bb54b5c4be0b53"
+    },
+    {
+      "path": "Tests/UnitTests/VegetationTests.swift",
+      "sha256": "4c9487b70e66e1897a86d64faede12baf7215945fbad6b2fe8e90b59537f7e3b"
+    },
+    {
+      "path": "Tests/UnitTests/VegetationFogTests.swift",
+      "sha256": "30b35672f8d9a6a9decc5de0b1ebb1329f7b158bcbb98af3afa385cdf0e571fc"
+    }
+  ],
+  "evidenceSnapshot": [
+    {
+      "path": "Artifacts/TreeStateProbe.swift",
+      "sha256": "731edd1fc58d86e796982f76ebffe632fa8e835972622ddffc7141d48eeb2b8b"
+    },
+    {
+      "path": "Artifacts/compile-tree-state-probe.py",
+      "sha256": "3e4a2d43af915e3866467a28e60554ff6d4b36eeeea584cc251be8f4361c0d37"
+    },
+    {
+      "path": "Artifacts/tree-state-before-env-rebind.swift",
+      "sha256": "10900ef3acb7b36635c3bbdf8e965f8032b207d755bee9dd959d9acf0bcad10c"
+    },
+    {
+      "path": "Artifacts/tree-state-probe-summary.json",
+      "sha256": "46fe2193fb89ad9db051b23275643a1336fde0bb751438d0c4acdccfefd75d43"
+    },
+    {
+      "path": "Artifacts/foliage-depth-release-tests.log",
+      "sha256": "38bb6aef29e917cb3d80b9aaf8ab5b5b57d1648fbc6794fb5ae3a56cbe676b62"
+    },
+    {
+      "path": "Artifacts/foliage-depth-asan-tests.log",
+      "sha256": "9bacf208becc0f5864c747432cd2507aa36cd1ccf8ccfd26c31f1ffc151e1c1b"
+    },
+    {
+      "path": "Artifacts/fragment-depth-fog-tests.log",
+      "sha256": "213a86acd09dd75663721bc45463f01c78dfda446733ed9b1a284c4fc2375e95"
+    },
+    {
+      "path": "Artifacts/foliage-depth-benchmark.log",
+      "sha256": "a49981975aa81f66b27192ad12fa2bd176666cb0d1fcb27c21a151ec24fc0794"
+    },
+    {
+      "path": "Artifacts/foliage-depth-benchmark/report.json",
+      "sha256": "312882e6719b4b17040c7a1e194f8a708ccb4736c0a2a77b71bdf5685040b11d"
+    },
+    {
+      "path": "Artifacts/foliage-depth-validation.log",
+      "sha256": "f81a6db7d8a055142752681be4d4fc7b1710267bdad3dc71f98257c3725e1be0"
+    },
+    {
+      "path": "Artifacts/foliage-depth-validation/report.json",
+      "sha256": "1560d8735089ffa4e028ec019809b5c29139d4701eee605d786651afbd92ee52"
+    },
+    {
+      "path": "Artifacts/fragment-depth-full.log",
+      "sha256": "a49981975aa81f66b27192ad12fa2bd176666cb0d1fcb27c21a151ec24fc0794"
+    },
+    {
+      "path": "Artifacts/fragment-depth-full-captures/report.json",
+      "sha256": "5de7a0c2f6b17aa49f8f18cadf15da46f7e7218da7546e641803f1ccd8470d11"
+    },
+    {
+      "path": "Artifacts/fragment-depth-validation.log",
+      "sha256": "39f0b426498574cf3541c7112591d656966727842e01fd9eeb84988da282898a"
+    },
+    {
+      "path": "Artifacts/fragment-depth-validation/report.json",
+      "sha256": "3e8d401f017ce242afb43ac7ef0229b1d3b2bb50dc859e0ec9118798e3ed80c5"
+    },
+    {
+      "path": "Artifacts/foliage-depth-package.log",
+      "sha256": "84aa777a6d4031b99b6de2f2f5663c74ac2693350eea63648a71393e45dfef2c"
+    },
+    {
+      "path": "Artifacts/foliage-depth-signature.log",
+      "sha256": "fc47cad3f04f1eba9c89101fff535cb0ea2fb60abe5c78ebe1702fff11b573c9"
+    },
+    {
+      "path": "Artifacts/foliage-depth-metal-smoke.log",
+      "sha256": "7c307493192b70189dfcb95937600d572fed01a81f577ac8302965950bc5ab5f"
+    },
+    {
+      "path": "Artifacts/foliage-depth-libraries.log",
+      "sha256": "ff7e0e5a6bdd6c8ef89083901f153ea7a7a5f814aff84c1a3d7caaee27ef23e5"
+    },
+    {
+      "path": "Artifacts/foliage-depth-provenance.log",
+      "sha256": "7afd9018e488fb36b235e2f4693c3bba97eea66019545ffa1d9cf211b8d646ed"
+    },
+    {
+      "path": "Artifacts/foliage-depth-performance-processes.txt",
+      "sha256": "7a97bfc9b6afed2f07b6838fbf762a5e67ad872c8c4291ad514b831ebe87a4f5"
+    },
+    {
+      "path": "Artifacts/tree-state-baseline-captures/report.json",
+      "sha256": "74c4553801d9c826e9c87952642c17add1cd5ae795e656b7830de2266e57df4d"
+    },
+    {
+      "path": "Artifacts/tree-state-culled-captures/report.json",
+      "sha256": "8822d2f7cb6a0bf1fd33b8cd3d8a5fbe713e00f017d114798c81c25e3b3b52be"
+    },
+    {
+      "path": "Artifacts/tree-state-constant-captures/report.json",
+      "sha256": "1cad0bf23d0869329bb95230adb94a14284f31ce02b52d4c911daf2b90a4cff7"
+    },
+    {
+      "path": "Artifacts/tree-state-gradients-captures/report.json",
+      "sha256": "65125c4f16bb0a3192287c63bee1c283902d8a623854e01dfd0b1fec02426d76"
+    },
+    {
+      "path": "Artifacts/tree-state-branchless-captures/report.json",
+      "sha256": "a71af8ea5be6bb6116893fd91ad999206828d5cda758a9522408fce8e0cb3520"
+    },
+    {
+      "path": "Artifacts/tree-state-texture-only-captures/report.json",
+      "sha256": "dfd0bf568da04565983dc308ee36a2039674ba9b3f368c78bd8d0d73ff09f8a2"
+    },
+    {
+      "path": "Artifacts/tree-state-untextured-captures/report.json",
+      "sha256": "e8353a03edf939d5c15220fcced3a2d20747030d81d0cf87a37ab4effde319aa"
+    },
+    {
+      "path": "Artifacts/tree-state-no-grain-captures/report.json",
+      "sha256": "4f1c0e8b26ae99fbf57a06424901b582559d6abc413e5e1558e87c2c0eae96bc"
+    },
+    {
+      "path": "Artifacts/tree-state-no-front-captures/report.json",
+      "sha256": "a3b032fee6e312cae7bd23cee51df158cfff75d7a934cd9a0d3caf02523c467f"
+    },
+    {
+      "path": "Artifacts/tree-state-no-fog-captures/report.json",
+      "sha256": "db7c3d13e10a5759d5f16af5f291cea3e591758cace8773ed52c2ab539e73071"
+    },
+    {
+      "path": "Artifacts/tree-state-vertex-fog-captures/report.json",
+      "sha256": "97209a9f9f25675ab4ba0b9a1e81b51e6b4d95c766dd5ff1e4810667d61f91eb"
+    },
+    {
+      "path": "Artifacts/tree-state-rebound-captures/report.json",
+      "sha256": "a71af8ea5be6bb6116893fd91ad999206828d5cda758a9522408fce8e0cb3520"
+    },
+    {
+      "path": "Artifacts/tree-state-literal-fog-color-captures/report.json",
+      "sha256": "74c4553801d9c826e9c87952642c17add1cd5ae795e656b7830de2266e57df4d"
+    },
+    {
+      "path": "Artifacts/tree-state-literal-fog-factor-captures/report.json",
+      "sha256": "58b1d342ce4b2794f217b957066466975ff64472d531578d4fc593fd8fb48165"
+    },
+    {
+      "path": "Artifacts/tree-state-packed-fog-captures/report.json",
+      "sha256": "a71af8ea5be6bb6116893fd91ad999206828d5cda758a9522408fce8e0cb3520"
+    },
+    {
+      "path": "Artifacts/tree-state-flat-tint-captures/report.json",
+      "sha256": "9c11f373cc5456e49a6fa245d7773c9c675cafb8827e39b0789233d083c4c250"
+    },
+    {
+      "path": "Artifacts/tree-state-centroid-fog-captures/report.json",
+      "sha256": "74c4553801d9c826e9c87952642c17add1cd5ae795e656b7830de2266e57df4d"
+    },
+    {
+      "path": "Artifacts/tree-state-safe-math-captures/report.json",
+      "sha256": "74c4553801d9c826e9c87952642c17add1cd5ae795e656b7830de2266e57df4d"
+    },
+    {
+      "path": "Artifacts/tree-state-fragment-depth-captures/report.json",
+      "sha256": "db7c3d13e10a5759d5f16af5f291cea3e591758cace8773ed52c2ab539e73071"
+    }
+  ],
+  "next": [
+    "Resolve remaining quality/validation repeat differences and separate original inherited-alpha wheel regression without relaxing acceptance",
+    "Evaluate consistent fog-depth representation in original scene/effect shaders with original behavior and clipping coverage",
+    "Refine tree crowns, accept moving LOD transitions, and add measured nearby tree shadows",
+    "Broaden driving performance, cameras and content coverage; keep controller work behind visual priorities",
+    "Continue full TORCS race lifecycle, native robots, audio, replay and distribution"
+  ]
+}

@@ -1,0 +1,72 @@
+[
+  [
+    "ssgVtxTable.cxx",
+    "triangles",
+    "void ssgVtxTable::getTriangle"
+  ],
+  [
+    "ssgVtxTable.cxx",
+    "triangle-count",
+    "int ssgVtxTable::getNumTriangles"
+  ],
+  [
+    "ssgVtxTable.cxx",
+    "leaf-bounds",
+    "void ssgVtxTable::recalcBSphere"
+  ],
+  [
+    "ssgVtxTable.cxx",
+    "leaf-triangles",
+    "void ssgVtxTable::hot_triangles"
+  ],
+  [
+    "ssgEntity.cxx",
+    "bounds-test",
+    "ssgCullResult ssgEntity::hot_test"
+  ],
+  [
+    "ssgLeaf.cxx",
+    "leaf-traverse",
+    "void ssgLeaf::hot "
+  ],
+  [
+    "ssgBranch.cxx",
+    "branch-bounds",
+    "void ssgBranch::recalcBSphere"
+  ],
+  [
+    "ssgBranch.cxx",
+    "branch-traverse",
+    "void ssgBranch::hot "
+  ],
+  [
+    "ssgTransform.cxx",
+    "transform-bounds",
+    "void ssgTransform::recalcBSphere"
+  ],
+  [
+    "ssgTransform.cxx",
+    "transform-traverse",
+    "void ssgTransform::hot "
+  ],
+  [
+    "ssgIsect.cxx",
+    "add-hit",
+    "void _ssgAddHit"
+  ],
+  [
+    "ssgIsect.cxx",
+    "query",
+    "int ssgHOT "
+  ],
+  [
+    "ssgSelector.cxx",
+    "selector-traverse",
+    "void ssgSelector::hot "
+  ],
+  [
+    "ssgRangeSelector.cxx",
+    "range-traverse",
+    "void ssgRangeSelector::hot "
+  ]
+]

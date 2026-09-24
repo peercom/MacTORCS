@@ -1,0 +1,296 @@
+{
+  "schema": 1,
+  "date": "2026-09-23",
+  "increment": "Original F10 motion kernel and raw AC scene-height traversal",
+  "previousGoalTurn": "progress",
+  "goalComplete": false,
+  "runtimeIntegration": {
+    "pickerCameras": 29,
+    "flyInPicker": false,
+    "newPackagedPreview": false,
+    "previousPreviewPreserved": "build/TORCSZoomPreview.app",
+    "runningUserSessionTouched": false,
+    "nativeCameraRNG": "Owned presentation stream; no global srand/rand or physics stream access",
+    "rawACStaticGraphOnly": true,
+    "selectorsMovingObjectsAndAnchorOrderIntegrated": false
+  },
+  "reference": {
+    "release": "TORCS 1.3.9",
+    "archiveSHA256": "f9c69e86d290295467451b01d7838d85005ba613644a6fe8a3f85a7c6a03cd4c",
+    "sourceEntries": 172,
+    "contentEntries": 46,
+    "newOriginalSourceFiles": 7,
+    "newOriginalArtwork": 0,
+    "verbatimExcerpts": 15,
+    "originalSGMath": true,
+    "testOnlyAdapter": "AC storage, no callbacks/selectors/GL; original sphere, traversal, triangle and hit algorithms execute",
+    "random": "Original fly class uses host libc rand; native owned Darwin stream"
+  },
+  "tests": {
+    "fullDebug": 218,
+    "selectedRelease": 63,
+    "selectedAddressSanitizer": 63,
+    "inventory": 218,
+    "failures": 0,
+    "newTests": 7,
+    "fullReleaseRunClaimed": false,
+    "initialBuildRetry": "Fly test source was edited while compilation was active; SwiftPM rejected the modified input. The completed retry and final suites pass."
+  },
+  "height": {
+    "contentFiles": 3,
+    "contentQueries": 20091,
+    "contentRetainedHits": 76124,
+    "contentSubmittedTriangles": 14199939,
+    "authoredHierarchyScenes": 48,
+    "authoredHierarchyQueries": 8112,
+    "authoredRuleScenes": 11,
+    "authoredRuleQueries": 110,
+    "totalParityQueries": 28313,
+    "heightHitCountTriangleCountAndSpheres": "exact",
+    "maximumAbsoluteHeightError": 0,
+    "hitCap": 99,
+    "noHitSentinel": -1000000,
+    "edgeAllowance": 1.01,
+    "originalSequentialIndexedEnumeration": true,
+    "degenerateHitConsumptionPreserved": true,
+    "originalUnscaledSphereRadiusPreserved": true,
+    "currentSelectedMeshesSkipOptionalLoaderOptimization": true
+  },
+  "fly": {
+    "updates": 48000,
+    "seeds": [
+      0,
+      1,
+      12345,
+      2147483646
+    ],
+    "sceneHeights": [
+      0,
+      150
+    ],
+    "randomDraws": 2412,
+    "heightCalls": 47080,
+    "maximumAbsoluteDefinedStateError": 0,
+    "uninitializedOriginalFieldsRead": false,
+    "clockAndRandomCounts": "exact",
+    "projectionAspects": [
+      1,
+      1.5,
+      2.1
+    ],
+    "equalTimeHold": true,
+    "initialPoseSuppressedOnlyAtProjectionBoundary": true,
+    "failedHeightRollsBackCameraAndRNG": true,
+    "physicsRandomStreamUnaffectedChecks": 600,
+    "crossPlatformLibcParityClaimed": false
+  },
+  "rendering": {
+    "unchanged": [
+      "Packages/TORCSMetal/SceneRenderer.swift",
+      "Packages/TORCSMetal/Scene.metal",
+      "App/DrivingSession.swift"
+    ],
+    "newGPUOutputClaimed": false,
+    "originalGLPixelParityClaimed": false,
+    "performanceClaimed": false
+  },
+  "sourceSnapshot": [
+    {
+      "path": "Packages/TORCSMetal/SceneHeightQuery.swift",
+      "sha256": "beea4c328e92ccb0d0a488c3978a4d6a7572b5636f40ff428288d7b87aceebed"
+    },
+    {
+      "path": "Packages/TORCSMetal/FlyCamera.swift",
+      "sha256": "68168b41a9f98fb2eb18c50c2bc5d6fd8da836f48771c713c0bf6b7fc8d604ad"
+    },
+    {
+      "path": "Tests/UnitTests/SceneHeightTests.swift",
+      "sha256": "efb217fc247c30c5f1a0546c50a232c55c1702f316ea06045439707eac0ac099"
+    },
+    {
+      "path": "Tests/UnitTests/FlyCameraTests.swift",
+      "sha256": "89ace81879e257eadf4418c4ad8a4c06c6e214146af0d36f039768319afb6b76"
+    },
+    {
+      "path": "Upstream/Reference/height-instrumentation.cpp",
+      "sha256": "aae75be25690c0c21a0d2d1f9b6c288216bc0a37548f2718ba70a71352cb2b2f"
+    },
+    {
+      "path": "Upstream/Reference/graphics-instrumentation.cpp",
+      "sha256": "ded97529fab5f00b0f2928fbaf593473af15b7f57255e708e453e9c33eb55513"
+    },
+    {
+      "path": "Upstream/Reference/include/CReference.h",
+      "sha256": "f6559acf4e9182f3c552db499a0bf9380524bf7c63028906cfcfcf97ec6e5fd3"
+    },
+    {
+      "path": "Upstream/Reference/graphics/camera-fly.inc",
+      "sha256": "fafaff2d2a60bbdf73cb426ec4723a85b46b6775d28dc2466bab1f8c4df8dd65"
+    },
+    {
+      "path": "Upstream/Reference/graphics/camera-fly-preset.inc",
+      "sha256": "305d91e083136e7c516ef7ecf31c486440bc1e615cfdd849b9968f82a7a7941e"
+    },
+    {
+      "path": "Package.swift",
+      "sha256": "9f59124c384971ee455a2a243be3eb3bec2c6448d4e1b6ef687b7a7bdc458902"
+    },
+    {
+      "path": "Scripts/verify-provenance.py",
+      "sha256": "3ce61d5de1b46c2c392f5b6a52fc1ebc593cc751803c124663695f5eed93876f"
+    },
+    {
+      "path": "Upstream/source-manifest.json",
+      "sha256": "58a512599cae6a37b7e1c41188e4280c0b43898c601e94c14719eafd8151a928"
+    },
+    {
+      "path": "Packages/TORCSMetal/SceneRenderer.swift",
+      "sha256": "752fbbe1bedf4f98d80ee072f928dfcf93f025804e1cf8efbd12a441354f59b9"
+    },
+    {
+      "path": "Packages/TORCSMetal/Scene.metal",
+      "sha256": "4396144a2cfc7eb97ad10ddcc09d898b01d979b328bb4f15de8742b2e62e3e66"
+    },
+    {
+      "path": "App/DrivingSession.swift",
+      "sha256": "f7462fb0023ebfeb65702ae0875ca96f6182e039b9e9fe5ea62da8b31c4fd45b"
+    },
+    {
+      "path": "Upstream/Reference/graphics/height/add-hit.inc",
+      "sha256": "7ad7591277cdd10bb44db349614c4606cadd0d6035539cf97157d50b9f1502a4"
+    },
+    {
+      "path": "Upstream/Reference/graphics/height/bounds-test.inc",
+      "sha256": "e8a362a98979a11b0a8745829f5e901511e1dc1acfec1bdda16f4310ec227911"
+    },
+    {
+      "path": "Upstream/Reference/graphics/height/branch-bounds.inc",
+      "sha256": "2543ac8010f021929f5059fbf8755f9811d43036c35b1297176fe5aafc557e8c"
+    },
+    {
+      "path": "Upstream/Reference/graphics/height/branch-traverse.inc",
+      "sha256": "0a839f569a57aae5fe2911c95410999c8df42aaf5a5b2f1ddef59d98b81de8c5"
+    },
+    {
+      "path": "Upstream/Reference/graphics/height/excerpts.json",
+      "sha256": "0df58f97e1f8c03898afe3cc536b36c5f9f96ba0fd6ffba490952107f1e2933c"
+    },
+    {
+      "path": "Upstream/Reference/graphics/height/gr-height.inc",
+      "sha256": "22af4674fc9b2423ab930700e30fca7903b4995543542eab4a6fe6146349f09f"
+    },
+    {
+      "path": "Upstream/Reference/graphics/height/grvtxtable.h",
+      "sha256": "6a408d22e1a377a66087b45cb11cdca6591b2a8d4e59d4603fe4f95acd5571cb"
+    },
+    {
+      "path": "Upstream/Reference/graphics/height/leaf-bounds.inc",
+      "sha256": "ce72a98d6321455d0131ecfd51995f69cdc71cd7e7c05eacfcd13e523363821b"
+    },
+    {
+      "path": "Upstream/Reference/graphics/height/leaf-traverse.inc",
+      "sha256": "b6c5656a5a550aaf75cf1664e4f70515b988b26a71ae0987b659ddba02f1a40d"
+    },
+    {
+      "path": "Upstream/Reference/graphics/height/leaf-triangles.inc",
+      "sha256": "79df3999fa74b0a95a4b914a74ab039eaed28cb84321547882cfe363def179ab"
+    },
+    {
+      "path": "Upstream/Reference/graphics/height/query.inc",
+      "sha256": "8e3d7cd8d975fa124fa7f3e98604d63e5b38373240f2c42b41f14f04f5608e62"
+    },
+    {
+      "path": "Upstream/Reference/graphics/height/ssgBranch.cxx",
+      "sha256": "9233126e74c59b2c3eb21c2800ebc9e23a46655acef661f4a2949f69a4e834a7"
+    },
+    {
+      "path": "Upstream/Reference/graphics/height/ssgEntity.cxx",
+      "sha256": "24e016c588d6b5f9cb04835acd843647246d123e7118fd5461586f466a104dcb"
+    },
+    {
+      "path": "Upstream/Reference/graphics/height/ssgIsect.cxx",
+      "sha256": "9aa755571d2a21f93dbfb0e5fc51c8fd80fe982e58ef3d3c667385717865c787"
+    },
+    {
+      "path": "Upstream/Reference/graphics/height/ssgLeaf.cxx",
+      "sha256": "c8bd08dd7e475c8c97e4940dd90a6f8e1d7c5a050645b905c6555718f856a66b"
+    },
+    {
+      "path": "Upstream/Reference/graphics/height/ssgTransform.cxx",
+      "sha256": "03907a99da7d6e9338a25a0091df42a2ff8ac415685bffd29e6cff450ae6cf74"
+    },
+    {
+      "path": "Upstream/Reference/graphics/height/ssgVtxTable.cxx",
+      "sha256": "6662071d7c75c0b5e4fa56a803ce2178daaaf00e5c332e0dca78973db2b5a619"
+    },
+    {
+      "path": "Upstream/Reference/graphics/height/transform-bounds.inc",
+      "sha256": "def27f17532d7fbc75dcb1dc8af21c7ed311f62d060609a3173b2d49fd95888a"
+    },
+    {
+      "path": "Upstream/Reference/graphics/height/transform-traverse.inc",
+      "sha256": "dbb2fc23912ad78b9703a6bbb068ff6f061b985ab5ce16b8e27d893879357796"
+    },
+    {
+      "path": "Upstream/Reference/graphics/height/triangle-count.inc",
+      "sha256": "eba8237a65e7684a9c89b128c0d1ecdd658e4f06ab366b4c5f6de8808d8590fb"
+    },
+    {
+      "path": "Upstream/Reference/graphics/height/triangles.inc",
+      "sha256": "1a3c1c005262347c0e3308e77da3db417f0e3023360d1a1231ce760bbbbbdbf0"
+    }
+  ],
+  "evidenceSnapshot": [
+    {
+      "path": "Artifacts/fly-height-debug-full.log",
+      "sha256": "3828587fe78fe441684dae3b52e508e7158c05a864931803b11bdf89054590f2"
+    },
+    {
+      "path": "Artifacts/fly-height-release.log",
+      "sha256": "d020040f779745730c72b8165817e215d8032c96a02a7e306c43c3c6a8217d80"
+    },
+    {
+      "path": "Artifacts/fly-height-asan.log",
+      "sha256": "ec969b5346c00eb9ed2cfeda351edce4d7a2c86ef0166b002064faeaf44c2736"
+    },
+    {
+      "path": "Artifacts/fly-height-test-inventory.log",
+      "sha256": "954c4ded27e5fe4324598536eafe79dcdc2f9407b6a38012b0d57f1adf2a8496"
+    },
+    {
+      "path": "Artifacts/fly-height-provenance.log",
+      "sha256": "a325a62c14be8340d0d12c477468ff0a3c43355234749f5485126dd75f84e287"
+    },
+    {
+      "path": "Artifacts/height-archive.log",
+      "sha256": "e220a37679a4613fe5d05c4e161ea6ae2a60db2d4a6fe70b82279219257cc30c"
+    },
+    {
+      "path": "Artifacts/height-selected-loader-flags.json",
+      "sha256": "bfe4e027f9da35647a282f80857b1f09ac7ebb2a5763fe648787d74094ca86e5"
+    },
+    {
+      "path": "Artifacts/fly-targeted.log",
+      "sha256": "dfb805db26fbe6437a95258b1cef541fda96a034082dc6d40eee30c8ffe66f87"
+    },
+    {
+      "path": "Artifacts/fly-targeted-final.log",
+      "sha256": "29b0f0c1e56ba065120f1f637e771b077221d0c2ea2873162bf621d1d0e90032"
+    },
+    {
+      "path": "Artifacts/height-targeted.log",
+      "sha256": "f27c4962caf5647d33c77c5b7cf84e1429c94326fc45a7acdc54db87e2e0536f"
+    },
+    {
+      "path": "Artifacts/fly-height-runtime-libraries.log",
+      "sha256": "8b7740d7a22bbede01fae569b39350a51f087ee57e525820bce519e4bc526e57"
+    }
+  ],
+  "remaining": [
+    "Assemble selected runtime height graph with original anchor order, moving objects and selectors",
+    "Connect F10 selection, clock and zoom/preferences to the driving UI and validate rendered motion",
+    "Optional loader optimization compatibility for content that enables it",
+    "Automatic TV camera selection and broader graphics/shadows",
+    "Complete race modes, native robots, audio, replay, physical acceptance and distribution"
+  ]
+}

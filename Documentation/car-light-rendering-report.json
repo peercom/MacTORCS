@@ -1,0 +1,615 @@
+{
+  "schema": 1,
+  "date": "2026-09-23",
+  "increment": "Original car lights in Metal, mirrors and selected Fly bounds",
+  "goalComplete": false,
+  "tests": {
+    "fullDebug": 257,
+    "selectedRelease": 31,
+    "selectedASan": 31,
+    "inventory": 257,
+    "failures": 0,
+    "newTests": 5,
+    "pointFrustumCases": 10290,
+    "lightHeightCounts": 15,
+    "lightHeightQueries": 165,
+    "originalBoundsHeightsHitsAndDiagnosticTriangleCountExact": true,
+    "clampPixels": 324,
+    "clampBorderPixels": 40,
+    "maximumClampByteError": 1,
+    "mirrorSizeQualityCases": 4,
+    "visibleOtherLightMirrorPixels": 1536,
+    "blendDepthRepeatQualityModes": 2
+  },
+  "implementation": {
+    "lightTextureNamesSupported": 5,
+    "selectedCarLights": 2,
+    "selectedLightGPUTextures": 1,
+    "selectedAddedDrawsPerVisibleView": 2,
+    "selectedAddedTrianglesPerVisibleView": 4,
+    "newRenderPasses": 0,
+    "newPerFrameTextureUploads": 0,
+    "textureLevels": 1,
+    "mirrorsBeforeMain": true,
+    "currentCarMirrorLightsExcluded": true,
+    "otherCarMirrorLightsRetained": true,
+    "preparedViewRandomChoicesRetained": true,
+    "drawRandomness": "Isolated presentation stream; original global libc graphics/physics coupling intentionally not reproduced",
+    "heightLeaves": "One point per visible light, including switched-off lights; zero physical triangles but original HOT diagnostic contributes -1 for a surviving one-point strip"
+  },
+  "captures": {
+    "releaseProcesses": 4,
+    "releaseImagesPerProcess": 24,
+    "releaseImmediateRepeatPairsPerProcess": 24,
+    "releaseImagesAndRecordsExactAcrossProcesses": true,
+    "debugProcesses": 2,
+    "debugImagesExactAcrossProcesses": true,
+    "metalAPIAndGPUValidation": true,
+    "nativePhysicsTicksPerCapture": 1900,
+    "brakingChangedChannels": 50903,
+    "releasedChangedChannels": 0,
+    "lightDrawCounts": [
+      0,
+      2
+    ],
+    "originalGLPixelParityClaimed": false
+  },
+  "crossBuild": {
+    "imagesIdentical": false,
+    "changedImages": 24,
+    "pixelDifferences": [
+      {
+        "image": "lights-braking-chase-classic-enabled",
+        "changedChannels": 10012,
+        "maximumByteDelta": 94,
+        "meanAbsoluteByteDelta": 0.004818522135416667
+      },
+      {
+        "image": "lights-braking-chase-classic-omitted",
+        "changedChannels": 9800,
+        "maximumByteDelta": 94,
+        "meanAbsoluteByteDelta": 0.004732259114583333
+      },
+      {
+        "image": "lights-braking-chase-quality-enabled",
+        "changedChannels": 10417,
+        "maximumByteDelta": 38,
+        "meanAbsoluteByteDelta": 0.004915771484375
+      },
+      {
+        "image": "lights-braking-chase-quality-omitted",
+        "changedChannels": 10188,
+        "maximumByteDelta": 38,
+        "meanAbsoluteByteDelta": 0.004829915364583334
+      },
+      {
+        "image": "lights-braking-driver-mirror-classic-enabled",
+        "changedChannels": 20496,
+        "maximumByteDelta": 239,
+        "meanAbsoluteByteDelta": 0.013434651692708334
+      },
+      {
+        "image": "lights-braking-driver-mirror-classic-omitted",
+        "changedChannels": 20496,
+        "maximumByteDelta": 239,
+        "meanAbsoluteByteDelta": 0.013434651692708334
+      },
+      {
+        "image": "lights-braking-driver-mirror-quality-enabled",
+        "changedChannels": 21613,
+        "maximumByteDelta": 65,
+        "meanAbsoluteByteDelta": 0.014397786458333334
+      },
+      {
+        "image": "lights-braking-driver-mirror-quality-omitted",
+        "changedChannels": 21613,
+        "maximumByteDelta": 65,
+        "meanAbsoluteByteDelta": 0.014397786458333334
+      },
+      {
+        "image": "lights-braking-rear-inspection-classic-enabled",
+        "changedChannels": 16741,
+        "maximumByteDelta": 105,
+        "meanAbsoluteByteDelta": 0.009602864583333334
+      },
+      {
+        "image": "lights-braking-rear-inspection-classic-omitted",
+        "changedChannels": 16524,
+        "maximumByteDelta": 105,
+        "meanAbsoluteByteDelta": 0.009563395182291667
+      },
+      {
+        "image": "lights-braking-rear-inspection-quality-enabled",
+        "changedChannels": 18878,
+        "maximumByteDelta": 71,
+        "meanAbsoluteByteDelta": 0.010057779947916666
+      },
+      {
+        "image": "lights-braking-rear-inspection-quality-omitted",
+        "changedChannels": 18611,
+        "maximumByteDelta": 71,
+        "meanAbsoluteByteDelta": 0.009976806640625
+      },
+      {
+        "image": "lights-released-chase-classic-enabled",
+        "changedChannels": 6251,
+        "maximumByteDelta": 117,
+        "meanAbsoluteByteDelta": 0.003074951171875
+      },
+      {
+        "image": "lights-released-chase-classic-omitted",
+        "changedChannels": 6251,
+        "maximumByteDelta": 117,
+        "meanAbsoluteByteDelta": 0.003074951171875
+      },
+      {
+        "image": "lights-released-chase-quality-enabled",
+        "changedChannels": 6909,
+        "maximumByteDelta": 42,
+        "meanAbsoluteByteDelta": 0.0035371907552083333
+      },
+      {
+        "image": "lights-released-chase-quality-omitted",
+        "changedChannels": 6909,
+        "maximumByteDelta": 42,
+        "meanAbsoluteByteDelta": 0.0035371907552083333
+      },
+      {
+        "image": "lights-released-driver-mirror-classic-enabled",
+        "changedChannels": 29534,
+        "maximumByteDelta": 238,
+        "meanAbsoluteByteDelta": 0.022904052734375
+      },
+      {
+        "image": "lights-released-driver-mirror-classic-omitted",
+        "changedChannels": 29534,
+        "maximumByteDelta": 238,
+        "meanAbsoluteByteDelta": 0.022904052734375
+      },
+      {
+        "image": "lights-released-driver-mirror-quality-enabled",
+        "changedChannels": 30674,
+        "maximumByteDelta": 118,
+        "meanAbsoluteByteDelta": 0.02211954752604167
+      },
+      {
+        "image": "lights-released-driver-mirror-quality-omitted",
+        "changedChannels": 30674,
+        "maximumByteDelta": 118,
+        "meanAbsoluteByteDelta": 0.02211954752604167
+      },
+      {
+        "image": "lights-released-rear-inspection-classic-enabled",
+        "changedChannels": 3719,
+        "maximumByteDelta": 73,
+        "meanAbsoluteByteDelta": 0.00190185546875
+      },
+      {
+        "image": "lights-released-rear-inspection-classic-omitted",
+        "changedChannels": 3719,
+        "maximumByteDelta": 73,
+        "meanAbsoluteByteDelta": 0.00190185546875
+      },
+      {
+        "image": "lights-released-rear-inspection-quality-enabled",
+        "changedChannels": 4386,
+        "maximumByteDelta": 31,
+        "meanAbsoluteByteDelta": 0.0028633626302083334
+      },
+      {
+        "image": "lights-released-rear-inspection-quality-omitted",
+        "changedChannels": 4386,
+        "maximumByteDelta": 31,
+        "meanAbsoluteByteDelta": 0.0028633626302083334
+      }
+    ],
+    "stateProbeDifferences": [
+      {
+        "tick": 1800,
+        "maximumAbsoluteDifferences": {
+          "bodyMatrix": 6.103515625e-05,
+          "cameraProjection": 7.62939453125e-05,
+          "cameraView": 6.103515625e-05,
+          "orientation": 3.9833830669522285e-06,
+          "position": 6.103515625e-05,
+          "wheelSpin": 0.004055023193359375
+        }
+      },
+      {
+        "tick": 1900,
+        "maximumAbsoluteDifferences": {
+          "bodyMatrix": 6.103515625e-05,
+          "cameraProjection": 0.0001220703125,
+          "cameraView": 6.103515625e-05,
+          "orientation": 3.1681847758591175e-06,
+          "position": 6.103515625e-05,
+          "wheelSpin": 0
+        }
+      }
+    ],
+    "scope": "Debug and release are separately repeatable. This scenario is not cross-build pixel-identical, including omitted-light controls; actual state/matrix differences are retained rather than attributed to the light shader without evidence."
+  },
+  "performance": {
+    "host": "Apple M2, 8 GiB, macOS 26.2",
+    "scope": "Stationary 960x640 chase view. 60 interleaved samples per classic/quality and light-off/on mode after 10 warmups; resources and world light positions prepared beforehand. Includes per-view light culling/random/quad preparation in render wall time, excludes physics and file IO.",
+    "modes": [
+      {
+        "gpuMedianMS": 0.6393750663846731,
+        "gpuP95MS": 0.6672916933894157,
+        "lights": false,
+        "offscreenWallMedianMS": 4.4778750743716955,
+        "quality": false,
+        "samples": 60
+      },
+      {
+        "gpuMedianMS": 0.6438749842345715,
+        "gpuP95MS": 0.6728332955390215,
+        "lights": true,
+        "offscreenWallMedianMS": 4.521624883636832,
+        "quality": false,
+        "samples": 60
+      },
+      {
+        "gpuMedianMS": 0.7780417799949646,
+        "gpuP95MS": 0.9908750653266907,
+        "lights": false,
+        "offscreenWallMedianMS": 4.579833475872874,
+        "quality": true,
+        "samples": 60
+      },
+      {
+        "gpuMedianMS": 0.7884998340159655,
+        "gpuP95MS": 0.8245001081377268,
+        "lights": true,
+        "offscreenWallMedianMS": 4.593708319589496,
+        "quality": true,
+        "samples": 60
+      }
+    ],
+    "wholeRaceOrGameplayFPSClaim": false
+  },
+  "regression": {
+    "previousBrakeImagesAndAllRecordsUnchanged": 24,
+    "cameras": [
+      {
+        "capture": "light-fly",
+        "baseline": "brake-fly",
+        "images": 24,
+        "changedImages": 0,
+        "cameraPhysicsRecordsUnchanged": true,
+        "changedNames": []
+      },
+      {
+        "capture": "light-tv",
+        "baseline": "brake-tv",
+        "images": 24,
+        "changedImages": 0,
+        "cameraPhysicsRecordsUnchanged": true,
+        "changedNames": []
+      },
+      {
+        "capture": "light-traffic",
+        "baseline": "brake-traffic",
+        "images": 80,
+        "changedImages": 8,
+        "cameraPhysicsRecordsUnchanged": true,
+        "changedNames": [
+          "traffic-tv-0-classic-plain-run-0",
+          "traffic-tv-0-classic-plain-run-1",
+          "traffic-tv-0-classic-shadows-run-0",
+          "traffic-tv-0-classic-shadows-run-1",
+          "traffic-tv-0-quality-plain-run-0",
+          "traffic-tv-0-quality-plain-run-1",
+          "traffic-tv-0-quality-shadows-run-0",
+          "traffic-tv-0-quality-shadows-run-1"
+        ]
+      }
+    ],
+    "trafficNativeRuns": 2,
+    "trafficImages": 80,
+    "trafficTargetSwitchRecords": 12,
+    "trafficNonzeroLightDrawCaptures": 16,
+    "trafficSharedLightTextureCount": 1
+  },
+  "packaged": {
+    "path": "build/TORCSLightPreview.app",
+    "binarySHA256": "90fbc86e1a479b37d5cc3c7a8dc23d4c3148e2d69af5498bc12b2275bbae181f",
+    "signature": "ad hoc verified",
+    "artworkBundled": false,
+    "noDirectCPlusPlusOrExpatDependency": true
+  },
+  "provenance": {
+    "archiveSHA256": "f9c69e86d290295467451b01d7838d85005ba613644a6fe8a3f85a7c6a03cd4c",
+    "verifiedPinnedEntries": 223,
+    "newPinnedSources": 0,
+    "newPinnedArtwork": 0,
+    "localOnlyAdditionalLightTexture": "breaklight2.rgb",
+    "unresolvedSharedTexturesInPreparedSession": 8,
+    "inspectedFiles": [
+      {
+        "source": "src/windows/dependencies/vs2022_win32/plib-code-r2173-trunk-vsproj/src/ssg/ssgLeaf.cxx",
+        "sha256": "c8bd08dd7e475c8c97e4940dd90a6f8e1d7c5a050645b905c6555718f856a66b",
+        "archiveVerified": true,
+        "imported": false
+      },
+      {
+        "source": "src/windows/dependencies/vs2022_win32/plib-code-r2173-trunk-vsproj/src/ssg/ssgDList.cxx",
+        "sha256": "914abb141eb055a9e96a9f42ea758b2c1be948a7fb79c620b79e456fc3a0df80",
+        "archiveVerified": true,
+        "imported": false
+      },
+      {
+        "source": "src/windows/dependencies/vs2022_win32/plib-code-r2173-trunk-vsproj/src/ssg/ssgTexture.cxx",
+        "sha256": "c5ae3af206990b6be0c1b1dbc3d67a2d84b635fbd7cc76362bb51a03a2d73d1b",
+        "archiveVerified": true,
+        "imported": false
+      },
+      {
+        "source": "data/data/textures/breaklight2.rgb",
+        "sha256": "45bfd7f3ebb4a322a1b2369ad3b74956a27641cf37bd02360e0f1d06a56e08b9",
+        "archiveVerified": true,
+        "imported": false
+      }
+    ]
+  },
+  "preserved": {
+    "build/TORCSBrakePreview.app/Contents/MacOS/TORCSMac": "2cf7fd17b97d151ce5ebab5f851beab4cbbee7eb04e3ba825aace178b1d052ac",
+    "/Users/holgervonameln/Library/Application Support/TORCSMac/cameras.json": "b62c5a2a334ac0748b201b64b9dbe3ade377d796a596fcba7bd38833a4c084e8",
+    "build/TORCSMultiShadowPreview.app/Contents/MacOS/TORCSMac": "15775a8b90d53a671fe4fc1f12eeeb80188fcb2dc099834c45ab76bb5cc5ac8f"
+  },
+  "sourceSnapshot": [
+    {
+      "path": "Packages/TORCSMetal/CarLightRenderState.swift",
+      "sha256": "2b04a97c0748d889e95de501e5926f6e46f2ecac724cf4ee234e3172c0a87828"
+    },
+    {
+      "path": "Packages/TORCSMetal/CarLightFrustum.swift",
+      "sha256": "ed2e436c85dd91dc0d8a93646174fdca165e1c51d3720a1a0508d039fbb9e032"
+    },
+    {
+      "path": "Packages/TORCSMetal/SceneGeometry.swift",
+      "sha256": "5a925b9ca4122e9d1a0390cc91b37c26692233862b28bebb1562976f37f0f50e"
+    },
+    {
+      "path": "Packages/TORCSMetal/SceneRenderer.swift",
+      "sha256": "521c15ad076897a16282da1272e48242047faf5b7587981f5502f8c003f6a8b3"
+    },
+    {
+      "path": "Packages/TORCSMetal/Scene.metal",
+      "sha256": "d5364d021eca43f21c431a3088abf3212eb851bb2107bffaac5fcea1909daa30"
+    },
+    {
+      "path": "Packages/TORCSMetal/SceneHeightQuery.swift",
+      "sha256": "46c0a1964e29ba49732bccc9df6aa94d92744e9f7743940933f856897a5fc2b6"
+    },
+    {
+      "path": "Packages/TORCSMetal/DrivingSceneHeight.swift",
+      "sha256": "e93f08294a019c0dd7524a5583098ccd3d79d7a8f35a0d31bb34c2c6598a4c8c"
+    },
+    {
+      "path": "Packages/TORCSRaceEngine/DrivingContent.swift",
+      "sha256": "a12519e92b6f9274e41de96ae427b2a6ee4f46caacc1fd7c71247c734a0ccdc6"
+    },
+    {
+      "path": "App/DrivingSession.swift",
+      "sha256": "ffdbfd53ff7f5f6e06bb324337894de73fcacef66cb6321bf6b7bfadae19d026"
+    },
+    {
+      "path": "App/CarLightVisualSmoke.swift",
+      "sha256": "9e8a8de967a5ba04a825ad8bc42d73ebe44ab6e900c0faf754552a010cc8a824"
+    },
+    {
+      "path": "App/TORCSMacApp.swift",
+      "sha256": "fb35c67ac33ccdf9f1068c2961707b9700b409cafcd357269a25ec0121d5a2fc"
+    },
+    {
+      "path": "App/FlyVisualSmoke.swift",
+      "sha256": "2527ad3b6d1d757f97b8b88f79ee2d700423fc49c669f0c20d2892d47ed3a181"
+    },
+    {
+      "path": "App/TVVisualSmoke.swift",
+      "sha256": "7c162832a28feaa9056f4d5763e223eba84ff9edad0ba42f008849e013ce29e8"
+    },
+    {
+      "path": "App/TrafficVisualSmoke.swift",
+      "sha256": "eee1f3f0adf75a3e023997a3e1691bccd41701399f237a04bb186738f7aac01e"
+    },
+    {
+      "path": "Tests/UnitTests/CarLightRenderingTests.swift",
+      "sha256": "ccae23ca4a1301cbd24b2258ac490cd04d3b79ce32dd5a22eb53135b376a70d1"
+    },
+    {
+      "path": "Upstream/Reference/carlight-instrumentation.cpp",
+      "sha256": "6794111c65a097bda0d220819415c7df5a6d509a817ebdb0f763ef7240eb9361"
+    },
+    {
+      "path": "Upstream/Reference/include/CReference.h",
+      "sha256": "9476bac43ca183aacbbf31d4e60a0ab2db5fd430bab69dbe9c93f761b4fcb98a"
+    },
+    {
+      "path": "Scripts/prepare-driving-session.py",
+      "sha256": "b41938b756d805b8824565b1002c6d995bb9e57472e56751845932b6bfbb9222"
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES.md",
+      "sha256": "3289ed73b427dd310b3e744f34e934ef84fd0a3ad4374ba195cb7792e82c06c4"
+    }
+  ],
+  "evidenceSnapshot": [
+    {
+      "path": "Artifacts/light-render-full-debug.log",
+      "sha256": "0e0403fac8b8718a1a19ed84942cacff3e5988347ac384780367d2953e601610"
+    },
+    {
+      "path": "Artifacts/light-render-release.log",
+      "sha256": "23ba783831a7d8870046fd9c5b510c78178da22d66ba0f79c30139c8d5737d31"
+    },
+    {
+      "path": "Artifacts/light-render-asan.log",
+      "sha256": "f08fe552679cec330cc36edc85fb14c4aceba91d75d1b5241aecccaf3a353546"
+    },
+    {
+      "path": "Artifacts/light-render-package.log",
+      "sha256": "935a183e2b863309fa15088db8260fab93b5318daa2d113b15f54a9fdc4c3fd8"
+    },
+    {
+      "path": "Artifacts/light-render-full-preparation.log",
+      "sha256": "921f134f246c514b9e63c3a1c8e7734ebcce49841b763772bbf9099ebe5c1964"
+    },
+    {
+      "path": "Artifacts/light-render-provenance.log",
+      "sha256": "97d482a124871eb17aa7377598b5ff2b103774ce5325596b266ea149e083e524"
+    },
+    {
+      "path": "Artifacts/light-render-archive.log",
+      "sha256": "429b5500b68ce0a378536d6899fd2d408d3e9b6af53fe3f2ac8de549404a656b"
+    },
+    {
+      "path": "Artifacts/light-render-runtime-libraries.log",
+      "sha256": "776bc952562b60289939619e56b23d1a638ba53885c03757d6f22b02943a5e84"
+    },
+    {
+      "path": "Artifacts/light-render-signature.log",
+      "sha256": "440e65ad45885a1649e060e37a2dce0788ee23088fc3f84083d21858f44e2e49"
+    },
+    {
+      "path": "Artifacts/light-render-inventory.txt",
+      "sha256": "7cc3d92bd73c6469c93e26460f157c73b5e6cc636e99c799ea8497bf1e12c5f2"
+    },
+    {
+      "path": "Artifacts/light-render-inspected-sources.json",
+      "sha256": "4a3954b13f089b6d2e7ea54bb2b25713b7705b711a468bd23f704b7cf9427ba7"
+    },
+    {
+      "path": "Artifacts/light-render-preserved.json",
+      "sha256": "d240c3646200d7d4adb9b3a8adca42e02c80514c16d843814cbed8a79f26c46a"
+    },
+    {
+      "path": "Artifacts/light-camera-regression-comparison.json",
+      "sha256": "004cbf4375c939a92ce35370e525197178bbef4465e7f477c526a6587198fb7e"
+    },
+    {
+      "path": "Artifacts/light-cross-build-pixel-differences.json",
+      "sha256": "d9ea29b5953524fedbf1899d1ff4fbf4e69f9967670ddf4a13925243de71035e"
+    },
+    {
+      "path": "Artifacts/LightStateProbe.swift",
+      "sha256": "5e8c631f48ef49c2ab40abf83e4b40ad63c5dd847fbc3e9f7586c785b7c18f3e"
+    },
+    {
+      "path": "Artifacts/light-state-debug.json",
+      "sha256": "18a22af8ed685a331facb8aaa325a884c0477da722740c20160e2a0c2e6f0db4"
+    },
+    {
+      "path": "Artifacts/light-state-release.json",
+      "sha256": "bd066a2cf7e772caa15cfbb924e0d48687ac94f04faf698acb7c8cd7763ccac2"
+    },
+    {
+      "path": "Artifacts/light-state-probe-fixed.log",
+      "sha256": "ff3458a959edfecb46cec884b605f3828c3ff0d5411cc5159c91016900475834"
+    },
+    {
+      "path": "Artifacts/light-benchmark-processes.txt",
+      "sha256": "d220d8e157d79132eec6003c86708b019262582b0a11c5b6dcc1cb39bbde342c"
+    },
+    {
+      "path": "Artifacts/light-render-packaged-smoke.log",
+      "sha256": "7c307493192b70189dfcb95937600d572fed01a81f577ac8302965950bc5ab5f"
+    },
+    {
+      "path": "Artifacts/light-render-resign.log",
+      "sha256": "649c0343508119e52d7a77d56008b7c2db9b90882e6618d6ad450db2aeb3cb5d"
+    },
+    {
+      "path": "Artifacts/light-preview-first.log",
+      "sha256": "6efc86b2084fa877ad3f88081526bb5228e1878fc121e9e792ceea7c65c45b63"
+    },
+    {
+      "path": "Artifacts/light-preview-first/report.json",
+      "sha256": "989fb1da87303bcb7c0d428a46fb8cb9348847c0f66121b567a79ac1d735a662"
+    },
+    {
+      "path": "Artifacts/light-preview-second.log",
+      "sha256": "6efc86b2084fa877ad3f88081526bb5228e1878fc121e9e792ceea7c65c45b63"
+    },
+    {
+      "path": "Artifacts/light-preview-second/report.json",
+      "sha256": "989fb1da87303bcb7c0d428a46fb8cb9348847c0f66121b567a79ac1d735a662"
+    },
+    {
+      "path": "Artifacts/light-preview-validation.log",
+      "sha256": "f655de182cbc88924adbc9ababb00f52a6f824d7440cb5d88c6929c1d404d74d"
+    },
+    {
+      "path": "Artifacts/light-preview-validation/report.json",
+      "sha256": "989fb1da87303bcb7c0d428a46fb8cb9348847c0f66121b567a79ac1d735a662"
+    },
+    {
+      "path": "Artifacts/light-benchmark.log",
+      "sha256": "6efc86b2084fa877ad3f88081526bb5228e1878fc121e9e792ceea7c65c45b63"
+    },
+    {
+      "path": "Artifacts/light-benchmark/report.json",
+      "sha256": "74829af43d2ac70674b876f7e89ffe31eecc2beebd300c46ef2d2365c26c7720"
+    },
+    {
+      "path": "Artifacts/light-debug-first.log",
+      "sha256": "1b6fca3eb56e552104d0834cdccc5bdfc5256f1577407ffd8fd0b275ca1fd950"
+    },
+    {
+      "path": "Artifacts/light-debug-first/report.json",
+      "sha256": "4696cc2e2dc3585aaa0726895f8a0797218cc8b32b006af183d1f85743e00bb1"
+    },
+    {
+      "path": "Artifacts/light-debug-current.log",
+      "sha256": "1b6fca3eb56e552104d0834cdccc5bdfc5256f1577407ffd8fd0b275ca1fd950"
+    },
+    {
+      "path": "Artifacts/light-debug-current/report.json",
+      "sha256": "4696cc2e2dc3585aaa0726895f8a0797218cc8b32b006af183d1f85743e00bb1"
+    },
+    {
+      "path": "Artifacts/light-brake-regression.log",
+      "sha256": "41570eb8d74c571d3cf46f310137cd6d1b87e8fa9f46c8ba3f2bb9b18464119f"
+    },
+    {
+      "path": "Artifacts/light-brake-regression/report.json",
+      "sha256": "c17177ed872f864b1fee453614c256add6f03d306209159d134e8cac194f5254"
+    },
+    {
+      "path": "Artifacts/light-fly.log",
+      "sha256": "121da35d55765d5743a4409a45c5bc1bad76f4e98c4166031a8f37b0767ab157"
+    },
+    {
+      "path": "Artifacts/light-fly/report.json",
+      "sha256": "2d42a092fb4a732616cf2affc5ba0a25a83aa01af9da243383319c9c156c179e"
+    },
+    {
+      "path": "Artifacts/light-tv.log",
+      "sha256": "d73e2acce0b98acba2bf2bc034e717a4bb22cc051aae98fed0d9ef6ddb478a57"
+    },
+    {
+      "path": "Artifacts/light-tv/report.json",
+      "sha256": "bc7606729748a30987ef86763ed2f7507a90d2976d5b79f17b9e299014694d9d"
+    },
+    {
+      "path": "Artifacts/light-traffic.log",
+      "sha256": "58a1018b3c52d4196f97be37743352502fd4f72b3f1b45479fa3d5564e0fd786"
+    },
+    {
+      "path": "Artifacts/light-traffic/report.json",
+      "sha256": "44312a3f5d5ffae2f5b0d9a60c9a56159763ea5aba375fbeffd7e4c6f41121bc"
+    }
+  ],
+  "remaining": [
+    "Full original deferred land/effect transparency order and inherited nonzero alpha-test state",
+    "Broader light artwork/content and headlight input bindings",
+    "Cross-build whole-scene raster agreement; selected scenario state/matrix differences recorded",
+    "Multi-car Fly graph, complete original LODs and effects",
+    "Native Fly/TV GUI picker, zoom/reset and relaunch acceptance",
+    "Scene-wide dynamic shadows and full-race profiling",
+    "Complete race lifecycle, native AI, audio and replay",
+    "Physical controllers/HID after visual priorities",
+    "Artwork attribution, Developer ID/notarization and distribution"
+  ]
+}

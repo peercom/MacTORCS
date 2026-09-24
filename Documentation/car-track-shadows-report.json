@@ -1,0 +1,4505 @@
+{
+  "schema": 1,
+  "date": "2026-09-23",
+  "increment": "Original projected track shadows on indexed cars, raw loader bounds and shared GPU textures",
+  "previousGoalTurn": "progress",
+  "goalComplete": false,
+  "host": {
+    "machine": "Apple M2, 8 GiB",
+    "os": "macOS 26.2",
+    "swift": "6.3.3",
+    "xcode": "26.6",
+    "deploymentTarget": "macOS 14+"
+  },
+  "reference": {
+    "release": "TORCS 1.3.9",
+    "archiveSHA256": "f9c69e86d290295467451b01d7838d85005ba613644a6fe8a3f85a7c6a03cd4c",
+    "sourceEntries": 165,
+    "contentEntries": 46,
+    "newOriginalSources": 0,
+    "newOriginalArtwork": 0,
+    "projectionCases": 2000,
+    "projectionCoefficients": 16000,
+    "maximumDifference": 0.0,
+    "detailedWheelLoads": 16,
+    "simpleWheelLoads": 0,
+    "rawLoaderBounds": [
+      {
+        "model": "aalborg",
+        "cacheVersion": 2,
+        "minimumX": -61.14950180053711,
+        "maximumX": 791.9149780273438,
+        "minimumY": -66.99939727783203,
+        "maximumY": 730.7379760742188
+      },
+      {
+        "model": "155-DTM",
+        "cacheVersion": 2,
+        "minimumX": -2.3975250720977783,
+        "maximumX": 2.401444911956787,
+        "minimumY": -0.9599999785423279,
+        "maximumY": 0.9599999785423279
+      },
+      {
+        "model": "wheel0",
+        "cacheVersion": 2,
+        "minimumX": -0.5,
+        "maximumX": 0.5,
+        "minimumY": -0.5,
+        "maximumY": 0.5
+      },
+      {
+        "model": "wheel1",
+        "cacheVersion": 2,
+        "minimumX": -0.5,
+        "maximumX": 0.5,
+        "minimumY": -0.5,
+        "maximumY": 0.5
+      },
+      {
+        "model": "wheel2",
+        "cacheVersion": 2,
+        "minimumX": -0.5,
+        "maximumX": 0.5,
+        "minimumY": -0.5,
+        "maximumY": 0.5
+      },
+      {
+        "model": "wheel3",
+        "cacheVersion": 2,
+        "minimumX": -0.5,
+        "maximumX": 0.5,
+        "minimumY": -0.5,
+        "maximumY": 0.5
+      }
+    ],
+    "scope": "Original parser plus verbatim matrix/load-loop/scale-assignment excerpts; scene I/O replaced with supplied ratios; not complete GL initialization or GL pixel parity"
+  },
+  "meshCache": {
+    "version": 2,
+    "compiler": "torcs-ac-swift-2",
+    "readsVersion1": true,
+    "legacyIdentityPreserved": true,
+    "legacyBoundsAbsent": true,
+    "invalidBoundsRejected": true
+  },
+  "tests": {
+    "selected": 33,
+    "configurations": [
+      "debug",
+      "release",
+      "address-sanitizer"
+    ],
+    "finalDistinctSpeedRatioCasesRetested": 5,
+    "fullSuiteRun": false,
+    "inventory": 193,
+    "rasterRepeatCameras": 4,
+    "reflectionModes": 3,
+    "rasterRepeats": 360,
+    "maximumChangedChannels": 0
+  },
+  "packagedRuns": {
+    "track-shadow-preview-final-first": {
+      "cameraCount": 20,
+      "carEnvironmentAvailable": true,
+      "carTrackShadowAvailable": true,
+      "changedFilteringChannels": 314029,
+      "changedReflectionChannels": 279356,
+      "changedShadowChannels": 102783,
+      "changedTrackProjectionChannels": 0,
+      "height": 640,
+      "imagesRGBA_SHA256": {
+        "bonnet": "d538714b034b4294b41a3f5f556a2b9eca71f7c36094a3e8c2815f005e8f7b07",
+        "chase": "50e60674bc1bd20e78e5ffee1d2aee04a6f3100abccd2c9c5f25cd1afae4640f",
+        "classic-no-shadow": "f0bcf3747374d6e352a82d50b585bfe7a878b383b79d3f3d2f5ba317993e50a5",
+        "classic-shadow": "50e60674bc1bd20e78e5ffee1d2aee04a6f3100abccd2c9c5f25cd1afae4640f",
+        "classic-shadow-no-reflections": "97e2500f55d37fdec97254b859b911faa61164313279bd6a8484f2050fc386a0",
+        "classic-shadow-no-track-projection": "50e60674bc1bd20e78e5ffee1d2aee04a6f3100abccd2c9c5f25cd1afae4640f",
+        "enhanced-shadow": "b2088d1098f2b095b1a89ae35846f9cac4650a06bb4eb85a5fcf237a7ffa2d8d",
+        "far-chase": "52154b650581aa7c0f538394c376048890eac0751aeeae235316d071eaab5a6b",
+        "low-chase": "f8a22f590c0ccf697625a3a0b4687a4a69b2eb93cb3d0620e2593af9d4c2e32f",
+        "near-chase": "069a5eabde6af7816f9781773a6d39d0ad4e35ae6dbe06f1312a556c12e34bd9",
+        "overhead-1": "e4dae31c5565a93f901fc0d02e55aae2e33b57e65f4d9fef10411aed911d16fe",
+        "overhead-2": "4e9fb017f09e6d33ffccc04079f1b80f4d2b4256b3906ab7fc137729bbab3d0e",
+        "overhead-3": "d1e08e5b7ad6c758018c3ff6dff2222c9d5b174f2bc355e2f33398d13372db22",
+        "overhead-4": "3de5f4232859a05c29f494040021259108cfeadc3cd678119745744e37f66f96",
+        "previous-placeholder-lighting": "6deebc20a6a8025663a11161a4de44df9c5476993286ab8367a451564ed71acb",
+        "reverse": "07bd964c7a658d1bbbd621dadc972f34e5834e585f2f107eac8d890fcbda521a",
+        "road": "2685cf08e42a7567a51fda6d16648874b9b7b5b6a829522fb14919108ab6f699",
+        "side-1": "2f900df6dd3cc4d9c2bc10fa9cdbfe08d3e87cc0a40a15a74c368861bd485c1c",
+        "side-2": "d6033914fec9fd9d4c3958b5f2e620f5966041a1cfd968186029232206029eb3",
+        "side-3": "249b07fc640b0a18b00d24f5a96435d5742c98626713240b322923f6eea9176b",
+        "side-4": "7dde07147742051b255cd4e30db3dc48b70e95c1959723e71662aa4b4147674e",
+        "side-5": "b2ee8d4bd197e4d8e7b08f74152b2cb30e81d4ec26cf02c612337b0766ee5f72",
+        "side-6": "88beeaebb3bd3a02c6f44002dae18ffc187a9c004c540e2d501909f219e27e21",
+        "side-7": "235342169742b0125a4568e0af09b083c9342410c168e395982e9bf1eb2d07da",
+        "side-8": "8eb8ba838f5f93c838cc25b01080008b48e342c04162d0a400d3daab32e541d8",
+        "track-chase": "f51ba3bd7455386e93a4ddc92fb80879be03de9e5e521f9561c37c9c58fa9e99"
+      },
+      "modes": [
+        {
+          "gpuMedianMS": 0.6446251645684242,
+          "gpuP95MS": 2.1690416615456343,
+          "mode": "classic-no-shadow",
+          "offscreenWallMedianMS": 4.426833242177963,
+          "samples": 60
+        },
+        {
+          "gpuMedianMS": 0.6448749918490648,
+          "gpuP95MS": 1.9102084916085005,
+          "mode": "classic-shadow",
+          "offscreenWallMedianMS": 4.3393748346716166,
+          "samples": 60
+        },
+        {
+          "gpuMedianMS": 0.6931249517947435,
+          "gpuP95MS": 2.1737501956522465,
+          "mode": "enhanced-shadow",
+          "offscreenWallMedianMS": 4.491749918088317,
+          "samples": 60
+        },
+        {
+          "gpuMedianMS": 0.6155415903776884,
+          "gpuP95MS": 1.9110001157969236,
+          "mode": "previous-placeholder-lighting",
+          "offscreenWallMedianMS": 4.297208273783326,
+          "samples": 60
+        },
+        {
+          "gpuMedianMS": 0.6295000202953815,
+          "gpuP95MS": 1.4785833191126585,
+          "mode": "classic-shadow-no-reflections",
+          "offscreenWallMedianMS": 4.412791691720486,
+          "samples": 60
+        },
+        {
+          "gpuMedianMS": 0.6357082165777683,
+          "gpuP95MS": 2.205208409577608,
+          "mode": "classic-shadow-no-track-projection",
+          "offscreenWallMedianMS": 4.412333481013775,
+          "samples": 60
+        }
+      ],
+      "note": "Offscreen stationary single-car scene. Per-command GPU timing, not gameplay FPS or multi-car performance. Classic filtering remains default.",
+      "rasterRepeat": [
+        {
+          "camera": "chase",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "near-chase",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "far-chase",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "low-chase",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "bonnet",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "road",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "track-chase",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "reverse",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-1",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-2",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-3",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-4",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-5",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-6",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-7",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-8",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "overhead-1",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "overhead-2",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "overhead-3",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "overhead-4",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        }
+      ],
+      "rasterRepeatPassed": true,
+      "schema": 4,
+      "shadowTriangles": 4,
+      "shadowVertices": 6,
+      "trackShadowWitness": {
+        "changedChannels": 247172,
+        "distanceFromStart": 408.6999816894531,
+        "imagesRGBA_SHA256": {
+          "projection-witness-disabled": "c952ae68eef6daa347c624b0970eb3e4efd0701e86e3cbe2f020cd49086016f5",
+          "projection-witness-enabled": "a946b7ca8c6c695f6cdb5509f3b72605d50c73240fd79ceb34673a50af698871"
+        },
+        "note": "Native vehicle settled at a sampled shaded road location; isolated projection on/off render, not a completed driving lap.",
+        "roadSamples": 1492,
+        "sampledBrightness": 154
+      },
+      "uniqueSceneGPUTextures": 32,
+      "width": 960
+    },
+    "track-shadow-preview-final-second": {
+      "cameraCount": 20,
+      "carEnvironmentAvailable": true,
+      "carTrackShadowAvailable": true,
+      "changedFilteringChannels": 314029,
+      "changedReflectionChannels": 279356,
+      "changedShadowChannels": 102783,
+      "changedTrackProjectionChannels": 0,
+      "height": 640,
+      "imagesRGBA_SHA256": {
+        "bonnet": "d538714b034b4294b41a3f5f556a2b9eca71f7c36094a3e8c2815f005e8f7b07",
+        "chase": "50e60674bc1bd20e78e5ffee1d2aee04a6f3100abccd2c9c5f25cd1afae4640f",
+        "classic-no-shadow": "f0bcf3747374d6e352a82d50b585bfe7a878b383b79d3f3d2f5ba317993e50a5",
+        "classic-shadow": "50e60674bc1bd20e78e5ffee1d2aee04a6f3100abccd2c9c5f25cd1afae4640f",
+        "classic-shadow-no-reflections": "97e2500f55d37fdec97254b859b911faa61164313279bd6a8484f2050fc386a0",
+        "classic-shadow-no-track-projection": "50e60674bc1bd20e78e5ffee1d2aee04a6f3100abccd2c9c5f25cd1afae4640f",
+        "enhanced-shadow": "b2088d1098f2b095b1a89ae35846f9cac4650a06bb4eb85a5fcf237a7ffa2d8d",
+        "far-chase": "52154b650581aa7c0f538394c376048890eac0751aeeae235316d071eaab5a6b",
+        "low-chase": "f8a22f590c0ccf697625a3a0b4687a4a69b2eb93cb3d0620e2593af9d4c2e32f",
+        "near-chase": "069a5eabde6af7816f9781773a6d39d0ad4e35ae6dbe06f1312a556c12e34bd9",
+        "overhead-1": "e4dae31c5565a93f901fc0d02e55aae2e33b57e65f4d9fef10411aed911d16fe",
+        "overhead-2": "4e9fb017f09e6d33ffccc04079f1b80f4d2b4256b3906ab7fc137729bbab3d0e",
+        "overhead-3": "d1e08e5b7ad6c758018c3ff6dff2222c9d5b174f2bc355e2f33398d13372db22",
+        "overhead-4": "3de5f4232859a05c29f494040021259108cfeadc3cd678119745744e37f66f96",
+        "previous-placeholder-lighting": "6deebc20a6a8025663a11161a4de44df9c5476993286ab8367a451564ed71acb",
+        "reverse": "07bd964c7a658d1bbbd621dadc972f34e5834e585f2f107eac8d890fcbda521a",
+        "road": "2685cf08e42a7567a51fda6d16648874b9b7b5b6a829522fb14919108ab6f699",
+        "side-1": "2f900df6dd3cc4d9c2bc10fa9cdbfe08d3e87cc0a40a15a74c368861bd485c1c",
+        "side-2": "d6033914fec9fd9d4c3958b5f2e620f5966041a1cfd968186029232206029eb3",
+        "side-3": "249b07fc640b0a18b00d24f5a96435d5742c98626713240b322923f6eea9176b",
+        "side-4": "7dde07147742051b255cd4e30db3dc48b70e95c1959723e71662aa4b4147674e",
+        "side-5": "b2ee8d4bd197e4d8e7b08f74152b2cb30e81d4ec26cf02c612337b0766ee5f72",
+        "side-6": "88beeaebb3bd3a02c6f44002dae18ffc187a9c004c540e2d501909f219e27e21",
+        "side-7": "235342169742b0125a4568e0af09b083c9342410c168e395982e9bf1eb2d07da",
+        "side-8": "8eb8ba838f5f93c838cc25b01080008b48e342c04162d0a400d3daab32e541d8",
+        "track-chase": "f51ba3bd7455386e93a4ddc92fb80879be03de9e5e521f9561c37c9c58fa9e99"
+      },
+      "modes": [
+        {
+          "gpuMedianMS": 0.6461667362600565,
+          "gpuP95MS": 2.125916536897421,
+          "mode": "classic-no-shadow",
+          "offscreenWallMedianMS": 4.487833473831415,
+          "samples": 60
+        },
+        {
+          "gpuMedianMS": 0.6456249393522739,
+          "gpuP95MS": 1.8422501161694527,
+          "mode": "classic-shadow",
+          "offscreenWallMedianMS": 4.451124928891659,
+          "samples": 60
+        },
+        {
+          "gpuMedianMS": 0.6806249730288982,
+          "gpuP95MS": 1.5311248134821653,
+          "mode": "enhanced-shadow",
+          "offscreenWallMedianMS": 4.417666466906667,
+          "samples": 60
+        },
+        {
+          "gpuMedianMS": 0.6142498459666967,
+          "gpuP95MS": 1.704624854028225,
+          "mode": "previous-placeholder-lighting",
+          "offscreenWallMedianMS": 4.469666630029678,
+          "samples": 60
+        },
+        {
+          "gpuMedianMS": 0.62541663646698,
+          "gpuP95MS": 1.7913333140313625,
+          "mode": "classic-shadow-no-reflections",
+          "offscreenWallMedianMS": 4.493458429351449,
+          "samples": 60
+        },
+        {
+          "gpuMedianMS": 0.640833517536521,
+          "gpuP95MS": 2.145000034943223,
+          "mode": "classic-shadow-no-track-projection",
+          "offscreenWallMedianMS": 4.4392915442585945,
+          "samples": 60
+        }
+      ],
+      "note": "Offscreen stationary single-car scene. Per-command GPU timing, not gameplay FPS or multi-car performance. Classic filtering remains default.",
+      "rasterRepeat": [
+        {
+          "camera": "chase",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "near-chase",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "far-chase",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "low-chase",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "bonnet",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "road",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "track-chase",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "reverse",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-1",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-2",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-3",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-4",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-5",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-6",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-7",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-8",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "overhead-1",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "overhead-2",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "overhead-3",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "overhead-4",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        }
+      ],
+      "rasterRepeatPassed": true,
+      "schema": 4,
+      "shadowTriangles": 4,
+      "shadowVertices": 6,
+      "trackShadowWitness": {
+        "changedChannels": 247172,
+        "distanceFromStart": 408.6999816894531,
+        "imagesRGBA_SHA256": {
+          "projection-witness-disabled": "c952ae68eef6daa347c624b0970eb3e4efd0701e86e3cbe2f020cd49086016f5",
+          "projection-witness-enabled": "a946b7ca8c6c695f6cdb5509f3b72605d50c73240fd79ceb34673a50af698871"
+        },
+        "note": "Native vehicle settled at a sampled shaded road location; isolated projection on/off render, not a completed driving lap.",
+        "roadSamples": 1492,
+        "sampledBrightness": 154
+      },
+      "uniqueSceneGPUTextures": 32,
+      "width": 960
+    },
+    "track-shadow-validation": {
+      "cameraCount": 20,
+      "carEnvironmentAvailable": true,
+      "carTrackShadowAvailable": true,
+      "changedFilteringChannels": 314029,
+      "changedReflectionChannels": 279356,
+      "changedShadowChannels": 102783,
+      "changedTrackProjectionChannels": 0,
+      "height": 640,
+      "imagesRGBA_SHA256": {
+        "bonnet": "d538714b034b4294b41a3f5f556a2b9eca71f7c36094a3e8c2815f005e8f7b07",
+        "chase": "50e60674bc1bd20e78e5ffee1d2aee04a6f3100abccd2c9c5f25cd1afae4640f",
+        "classic-no-shadow": "f0bcf3747374d6e352a82d50b585bfe7a878b383b79d3f3d2f5ba317993e50a5",
+        "classic-shadow": "50e60674bc1bd20e78e5ffee1d2aee04a6f3100abccd2c9c5f25cd1afae4640f",
+        "classic-shadow-no-reflections": "97e2500f55d37fdec97254b859b911faa61164313279bd6a8484f2050fc386a0",
+        "classic-shadow-no-track-projection": "50e60674bc1bd20e78e5ffee1d2aee04a6f3100abccd2c9c5f25cd1afae4640f",
+        "enhanced-shadow": "b2088d1098f2b095b1a89ae35846f9cac4650a06bb4eb85a5fcf237a7ffa2d8d",
+        "far-chase": "52154b650581aa7c0f538394c376048890eac0751aeeae235316d071eaab5a6b",
+        "low-chase": "f8a22f590c0ccf697625a3a0b4687a4a69b2eb93cb3d0620e2593af9d4c2e32f",
+        "near-chase": "069a5eabde6af7816f9781773a6d39d0ad4e35ae6dbe06f1312a556c12e34bd9",
+        "overhead-1": "e4dae31c5565a93f901fc0d02e55aae2e33b57e65f4d9fef10411aed911d16fe",
+        "overhead-2": "4e9fb017f09e6d33ffccc04079f1b80f4d2b4256b3906ab7fc137729bbab3d0e",
+        "overhead-3": "d1e08e5b7ad6c758018c3ff6dff2222c9d5b174f2bc355e2f33398d13372db22",
+        "overhead-4": "3de5f4232859a05c29f494040021259108cfeadc3cd678119745744e37f66f96",
+        "previous-placeholder-lighting": "6deebc20a6a8025663a11161a4de44df9c5476993286ab8367a451564ed71acb",
+        "reverse": "07bd964c7a658d1bbbd621dadc972f34e5834e585f2f107eac8d890fcbda521a",
+        "road": "2685cf08e42a7567a51fda6d16648874b9b7b5b6a829522fb14919108ab6f699",
+        "side-1": "2f900df6dd3cc4d9c2bc10fa9cdbfe08d3e87cc0a40a15a74c368861bd485c1c",
+        "side-2": "d6033914fec9fd9d4c3958b5f2e620f5966041a1cfd968186029232206029eb3",
+        "side-3": "249b07fc640b0a18b00d24f5a96435d5742c98626713240b322923f6eea9176b",
+        "side-4": "7dde07147742051b255cd4e30db3dc48b70e95c1959723e71662aa4b4147674e",
+        "side-5": "b2ee8d4bd197e4d8e7b08f74152b2cb30e81d4ec26cf02c612337b0766ee5f72",
+        "side-6": "88beeaebb3bd3a02c6f44002dae18ffc187a9c004c540e2d501909f219e27e21",
+        "side-7": "235342169742b0125a4568e0af09b083c9342410c168e395982e9bf1eb2d07da",
+        "side-8": "8eb8ba838f5f93c838cc25b01080008b48e342c04162d0a400d3daab32e541d8",
+        "track-chase": "f51ba3bd7455386e93a4ddc92fb80879be03de9e5e521f9561c37c9c58fa9e99"
+      },
+      "modes": [
+        {
+          "gpuMedianMS": 2.394000068306923,
+          "gpuP95MS": 3.6421248223632574,
+          "mode": "classic-no-shadow",
+          "offscreenWallMedianMS": 59.27329161204398,
+          "samples": 60
+        },
+        {
+          "gpuMedianMS": 2.4269584100693464,
+          "gpuP95MS": 4.093874944373965,
+          "mode": "classic-shadow",
+          "offscreenWallMedianMS": 59.71337482333183,
+          "samples": 60
+        },
+        {
+          "gpuMedianMS": 2.4483331944793463,
+          "gpuP95MS": 4.148750100284815,
+          "mode": "enhanced-shadow",
+          "offscreenWallMedianMS": 59.949708404019475,
+          "samples": 60
+        },
+        {
+          "gpuMedianMS": 2.196583431214094,
+          "gpuP95MS": 3.910416504368186,
+          "mode": "previous-placeholder-lighting",
+          "offscreenWallMedianMS": 58.955624932423234,
+          "samples": 60
+        },
+        {
+          "gpuMedianMS": 2.3712082765996456,
+          "gpuP95MS": 4.059874918311834,
+          "mode": "classic-shadow-no-reflections",
+          "offscreenWallMedianMS": 59.085708344355226,
+          "samples": 60
+        },
+        {
+          "gpuMedianMS": 2.402583369985223,
+          "gpuP95MS": 3.5172083880752325,
+          "mode": "classic-shadow-no-track-projection",
+          "offscreenWallMedianMS": 59.076875215396285,
+          "samples": 60
+        }
+      ],
+      "note": "Offscreen stationary single-car scene. Per-command GPU timing, not gameplay FPS or multi-car performance. Classic filtering remains default.",
+      "rasterRepeat": [
+        {
+          "camera": "chase",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "near-chase",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "far-chase",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "low-chase",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "bonnet",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "road",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "track-chase",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "reverse",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-1",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-2",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-3",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-4",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-5",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-6",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-7",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-8",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "overhead-1",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "overhead-2",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "overhead-3",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "overhead-4",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        }
+      ],
+      "rasterRepeatPassed": true,
+      "schema": 4,
+      "shadowTriangles": 4,
+      "shadowVertices": 6,
+      "trackShadowWitness": {
+        "changedChannels": 247172,
+        "distanceFromStart": 408.6999816894531,
+        "imagesRGBA_SHA256": {
+          "projection-witness-disabled": "c952ae68eef6daa347c624b0970eb3e4efd0701e86e3cbe2f020cd49086016f5",
+          "projection-witness-enabled": "a946b7ca8c6c695f6cdb5509f3b72605d50c73240fd79ceb34673a50af698871"
+        },
+        "note": "Native vehicle settled at a sampled shaded road location; isolated projection on/off render, not a completed driving lap.",
+        "roadSamples": 1492,
+        "sampledBrightness": 154
+      },
+      "uniqueSceneGPUTextures": 32,
+      "width": 960
+    },
+    "track-shadow-legacy-session": {
+      "cameraCount": 20,
+      "carEnvironmentAvailable": true,
+      "carTrackShadowAvailable": false,
+      "changedFilteringChannels": 314029,
+      "changedReflectionChannels": 279356,
+      "changedShadowChannels": 102783,
+      "changedTrackProjectionChannels": 0,
+      "height": 640,
+      "imagesRGBA_SHA256": {
+        "bonnet": "d538714b034b4294b41a3f5f556a2b9eca71f7c36094a3e8c2815f005e8f7b07",
+        "chase": "50e60674bc1bd20e78e5ffee1d2aee04a6f3100abccd2c9c5f25cd1afae4640f",
+        "classic-no-shadow": "f0bcf3747374d6e352a82d50b585bfe7a878b383b79d3f3d2f5ba317993e50a5",
+        "classic-shadow": "50e60674bc1bd20e78e5ffee1d2aee04a6f3100abccd2c9c5f25cd1afae4640f",
+        "classic-shadow-no-reflections": "97e2500f55d37fdec97254b859b911faa61164313279bd6a8484f2050fc386a0",
+        "classic-shadow-no-track-projection": "50e60674bc1bd20e78e5ffee1d2aee04a6f3100abccd2c9c5f25cd1afae4640f",
+        "enhanced-shadow": "b2088d1098f2b095b1a89ae35846f9cac4650a06bb4eb85a5fcf237a7ffa2d8d",
+        "far-chase": "52154b650581aa7c0f538394c376048890eac0751aeeae235316d071eaab5a6b",
+        "low-chase": "f8a22f590c0ccf697625a3a0b4687a4a69b2eb93cb3d0620e2593af9d4c2e32f",
+        "near-chase": "069a5eabde6af7816f9781773a6d39d0ad4e35ae6dbe06f1312a556c12e34bd9",
+        "overhead-1": "e4dae31c5565a93f901fc0d02e55aae2e33b57e65f4d9fef10411aed911d16fe",
+        "overhead-2": "4e9fb017f09e6d33ffccc04079f1b80f4d2b4256b3906ab7fc137729bbab3d0e",
+        "overhead-3": "d1e08e5b7ad6c758018c3ff6dff2222c9d5b174f2bc355e2f33398d13372db22",
+        "overhead-4": "3de5f4232859a05c29f494040021259108cfeadc3cd678119745744e37f66f96",
+        "previous-placeholder-lighting": "6deebc20a6a8025663a11161a4de44df9c5476993286ab8367a451564ed71acb",
+        "reverse": "07bd964c7a658d1bbbd621dadc972f34e5834e585f2f107eac8d890fcbda521a",
+        "road": "2685cf08e42a7567a51fda6d16648874b9b7b5b6a829522fb14919108ab6f699",
+        "side-1": "2f900df6dd3cc4d9c2bc10fa9cdbfe08d3e87cc0a40a15a74c368861bd485c1c",
+        "side-2": "d6033914fec9fd9d4c3958b5f2e620f5966041a1cfd968186029232206029eb3",
+        "side-3": "249b07fc640b0a18b00d24f5a96435d5742c98626713240b322923f6eea9176b",
+        "side-4": "7dde07147742051b255cd4e30db3dc48b70e95c1959723e71662aa4b4147674e",
+        "side-5": "b2ee8d4bd197e4d8e7b08f74152b2cb30e81d4ec26cf02c612337b0766ee5f72",
+        "side-6": "88beeaebb3bd3a02c6f44002dae18ffc187a9c004c540e2d501909f219e27e21",
+        "side-7": "235342169742b0125a4568e0af09b083c9342410c168e395982e9bf1eb2d07da",
+        "side-8": "8eb8ba838f5f93c838cc25b01080008b48e342c04162d0a400d3daab32e541d8",
+        "track-chase": "f51ba3bd7455386e93a4ddc92fb80879be03de9e5e521f9561c37c9c58fa9e99"
+      },
+      "modes": [
+        {
+          "gpuMedianMS": 0.6417916156351566,
+          "gpuP95MS": 2.312958240509033,
+          "mode": "classic-no-shadow",
+          "offscreenWallMedianMS": 4.459624877199531,
+          "samples": 60
+        },
+        {
+          "gpuMedianMS": 0.6477499846369028,
+          "gpuP95MS": 2.722000004723668,
+          "mode": "classic-shadow",
+          "offscreenWallMedianMS": 4.469875013455749,
+          "samples": 60
+        },
+        {
+          "gpuMedianMS": 0.6806249730288982,
+          "gpuP95MS": 1.754125114530325,
+          "mode": "enhanced-shadow",
+          "offscreenWallMedianMS": 4.52608335763216,
+          "samples": 60
+        },
+        {
+          "gpuMedianMS": 0.618083169683814,
+          "gpuP95MS": 2.110291738063097,
+          "mode": "previous-placeholder-lighting",
+          "offscreenWallMedianMS": 4.4379583559930325,
+          "samples": 60
+        },
+        {
+          "gpuMedianMS": 0.6367499008774757,
+          "gpuP95MS": 2.3559583351016045,
+          "mode": "classic-shadow-no-reflections",
+          "offscreenWallMedianMS": 4.494541557505727,
+          "samples": 60
+        },
+        {
+          "gpuMedianMS": 0.6381666753441095,
+          "gpuP95MS": 1.5289585571736097,
+          "mode": "classic-shadow-no-track-projection",
+          "offscreenWallMedianMS": 4.510000115260482,
+          "samples": 60
+        }
+      ],
+      "note": "Offscreen stationary single-car scene. Per-command GPU timing, not gameplay FPS or multi-car performance. Classic filtering remains default.",
+      "rasterRepeat": [
+        {
+          "camera": "chase",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "near-chase",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "far-chase",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "low-chase",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "bonnet",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "road",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "track-chase",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "reverse",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-1",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-2",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-3",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-4",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-5",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-6",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-7",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-8",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "overhead-1",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "overhead-2",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "overhead-3",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "overhead-4",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        }
+      ],
+      "rasterRepeatPassed": true,
+      "schema": 4,
+      "shadowTriangles": 4,
+      "shadowVertices": 6,
+      "trackShadowWitness": {},
+      "uniqueSceneGPUTextures": 32,
+      "width": 960
+    }
+  },
+  "freshProcessSavedFramesIdentical": true,
+  "savedFramesPerFreshRun": 28,
+  "legacySessionImagesMatchPreviousPreview": true,
+  "priorSunlitImagesUnchanged": true,
+  "metalAPIAndGPUShaderValidation": {
+    "passed": true,
+    "reportedFaults": 0,
+    "timingsExcluded": true
+  },
+  "performance": {
+    "addedDrawCalls": 0,
+    "addedRenderPasses": 0,
+    "runs": [
+      {
+        "run": "track-shadow-preview-final-first",
+        "projectionOnGPU_MS": 0.6448749918490648,
+        "projectionOffGPU_MS": 0.6357082165777683,
+        "addedGPU_MS": 0.009166775271296501,
+        "enhancedGPU_MS": 0.6931249517947435
+      },
+      {
+        "run": "track-shadow-preview-final-second",
+        "projectionOnGPU_MS": 0.6456249393522739,
+        "projectionOffGPU_MS": 0.640833517536521,
+        "addedGPU_MS": 0.004791421815752983,
+        "enhancedGPU_MS": 0.6806249730288982
+      }
+    ],
+    "scope": "Stationary sunlit single-car scene at 960x640; 60 interleaved samples after 10 warmups, not gameplay FPS"
+  },
+  "memory": {
+    "textureReferences": 35,
+    "uniqueSceneTextures": 32,
+    "sceneRGBABytesBefore": 46688924,
+    "sceneRGBABytesAfter": 38300312,
+    "savedSceneRGBABytes": 8388612,
+    "avoidedTrackShadowDuplicateRGBABytes": 4194304,
+    "totalAvoidedRGBABytes": 12582916,
+    "note": "Calculated RGBA mip payload bytes; not driver allocation size or measured RSS. Hashing happens only during resource loading. External environment replacements are not retained in the scene cache.",
+    "inputCaches": [
+      {
+        "path": "Artifacts/driving-track-shadow-session/155-DTM/texture-0.torcstex",
+        "sha256": "339c2e6804f3c4a9d9e852c2a4d8e8b7167167a56754a1de4944a936d7d6a9d1",
+        "filename": "155-DTM.rgb",
+        "rgbaBytes": 22369620
+      },
+      {
+        "path": "Artifacts/driving-track-shadow-session/155-DTM/texture-1.torcstex",
+        "sha256": "603dc781feef7113bfdd4578787f63f5806a84ef23448ad2a11e4ead48dd9246",
+        "filename": "driver.rgb",
+        "rgbaBytes": 349524
+      },
+      {
+        "path": "Artifacts/driving-track-shadow-session/wheel0/texture-0.torcstex",
+        "sha256": "7c30c2a70d4c1775abad61a5abd676bf3b4f7c705d852b2d1f0c843d11183574",
+        "filename": "wheel3d.png",
+        "rgbaBytes": 2796204
+      },
+      {
+        "path": "Artifacts/driving-track-shadow-session/wheel1/texture-0.torcstex",
+        "sha256": "7c30c2a70d4c1775abad61a5abd676bf3b4f7c705d852b2d1f0c843d11183574",
+        "filename": "wheel3d.png",
+        "rgbaBytes": 2796204
+      },
+      {
+        "path": "Artifacts/driving-track-shadow-session/wheel2/texture-0.torcstex",
+        "sha256": "7c30c2a70d4c1775abad61a5abd676bf3b4f7c705d852b2d1f0c843d11183574",
+        "filename": "wheel3d.png",
+        "rgbaBytes": 2796204
+      },
+      {
+        "path": "Artifacts/driving-track-shadow-session/wheel3/texture-0.torcstex",
+        "sha256": "7c30c2a70d4c1775abad61a5abd676bf3b4f7c705d852b2d1f0c843d11183574",
+        "filename": "wheel3d.png",
+        "rgbaBytes": 2796204
+      },
+      {
+        "path": "Artifacts/driving-track-shadow-session/aalborg/texture-0.torcstex",
+        "sha256": "39586bda28443c2705f3601b4d282d035e58f17a1571102759e8c90d898fab2c",
+        "filename": "allborg-trees_n.rgb",
+        "rgbaBytes": 1048576
+      },
+      {
+        "path": "Artifacts/driving-track-shadow-session/aalborg/texture-1.torcstex",
+        "sha256": "88c82e97ae623177bcbd3f80ff7769721aae1dde6891b4dccea63fd9bf30b5cd",
+        "filename": "barr1.rgb",
+        "rgbaBytes": 21844
+      },
+      {
+        "path": "Artifacts/driving-track-shadow-session/aalborg/texture-2.torcstex",
+        "sha256": "cc253e71ae2b47f03525d1f94f8f5d1d6b2d58f115e3d3fdbf65622755656872",
+        "filename": "concrete.rgb",
+        "rgbaBytes": 87380
+      },
+      {
+        "path": "Artifacts/driving-track-shadow-session/aalborg/texture-3.torcstex",
+        "sha256": "f73f9f653230030629ebd0af3b78bc612010388e3baf61f57da8500bb2fdd6ea",
+        "filename": "concrete2.rgb",
+        "rgbaBytes": 87380
+      },
+      {
+        "path": "Artifacts/driving-track-shadow-session/aalborg/texture-4.torcstex",
+        "sha256": "6252c75e41997fe25a86ed99f9cbff9261a66cfe0c42ac7a425c8c15107d0b72",
+        "filename": "grass-aa.rgb",
+        "rgbaBytes": 349524
+      },
+      {
+        "path": "Artifacts/driving-track-shadow-session/aalborg/texture-5.torcstex",
+        "sha256": "268f416b59635107c9a8a6b0b903f66c24c1ec03e78dd656b9cfe867054da042",
+        "filename": "poutre4.rgb",
+        "rgbaBytes": 21844
+      },
+      {
+        "path": "Artifacts/driving-track-shadow-session/aalborg/texture-6.torcstex",
+        "sha256": "c376ab61b30f8c5eea9f083a0c237f4c63c630316c1436d6524c454eef4587a7",
+        "filename": "pylon1.rgb",
+        "rgbaBytes": 5460
+      },
+      {
+        "path": "Artifacts/driving-track-shadow-session/aalborg/texture-7.torcstex",
+        "sha256": "7cc773fde8fa609ebfd7e7e9ed0740348ded48b2156eabce503403adec331a7a",
+        "filename": "pylon2.rgb",
+        "rgbaBytes": 21844
+      },
+      {
+        "path": "Artifacts/driving-track-shadow-session/aalborg/texture-8.torcstex",
+        "sha256": "7fee94d032cec07b32479c329f1ad72dcb7c9d15f7f40e2b1652a3d8a6dd1cfa",
+        "filename": "pylon3.rgb",
+        "rgbaBytes": 349524
+      },
+      {
+        "path": "Artifacts/driving-track-shadow-session/aalborg/texture-9.torcstex",
+        "sha256": "c335f2f199ae6b2269e451c2a15d0ee19b4c631c70cf03ac3bc9ab64bf6608b5",
+        "filename": "raceline.png",
+        "rgbaBytes": 174764
+      },
+      {
+        "path": "Artifacts/driving-track-shadow-session/aalborg/texture-10.torcstex",
+        "sha256": "8a49de437ff5d9498a94b9d33924de907b34dba6ebc80f11e22bbdb5027bdb31",
+        "filename": "shadow2.rgb",
+        "rgbaBytes": 4194304
+      },
+      {
+        "path": "Artifacts/driving-track-shadow-session/aalborg/texture-11.torcstex",
+        "sha256": "f5ec1c49bbf8caf6dcfd81e70741a33e506209ff3ade90e3dac5da433b5eee9e",
+        "filename": "spectator.rgb",
+        "rgbaBytes": 87380
+      },
+      {
+        "path": "Artifacts/driving-track-shadow-session/aalborg/texture-12.torcstex",
+        "sha256": "9a7861f290313eb61a10ef974c56062a2ead67d96a8be00c4d7595e25af45a72",
+        "filename": "tarmac-wall-1-g2.rgb",
+        "rgbaBytes": 1398100
+      },
+      {
+        "path": "Artifacts/driving-track-shadow-session/aalborg/texture-13.torcstex",
+        "sha256": "c255773e4b78b16f34a531de39c5416194bf893860cb257beb5f9b1e34ef0fae",
+        "filename": "tarmac-wall-2-g2.rgb",
+        "rgbaBytes": 1398100
+      },
+      {
+        "path": "Artifacts/driving-track-shadow-session/aalborg/texture-14.torcstex",
+        "sha256": "f21e738cbabcfd551140a161dcd5cb0a1d4eb32b9c3d479a6c0d50d1c83d3882",
+        "filename": "torcs1.rgb",
+        "rgbaBytes": 21844
+      },
+      {
+        "path": "Artifacts/driving-track-shadow-session/aalborg/texture-15.torcstex",
+        "sha256": "f9f843111ab3f41ba621d4294e42f5190de5d0d3509603f56d4c383cf15bcb44",
+        "filename": "tr-asphalt-2-aa-r_n.rgb",
+        "rgbaBytes": 262144
+      },
+      {
+        "path": "Artifacts/driving-track-shadow-session/aalborg/texture-16.torcstex",
+        "sha256": "fbe05170d3a1a9a4ddde75776941af699c13ecf2ed30e17a155850012cac8832",
+        "filename": "tr-asphalt-aa-bw1_n.rgb",
+        "rgbaBytes": 262144
+      },
+      {
+        "path": "Artifacts/driving-track-shadow-session/aalborg/texture-17.torcstex",
+        "sha256": "23bab70e959264a5a0bb9afeda30a92f3a6a2a63b7f4677d93ac44440ead5b14",
+        "filename": "tr-asphalt-aa-bw2-e_n.rgb",
+        "rgbaBytes": 262144
+      },
+      {
+        "path": "Artifacts/driving-track-shadow-session/aalborg/texture-18.torcstex",
+        "sha256": "c8806afc2a4d3324c153a1661e83ffe9e1fa0851c08a82439f8c39fa876983ec",
+        "filename": "tr-asphalt-aa-bw2-s_n.rgb",
+        "rgbaBytes": 262144
+      },
+      {
+        "path": "Artifacts/driving-track-shadow-session/aalborg/texture-19.torcstex",
+        "sha256": "918703f3e7faf98101674cf7ea1f3d959c71a12006b41aa7ff247ba2ad822204",
+        "filename": "tr-asphalt-aa-bw2_n.rgb",
+        "rgbaBytes": 262144
+      },
+      {
+        "path": "Artifacts/driving-track-shadow-session/aalborg/texture-20.torcstex",
+        "sha256": "b3cd88d987dd213104407d5678d16c42e45491da7c840b3f21682e7632dd94ef",
+        "filename": "tr-asphalt-aa-l_n.rgb",
+        "rgbaBytes": 262144
+      },
+      {
+        "path": "Artifacts/driving-track-shadow-session/aalborg/texture-21.torcstex",
+        "sha256": "2e96fb1dd4506e6cc4686c9bb58471e4eb6e3d7a59e4012d94bca30531bbc7be",
+        "filename": "tr-asphalt-aa-pe-bw1_n.rgb",
+        "rgbaBytes": 262144
+      },
+      {
+        "path": "Artifacts/driving-track-shadow-session/aalborg/texture-22.torcstex",
+        "sha256": "8d496f9b826b2589a4fac1a0e2574b97d5fe3e0a5e296f132311fa7e9c209a72",
+        "filename": "tr-asphalt-aa-pt-bw1_n.rgb",
+        "rgbaBytes": 262144
+      },
+      {
+        "path": "Artifacts/driving-track-shadow-session/aalborg/texture-23.torcstex",
+        "sha256": "40d9c78f70a3e09e09c01280b4992563a5ad2edb4dbd8d789b53abbf98439887",
+        "filename": "tr-asphalt-aa-ro-bw1_n.rgb",
+        "rgbaBytes": 262144
+      },
+      {
+        "path": "Artifacts/driving-track-shadow-session/aalborg/texture-24.torcstex",
+        "sha256": "e5309a7983c55fbb68215ed3176d4037ae2afa33253ac84577af657230eee727",
+        "filename": "tr-asphalt-to-g-aa-l_n.rgb",
+        "rgbaBytes": 262144
+      },
+      {
+        "path": "Artifacts/driving-track-shadow-session/aalborg/texture-25.torcstex",
+        "sha256": "345de175cfa7f109a6a7c33446dab187addfbea05419785d2d160fe1b71c0fd8",
+        "filename": "tr-barrier-aa-1.rgb",
+        "rgbaBytes": 349524
+      },
+      {
+        "path": "Artifacts/driving-track-shadow-session/aalborg/texture-26.torcstex",
+        "sha256": "290b3c64e939980b22d0e15777c6399883b8250317588bb8e21eac8a3ac9c9e7",
+        "filename": "tr-curb-bw-aa-r.rgb",
+        "rgbaBytes": 21844
+      },
+      {
+        "path": "Artifacts/driving-track-shadow-session/aalborg/texture-27.torcstex",
+        "sha256": "d380f90a9a7cfa6e706217a23aa49e5019e11ee691ce045a04a3082004ed9464",
+        "filename": "tr-g-to-asphalt-aa-l_n.rgb",
+        "rgbaBytes": 262144
+      },
+      {
+        "path": "Artifacts/driving-track-shadow-session/aalborg/texture-28.torcstex",
+        "sha256": "8161bf92d599f94a02ba6f3a85ad1692c060bdf2005ff58beaf98cec09e54834",
+        "filename": "tr-grass-aa-l_n.rgb",
+        "rgbaBytes": 262144
+      }
+    ]
+  },
+  "preview": [
+    {
+      "path": "build/TORCSTrackShadowPreview.app/Contents/Info.plist",
+      "sha256": "decadc721831492dd559c1c8dc3bb85af36b92d4484487bd1e5ec3d082facb53"
+    },
+    {
+      "path": "build/TORCSTrackShadowPreview.app/Contents/MacOS/TORCSMac",
+      "sha256": "c6e5606aec930881316d48706280403ad761688ded72de78839cf85be156092e"
+    },
+    {
+      "path": "build/TORCSTrackShadowPreview.app/Contents/Resources/LICENSE",
+      "sha256": "b3797fb454a78efad64f26457ab27e629ce5fb409fd21d09d632b4d96bad8009"
+    },
+    {
+      "path": "build/TORCSTrackShadowPreview.app/Contents/Resources/THIRD_PARTY_NOTICES.md",
+      "sha256": "6a4268eeb2a35a9306c9550f1fc899e26e855dfd94a157fcfe85f1385095e9fd"
+    },
+    {
+      "path": "build/TORCSTrackShadowPreview.app/Contents/Resources/TORCSMac_TORCSMetal.bundle/Scene.metal",
+      "sha256": "789a7405fe46d6e1d5a9c59d77566678f485f40e0d8eee1ab81938937c953b01"
+    },
+    {
+      "path": "build/TORCSTrackShadowPreview.app/Contents/_CodeSignature/CodeResources",
+      "sha256": "1932fca24ce49fcb86c24dd82962dcdddd6355eb6c467191f1e56f47fc001a8f"
+    }
+  ],
+  "preparedLocalOnlySession": [
+    {
+      "path": "Artifacts/driving-track-shadow-session/155-DTM/model.torcsmesh",
+      "sha256": "31d5a6d09e23c5bef3dc519ce7b18cfd1c3ae81cdd142a8fa5fd4ec374341d24"
+    },
+    {
+      "path": "Artifacts/driving-track-shadow-session/155-DTM/scene.json",
+      "sha256": "71f661c0f84425111f604be9c134afadcec98f1bb10808f6d27c355afe16c1dd"
+    },
+    {
+      "path": "Artifacts/driving-track-shadow-session/155-DTM/texture-0.torcstex",
+      "sha256": "339c2e6804f3c4a9d9e852c2a4d8e8b7167167a56754a1de4944a936d7d6a9d1"
+    },
+    {
+      "path": "Artifacts/driving-track-shadow-session/155-DTM/texture-1.torcstex",
+      "sha256": "603dc781feef7113bfdd4578787f63f5806a84ef23448ad2a11e4ead48dd9246"
+    },
+    {
+      "path": "Artifacts/driving-track-shadow-session/155-DTM-readme.txt",
+      "sha256": "7cca894b8b95c5f8cb9d5ff3ab72f330ecd91ab45d0760d1c141f0660791793c"
+    },
+    {
+      "path": "Artifacts/driving-track-shadow-session/155-DTM.xml",
+      "sha256": "7b069b816636ed85ace6b440d87aa400c3e54716170766df3e7a7483475f52bb"
+    },
+    {
+      "path": "Artifacts/driving-track-shadow-session/LOCAL_CONTENT_NOTICE.txt",
+      "sha256": "449f9bf4d0df8beb64779880238546c03eaf1c0263d4bf07bbae7d6bcaff5505"
+    },
+    {
+      "path": "Artifacts/driving-track-shadow-session/Track-4WD-GrB.xml",
+      "sha256": "b08bc4a12ccfeff49ce1d608583a858cec69985d94aa057640d231016fed37eb"
+    },
+    {
+      "path": "Artifacts/driving-track-shadow-session/aalborg/model.torcsmesh",
+      "sha256": "db9c6b3b98beaa890fa46695637e213af5ac1bc3c2c8a136c838de0b2986009a"
+    },
+    {
+      "path": "Artifacts/driving-track-shadow-session/aalborg/scene.json",
+      "sha256": "5527b507ab0254b369fa304affcdea8a46241e0c07a970d1dd6f3b078592a719"
+    },
+    {
+      "path": "Artifacts/driving-track-shadow-session/aalborg/texture-0.torcstex",
+      "sha256": "39586bda28443c2705f3601b4d282d035e58f17a1571102759e8c90d898fab2c"
+    },
+    {
+      "path": "Artifacts/driving-track-shadow-session/aalborg/texture-1.torcstex",
+      "sha256": "88c82e97ae623177bcbd3f80ff7769721aae1dde6891b4dccea63fd9bf30b5cd"
+    },
+    {
+      "path": "Artifacts/driving-track-shadow-session/aalborg/texture-10.torcstex",
+      "sha256": "8a49de437ff5d9498a94b9d33924de907b34dba6ebc80f11e22bbdb5027bdb31"
+    },
+    {
+      "path": "Artifacts/driving-track-shadow-session/aalborg/texture-11.torcstex",
+      "sha256": "f5ec1c49bbf8caf6dcfd81e70741a33e506209ff3ade90e3dac5da433b5eee9e"
+    },
+    {
+      "path": "Artifacts/driving-track-shadow-session/aalborg/texture-12.torcstex",
+      "sha256": "9a7861f290313eb61a10ef974c56062a2ead67d96a8be00c4d7595e25af45a72"
+    },
+    {
+      "path": "Artifacts/driving-track-shadow-session/aalborg/texture-13.torcstex",
+      "sha256": "c255773e4b78b16f34a531de39c5416194bf893860cb257beb5f9b1e34ef0fae"
+    },
+    {
+      "path": "Artifacts/driving-track-shadow-session/aalborg/texture-14.torcstex",
+      "sha256": "f21e738cbabcfd551140a161dcd5cb0a1d4eb32b9c3d479a6c0d50d1c83d3882"
+    },
+    {
+      "path": "Artifacts/driving-track-shadow-session/aalborg/texture-15.torcstex",
+      "sha256": "f9f843111ab3f41ba621d4294e42f5190de5d0d3509603f56d4c383cf15bcb44"
+    },
+    {
+      "path": "Artifacts/driving-track-shadow-session/aalborg/texture-16.torcstex",
+      "sha256": "fbe05170d3a1a9a4ddde75776941af699c13ecf2ed30e17a155850012cac8832"
+    },
+    {
+      "path": "Artifacts/driving-track-shadow-session/aalborg/texture-17.torcstex",
+      "sha256": "23bab70e959264a5a0bb9afeda30a92f3a6a2a63b7f4677d93ac44440ead5b14"
+    },
+    {
+      "path": "Artifacts/driving-track-shadow-session/aalborg/texture-18.torcstex",
+      "sha256": "c8806afc2a4d3324c153a1661e83ffe9e1fa0851c08a82439f8c39fa876983ec"
+    },
+    {
+      "path": "Artifacts/driving-track-shadow-session/aalborg/texture-19.torcstex",
+      "sha256": "918703f3e7faf98101674cf7ea1f3d959c71a12006b41aa7ff247ba2ad822204"
+    },
+    {
+      "path": "Artifacts/driving-track-shadow-session/aalborg/texture-2.torcstex",
+      "sha256": "cc253e71ae2b47f03525d1f94f8f5d1d6b2d58f115e3d3fdbf65622755656872"
+    },
+    {
+      "path": "Artifacts/driving-track-shadow-session/aalborg/texture-20.torcstex",
+      "sha256": "b3cd88d987dd213104407d5678d16c42e45491da7c840b3f21682e7632dd94ef"
+    },
+    {
+      "path": "Artifacts/driving-track-shadow-session/aalborg/texture-21.torcstex",
+      "sha256": "2e96fb1dd4506e6cc4686c9bb58471e4eb6e3d7a59e4012d94bca30531bbc7be"
+    },
+    {
+      "path": "Artifacts/driving-track-shadow-session/aalborg/texture-22.torcstex",
+      "sha256": "8d496f9b826b2589a4fac1a0e2574b97d5fe3e0a5e296f132311fa7e9c209a72"
+    },
+    {
+      "path": "Artifacts/driving-track-shadow-session/aalborg/texture-23.torcstex",
+      "sha256": "40d9c78f70a3e09e09c01280b4992563a5ad2edb4dbd8d789b53abbf98439887"
+    },
+    {
+      "path": "Artifacts/driving-track-shadow-session/aalborg/texture-24.torcstex",
+      "sha256": "e5309a7983c55fbb68215ed3176d4037ae2afa33253ac84577af657230eee727"
+    },
+    {
+      "path": "Artifacts/driving-track-shadow-session/aalborg/texture-25.torcstex",
+      "sha256": "345de175cfa7f109a6a7c33446dab187addfbea05419785d2d160fe1b71c0fd8"
+    },
+    {
+      "path": "Artifacts/driving-track-shadow-session/aalborg/texture-26.torcstex",
+      "sha256": "290b3c64e939980b22d0e15777c6399883b8250317588bb8e21eac8a3ac9c9e7"
+    },
+    {
+      "path": "Artifacts/driving-track-shadow-session/aalborg/texture-27.torcstex",
+      "sha256": "d380f90a9a7cfa6e706217a23aa49e5019e11ee691ce045a04a3082004ed9464"
+    },
+    {
+      "path": "Artifacts/driving-track-shadow-session/aalborg/texture-28.torcstex",
+      "sha256": "8161bf92d599f94a02ba6f3a85ad1692c060bdf2005ff58beaf98cec09e54834"
+    },
+    {
+      "path": "Artifacts/driving-track-shadow-session/aalborg/texture-3.torcstex",
+      "sha256": "f73f9f653230030629ebd0af3b78bc612010388e3baf61f57da8500bb2fdd6ea"
+    },
+    {
+      "path": "Artifacts/driving-track-shadow-session/aalborg/texture-4.torcstex",
+      "sha256": "6252c75e41997fe25a86ed99f9cbff9261a66cfe0c42ac7a425c8c15107d0b72"
+    },
+    {
+      "path": "Artifacts/driving-track-shadow-session/aalborg/texture-5.torcstex",
+      "sha256": "268f416b59635107c9a8a6b0b903f66c24c1ec03e78dd656b9cfe867054da042"
+    },
+    {
+      "path": "Artifacts/driving-track-shadow-session/aalborg/texture-6.torcstex",
+      "sha256": "c376ab61b30f8c5eea9f083a0c237f4c63c630316c1436d6524c454eef4587a7"
+    },
+    {
+      "path": "Artifacts/driving-track-shadow-session/aalborg/texture-7.torcstex",
+      "sha256": "7cc773fde8fa609ebfd7e7e9ed0740348ded48b2156eabce503403adec331a7a"
+    },
+    {
+      "path": "Artifacts/driving-track-shadow-session/aalborg/texture-8.torcstex",
+      "sha256": "7fee94d032cec07b32479c329f1ad72dcb7c9d15f7f40e2b1652a3d8a6dd1cfa"
+    },
+    {
+      "path": "Artifacts/driving-track-shadow-session/aalborg/texture-9.torcstex",
+      "sha256": "c335f2f199ae6b2269e451c2a15d0ee19b4c631c70cf03ac3bc9ab64bf6608b5"
+    },
+    {
+      "path": "Artifacts/driving-track-shadow-session/aalborg-readme.txt",
+      "sha256": "54bed3853d1687829132246a907e7dea104a022d99af9d6cba4445a13a63997a"
+    },
+    {
+      "path": "Artifacts/driving-track-shadow-session/aalborg.xml",
+      "sha256": "bfd4bfc66977a515e1d5bafb37e1698adaa9b05808d4da003f94d98a570a7b57"
+    },
+    {
+      "path": "Artifacts/driving-track-shadow-session/background.torcstex",
+      "sha256": "a7fd72ecfd5289ab174d61db4ccde1d8ba13205a92efaefae8aa08391bdb39e3"
+    },
+    {
+      "path": "Artifacts/driving-track-shadow-session/driving.json",
+      "sha256": "8f74e314498771caa0c903cf91750b26f6a010b8c931ba209917314081cbcba3"
+    },
+    {
+      "path": "Artifacts/driving-track-shadow-session/environment-shade.torcstex",
+      "sha256": "fecc70c04771499f7a6f110fdc087bee89adee527c7bbeec3daf5d5127752485"
+    },
+    {
+      "path": "Artifacts/driving-track-shadow-session/objects.xml",
+      "sha256": "446e70833abb16942559315db5c4d224bd5a2a2da72b526e5d097c52fb2f0b37"
+    },
+    {
+      "path": "Artifacts/driving-track-shadow-session/reflection.torcstex",
+      "sha256": "2f9216b5cdaaa7d0c0f63ab600fba87a961067d84b927d81dd42e317112fcdea"
+    },
+    {
+      "path": "Artifacts/driving-track-shadow-session/shadow.torcstex",
+      "sha256": "44c85939e0fab02af297a48b719c440fd0f3add7897d0d5946cf39280f4e0c5b"
+    },
+    {
+      "path": "Artifacts/driving-track-shadow-session/source-asset-manifest.json",
+      "sha256": "b341d477b01d90fdd55984a3c5b3c8ede25674614a1c9915fa7657e3670d03d3"
+    },
+    {
+      "path": "Artifacts/driving-track-shadow-session/surfaces.xml",
+      "sha256": "9e0c5fb78cd7d9fd635beed670750f69c851ab14a83e275fab2973330797bbb9"
+    },
+    {
+      "path": "Artifacts/driving-track-shadow-session/trb1-3-readme.txt",
+      "sha256": "1201ce8632f18df47fc3c65edb52ae45fc4e1c2d689c84edefdd1d4b61a4a480"
+    },
+    {
+      "path": "Artifacts/driving-track-shadow-session/wheel0/model.torcsmesh",
+      "sha256": "8b2578b3b3e2a3d43ec543e7ebc909d587adcbe39b72708cb36308b996b9405d"
+    },
+    {
+      "path": "Artifacts/driving-track-shadow-session/wheel0/scene.json",
+      "sha256": "225aa729a32b94d9d9dd995b8fc7774b53c8df847bd0977ecfa1e4f069166550"
+    },
+    {
+      "path": "Artifacts/driving-track-shadow-session/wheel0/texture-0.torcstex",
+      "sha256": "7c30c2a70d4c1775abad61a5abd676bf3b4f7c705d852b2d1f0c843d11183574"
+    },
+    {
+      "path": "Artifacts/driving-track-shadow-session/wheel1/model.torcsmesh",
+      "sha256": "a1bf1b6156d452d43adf38ae783e84c406fde1a184e0ee1b22614feb22e0a3cf"
+    },
+    {
+      "path": "Artifacts/driving-track-shadow-session/wheel1/scene.json",
+      "sha256": "f992d39b8776145c0f5c705255b8d6a61187ed5d6715f1ea2b926e17bb3f7fe3"
+    },
+    {
+      "path": "Artifacts/driving-track-shadow-session/wheel1/texture-0.torcstex",
+      "sha256": "7c30c2a70d4c1775abad61a5abd676bf3b4f7c705d852b2d1f0c843d11183574"
+    },
+    {
+      "path": "Artifacts/driving-track-shadow-session/wheel2/model.torcsmesh",
+      "sha256": "6314b6e7ebf3064d48142bc5e1496e9c8335dbb122188f05f756154eb3f40120"
+    },
+    {
+      "path": "Artifacts/driving-track-shadow-session/wheel2/scene.json",
+      "sha256": "0b5f192cb3964bff90018dbc327008289e63064a21f159c8702e030c0c135e96"
+    },
+    {
+      "path": "Artifacts/driving-track-shadow-session/wheel2/texture-0.torcstex",
+      "sha256": "7c30c2a70d4c1775abad61a5abd676bf3b4f7c705d852b2d1f0c843d11183574"
+    },
+    {
+      "path": "Artifacts/driving-track-shadow-session/wheel3/model.torcsmesh",
+      "sha256": "866c94c8d8d62ea3145326eef60a9ce2e56699420d26904f18d82c7039b6c4c1"
+    },
+    {
+      "path": "Artifacts/driving-track-shadow-session/wheel3/scene.json",
+      "sha256": "cd452b8850f4dcaabe49ebfe5f40f47565d9db4ee332adb8400d77a37e9e2a66"
+    },
+    {
+      "path": "Artifacts/driving-track-shadow-session/wheel3/texture-0.torcstex",
+      "sha256": "7c30c2a70d4c1775abad61a5abd676bf3b4f7c705d852b2d1f0c843d11183574"
+    }
+  ],
+  "pinnedFiles": [
+    {
+      "path": "Upstream/Reference/susp.cpp",
+      "source": "src/modules/simu/simuv2/susp.cpp",
+      "sha256": "05a6075c968089fb61b34a9b40f6cc0ba3c7456ad3943ff446c5d39aefb625e8",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2000-2016 by Eric Espie, Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/brake.cpp",
+      "source": "src/modules/simu/simuv2/brake.cpp",
+      "sha256": "1f7b7adc4fa04630059d72974d5fe2feffd8face8eb23525de1018b34b3cd0e9",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2000-2026 by Eric Espie, Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/steer.cpp",
+      "source": "src/modules/simu/simuv2/steer.cpp",
+      "sha256": "b6147f9670122988c012ed3a23c539a2c393095044b0982ab04dd8038c793344",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2000-2026 by Eric Espie, Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/private/differential.h",
+      "source": "src/modules/simu/simuv2/differential.h",
+      "sha256": "b330feffbc029be992bbc9963e93c956c55e51e66afbe0fbf64b56ad3c04721c",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2000 by Eric Espie"
+    },
+    {
+      "path": "Upstream/Reference/private/susp.h",
+      "source": "src/modules/simu/simuv2/susp.h",
+      "sha256": "164e17ee323965885397c82d4e808b6b9661431d618f83e2a5963e3f07e3fe88",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2000-2016 by Eric Espie, Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/private/aero.h",
+      "source": "src/modules/simu/simuv2/aero.h",
+      "sha256": "4eb0e292b5ab3670072bf8152a4d838bc8b0cf8d69ae5e65a1e53b72cd4c96a1",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2000 by Eric Espie"
+    },
+    {
+      "path": "Upstream/Reference/private/engine.h",
+      "source": "src/modules/simu/simuv2/engine.h",
+      "sha256": "ebf83b124cb5eb966c13caa9f103f6d9f26249e1d5817e2037db78c1b7a6fa03",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2000 by Eric Espie"
+    },
+    {
+      "path": "Upstream/Reference/private/axle.h",
+      "source": "src/modules/simu/simuv2/axle.h",
+      "sha256": "5d1f29e83c290e1efb3addec5e207413c1582a5217314417adacd63cd753db26",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2000-2013 by Eric Espie, Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/private/wheel.h",
+      "source": "src/modules/simu/simuv2/wheel.h",
+      "sha256": "fae0a1a997b842527cc906904c53b6e77f6610846791b318d491adb7f4d71b63",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2000-2017 by Eric Espie, Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/private/sim.h",
+      "source": "src/modules/simu/simuv2/sim.h",
+      "sha256": "308036d005d0236e67815732793117d7f6c28e6aa850bfa6634a372e1df4ac34",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2000-2017 by Eric Espie, Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/private/brake.h",
+      "source": "src/modules/simu/simuv2/brake.h",
+      "sha256": "8b56bfac46f4e8d6902de6b7004ca54f75422f7ddff681cd520a3f749c206a82",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2000-2024 by Eric Espie, Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/private/steer.h",
+      "source": "src/modules/simu/simuv2/steer.h",
+      "sha256": "a5ebb6cb237d1f8686aeca875d11cb386e175bb5363a5e849f0ccf3cb3fe6cbb",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2000 by Eric Espie"
+    },
+    {
+      "path": "Upstream/Reference/private/transmission.h",
+      "source": "src/modules/simu/simuv2/transmission.h",
+      "sha256": "9129ca592ed5fcdf6ca4055f7c3db70eb348cc7fe2e3b56793c7c6b6eb2ae3c0",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2001 by Eric Espi\ufffd"
+    },
+    {
+      "path": "Upstream/Reference/private/carstruct.h",
+      "source": "src/modules/simu/simuv2/carstruct.h",
+      "sha256": "9deaee74d8e8894dbe0dbed7b20f17d0cfa7db77bba9193495d2b6fb9473ef4c",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2000-2013 by Eric Espie, Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/private/playerpref.h",
+      "source": "src/interfaces/playerpref.h",
+      "sha256": "7d2142dc1c5d4cb6193f8d3d62b45b9fae7d462f0c123ba36bd5d03e98b25fbd",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2001-2024 by Eric Espie, Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/private/car.h",
+      "source": "src/interfaces/car.h",
+      "sha256": "6925000ae7bfa0b2101824dcb245b80ef8d025209276cf06bfcbd1510304940c",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2000-2024 by Eric Espie, Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/private/track.h",
+      "source": "src/interfaces/track.h",
+      "sha256": "2b15f1c20c8983cf9feb3b7d6d3cf1673ca34c178b39f46653107d2be98fe54d",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2000-2024 by Eric Espie, Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/private/replay.h",
+      "source": "src/interfaces/replay.h",
+      "sha256": "65b7565fbabd4caf09bc1eb75a95bf5969a5f6ed74b293d2e4418d7ff2143f32",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2000 by Eric Espie"
+    },
+    {
+      "path": "Upstream/Reference/private/robot.h",
+      "source": "src/interfaces/robot.h",
+      "sha256": "add6dc48a9eb72baf32bb9a98a08d3a7dd034400c52196aaa29b50f40af943f0",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2000-2014 by Eric Espie, Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/private/simu.h",
+      "source": "src/interfaces/simu.h",
+      "sha256": "913c0d919fe3ffdc64e96a1a75c2cff58eb2bba9adfc5f0d618255a7893aa4ab",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2000-2017 by Eric Espie, Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/private/raceman.h",
+      "source": "src/interfaces/raceman.h",
+      "sha256": "6aafddd56f73ed13c80852d7448f2a5b624026ab8051e75a75d287cd9525650c",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2000,2002-2017 by Eric Espie, Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/private/graphic.h",
+      "source": "src/interfaces/graphic.h",
+      "sha256": "9fc9296c4687db4808e502a5458cf5ce6cabf6e1ae41dc77f123035ee0ae3e8c",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2000-2013 by Eric Espie, Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/private/telemetry.h",
+      "source": "src/interfaces/telemetry.h",
+      "sha256": "2a3f108af8952c1a0df0b8730923e6351d511a261b0b177a60ff66042aa9249a",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2000 by Eric Espie"
+    },
+    {
+      "path": "Upstream/Reference/private/tmath/v4_t.h",
+      "source": "src/libs/math/v4_t.h",
+      "sha256": "98a2143f81e6a19ffb725dcaaca1cdf2509b5e46531d53b8fcfe907c67f00cdd",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2005 by Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/private/tmath/v3_t.h",
+      "source": "src/libs/math/v3_t.h",
+      "sha256": "d97581b163d685bb0bffd4f61c815df00cf71741c459ee35336aee1bf245278a",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2005 by Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/private/tmath/v2_t.h",
+      "source": "src/libs/math/v2_t.h",
+      "sha256": "f38d9a531eec8db257197a9746aeb65272b4da70c2a269830edb0ce9272480b6",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2005 by Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/private/tmath/linalg_t.h",
+      "source": "src/libs/math/linalg_t.h",
+      "sha256": "16031b66e4252f2f4c03bcb757e83163dbabf2cdb215effd83a9b99ace5c599b",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2002-2005 by Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/private/tmath/straight2_t.h",
+      "source": "src/libs/math/straight2_t.h",
+      "sha256": "467c314b07604344f0b7faf8d31a2a7cf7516800fc939479decd123977c864bc",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2005 by Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/private/tgf.h",
+      "source": "src/libs/tgf/tgf.h",
+      "sha256": "0e65ffbeaf411826cf1427ae2e9bff556c72c636e71862022eec1be6b4299e2a",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 1999-2026 by Eric Espie, Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/private/osspec.h",
+      "source": "src/linux/osspec.h",
+      "sha256": "836a1dcdd5208a317bfa5a061a8cf2a05f4f32fead0e019ec4c2494a01b8e08e",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2000 by Eric Espie"
+    },
+    {
+      "path": "Upstream/Reference/private/robottools.h",
+      "source": "src/libs/robottools/robottools.h",
+      "sha256": "fd70461fadd6a39a0735ca44a0bbd832f627522234e84f6a9f250833bfe3388d",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2000 by Eric Espie"
+    },
+    {
+      "path": "Upstream/Reference/private/SOLID/solid.h",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/include/SOLID/solid.h",
+      "sha256": "eef676643798b16069634bb912014ae844ba2294c1ac634354dc707cbad8c695",
+      "modified": false,
+      "license": "LGPL-2.0-or-later",
+      "copyright": "Copyright (C) 1997-1998 Gino van den Bergen"
+    },
+    {
+      "path": "Upstream/Reference/simu.cpp",
+      "source": "src/modules/simu/simuv2/simu.cpp",
+      "sha256": "d5638f23811069e489acc5c6f736c0b897291dd107bd05a44bc181b792737e38",
+      "modified": false,
+      "license": "GPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/car.cpp",
+      "source": "src/modules/simu/simuv2/car.cpp",
+      "sha256": "dcdf23c12c6a8207baa6d00cb4def869dd903ae48797ad201419b34484e7c966",
+      "modified": false,
+      "license": "GPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/aero.cpp",
+      "source": "src/modules/simu/simuv2/aero.cpp",
+      "sha256": "45e7b1d62d7c94000c2ecd6a2682a8d6af2ceb74fb70faec346bc6228521fdd9",
+      "modified": false,
+      "license": "GPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/engine.cpp",
+      "source": "src/modules/simu/simuv2/engine.cpp",
+      "sha256": "5908f58ae310926bdb6b766b6a061ecab3ea7178ef4bfbbc2aa520ba59ffbd55",
+      "modified": false,
+      "license": "GPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/axle.cpp",
+      "source": "src/modules/simu/simuv2/axle.cpp",
+      "sha256": "8a93b97dd8ad6aa6126bf0c622fdf0cb7468c37a439c413b61eb503a1dae009d",
+      "modified": false,
+      "license": "GPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/wheel.cpp",
+      "source": "src/modules/simu/simuv2/wheel.cpp",
+      "sha256": "7228fe05860615082f075cd2970c4bcdf48a242623a609427da34227b15125ec",
+      "modified": false,
+      "license": "GPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/transmission.cpp",
+      "source": "src/modules/simu/simuv2/transmission.cpp",
+      "sha256": "8598ffc4323a95e14aba789ebe45c13760dabdf47c1aced559936d80c253a610",
+      "modified": false,
+      "license": "GPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/differential.cpp",
+      "source": "src/modules/simu/simuv2/differential.cpp",
+      "sha256": "aa8ef862e3f2e5df5fdbf84c23f38c6bf8f045a26ac144c26b76d60cab69262d",
+      "modified": false,
+      "license": "GPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/collide.cpp",
+      "source": "src/modules/simu/simuv2/collide.cpp",
+      "sha256": "d72b3b5585cf34da5d3649b8d3199663be088fff24b0736cb281908d660ce230",
+      "modified": false,
+      "license": "GPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/categories.cpp",
+      "source": "src/modules/simu/simuv2/categories.cpp",
+      "sha256": "91a1f703593d75fe47f3af8b5535579da7ee931c1482b406dae16c2e677ef2c6",
+      "modified": false,
+      "license": "GPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/atmosphere.cpp",
+      "source": "src/modules/simu/simuv2/atmosphere.cpp",
+      "sha256": "3141cc1b0d9bd354e6ceab425faa281cc51bacedd971467defc12f3943a0daff",
+      "modified": false,
+      "license": "GPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/track/track.cpp",
+      "source": "src/modules/track/track.cpp",
+      "sha256": "f83652adbd8608933327d8a4841d02ffe0318ff6a665de8c20be551907984bb0",
+      "modified": false,
+      "license": "GPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/track/track3.cpp",
+      "source": "src/modules/track/track3.cpp",
+      "sha256": "0f791bf5d5123aa139f60395b60754d5d42117ae20d70921b5321fca577d3778",
+      "modified": false,
+      "license": "GPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/track/track4.cpp",
+      "source": "src/modules/track/track4.cpp",
+      "sha256": "8f6c75a53f83212c98865d13d24c00ab4cfdc3ad9feb2056084bc153aefebb8f",
+      "modified": false,
+      "license": "GPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/track/trackutil.cpp",
+      "source": "src/modules/track/trackutil.cpp",
+      "sha256": "af35921c9754cd9b3955fa6143f03143b7343d78ca89a400faca3337d7e23b70",
+      "modified": false,
+      "license": "GPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/track/trackinc.h",
+      "source": "src/modules/track/trackinc.h",
+      "sha256": "87455df9648548852f1386becbd173656378d7228f731a74c95b129d536863c2",
+      "modified": false,
+      "license": "GPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/rttrack.cpp",
+      "source": "src/libs/robottools/rttrack.cpp",
+      "sha256": "d9d88f248493c5f67670d496350f3c1d82dbb7da4fd92de0105d05d6aa10e59d",
+      "modified": false,
+      "license": "GPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/params.cpp",
+      "source": "src/libs/tgf/params.cpp",
+      "sha256": "acabf8e0cd8a1d4de819b12ca5102b39999ed05e0eab4c81cfa2d04fb94bf84e",
+      "modified": false,
+      "license": "GPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/hash.cpp",
+      "source": "src/libs/tgf/hash.cpp",
+      "sha256": "48ded1466d37eab0fc37878dc3cc6e4b5eaff049f757e858ed0379e3a216d5ed",
+      "modified": false,
+      "license": "GPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/private/portability.h",
+      "source": "src/libs/portability/portability.h",
+      "sha256": "9ab1a545332750bec0c17850bcefd81703b058f8982770f3981e5a31a9bbd7e5",
+      "modified": false,
+      "license": "GPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/private/plib/sg.h",
+      "source": "src/windows/dependencies/vs2022_win32/plib-code-r2173-trunk-vsproj/src/sg/sg.h",
+      "sha256": "9d2bf096f7a6bf2d7b1a4d6b6efdb445638330336e1c8066cd87a2d62b04a631",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/private/plib/ul.h",
+      "source": "src/windows/dependencies/vs2022_win32/plib-code-r2173-trunk-vsproj/src/util/ul.h",
+      "sha256": "3cfcfee26ae45c1ff9b3ff3ee209b2710f704c34b8f6bc91538ac2d6e3d2cb63",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/plib/sg.cxx",
+      "source": "src/windows/dependencies/vs2022_win32/plib-code-r2173-trunk-vsproj/src/sg/sg.cxx",
+      "sha256": "df99a14128ae32ea98f20fed4340f9967187d56d9c2a2b4733a96092d12c31ce",
+      "modified": true,
+      "license": "LGPL-2.0-or-later",
+      "source_sha256": "32c0f7b752555a0fdcd03ed9e87a4824eacaa8f3d9ae5cbe7cfe19b1b77b627d",
+      "notes": "macOS portability: obsolete finite predicate renamed to isfinite; no change to numerical semantics."
+    },
+    {
+      "path": "Upstream/Reference/plib/sgd.cxx",
+      "source": "src/windows/dependencies/vs2022_win32/plib-code-r2173-trunk-vsproj/src/sg/sgd.cxx",
+      "sha256": "83701966f7e0cdb5a67400c3275625be8a9c2b9fc441daadcbf8a44f8d23c182",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/plib/ulError.cxx",
+      "source": "src/windows/dependencies/vs2022_win32/plib-code-r2173-trunk-vsproj/src/util/ulError.cxx",
+      "sha256": "71dc7e13c8393b3f20b4ee4bdc58281a421d547fab70d0fd3ac3629cf351f2c8",
+      "modified": true,
+      "license": "LGPL-2.0-or-later",
+      "source_sha256": "7634de14dd41b37b1a7af5d6b5759339a27da31c283c1512677c07ed9e80dd95",
+      "notes": "Bound the diagnostic formatting buffer; no physics behavior change."
+    },
+    {
+      "path": "Upstream/Reference/solid/Cone.h",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/Cone.h",
+      "sha256": "fd7189c044cb0a8071b5ad113a82d82ee63fd89c04913c7e1ad0dce08b1c2df5",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/BBox.h",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/BBox.h",
+      "sha256": "d31409aeb19800b52fd675babab07b7787ca8fd736e3277e27461fbc87ffc380",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/Box.h",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/Box.h",
+      "sha256": "e94be99946662da9473386e212f30d0ce71e2538442e42cc5b2c7cf3bab810fc",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/Endpoint.h",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/Endpoint.h",
+      "sha256": "6b76f868bae909a4b5240a4036c4321fb6b07cc08b7e3ca1e2ded4b39e5f27de",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/AlgoTable.h",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/AlgoTable.h",
+      "sha256": "42eb5410f4e138defe29c7a9ec10eec724b356c5217c357189dc17092c524928",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/C-api.cpp",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/C-api.cpp",
+      "sha256": "f5a238f6cca0992593d81e37069689ac37652dc630622d6c263bb104d6c26fe7",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/Polygon.h",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/Polygon.h",
+      "sha256": "808c83bb639024e07067bac02d8f46ff5087f846132d6448e10afe823f0e6a9b",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/Cylinder.cpp",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/Cylinder.cpp",
+      "sha256": "3c97d3d60ed70294e7576aee976e7a225c8f1f4c695223a8012376dca69a88a4",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/Simplex.cpp",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/Simplex.cpp",
+      "sha256": "3d5779f7d8c3369c728fd9836a5d759fb0dcb05231fb20dd47600867af67facd",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/Response.h",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/Response.h",
+      "sha256": "4e46a3092ca588a40aca8cbc2a5bc16ad68df5d22869dd96b467933c612ece82",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/Polyhedron.h",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/Polyhedron.h",
+      "sha256": "9bb69908d2cc8d348f934b8a7c5c93929019bd7f7847c9c7245b5d065579989a",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/Box.cpp",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/Box.cpp",
+      "sha256": "03700795061959a7bda5181a455abcf4bacb40499d4c7c517b7c506738076a64",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/Encounter.h",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/Encounter.h",
+      "sha256": "77d9cc4065b5a1ac78eb02c2660ab7a49fb3acd19b078a48cd94d10e823a5f70",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/RespTable.cpp",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/RespTable.cpp",
+      "sha256": "f8ec053ff119cfad2bcef044835f4ed55f8cc582b7df40d56ce904b3b6df63fe",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/Sphere.h",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/Sphere.h",
+      "sha256": "450115cbde1fb3cdcfaba7e55895101b5b3556f56298fe0c8d5616d0297db4fa",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/Object.cpp",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/Object.cpp",
+      "sha256": "ab7df8d24cdbff30a50bc424352a911ca30c9d5fea826869c64a9d620420e0f0",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/Simplex.h",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/Simplex.h",
+      "sha256": "57add87438cf7bfdee2017f28df1c74c51121cd5890bffa4ce7e3f889deed519",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/Cylinder.h",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/Cylinder.h",
+      "sha256": "cfe5107bfec6b6cee29e7b15b54fe3343fef9e38a82ad246fa9e02d8ed28c594",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/VertexBase.h",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/VertexBase.h",
+      "sha256": "888928f38133193eee7136f90e50d77253169140abbbc2e1c5e29bf464644f11",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/Endpoint.cpp",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/Endpoint.cpp",
+      "sha256": "a66dc04feadadeb6080b4a330c9124ad5e9ba3935cc0b244825ab8c0aa7e51aa",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/Shape.h",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/Shape.h",
+      "sha256": "f1889acd940f49119344735b7d228e0af75288766d0b71894e82252d47fcb501",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/RespTable.h",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/RespTable.h",
+      "sha256": "8d31951e27a7cc36726d0650bf0a89af8c33d92f79390baacdd22912f8e73a75",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/BBoxTree.cpp",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/BBoxTree.cpp",
+      "sha256": "1f10fb884840fbcdcb8bf99beace7ecfedf54a209248cd18bf1b3ab0d07986ed",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/Cone.cpp",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/Cone.cpp",
+      "sha256": "ca4195fd3b0f2c67f5db97cbe551bbe573b6885aec7f4ce492b3127bfbc5130e",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/Complex.cpp",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/Complex.cpp",
+      "sha256": "0ae8420ca8f17935784c5892fcbabc90c9ee9dcbbf3e1d1333e126d0b2563b0d",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/Transform.cpp",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/Transform.cpp",
+      "sha256": "d04fc8999c05303d602e1ed7b55049ff7a405f9c1ef59776677b4da4d165e0e1",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/Response.cpp",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/Response.cpp",
+      "sha256": "22e6e29c8b0036096d6468c83d340895461894fc871fec8a6455a93ffeedb372",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/IndexArray.h",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/IndexArray.h",
+      "sha256": "088fe40ade6ea4c48438508aa5b28d5a230798345b2522a0cc3ff891d09dc363",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/Transform.h",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/Transform.h",
+      "sha256": "d20becd1ffea062cdc5b3c8afb5bdd4ed3bd0c5636b615882be1755431866b5b",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/Polytope.h",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/Polytope.h",
+      "sha256": "712ab00c1f5e668baaae4a3698d2201c52118a5ebae2a70b2a3a57e00ecba5d5",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/Polygon.cpp",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/Polygon.cpp",
+      "sha256": "4ec04969579b93587e1f0654b76e904b763e8086c90ead1702e0ca1dc19cd625",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/BBoxTree.h",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/BBoxTree.h",
+      "sha256": "36a4a6eac5cb9193e35cc5c52b722c66927cb72c6d18ad2b7870380db74e9041",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/Object.h",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/Object.h",
+      "sha256": "8647a6db4f27ade2e05644c9d6cff55d96685972dc6f606ce3582b8c36012014",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/Sphere.cpp",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/Sphere.cpp",
+      "sha256": "08177fd51a7d1915a80cd8558b23d1207423253cbeb90d566c92b16892cfaf82",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/Convex.h",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/Convex.h",
+      "sha256": "496f614eed287c62dcc1346b3599a86f7a84abe861c0b014727c9b88e13dea98",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/Polyhedron.cpp",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/Polyhedron.cpp",
+      "sha256": "50a67f38d57c5f366745d6e55196ee94cff678f697a13d006af20b98a3f1e929",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/Convex.cpp",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/Convex.cpp",
+      "sha256": "a4c6f0c0ede82d9817e2b481cad2416629924e035932e40377fc02272c5b86c3",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/solid/Complex.h",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/src/Complex.h",
+      "sha256": "d7347671067950d24388ddf37ef1102d8ae03226439f62c245ae4ed225c8b42a",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/private/3D/Point.h",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/include/3D/Point.h",
+      "sha256": "20dc36590570c10bcd0d404981594c8cecc2e5836d9b6f2b5ecdc25944a3cf93",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/private/3D/Quaternion.h",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/include/3D/Quaternion.h",
+      "sha256": "6123d22f6fd7f40c424b94686f9a6d04932aa201e049041f030d636efdbe6837",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/private/3D/Matrix.h",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/include/3D/Matrix.h",
+      "sha256": "22bad8d741e741106a9a32e9ec0e6b82b2d7f502ecf33017c5d6bf2c019cd254",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/private/3D/Basic.h",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/include/3D/Basic.h",
+      "sha256": "efb6a8fba80d85a703ccda79f5d31fa134404c786186d5049513a481f4e5d871",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/private/3D/Tuple4.h",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/include/3D/Tuple4.h",
+      "sha256": "203abaabb0a92f0670941974377fa58cf165e5c651f7b6bc6ba3e2555cc09361",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/private/3D/Tuple3.h",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/include/3D/Tuple3.h",
+      "sha256": "a09ca0534b39d5533afcbf378deb9cc4eb64e4938725be311823b2cdd3f907b0",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Reference/private/3D/Vector.h",
+      "source": "src/modules/simu/simuv2/SOLID-2.0/include/3D/Vector.h",
+      "sha256": "5ecf534dd1913b0fb4dde284de03599278f0a85b063d8f185dec4dbdeeaeafb8",
+      "modified": false,
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "path": "Upstream/Licenses/PLIB-LGPL-2.0.txt",
+      "source": "src/windows/dependencies/vs2022_win32/plib-code-r2173-trunk-vsproj/COPYING",
+      "license": "LGPL-2.0-or-later with retained special exception",
+      "modified": false,
+      "sha256": "180716246fbd680c95b2ccfbba221f7fde4c832a73612c13208187c10e435aaa"
+    },
+    {
+      "path": "Upstream/Reference/race/raceengine.cpp",
+      "source": "src/libs/raceengineclient/raceengine.cpp",
+      "sha256": "9be98c869b2631f76e49977b435bb3ead3b9314b309b318bb2621dfca8cf6f92",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "Eric Espie, Bernhard Wymann; original notices retained"
+    },
+    {
+      "path": "Upstream/Reference/race/raceinit.cpp",
+      "source": "src/libs/raceengineclient/raceinit.cpp",
+      "sha256": "cee496f75ec24c6ac4a690b07a50274cc5c2ad521999c5689c7c7cfc8227635e",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "Eric Espie, Bernhard Wymann; original notices retained"
+    },
+    {
+      "path": "Upstream/Reference/race/racemain.h",
+      "source": "src/libs/raceengineclient/racemain.h",
+      "sha256": "375d66ff715684ed5e049aa9163b80d86755965e17356e5e134ffe2094fdc2e8",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "Eric Espie, Bernhard Wymann; original notices retained"
+    },
+    {
+      "path": "Upstream/Reference/race/racegl.h",
+      "source": "src/libs/raceengineclient/racegl.h",
+      "sha256": "dd122e93158f0a91f1f18e7e28be06c1648e1af84feb6c7ad03a3cb3a5395ca1",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "Eric Espie, Bernhard Wymann; original notices retained"
+    },
+    {
+      "path": "Upstream/Reference/race/raceinit.h",
+      "source": "src/libs/raceengineclient/raceinit.h",
+      "sha256": "b244dba819d054bf744976f82739dd46565bfbf26f913b88895a1e1d52d23822",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "Eric Espie, Bernhard Wymann; original notices retained"
+    },
+    {
+      "path": "Upstream/Reference/race/raceresults.h",
+      "source": "src/libs/raceengineclient/raceresults.h",
+      "sha256": "b11e78937ae3ecbb0996f16b42961dc1b814d55747e84cf49feddfea3ca7b9f3",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "Eric Espie, Bernhard Wymann; original notices retained"
+    },
+    {
+      "path": "Upstream/Reference/race/raceengine.h",
+      "source": "src/libs/raceengineclient/raceengine.h",
+      "sha256": "24e743beaf36dd1f5ab6753db9e851794f99c245b7bdd9a77c5433a97baf722b",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "Eric Espie, Bernhard Wymann; original notices retained"
+    },
+    {
+      "path": "Upstream/Reference/assets/grloadac.cpp",
+      "source": "src/modules/graphic/ssggraph/grloadac.cpp",
+      "sha256": "394e688f67de895a563011dcf2619a5a3f952990074c87882da4ebf83d0eaf79",
+      "modified": false,
+      "license": "LGPL-2.0-or-later",
+      "copyright": "(C) 2001 Steve Baker; original PLIB notice retained"
+    },
+    {
+      "path": "Upstream/Reference/plib/ul.cxx",
+      "source": "src/windows/dependencies/vs2022_win32/plib-code-r2173-trunk-vsproj/src/util/ul.cxx",
+      "sha256": "05ce932c76cd9048c07270c54107dc20319d9469e97553bd1c73ca3f4e52697b",
+      "modified": false,
+      "license": "LGPL-2.0-or-later",
+      "copyright": "(C) 1998,2002 Steve Baker"
+    },
+    {
+      "path": "Upstream/Reference/textures/ssgLoadSGI.cxx",
+      "source": "src/windows/dependencies/vs2022_win32/plib-code-r2173-trunk-vsproj/src/ssg/ssgLoadSGI.cxx",
+      "license": "LGPL-2.0-or-later",
+      "copyright": "(C) 1998,2002 Steve Baker",
+      "modified": false,
+      "sha256": "9d61687f9795bc9a9267bbda7f0ada5d42144eec70458a7e234cb7ace33c6e03"
+    },
+    {
+      "path": "Upstream/Reference/textures/grtexture.cpp",
+      "source": "src/modules/graphic/ssggraph/grtexture.cpp",
+      "license": "GPL-2.0-or-later; PLIB-derived portions LGPL-2.0-or-later",
+      "copyright": "(C) 2005 Bernhard Wymann; PLIB portions (C) 1998,2002 Steve Baker",
+      "modified": false,
+      "sha256": "22fe6269fa06b2c618eea5ab779c66129a42e89809d84337a340583fc866f4d9"
+    },
+    {
+      "path": "Upstream/PNGReference/png.c",
+      "source": "src/windows/dependencies/vs2022_win32/lpng1650/png.c",
+      "sha256": "c439e93c040d6c0913f6e6e3847c44d985a3a7cefc60158deece24ab55dfd92b",
+      "modified": false,
+      "license": "Libpng-2.0",
+      "copyright": "The PNG Reference Library Authors; individual notices retained in each file"
+    },
+    {
+      "path": "Upstream/PNGReference/pngerror.c",
+      "source": "src/windows/dependencies/vs2022_win32/lpng1650/pngerror.c",
+      "sha256": "9918080bc68b31801f9a8349146c9494b355e3b16a26cc4bcb10fa1e993b4167",
+      "modified": false,
+      "license": "Libpng-2.0",
+      "copyright": "The PNG Reference Library Authors; individual notices retained in each file"
+    },
+    {
+      "path": "Upstream/PNGReference/pngget.c",
+      "source": "src/windows/dependencies/vs2022_win32/lpng1650/pngget.c",
+      "sha256": "7fe9aa76f804c564570c36975b7b92c063254820de582447820d2c0d5940f242",
+      "modified": false,
+      "license": "Libpng-2.0",
+      "copyright": "The PNG Reference Library Authors; individual notices retained in each file"
+    },
+    {
+      "path": "Upstream/PNGReference/pngmem.c",
+      "source": "src/windows/dependencies/vs2022_win32/lpng1650/pngmem.c",
+      "sha256": "9a28d9e571887c72cdbae73d1865c6fba497b6e02adf3a5515edf93fd972df60",
+      "modified": false,
+      "license": "Libpng-2.0",
+      "copyright": "The PNG Reference Library Authors; individual notices retained in each file"
+    },
+    {
+      "path": "Upstream/PNGReference/pngpread.c",
+      "source": "src/windows/dependencies/vs2022_win32/lpng1650/pngpread.c",
+      "sha256": "230e4e01a9748922a33a936d1c4a2f599d61fc6425b49270197949fd3f38443e",
+      "modified": false,
+      "license": "Libpng-2.0",
+      "copyright": "The PNG Reference Library Authors; individual notices retained in each file"
+    },
+    {
+      "path": "Upstream/PNGReference/pngread.c",
+      "source": "src/windows/dependencies/vs2022_win32/lpng1650/pngread.c",
+      "sha256": "9106d0df385e051d46b007e402eabec18b5fce44fdfefed6e964a09008910e21",
+      "modified": false,
+      "license": "Libpng-2.0",
+      "copyright": "The PNG Reference Library Authors; individual notices retained in each file"
+    },
+    {
+      "path": "Upstream/PNGReference/pngrio.c",
+      "source": "src/windows/dependencies/vs2022_win32/lpng1650/pngrio.c",
+      "sha256": "3c710643f274fd2b4aa2bc154c9dc53a512edae773dda1434f205fb005f2e93e",
+      "modified": false,
+      "license": "Libpng-2.0",
+      "copyright": "The PNG Reference Library Authors; individual notices retained in each file"
+    },
+    {
+      "path": "Upstream/PNGReference/pngrtran.c",
+      "source": "src/windows/dependencies/vs2022_win32/lpng1650/pngrtran.c",
+      "sha256": "59753c1591d9eb8798b5e4270353c0d7da122ef6f1af2bfd83ff7b335fb2fea3",
+      "modified": false,
+      "license": "Libpng-2.0",
+      "copyright": "The PNG Reference Library Authors; individual notices retained in each file"
+    },
+    {
+      "path": "Upstream/PNGReference/pngrutil.c",
+      "source": "src/windows/dependencies/vs2022_win32/lpng1650/pngrutil.c",
+      "sha256": "2042d92c70b587a4ad2cf98f0e74279b12ceb11a88fd1f6622306928c9af68fd",
+      "modified": false,
+      "license": "Libpng-2.0",
+      "copyright": "The PNG Reference Library Authors; individual notices retained in each file"
+    },
+    {
+      "path": "Upstream/PNGReference/pngset.c",
+      "source": "src/windows/dependencies/vs2022_win32/lpng1650/pngset.c",
+      "sha256": "9bd59a79669db37b2ecc481439481eb5f49bf77bee0de4b1aba649915609b3d0",
+      "modified": false,
+      "license": "Libpng-2.0",
+      "copyright": "The PNG Reference Library Authors; individual notices retained in each file"
+    },
+    {
+      "path": "Upstream/PNGReference/pngtrans.c",
+      "source": "src/windows/dependencies/vs2022_win32/lpng1650/pngtrans.c",
+      "sha256": "6398722afbad3f54beed1e6fefa4f4a96fa0b6e45dd24120c688f67b740a7eb2",
+      "modified": false,
+      "license": "Libpng-2.0",
+      "copyright": "The PNG Reference Library Authors; individual notices retained in each file"
+    },
+    {
+      "path": "Upstream/PNGReference/pngwio.c",
+      "source": "src/windows/dependencies/vs2022_win32/lpng1650/pngwio.c",
+      "sha256": "a25def3351807ed3f2e12a02a7801d4208f0033516185f4ad524d804d2f00ce3",
+      "modified": false,
+      "license": "Libpng-2.0",
+      "copyright": "The PNG Reference Library Authors; individual notices retained in each file"
+    },
+    {
+      "path": "Upstream/PNGReference/pngwrite.c",
+      "source": "src/windows/dependencies/vs2022_win32/lpng1650/pngwrite.c",
+      "sha256": "e2079b6a8010ef8ecff771c81b8aa0e654a710b4232078a2ab277069441deb4b",
+      "modified": false,
+      "license": "Libpng-2.0",
+      "copyright": "The PNG Reference Library Authors; individual notices retained in each file"
+    },
+    {
+      "path": "Upstream/PNGReference/pngwtran.c",
+      "source": "src/windows/dependencies/vs2022_win32/lpng1650/pngwtran.c",
+      "sha256": "6355098f20b9058ab607cebd01f3130c61ac858dceb339c3a7d83407c1067b94",
+      "modified": false,
+      "license": "Libpng-2.0",
+      "copyright": "The PNG Reference Library Authors; individual notices retained in each file"
+    },
+    {
+      "path": "Upstream/PNGReference/pngwutil.c",
+      "source": "src/windows/dependencies/vs2022_win32/lpng1650/pngwutil.c",
+      "sha256": "3167c7e997f8a7db6c6ab4b816298aea0ad3189bea960ece984881cffba92a5f",
+      "modified": false,
+      "license": "Libpng-2.0",
+      "copyright": "The PNG Reference Library Authors; individual notices retained in each file"
+    },
+    {
+      "path": "Upstream/PNGReference/include/png.h",
+      "source": "src/windows/dependencies/vs2022_win32/lpng1650/png.h",
+      "sha256": "3c3b27f3e9b3030f7d234cb491b524fcc765345ced5a5dbce9e882cc35a1167f",
+      "modified": false,
+      "license": "Libpng-2.0",
+      "copyright": "The PNG Reference Library Authors; individual notices retained in each file"
+    },
+    {
+      "path": "Upstream/PNGReference/include/pngconf.h",
+      "source": "src/windows/dependencies/vs2022_win32/lpng1650/pngconf.h",
+      "sha256": "b92d648561f31b884be944720d5eb56eae1949b39e6b70ca70d8ed4a0f4b7349",
+      "modified": false,
+      "license": "Libpng-2.0",
+      "copyright": "The PNG Reference Library Authors; individual notices retained in each file"
+    },
+    {
+      "path": "Upstream/PNGReference/pngpriv.h",
+      "source": "src/windows/dependencies/vs2022_win32/lpng1650/pngpriv.h",
+      "sha256": "23fcf7fc89fc28073aed686207626753933f0dbcff360024f0378b112dca30b4",
+      "modified": false,
+      "license": "Libpng-2.0",
+      "copyright": "The PNG Reference Library Authors; individual notices retained in each file"
+    },
+    {
+      "path": "Upstream/PNGReference/pngstruct.h",
+      "source": "src/windows/dependencies/vs2022_win32/lpng1650/pngstruct.h",
+      "sha256": "498aa14b9af46bce8677ceb39d0ecd28f54bbad6a5ba29930984b38f97012571",
+      "modified": false,
+      "license": "Libpng-2.0",
+      "copyright": "The PNG Reference Library Authors; individual notices retained in each file"
+    },
+    {
+      "path": "Upstream/PNGReference/pnginfo.h",
+      "source": "src/windows/dependencies/vs2022_win32/lpng1650/pnginfo.h",
+      "sha256": "95fd19c965b86c6f279e426b9ee42c62e83af41a372b51fe8feb52a3427cb44d",
+      "modified": false,
+      "license": "Libpng-2.0",
+      "copyright": "The PNG Reference Library Authors; individual notices retained in each file"
+    },
+    {
+      "path": "Upstream/PNGReference/pngdebug.h",
+      "source": "src/windows/dependencies/vs2022_win32/lpng1650/pngdebug.h",
+      "sha256": "dcc808a35628d28e5aca1297e8ebe7c376f12448f65b72214b7271a2e1fc865e",
+      "modified": false,
+      "license": "Libpng-2.0",
+      "copyright": "The PNG Reference Library Authors; individual notices retained in each file"
+    },
+    {
+      "path": "Upstream/PNGReference/LICENSE",
+      "source": "src/windows/dependencies/vs2022_win32/lpng1650/LICENSE",
+      "sha256": "16d9daaafbf63a31a5bdc91d4600972548fef5aaa1244202393288dbd079c49a",
+      "modified": false,
+      "license": "Libpng-2.0",
+      "copyright": "The PNG Reference Library Authors; individual notices retained in each file"
+    },
+    {
+      "path": "Upstream/PNGReference/include/pnglibconf.h",
+      "source": "src/windows/dependencies/vs2022_win32/lpng1650/scripts/pnglibconf.h.prebuilt",
+      "sha256": "d510d301910871746a7059fbc9be0035e0f91502ea248c23c9d95fafc4afc646",
+      "modified": false,
+      "license": "Libpng-2.0",
+      "copyright": "The PNG Reference Library Authors; configuration from pinned release"
+    },
+    {
+      "path": "Upstream/Reference/textures/img.cpp",
+      "source": "src/libs/tgfclient/img.cpp",
+      "sha256": "171984803e08c852acc3cbb7f427be45a7c500431330939cfe1aaabeddc5ca70",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 1999-2014 Eric Espie, Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/graphics/grcar.cpp",
+      "source": "src/modules/graphic/ssggraph/grcar.cpp",
+      "sha256": "8aadd4ec9604854ec9822362a93dde32d31b944cef7f640fe0e63076686408ea",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2000 Eric Espie"
+    },
+    {
+      "path": "Upstream/Reference/graphics/grcam.cpp",
+      "source": "src/modules/graphic/ssggraph/grcam.cpp",
+      "sha256": "a954225bc4d2ca16c8d55fdc494fd54553e804996d44a205d46f7b7f1fe1eeb3",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2000 by Eric Espie"
+    },
+    {
+      "path": "Upstream/Reference/input/human.cpp",
+      "source": "src/drivers/human/human.cpp",
+      "sha256": "d43feebc78a10956dcd8c97b5f709e09eac15d2c1da2db10f329c88d1f8566b2",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2000-2024 by Eric Espie, Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/input/pref.h",
+      "source": "src/drivers/human/pref.h",
+      "sha256": "c77b834506f5c7b206bbab6bc2ba97071ea0eb35f9419eef1c75f9ebf5437fc0",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2000-2024 by Eric Espie, Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/robots/bt/bt.cpp",
+      "source": "src/drivers/bt/bt.cpp",
+      "sha256": "2479d35fb3a72c21b1a3d8e765de52f76cf13c8bfa9a142d49b947661905ebb5",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "copyright            : (C) 2002-2004 Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/robots/bt/cardata.cpp",
+      "source": "src/drivers/bt/cardata.cpp",
+      "sha256": "1d38f3c6304a71b277498b607c11e39c9a9b97f3e6667d6c09fc2784198f4b7a",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "copyright            : (C) 2004 Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/robots/bt/cardata.h",
+      "source": "src/drivers/bt/cardata.h",
+      "sha256": "72f7a41a1c6805387933605915727a5d0aa0eb799356a6648769b89dd264f619",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "copyright            : (C) 2004 Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/robots/bt/driver.cpp",
+      "source": "src/drivers/bt/driver.cpp",
+      "sha256": "685f265201477679b3d7bfb1e29e430fc56c86c7f9686b8cb4e657d97a4e3cab",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "copyright            : (C) 2002-2004 Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/robots/bt/driver.h",
+      "source": "src/drivers/bt/driver.h",
+      "sha256": "f9270d25f4237ddcaeedb154790012ddf84dc1000090c3dbf249400167622213",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "copyright            : (C) 2002-2004 Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/robots/bt/learn.cpp",
+      "source": "src/drivers/bt/learn.cpp",
+      "sha256": "0094d81527a0b73cc91b0c5600a5eb7575b4295dd29368e074ef0e082227c1b9",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "copyright            : (C) 2004 by Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/robots/bt/learn.h",
+      "source": "src/drivers/bt/learn.h",
+      "sha256": "37fbc535a9f82e58f32c665158228f11dbaf3195eed396793f145d3e6c080bff",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "copyright            : (C) 2004 by Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/robots/bt/opponent.cpp",
+      "source": "src/drivers/bt/opponent.cpp",
+      "sha256": "71eadd14c0cc53097a3b2343532fb77b37bba6fbad2893aa437ffd2d3f552c17",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "copyright            : (C) 2003-2004 Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/robots/bt/opponent.h",
+      "source": "src/drivers/bt/opponent.h",
+      "sha256": "06fbda94e04d34b03626a367a990beb6fd2e12fd5841d1a220bb4ef8262ca039",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "copyright            : (C) 2003-2004 Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/robots/bt/pit.cpp",
+      "source": "src/drivers/bt/pit.cpp",
+      "sha256": "28aa26956e24d7684827fa645933bac6d364d392b8d21cd38a004a0881f15099",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "copyright            : (C) 2003-2004 by Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/robots/bt/pit.h",
+      "source": "src/drivers/bt/pit.h",
+      "sha256": "28f0cb2e65f7733fe7ae408ddc1557335960fe649f7eb6cc38a88e6463691e57",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "copyright            : (C) 2003-2004 by Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/robots/bt/spline.cpp",
+      "source": "src/drivers/bt/spline.cpp",
+      "sha256": "fa4487a967bc3c717ac059606d5bbbd456e8126467b15f0218af9b53d8ab7540",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "copyright            : (C) 2003-2004 by Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/robots/bt/spline.h",
+      "source": "src/drivers/bt/spline.h",
+      "sha256": "02d0832acd92cfd17b421bd87dd310aaba170488fa4d47a6311131cbdabfe9f5",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "copyright            : (C) 2003-2004 by Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/robots/bt/strategy.cpp",
+      "source": "src/drivers/bt/strategy.cpp",
+      "sha256": "25673e2b8e13f54775718581d54732748b7ee3e2526ca0449bda796c27d04446",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "copyright            : (C) 2004 Bernhard Wymann"
+    },
+    {
+      "path": "Upstream/Reference/robots/bt/strategy.h",
+      "source": "src/drivers/bt/strategy.h",
+      "sha256": "710c83a62a5e5d6d68e0fd4d1996c34f9a537746d202f4abc223662fac068c57",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "copyright            : (C) 2004 Bernhard Wymann"
+    },
+    {
+      "path": "Tests/UnitTests/Fixtures/Robots/bt/0/default.xml",
+      "source": "src/drivers/bt/0/default.xml",
+      "sha256": "f8ba8bf45d243986b52d2b2ed924d17c1b11937dfc31132b6341b8b7004003f2",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "copyright            : (C) 2000 by Eric Espie"
+    },
+    {
+      "path": "Upstream/Reference/graphics/grshadow.cpp",
+      "source": "src/modules/graphic/ssggraph/grshadow.cpp",
+      "sha256": "f91ae2ac9d23ab04a6640f108e12a8b07f5adc4dc2f439be164991f8c6ac73fd",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2001 by Christophe Guionneau"
+    },
+    {
+      "path": "Upstream/Reference/graphics/grscene.cpp",
+      "source": "src/modules/graphic/ssggraph/grscene.cpp",
+      "sha256": "bfa31a95bbde6f319569c2c59e554880fc1e7c59c6b1bd0894973a8b63963fde",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "See original retained copyright notice"
+    },
+    {
+      "path": "Upstream/Reference/graphics/grscreen.cpp",
+      "source": "src/modules/graphic/ssggraph/grscreen.cpp",
+      "sha256": "20a7450f94fd451f859d4228567710ad91ce5141aec567555073a45e5914b562",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "See original retained copyright notice"
+    },
+    {
+      "path": "Upstream/Reference/graphics/grcam.h",
+      "source": "src/modules/graphic/ssggraph/grcam.h",
+      "sha256": "0a93f2afdceab46add3ad881db0b95315c1f7ffee76fe72c327c4b1af1b63282",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "See original retained copyright notice"
+    },
+    {
+      "path": "Upstream/Reference/graphics/grutil.cpp",
+      "source": "src/modules/graphic/ssggraph/grutil.cpp",
+      "sha256": "6ffe004803e2a025f44c1817c321d49f3401264775ffee515c8cf499236626ed",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "See retained original copyright notice"
+    },
+    {
+      "path": "Upstream/Reference/graphics/grvtxtable.cpp",
+      "source": "src/modules/graphic/ssggraph/grvtxtable.cpp",
+      "sha256": "3f19888d22dee98aa6c83c200bcf3ef905899264034e98ba6104ed7510a6bf47",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2001 by Christophe Guionneau"
+    },
+    {
+      "path": "Upstream/Reference/graphics/grmultitexstate.cpp",
+      "source": "src/modules/graphic/ssggraph/grmultitexstate.cpp",
+      "sha256": "dfe2158c411565fc446ae9d7eea715a45737af2dcee98a7525a244dc0bc005ca",
+      "modified": false,
+      "license": "GPL-2.0-or-later",
+      "copyright": "(C) 2001 by Christophe Guionneau"
+    },
+    {
+      "path": "Tests/UnitTests/Fixtures/155-DTM.xml",
+      "source": "data/cars/models/155-DTM/155-DTM.xml",
+      "author": "See retained original copyright",
+      "copyright": "(C) 2000-2025 by Eric Espie, Bernhard Wymann",
+      "license": "GPL-2.0-or-later",
+      "upstream_revision": "TORCS 1.3.9 release",
+      "modified": false,
+      "sha256": "7b069b816636ed85ace6b440d87aa400c3e54716170766df3e7a7483475f52bb",
+      "notes": "XML test fixture only; related artwork provenance is recorded separately in this manifest."
+    },
+    {
+      "path": "Tests/UnitTests/Fixtures/aalborg.xml",
+      "source": "data/tracks/aalborg/aalborg.xml",
+      "author": "See retained original copyright",
+      "copyright": "(C) 2000-2005 by Eric Espie, Bernhard Wymann",
+      "license": "GPL-2.0-or-later",
+      "upstream_revision": "TORCS 1.3.9 release",
+      "modified": false,
+      "sha256": "bfd4bfc66977a515e1d5bafb37e1698adaa9b05808d4da003f94d98a570a7b57",
+      "notes": "XML test fixture only; related artwork provenance is recorded separately in this manifest."
+    },
+    {
+      "path": "Tests/UnitTests/Fixtures/surfaces.xml",
+      "source": "data/data/tracks/surfaces.xml",
+      "author": "See retained original copyright",
+      "copyright": "(C) 1999 by Eric Espie",
+      "license": "GPL-2.0-or-later",
+      "upstream_revision": "TORCS 1.3.9 release",
+      "modified": false,
+      "sha256": "9e0c5fb78cd7d9fd635beed670750f69c851ab14a83e275fab2973330797bbb9",
+      "notes": "XML test fixture only; related artwork provenance is recorded separately in this manifest."
+    },
+    {
+      "path": "Tests/UnitTests/Fixtures/objects.xml",
+      "source": "data/data/tracks/objects.xml",
+      "author": "See retained original copyright",
+      "copyright": "(C) 2001 by Eric Espi\u00e9",
+      "license": "GPL-2.0-or-later",
+      "upstream_revision": "TORCS 1.3.9 release",
+      "modified": false,
+      "sha256": "446e70833abb16942559315db5c4d224bd5a2a2da72b526e5d097c52fb2f0b37",
+      "notes": "XML test fixture only; related artwork provenance is recorded separately in this manifest."
+    },
+    {
+      "path": "Tests/UnitTests/Fixtures/quickrace.xml",
+      "source": "src/raceman/quickrace.xml",
+      "author": "See retained original copyright",
+      "copyright": "(C) 2003-2014 by Eric Espie, Bernhard Wymann",
+      "license": "GPL-2.0-or-later",
+      "upstream_revision": "TORCS 1.3.9 release",
+      "modified": false,
+      "sha256": "4fcf8939a8dcd7d6d1b8d8fcb3596d4021177f1f82d2936620b1c725729e5bf4",
+      "notes": "XML test fixture only; related artwork provenance is recorded separately in this manifest."
+    },
+    {
+      "path": "Tests/UnitTests/Fixtures/bt.xml",
+      "source": "src/drivers/bt/bt.xml",
+      "author": "See retained original copyright",
+      "copyright": "(C) 2002 Bernhard Wymann",
+      "license": "GPL-2.0-or-later",
+      "upstream_revision": "TORCS 1.3.9 release",
+      "modified": false,
+      "sha256": "5cba5dc78c1855a1e9797e44d3655cdfc4e6cca6d97604dd22b6e132e3e22297",
+      "notes": "XML test fixture only; related artwork provenance is recorded separately in this manifest."
+    },
+    {
+      "path": "Tests/UnitTests/Fixtures/Track-4WD-GrB.xml",
+      "source": "data/cars/categories/Track-4WD-GrB/Track-4WD-GrB.xml",
+      "author": "Eric Espie, Bernhard Wymann",
+      "copyright": "(C) 2000 by Eric Espie, Bernhard Wymann",
+      "license": "GPL-2.0-or-later",
+      "upstream_revision": "TORCS 1.3.9 release",
+      "modified": false,
+      "sha256": "b08bc4a12ccfeff49ce1d608583a858cec69985d94aa057640d231016fed37eb",
+      "notes": "XML test fixture only; related artwork provenance is recorded separately in this manifest."
+    },
+    {
+      "path": "Tests/UnitTests/Fixtures/Artwork/155-DTM/155-DTM.acc",
+      "source": "data/cars/models/155-DTM/155-DTM.acc",
+      "author": "2025 Philipp K\u00f6rber, Bernhard Wymann; inspired by Andrea Alfieri; reused parts 2005 Olaf Sa\u00dfnick, Bernhard Wymann",
+      "copyright": "2025 Philipp K\u00f6rber, Bernhard Wymann; inspired by Andrea Alfieri; reused parts 2005 Olaf Sa\u00dfnick, Bernhard Wymann",
+      "license": "Free Art License (unversioned upstream notice)",
+      "license_url": "https://artlibre.org/licence/lal/en/",
+      "upstream_revision": "TORCS 1.3.9 release",
+      "modified": false,
+      "sha256": "e769d952b5ffe6d34ab8337c716a579d4b76dd11f455017a5625dbd82e05db80",
+      "notes": "Mesh parser fixture and retained directory artwork notice. Separate, accessible artwork; not relicensed as GPL. Original archive: https://sourceforge.net/projects/torcs/files/all-in-one/1.3.9/torcs-1.3.9.tar.bz2/download . Selected SGI textures are imported separately; PNG textures and additional wheels remain unbundled."
+    },
+    {
+      "path": "Tests/UnitTests/Fixtures/Artwork/155-DTM/readme.txt",
+      "source": "data/cars/models/155-DTM/readme.txt",
+      "author": "2025 Philipp K\u00f6rber, Bernhard Wymann; inspired by Andrea Alfieri; reused parts 2005 Olaf Sa\u00dfnick, Bernhard Wymann",
+      "copyright": "2025 Philipp K\u00f6rber, Bernhard Wymann; inspired by Andrea Alfieri; reused parts 2005 Olaf Sa\u00dfnick, Bernhard Wymann",
+      "license": "Free Art License (unversioned upstream notice)",
+      "license_url": "https://artlibre.org/licence/lal/en/",
+      "upstream_revision": "TORCS 1.3.9 release",
+      "modified": false,
+      "sha256": "7cca894b8b95c5f8cb9d5ff3ab72f330ecd91ab45d0760d1c141f0660791793c",
+      "notes": "Mesh parser fixture and retained directory artwork notice. Separate, accessible artwork; not relicensed as GPL. Original archive: https://sourceforge.net/projects/torcs/files/all-in-one/1.3.9/torcs-1.3.9.tar.bz2/download . Selected SGI textures are imported separately; PNG textures and additional wheels remain unbundled."
+    },
+    {
+      "path": "Tests/UnitTests/Fixtures/Artwork/aalborg/aalborg.acc",
+      "source": "data/tracks/aalborg/aalborg.acc",
+      "author": "2002 Torben Thellefsen, Eric Espie; 2005, 2012 Bernhard Wymann",
+      "copyright": "2002 Torben Thellefsen, Eric Espie; 2005, 2012 Bernhard Wymann",
+      "license": "Free Art License (unversioned upstream notice)",
+      "license_url": "https://artlibre.org/licence/lal/en/",
+      "upstream_revision": "TORCS 1.3.9 release",
+      "modified": false,
+      "sha256": "2d4c3e3d57beb0bd355a9203d367bc02f98d93068d95dc4d4676ff388edef5ad",
+      "notes": "Mesh parser fixture and retained directory artwork notice. Separate, accessible artwork; not relicensed as GPL. Original archive: https://sourceforge.net/projects/torcs/files/all-in-one/1.3.9/torcs-1.3.9.tar.bz2/download . Selected SGI textures are imported separately; PNG textures and additional wheels remain unbundled."
+    },
+    {
+      "path": "Tests/UnitTests/Fixtures/Artwork/aalborg/readme.txt",
+      "source": "data/tracks/aalborg/readme.txt",
+      "author": "2002 Torben Thellefsen, Eric Espie; 2005, 2012 Bernhard Wymann",
+      "copyright": "2002 Torben Thellefsen, Eric Espie; 2005, 2012 Bernhard Wymann",
+      "license": "Free Art License (unversioned upstream notice)",
+      "license_url": "https://artlibre.org/licence/lal/en/",
+      "upstream_revision": "TORCS 1.3.9 release",
+      "modified": false,
+      "sha256": "54bed3853d1687829132246a907e7dea104a022d99af9d6cba4445a13a63997a",
+      "notes": "Mesh parser fixture and retained directory artwork notice. Separate, accessible artwork; not relicensed as GPL. Original archive: https://sourceforge.net/projects/torcs/files/all-in-one/1.3.9/torcs-1.3.9.tar.bz2/download . Selected SGI textures are imported separately; PNG textures and additional wheels remain unbundled."
+    },
+    {
+      "path": "Tests/UnitTests/Fixtures/Artwork/155-DTM/155-DTM.rgb",
+      "source": "data/cars/models/155-DTM/155-DTM.rgb",
+      "author": "2025 Philipp K\u00f6rber, Bernhard Wymann; inspired by Andrea Alfieri; reused parts 2005 Olaf Sa\u00dfnick, Bernhard Wymann",
+      "copyright": "2025 Philipp K\u00f6rber, Bernhard Wymann; inspired by Andrea Alfieri; reused parts 2005 Olaf Sa\u00dfnick, Bernhard Wymann",
+      "license": "Free Art License (unversioned upstream notice)",
+      "license_url": "https://artlibre.org/licence/lal/en/",
+      "upstream_revision": "TORCS 1.3.9 release",
+      "modified": false,
+      "sha256": "6cd46a4da3723df64fe731458b0fcbb881aeb0a2d32c1f1c12273195a5851ce8",
+      "notes": "Unchanged SGI texture fixture. Artwork terms retained in Artwork/155-DTM/readme.txt; not GPL relicensed. Original archive: https://sourceforge.net/projects/torcs/files/all-in-one/1.3.9/torcs-1.3.9.tar.bz2/download"
+    },
+    {
+      "path": "Tests/UnitTests/Fixtures/Artwork/155-DTM/driver.rgb",
+      "source": "data/cars/models/155-DTM/driver.rgb",
+      "author": "2025 Philipp K\u00f6rber, Bernhard Wymann; inspired by Andrea Alfieri; reused parts 2005 Olaf Sa\u00dfnick, Bernhard Wymann",
+      "copyright": "2025 Philipp K\u00f6rber, Bernhard Wymann; inspired by Andrea Alfieri; reused parts 2005 Olaf Sa\u00dfnick, Bernhard Wymann",
+      "license": "Free Art License (unversioned upstream notice)",
+      "license_url": "https://artlibre.org/licence/lal/en/",
+      "upstream_revision": "TORCS 1.3.9 release",
+      "modified": false,
+      "sha256": "26d246d06ffb5766d03880b51e75c78c3bf417daae8b0ebbcd8d13fb7a7a7c9b",
+      "notes": "Unchanged SGI texture fixture. Artwork terms retained in Artwork/155-DTM/readme.txt; not GPL relicensed. Original archive: https://sourceforge.net/projects/torcs/files/all-in-one/1.3.9/torcs-1.3.9.tar.bz2/download"
+    },
+    {
+      "path": "Tests/UnitTests/Fixtures/Artwork/155-DTM/shadow.rgb",
+      "source": "data/cars/models/155-DTM/shadow.rgb",
+      "author": "2025 Philipp K\u00f6rber, Bernhard Wymann; inspired by Andrea Alfieri; reused parts 2005 Olaf Sa\u00dfnick, Bernhard Wymann",
+      "copyright": "2025 Philipp K\u00f6rber, Bernhard Wymann; inspired by Andrea Alfieri; reused parts 2005 Olaf Sa\u00dfnick, Bernhard Wymann",
+      "license": "Free Art License (unversioned upstream notice)",
+      "license_url": "https://artlibre.org/licence/lal/en/",
+      "upstream_revision": "TORCS 1.3.9 release",
+      "modified": false,
+      "sha256": "de7da701970c3644b7915355d8e3f2f2ac031cf8bf35bd081d8d8949b172c62e",
+      "notes": "Unchanged SGI texture fixture. Artwork terms retained in Artwork/155-DTM/readme.txt; not GPL relicensed. Original archive: https://sourceforge.net/projects/torcs/files/all-in-one/1.3.9/torcs-1.3.9.tar.bz2/download"
+    },
+    {
+      "path": "Tests/UnitTests/Fixtures/Artwork/155-DTM/tex-wheel.rgb",
+      "source": "data/cars/models/155-DTM/tex-wheel.rgb",
+      "author": "2025 Philipp K\u00f6rber, Bernhard Wymann; inspired by Andrea Alfieri; reused parts 2005 Olaf Sa\u00dfnick, Bernhard Wymann",
+      "copyright": "2025 Philipp K\u00f6rber, Bernhard Wymann; inspired by Andrea Alfieri; reused parts 2005 Olaf Sa\u00dfnick, Bernhard Wymann",
+      "license": "Free Art License (unversioned upstream notice)",
+      "license_url": "https://artlibre.org/licence/lal/en/",
+      "upstream_revision": "TORCS 1.3.9 release",
+      "modified": false,
+      "sha256": "16d7692d7eff88247a3e947151f06ef0a8a818f27b852353524bc05c5bb20d9c",
+      "notes": "Unchanged SGI texture fixture. Artwork terms retained in Artwork/155-DTM/readme.txt; not GPL relicensed. Original archive: https://sourceforge.net/projects/torcs/files/all-in-one/1.3.9/torcs-1.3.9.tar.bz2/download"
+    },
+    {
+      "path": "Tests/UnitTests/Fixtures/Artwork/aalborg/allborg-trees_n.rgb",
+      "source": "data/tracks/aalborg/allborg-trees_n.rgb",
+      "author": "2002 Torben Thellefsen, Eric Espie; 2005, 2012 Bernhard Wymann",
+      "copyright": "2002 Torben Thellefsen, Eric Espie; 2005, 2012 Bernhard Wymann",
+      "license": "Free Art License (unversioned upstream notice)",
+      "license_url": "https://artlibre.org/licence/lal/en/",
+      "upstream_revision": "TORCS 1.3.9 release",
+      "modified": false,
+      "sha256": "8975fcd9fdc02ae21c3c942ece0e1434d4b6a1e9f396b72a1fb06dd0f1d472ab",
+      "notes": "Unchanged SGI texture fixture. Artwork terms retained in Artwork/aalborg/readme.txt; not GPL relicensed. Original archive: https://sourceforge.net/projects/torcs/files/all-in-one/1.3.9/torcs-1.3.9.tar.bz2/download"
+    },
+    {
+      "path": "Tests/UnitTests/Fixtures/Artwork/aalborg/barr1.rgb",
+      "source": "data/tracks/aalborg/barr1.rgb",
+      "author": "2002 Torben Thellefsen, Eric Espie; 2005, 2012 Bernhard Wymann",
+      "copyright": "2002 Torben Thellefsen, Eric Espie; 2005, 2012 Bernhard Wymann",
+      "license": "Free Art License (unversioned upstream notice)",
+      "license_url": "https://artlibre.org/licence/lal/en/",
+      "upstream_revision": "TORCS 1.3.9 release",
+      "modified": false,
+      "sha256": "3389917a4b54069f8b43372ab8471e60a3ca53ab4e4a1339062e5c5b8187d3cd",
+      "notes": "Unchanged SGI texture fixture. Artwork terms retained in Artwork/aalborg/readme.txt; not GPL relicensed. Original archive: https://sourceforge.net/projects/torcs/files/all-in-one/1.3.9/torcs-1.3.9.tar.bz2/download"
+    },
+    {
+      "path": "Tests/UnitTests/Fixtures/Artwork/aalborg/grass-aa.rgb",
+      "source": "data/tracks/aalborg/grass-aa.rgb",
+      "author": "2002 Torben Thellefsen, Eric Espie; 2005, 2012 Bernhard Wymann",
+      "copyright": "2002 Torben Thellefsen, Eric Espie; 2005, 2012 Bernhard Wymann",
+      "license": "Free Art License (unversioned upstream notice)",
+      "license_url": "https://artlibre.org/licence/lal/en/",
+      "upstream_revision": "TORCS 1.3.9 release",
+      "modified": false,
+      "sha256": "88d5d3171b1903ad12cd12d442393d590b59b3b7ca9a0a5afa0e2c61e8272e2c",
+      "notes": "Unchanged SGI texture fixture. Artwork terms retained in Artwork/aalborg/readme.txt; not GPL relicensed. Original archive: https://sourceforge.net/projects/torcs/files/all-in-one/1.3.9/torcs-1.3.9.tar.bz2/download"
+    },
+    {
+      "path": "Tests/UnitTests/Fixtures/Artwork/aalborg/poutre4.rgb",
+      "source": "data/tracks/aalborg/poutre4.rgb",
+      "author": "2002 Torben Thellefsen, Eric Espie; 2005, 2012 Bernhard Wymann",
+      "copyright": "2002 Torben Thellefsen, Eric Espie; 2005, 2012 Bernhard Wymann",
+      "license": "Free Art License (unversioned upstream notice)",
+      "license_url": "https://artlibre.org/licence/lal/en/",
+      "upstream_revision": "TORCS 1.3.9 release",
+      "modified": false,
+      "sha256": "68a908569fd6e6eb26afb6d78e1b77e6247f000413de296c0d35ca88d001788c",
+      "notes": "Unchanged SGI texture fixture. Artwork terms retained in Artwork/aalborg/readme.txt; not GPL relicensed. Original archive: https://sourceforge.net/projects/torcs/files/all-in-one/1.3.9/torcs-1.3.9.tar.bz2/download"
+    },
+    {
+      "path": "Tests/UnitTests/Fixtures/Artwork/aalborg/shadow2.rgb",
+      "source": "data/tracks/aalborg/shadow2.rgb",
+      "author": "2002 Torben Thellefsen, Eric Espie; 2005, 2012 Bernhard Wymann",
+      "copyright": "2002 Torben Thellefsen, Eric Espie; 2005, 2012 Bernhard Wymann",
+      "license": "Free Art License (unversioned upstream notice)",
+      "license_url": "https://artlibre.org/licence/lal/en/",
+      "upstream_revision": "TORCS 1.3.9 release",
+      "modified": false,
+      "sha256": "4c7c05eb0cfd4f157b37377702747e25ced0f79746383b918c172f76c20b9b30",
+      "notes": "Unchanged SGI texture fixture. Artwork terms retained in Artwork/aalborg/readme.txt; not GPL relicensed. Original archive: https://sourceforge.net/projects/torcs/files/all-in-one/1.3.9/torcs-1.3.9.tar.bz2/download"
+    },
+    {
+      "path": "Tests/UnitTests/Fixtures/Artwork/aalborg/spectator.rgb",
+      "source": "data/tracks/aalborg/spectator.rgb",
+      "author": "2002 Torben Thellefsen, Eric Espie; 2005, 2012 Bernhard Wymann",
+      "copyright": "2002 Torben Thellefsen, Eric Espie; 2005, 2012 Bernhard Wymann",
+      "license": "Free Art License (unversioned upstream notice)",
+      "license_url": "https://artlibre.org/licence/lal/en/",
+      "upstream_revision": "TORCS 1.3.9 release",
+      "modified": false,
+      "sha256": "c21ca1fc0f1c7312aa4991adae9912931a4c2d255c0766b6ed9fdc5ef66271bd",
+      "notes": "Unchanged SGI texture fixture. Artwork terms retained in Artwork/aalborg/readme.txt; not GPL relicensed. Original archive: https://sourceforge.net/projects/torcs/files/all-in-one/1.3.9/torcs-1.3.9.tar.bz2/download"
+    },
+    {
+      "path": "Tests/UnitTests/Fixtures/Artwork/aalborg/tarmac-wall-1-g2.rgb",
+      "source": "data/tracks/aalborg/tarmac-wall-1-g2.rgb",
+      "author": "2002 Torben Thellefsen, Eric Espie; 2005, 2012 Bernhard Wymann",
+      "copyright": "2002 Torben Thellefsen, Eric Espie; 2005, 2012 Bernhard Wymann",
+      "license": "Free Art License (unversioned upstream notice)",
+      "license_url": "https://artlibre.org/licence/lal/en/",
+      "upstream_revision": "TORCS 1.3.9 release",
+      "modified": false,
+      "sha256": "57f047e5e6c08ee6f705cdbc8185f6b77af536184fb5871811152381da623f68",
+      "notes": "Unchanged SGI texture fixture. Artwork terms retained in Artwork/aalborg/readme.txt; not GPL relicensed. Original archive: https://sourceforge.net/projects/torcs/files/all-in-one/1.3.9/torcs-1.3.9.tar.bz2/download"
+    },
+    {
+      "path": "Tests/UnitTests/Fixtures/Artwork/aalborg/tarmac-wall-2-g2.rgb",
+      "source": "data/tracks/aalborg/tarmac-wall-2-g2.rgb",
+      "author": "2002 Torben Thellefsen, Eric Espie; 2005, 2012 Bernhard Wymann",
+      "copyright": "2002 Torben Thellefsen, Eric Espie; 2005, 2012 Bernhard Wymann",
+      "license": "Free Art License (unversioned upstream notice)",
+      "license_url": "https://artlibre.org/licence/lal/en/",
+      "upstream_revision": "TORCS 1.3.9 release",
+      "modified": false,
+      "sha256": "65d3c18d50b13ad5068f2fee3d5c53754653b9fb80e5a0fbff8a3701b6db4643",
+      "notes": "Unchanged SGI texture fixture. Artwork terms retained in Artwork/aalborg/readme.txt; not GPL relicensed. Original archive: https://sourceforge.net/projects/torcs/files/all-in-one/1.3.9/torcs-1.3.9.tar.bz2/download"
+    },
+    {
+      "path": "Tests/UnitTests/Fixtures/Artwork/aalborg/torcs1.rgb",
+      "source": "data/tracks/aalborg/torcs1.rgb",
+      "author": "2002 Torben Thellefsen, Eric Espie; 2005, 2012 Bernhard Wymann",
+      "copyright": "2002 Torben Thellefsen, Eric Espie; 2005, 2012 Bernhard Wymann",
+      "license": "Free Art License (unversioned upstream notice)",
+      "license_url": "https://artlibre.org/licence/lal/en/",
+      "upstream_revision": "TORCS 1.3.9 release",
+      "modified": false,
+      "sha256": "ec1e7e0fb438c171bbbc603e7202aab653c5211c3a27aa0ee703fbd1e68c860f",
+      "notes": "Unchanged SGI texture fixture. Artwork terms retained in Artwork/aalborg/readme.txt; not GPL relicensed. Original archive: https://sourceforge.net/projects/torcs/files/all-in-one/1.3.9/torcs-1.3.9.tar.bz2/download"
+    },
+    {
+      "path": "Tests/UnitTests/Fixtures/Artwork/aalborg/tr-asphalt-2-aa-r_n.rgb",
+      "source": "data/tracks/aalborg/tr-asphalt-2-aa-r_n.rgb",
+      "author": "2002 Torben Thellefsen, Eric Espie; 2005, 2012 Bernhard Wymann",
+      "copyright": "2002 Torben Thellefsen, Eric Espie; 2005, 2012 Bernhard Wymann",
+      "license": "Free Art License (unversioned upstream notice)",
+      "license_url": "https://artlibre.org/licence/lal/en/",
+      "upstream_revision": "TORCS 1.3.9 release",
+      "modified": false,
+      "sha256": "a8a079e87f13c51d71750ee869a60afa0219eddc5dfbb088c38677e83efdb39e",
+      "notes": "Unchanged SGI texture fixture. Artwork terms retained in Artwork/aalborg/readme.txt; not GPL relicensed. Original archive: https://sourceforge.net/projects/torcs/files/all-in-one/1.3.9/torcs-1.3.9.tar.bz2/download"
+    },
+    {
+      "path": "Tests/UnitTests/Fixtures/Artwork/aalborg/tr-asphalt-aa-bw1_n.rgb",
+      "source": "data/tracks/aalborg/tr-asphalt-aa-bw1_n.rgb",
+      "author": "2002 Torben Thellefsen, Eric Espie; 2005, 2012 Bernhard Wymann",
+      "copyright": "2002 Torben Thellefsen, Eric Espie; 2005, 2012 Bernhard Wymann",
+      "license": "Free Art License (unversioned upstream notice)",
+      "license_url": "https://artlibre.org/licence/lal/en/",
+      "upstream_revision": "TORCS 1.3.9 release",
+      "modified": false,
+      "sha256": "0f9b072ec3428b51f2c2eae1b0ed9797995ad74ce17f3b0a441c8d74d82d2eb3",
+      "notes": "Unchanged SGI texture fixture. Artwork terms retained in Artwork/aalborg/readme.txt; not GPL relicensed. Original archive: https://sourceforge.net/projects/torcs/files/all-in-one/1.3.9/torcs-1.3.9.tar.bz2/download"
+    },
+    {
+      "path": "Tests/UnitTests/Fixtures/Artwork/aalborg/tr-asphalt-aa-bw2-e_n.rgb",
+      "source": "data/tracks/aalborg/tr-asphalt-aa-bw2-e_n.rgb",
+      "author": "2002 Torben Thellefsen, Eric Espie; 2005, 2012 Bernhard Wymann",
+      "copyright": "2002 Torben Thellefsen, Eric Espie; 2005, 2012 Bernhard Wymann",
+      "license": "Free Art License (unversioned upstream notice)",
+      "license_url": "https://artlibre.org/licence/lal/en/",
+      "upstream_revision": "TORCS 1.3.9 release",
+      "modified": false,
+      "sha256": "4252ec456d0e5bb1886fc09044ac1e4792d4f67e0cbd197db94a257667ca491e",
+      "notes": "Unchanged SGI texture fixture. Artwork terms retained in Artwork/aalborg/readme.txt; not GPL relicensed. Original archive: https://sourceforge.net/projects/torcs/files/all-in-one/1.3.9/torcs-1.3.9.tar.bz2/download"
+    },
+    {
+      "path": "Tests/UnitTests/Fixtures/Artwork/aalborg/tr-asphalt-aa-bw2-s_n.rgb",
+      "source": "data/tracks/aalborg/tr-asphalt-aa-bw2-s_n.rgb",
+      "author": "2002 Torben Thellefsen, Eric Espie; 2005, 2012 Bernhard Wymann",
+      "copyright": "2002 Torben Thellefsen, Eric Espie; 2005, 2012 Bernhard Wymann",
+      "license": "Free Art License (unversioned upstream notice)",
+      "license_url": "https://artlibre.org/licence/lal/en/",
+      "upstream_revision": "TORCS 1.3.9 release",
+      "modified": false,
+      "sha256": "32c02b88aef7d21b3c833c1a15393183695ebfd066b02311a3a9d2f9033a745a",
+      "notes": "Unchanged SGI texture fixture. Artwork terms retained in Artwork/aalborg/readme.txt; not GPL relicensed. Original archive: https://sourceforge.net/projects/torcs/files/all-in-one/1.3.9/torcs-1.3.9.tar.bz2/download"
+    },
+    {
+      "path": "Tests/UnitTests/Fixtures/Artwork/aalborg/tr-asphalt-aa-bw2_n.rgb",
+      "source": "data/tracks/aalborg/tr-asphalt-aa-bw2_n.rgb",
+      "author": "2002 Torben Thellefsen, Eric Espie; 2005, 2012 Bernhard Wymann",
+      "copyright": "2002 Torben Thellefsen, Eric Espie; 2005, 2012 Bernhard Wymann",
+      "license": "Free Art License (unversioned upstream notice)",
+      "license_url": "https://artlibre.org/licence/lal/en/",
+      "upstream_revision": "TORCS 1.3.9 release",
+      "modified": false,
+      "sha256": "76c8b9cf8d81d4c573cd26a8f03296bdf0878efe01d6f315360150c89735cab1",
+      "notes": "Unchanged SGI texture fixture. Artwork terms retained in Artwork/aalborg/readme.txt; not GPL relicensed. Original archive: https://sourceforge.net/projects/torcs/files/all-in-one/1.3.9/torcs-1.3.9.tar.bz2/download"
+    },
+    {
+      "path": "Tests/UnitTests/Fixtures/Artwork/aalborg/tr-asphalt-aa-l_n.rgb",
+      "source": "data/tracks/aalborg/tr-asphalt-aa-l_n.rgb",
+      "author": "2002 Torben Thellefsen, Eric Espie; 2005, 2012 Bernhard Wymann",
+      "copyright": "2002 Torben Thellefsen, Eric Espie; 2005, 2012 Bernhard Wymann",
+      "license": "Free Art License (unversioned upstream notice)",
+      "license_url": "https://artlibre.org/licence/lal/en/",
+      "upstream_revision": "TORCS 1.3.9 release",
+      "modified": false,
+      "sha256": "d5757e71a86a5b9dd05c2f4d053806f5554420a6a22f8f2e7681371a994b6658",
+      "notes": "Unchanged SGI texture fixture. Artwork terms retained in Artwork/aalborg/readme.txt; not GPL relicensed. Original archive: https://sourceforge.net/projects/torcs/files/all-in-one/1.3.9/torcs-1.3.9.tar.bz2/download"
+    },
+    {
+      "path": "Tests/UnitTests/Fixtures/Artwork/aalborg/tr-asphalt-aa-pe-bw1_n.rgb",
+      "source": "data/tracks/aalborg/tr-asphalt-aa-pe-bw1_n.rgb",
+      "author": "2002 Torben Thellefsen, Eric Espie; 2005, 2012 Bernhard Wymann",
+      "copyright": "2002 Torben Thellefsen, Eric Espie; 2005, 2012 Bernhard Wymann",
+      "license": "Free Art License (unversioned upstream notice)",
+      "license_url": "https://artlibre.org/licence/lal/en/",
+      "upstream_revision": "TORCS 1.3.9 release",
+      "modified": false,
+      "sha256": "7ea3588c89d4f89fccf360f2ffca23dbcac3bba6f3ab464c94145af7ea12870a",
+      "notes": "Unchanged SGI texture fixture. Artwork terms retained in Artwork/aalborg/readme.txt; not GPL relicensed. Original archive: https://sourceforge.net/projects/torcs/files/all-in-one/1.3.9/torcs-1.3.9.tar.bz2/download"
+    },
+    {
+      "path": "Tests/UnitTests/Fixtures/Artwork/aalborg/tr-asphalt-aa-pt-bw1_n.rgb",
+      "source": "data/tracks/aalborg/tr-asphalt-aa-pt-bw1_n.rgb",
+      "author": "2002 Torben Thellefsen, Eric Espie; 2005, 2012 Bernhard Wymann",
+      "copyright": "2002 Torben Thellefsen, Eric Espie; 2005, 2012 Bernhard Wymann",
+      "license": "Free Art License (unversioned upstream notice)",
+      "license_url": "https://artlibre.org/licence/lal/en/",
+      "upstream_revision": "TORCS 1.3.9 release",
+      "modified": false,
+      "sha256": "3cf232dc4ba082785537bf1e11056449aad2aff3223d8c3d6bbd1a920768598e",
+      "notes": "Unchanged SGI texture fixture. Artwork terms retained in Artwork/aalborg/readme.txt; not GPL relicensed. Original archive: https://sourceforge.net/projects/torcs/files/all-in-one/1.3.9/torcs-1.3.9.tar.bz2/download"
+    },
+    {
+      "path": "Tests/UnitTests/Fixtures/Artwork/aalborg/tr-asphalt-aa-ro-bw1_n.rgb",
+      "source": "data/tracks/aalborg/tr-asphalt-aa-ro-bw1_n.rgb",
+      "author": "2002 Torben Thellefsen, Eric Espie; 2005, 2012 Bernhard Wymann",
+      "copyright": "2002 Torben Thellefsen, Eric Espie; 2005, 2012 Bernhard Wymann",
+      "license": "Free Art License (unversioned upstream notice)",
+      "license_url": "https://artlibre.org/licence/lal/en/",
+      "upstream_revision": "TORCS 1.3.9 release",
+      "modified": false,
+      "sha256": "f4f76f6b2e27e0426af171fd3d1e5ee3a4575578d548096f52e45093e7412cf5",
+      "notes": "Unchanged SGI texture fixture. Artwork terms retained in Artwork/aalborg/readme.txt; not GPL relicensed. Original archive: https://sourceforge.net/projects/torcs/files/all-in-one/1.3.9/torcs-1.3.9.tar.bz2/download"
+    },
+    {
+      "path": "Tests/UnitTests/Fixtures/Artwork/aalborg/tr-asphalt-to-g-aa-l_n.rgb",
+      "source": "data/tracks/aalborg/tr-asphalt-to-g-aa-l_n.rgb",
+      "author": "2002 Torben Thellefsen, Eric Espie; 2005, 2012 Bernhard Wymann",
+      "copyright": "2002 Torben Thellefsen, Eric Espie; 2005, 2012 Bernhard Wymann",
+      "license": "Free Art License (unversioned upstream notice)",
+      "license_url": "https://artlibre.org/licence/lal/en/",
+      "upstream_revision": "TORCS 1.3.9 release",
+      "modified": false,
+      "sha256": "e59e9d54f3d844de630dc1d951425ccfb039cf6a79e800a8ccce21fbf1fd13c7",
+      "notes": "Unchanged SGI texture fixture. Artwork terms retained in Artwork/aalborg/readme.txt; not GPL relicensed. Original archive: https://sourceforge.net/projects/torcs/files/all-in-one/1.3.9/torcs-1.3.9.tar.bz2/download"
+    },
+    {
+      "path": "Tests/UnitTests/Fixtures/Artwork/aalborg/tr-barrier-aa-1.rgb",
+      "source": "data/tracks/aalborg/tr-barrier-aa-1.rgb",
+      "author": "2002 Torben Thellefsen, Eric Espie; 2005, 2012 Bernhard Wymann",
+      "copyright": "2002 Torben Thellefsen, Eric Espie; 2005, 2012 Bernhard Wymann",
+      "license": "Free Art License (unversioned upstream notice)",
+      "license_url": "https://artlibre.org/licence/lal/en/",
+      "upstream_revision": "TORCS 1.3.9 release",
+      "modified": false,
+      "sha256": "98a21cda85d525cc212a4e265935891e9337fa43af5a533e061844ef93fff901",
+      "notes": "Unchanged SGI texture fixture. Artwork terms retained in Artwork/aalborg/readme.txt; not GPL relicensed. Original archive: https://sourceforge.net/projects/torcs/files/all-in-one/1.3.9/torcs-1.3.9.tar.bz2/download"
+    },
+    {
+      "path": "Tests/UnitTests/Fixtures/Artwork/aalborg/tr-curb-bw-aa-r.rgb",
+      "source": "data/tracks/aalborg/tr-curb-bw-aa-r.rgb",
+      "author": "2002 Torben Thellefsen, Eric Espie; 2005, 2012 Bernhard Wymann",
+      "copyright": "2002 Torben Thellefsen, Eric Espie; 2005, 2012 Bernhard Wymann",
+      "license": "Free Art License (unversioned upstream notice)",
+      "license_url": "https://artlibre.org/licence/lal/en/",
+      "upstream_revision": "TORCS 1.3.9 release",
+      "modified": false,
+      "sha256": "4b72fc9e07b549400e83913c26dc93e2da647ff0c78a0b070a2c0922bbed2c90",
+      "notes": "Unchanged SGI texture fixture. Artwork terms retained in Artwork/aalborg/readme.txt; not GPL relicensed. Original archive: https://sourceforge.net/projects/torcs/files/all-in-one/1.3.9/torcs-1.3.9.tar.bz2/download"
+    },
+    {
+      "path": "Tests/UnitTests/Fixtures/Artwork/aalborg/tr-g-to-asphalt-aa-l_n.rgb",
+      "source": "data/tracks/aalborg/tr-g-to-asphalt-aa-l_n.rgb",
+      "author": "2002 Torben Thellefsen, Eric Espie; 2005, 2012 Bernhard Wymann",
+      "copyright": "2002 Torben Thellefsen, Eric Espie; 2005, 2012 Bernhard Wymann",
+      "license": "Free Art License (unversioned upstream notice)",
+      "license_url": "https://artlibre.org/licence/lal/en/",
+      "upstream_revision": "TORCS 1.3.9 release",
+      "modified": false,
+      "sha256": "b9237d7eb093cd49075746fa54e9face211f554adbcc72d4e3af0572d00f2e73",
+      "notes": "Unchanged SGI texture fixture. Artwork terms retained in Artwork/aalborg/readme.txt; not GPL relicensed. Original archive: https://sourceforge.net/projects/torcs/files/all-in-one/1.3.9/torcs-1.3.9.tar.bz2/download"
+    },
+    {
+      "path": "Tests/UnitTests/Fixtures/Artwork/aalborg/tr-grass-aa-l_n.rgb",
+      "source": "data/tracks/aalborg/tr-grass-aa-l_n.rgb",
+      "author": "2002 Torben Thellefsen, Eric Espie; 2005, 2012 Bernhard Wymann",
+      "copyright": "2002 Torben Thellefsen, Eric Espie; 2005, 2012 Bernhard Wymann",
+      "license": "Free Art License (unversioned upstream notice)",
+      "license_url": "https://artlibre.org/licence/lal/en/",
+      "upstream_revision": "TORCS 1.3.9 release",
+      "modified": false,
+      "sha256": "b065a43289cb09bdcdd63a662f94b61ab8d85b6c51345235a843671c31641c32",
+      "notes": "Unchanged SGI texture fixture. Artwork terms retained in Artwork/aalborg/readme.txt; not GPL relicensed. Original archive: https://sourceforge.net/projects/torcs/files/all-in-one/1.3.9/torcs-1.3.9.tar.bz2/download"
+    },
+    {
+      "path": "Tests/UnitTests/Fixtures/Artwork/aalborg/raceline.png",
+      "source": "data/tracks/aalborg/raceline.png",
+      "author": "2002 Torben Thellefsen, Eric Espie; 2005, 2012 Bernhard Wymann",
+      "copyright": "2002 Torben Thellefsen, Eric Espie; 2005, 2012 Bernhard Wymann",
+      "license": "Free Art License (unversioned upstream notice)",
+      "license_url": "https://artlibre.org/licence/lal/en/",
+      "upstream_revision": "TORCS 1.3.9 release",
+      "modified": false,
+      "sha256": "e0e3a7f10848b55aa00d50f5e6fd2aa30e67443e30804d952da26c9a9660b21f",
+      "notes": "Unchanged parser/image fixture; Free Art terms retained in Artwork/aalborg/readme.txt. Original archive: https://sourceforge.net/projects/torcs/files/all-in-one/1.3.9/torcs-1.3.9.tar.bz2/download . Not relicensed as GPL."
+    },
+    {
+      "path": "Tests/UnitTests/Fixtures/Artwork/trb1-3/readme.txt",
+      "source": "data/cars/wheels/trb1-3/readme.txt",
+      "author": "Bernhard Wymann",
+      "copyright": "Copyright \u00a9 2010 Bernhard Wymann",
+      "license": "Free Art License (unversioned upstream notice)",
+      "license_url": "https://artlibre.org/licence/lal/en/",
+      "upstream_revision": "TORCS 1.3.9 release",
+      "modified": false,
+      "sha256": "1201ce8632f18df47fc3c65edb52ae45fc4e1c2d689c84edefdd1d4b61a4a480",
+      "notes": "Unchanged parser/image fixture; Free Art terms retained in Artwork/trb1-3/readme.txt. Original archive: https://sourceforge.net/projects/torcs/files/all-in-one/1.3.9/torcs-1.3.9.tar.bz2/download . Not relicensed as GPL."
+    },
+    {
+      "path": "Tests/UnitTests/Fixtures/Artwork/trb1-3/wheel3d.png",
+      "source": "data/cars/wheels/trb1-3/wheel3d.png",
+      "author": "Bernhard Wymann",
+      "copyright": "Copyright \u00a9 2010 Bernhard Wymann",
+      "license": "Free Art License (unversioned upstream notice)",
+      "license_url": "https://artlibre.org/licence/lal/en/",
+      "upstream_revision": "TORCS 1.3.9 release",
+      "modified": false,
+      "sha256": "4f1f2017cb000cabfcdae5866d7e4eaca1efc18f2dedfcb38fa651a90e4dbb6b",
+      "notes": "Unchanged parser/image fixture; Free Art terms retained in Artwork/trb1-3/readme.txt. Original archive: https://sourceforge.net/projects/torcs/files/all-in-one/1.3.9/torcs-1.3.9.tar.bz2/download . Not relicensed as GPL."
+    },
+    {
+      "path": "Tests/UnitTests/Fixtures/Artwork/trb1-3/wheel0.acc",
+      "source": "data/cars/wheels/trb1-3/wheel0.acc",
+      "author": "Bernhard Wymann",
+      "copyright": "Copyright \u00a9 2010 Bernhard Wymann",
+      "license": "Free Art License (unversioned upstream notice)",
+      "license_url": "https://artlibre.org/licence/lal/en/",
+      "upstream_revision": "TORCS 1.3.9 release",
+      "modified": false,
+      "sha256": "66518e398e104f64cf2c996f01b95920dd3b0d79e28c8c3d09e29a5ee124fe1c",
+      "notes": "Unchanged parser/image fixture; Free Art terms retained in Artwork/trb1-3/readme.txt. Original archive: https://sourceforge.net/projects/torcs/files/all-in-one/1.3.9/torcs-1.3.9.tar.bz2/download . Not relicensed as GPL."
+    },
+    {
+      "path": "Tests/UnitTests/Fixtures/Artwork/trb1-3/wheel1.acc",
+      "source": "data/cars/wheels/trb1-3/wheel1.acc",
+      "author": "Bernhard Wymann",
+      "copyright": "Copyright \u00a9 2010 Bernhard Wymann",
+      "license": "Free Art License (unversioned upstream notice)",
+      "license_url": "https://artlibre.org/licence/lal/en/",
+      "upstream_revision": "TORCS 1.3.9 release",
+      "modified": false,
+      "sha256": "af486c705840230e83d5f3fd3e54ff937fd1399e3a6c7b67a03fed9c3edd8bae",
+      "notes": "Unchanged parser/image fixture; Free Art terms retained in Artwork/trb1-3/readme.txt. Original archive: https://sourceforge.net/projects/torcs/files/all-in-one/1.3.9/torcs-1.3.9.tar.bz2/download . Not relicensed as GPL."
+    },
+    {
+      "path": "Tests/UnitTests/Fixtures/Artwork/trb1-3/wheel2.acc",
+      "source": "data/cars/wheels/trb1-3/wheel2.acc",
+      "author": "Bernhard Wymann",
+      "copyright": "Copyright \u00a9 2010 Bernhard Wymann",
+      "license": "Free Art License (unversioned upstream notice)",
+      "license_url": "https://artlibre.org/licence/lal/en/",
+      "upstream_revision": "TORCS 1.3.9 release",
+      "modified": false,
+      "sha256": "f43472f4b0a2e29269469d27370405439a14a8b3e82d47f66fc5fa03d335178e",
+      "notes": "Unchanged parser/image fixture; Free Art terms retained in Artwork/trb1-3/readme.txt. Original archive: https://sourceforge.net/projects/torcs/files/all-in-one/1.3.9/torcs-1.3.9.tar.bz2/download . Not relicensed as GPL."
+    },
+    {
+      "path": "Tests/UnitTests/Fixtures/Artwork/trb1-3/wheel3.acc",
+      "source": "data/cars/wheels/trb1-3/wheel3.acc",
+      "author": "Bernhard Wymann",
+      "copyright": "Copyright \u00a9 2010 Bernhard Wymann",
+      "license": "Free Art License (unversioned upstream notice)",
+      "license_url": "https://artlibre.org/licence/lal/en/",
+      "upstream_revision": "TORCS 1.3.9 release",
+      "modified": false,
+      "sha256": "bfffb1c80470f272462faf27a4429d9cafb0658d42da11e95509c245071142cd",
+      "notes": "Unchanged parser/image fixture; Free Art terms retained in Artwork/trb1-3/readme.txt. Original archive: https://sourceforge.net/projects/torcs/files/all-in-one/1.3.9/torcs-1.3.9.tar.bz2/download . Not relicensed as GPL."
+    },
+    {
+      "path": "Tests/UnitTests/Fixtures/Artwork/aalborg/background.png",
+      "source": "data/tracks/aalborg/background.png",
+      "author": "Torben Thellefsen, Eric Espie, Bernhard Wymann; see retained Aalborg readme",
+      "copyright": "(C) 2002 Torben Thellefsen, Eric Espie; (C) 2005, 2012 Bernhard Wymann",
+      "license": "Free Art License (unversioned upstream notice)",
+      "upstream_revision": "TORCS 1.3.9 release",
+      "modified": false,
+      "sha256": "8f5edfde0eaf921450807eebf4ea2390e0af0bfb26e279d57886ec1d3d6f4cdd",
+      "notes": "Original Aalborg background artwork, covered by adjacent Free Art readme."
+    }
+  ],
+  "sourceSnapshot": [
+    {
+      "path": "App/CarTrackShadowSmoke.swift",
+      "sha256": "cd71970dffc40bd0a5b48c6b01f4cd716fdc19750de7d5e66481a510138168b6"
+    },
+    {
+      "path": "App/DrivingControlsEditor.swift",
+      "sha256": "f41047a73648325057b991134e00320f6d363c1d440016a0554fda40fa04f65b"
+    },
+    {
+      "path": "App/DrivingSession.swift",
+      "sha256": "98f43e8548a09b06843afcb67b06ae35cac6fc5f0e0c3791ea19cae31da31736"
+    },
+    {
+      "path": "App/DrivingVisualSmoke.swift",
+      "sha256": "839d5a1c3c1cda624f993a1ba98b78e77b494b20dbaf9abb85c010719e77893e"
+    },
+    {
+      "path": "App/SceneInspector.swift",
+      "sha256": "c308965a91bcad7494962bdfa61b1237796a74d509bb4c62ba4f5ec17afc8606"
+    },
+    {
+      "path": "App/TORCSMacApp.swift",
+      "sha256": "8780342ad384d861328750b4cc15b7b6ee23c82aad181cec3cc8a0e703a77e9e"
+    },
+    {
+      "path": "App/VehicleSceneSmoke.swift",
+      "sha256": "2bddc62c1aba28b028a2925174463e480d8613056603f1f4d15f467f7b1c7c41"
+    },
+    {
+      "path": "Packages/TORCSAssets/ACMeshCache.swift",
+      "sha256": "4ab4139b87154ee7544d516fc4b138719fe02952492106640d185f588f89ae9c"
+    },
+    {
+      "path": "Packages/TORCSAssets/ACParser.swift",
+      "sha256": "a376f8634dd609c45e7d74e82925fc1b960d4b0b9d642d19479ad6f777c9daf5"
+    },
+    {
+      "path": "Packages/TORCSAssets/ACScene.swift",
+      "sha256": "1b346ffd265d0b8692ccd74a99e2c371a2640b1a85670da9fa3486033146fe87"
+    },
+    {
+      "path": "Packages/TORCSAssets/CompiledScene.swift",
+      "sha256": "ed5ed6b63c94fef71ba1ee70206c8e26308a5168223c3c78692050ac63d81c23"
+    },
+    {
+      "path": "Packages/TORCSAssets/PNGTextureImage.swift",
+      "sha256": "55182b7614f1ff592a70d8294b51ed878f00816f99b7d40501eb5ab43638d136"
+    },
+    {
+      "path": "Packages/TORCSAssets/TextureCache.swift",
+      "sha256": "7e393c6b66e44ac17b4917e135b999b2d5ab254be5269dc5d4d7cfdbd3811734"
+    },
+    {
+      "path": "Packages/TORCSAssets/TextureImage.swift",
+      "sha256": "4bb2b2cfecba4cf856338bd1d58b5c2f33dcbf2170ac50116e29d846f1b50537"
+    },
+    {
+      "path": "Packages/TORCSConfiguration/ParameterMerge.swift",
+      "sha256": "309fbc9b2f8f53ad60b1c243a9783ae4e09b360c39a8348a9fe03bd472c5566a"
+    },
+    {
+      "path": "Packages/TORCSConfiguration/Parameters.swift",
+      "sha256": "57c0b897863c665529ecc372f16fe85053bb49b18fe58991ffe6cdc3fe3d9efd"
+    },
+    {
+      "path": "Packages/TORCSConfiguration/Units.swift",
+      "sha256": "1ffd7895e0db85bd97d9986411b9d359b32455a6de1a3a350b1efef957b9fc31"
+    },
+    {
+      "path": "Packages/TORCSCore/ConfigurationStore.swift",
+      "sha256": "70a3458249b2bedaf40c3b4ff37e4ace06a8b0f1c14daf09fa3d8cc8260784d6"
+    },
+    {
+      "path": "Packages/TORCSCore/FixedStepClock.swift",
+      "sha256": "78871e6eaff047f1bb91d4832b76962c3bb479a853778dc84c49b63213242344"
+    },
+    {
+      "path": "Packages/TORCSInput/AxisCalibration.swift",
+      "sha256": "c609f8740bbec78d30673389693317f816c1c1d6c30d53143c04126d154c8eb1"
+    },
+    {
+      "path": "Packages/TORCSInput/DrivingInput.swift",
+      "sha256": "1c8db32fac9f1a3aef53a1ea3458212ce098f1e990fa990efe79f2684c061683"
+    },
+    {
+      "path": "Packages/TORCSInput/GameControllerSource.swift",
+      "sha256": "d9b2aff9976e6e234d003b3b24a5bf5b837d743228d80f2cf0d77dc3009c9530"
+    },
+    {
+      "path": "Packages/TORCSInput/InputConfiguration.swift",
+      "sha256": "b52bf68232f02b3bae994fdc967b7a0553fb57b8099a434b785da55e049202e1"
+    },
+    {
+      "path": "Packages/TORCSMath/Coordinates.swift",
+      "sha256": "b8893446df7ffa823fc44f68226888550d554b1420480fda8e87467a3df93bc2"
+    },
+    {
+      "path": "Packages/TORCSMetal/BenchRenderer.swift",
+      "sha256": "7c59ec7c066062d33c11f2fdf1554cfb10bb55a504008f6844cd83edc6bb2153"
+    },
+    {
+      "path": "Packages/TORCSMetal/CarReflection.swift",
+      "sha256": "5d153cedd3d5db96fca66640bd7851bb3d04c28f9745b9cdad7389c6de67ac82"
+    },
+    {
+      "path": "Packages/TORCSMetal/CarShadow.swift",
+      "sha256": "06613d1ae80f5fbd41db284647d7ea777d60fd4dea9e415f27693cc90168875b"
+    },
+    {
+      "path": "Packages/TORCSMetal/DrivingCamera.swift",
+      "sha256": "cb75a255be8ecfd208931f00654f0c943c4dacc57b854dcd8bc0c10cb4a4ff14"
+    },
+    {
+      "path": "Packages/TORCSMetal/MetalTextureUpload.swift",
+      "sha256": "fdb725b48ad1dee36a34ec12d3cd1bcfd632b46bd7754427fafa75efeb108109"
+    },
+    {
+      "path": "Packages/TORCSMetal/Scene.metal",
+      "sha256": "789a7405fe46d6e1d5a9c59d77566678f485f40e0d8eee1ab81938937c953b01"
+    },
+    {
+      "path": "Packages/TORCSMetal/SceneGeometry.swift",
+      "sha256": "1763f8f60d44859a7239253bb6930f7ce94f54b2789de0659ec09039daa7f91d"
+    },
+    {
+      "path": "Packages/TORCSMetal/SceneRenderer.swift",
+      "sha256": "0c625e4606b5fb7cd4a706f131b471ae6e6b611c99f72375d73297a9ddc791fc"
+    },
+    {
+      "path": "Packages/TORCSMetal/TrackBackground.swift",
+      "sha256": "16488f80367dbbf747dbdfbd6fc8f8a594a79d568137d0f847064188f3b09172"
+    },
+    {
+      "path": "Packages/TORCSMetal/VehiclePresentation.swift",
+      "sha256": "7b2173e5247f48ab362cf4db154d5565c3f5b860a4c7ef3f6bf47c41d66c78ca"
+    },
+    {
+      "path": "Packages/TORCSRaceEngine/DrivingContent.swift",
+      "sha256": "d2286c1cd841143b46311b6b73234ac2c4eadcf1891087b968b090005570f956"
+    },
+    {
+      "path": "Packages/TORCSRaceEngine/DrivingRuntime.swift",
+      "sha256": "58e6aa243cb2f10db1005e8b1c1f47a7997839b7ecbcf33ff861fadc5b8b95e0"
+    },
+    {
+      "path": "Packages/TORCSRaceEngine/DrivingTelemetry.swift",
+      "sha256": "40be6575a0531a73218b97ef4cb997600d1b5f00c597aea4e4042e93d234c4f6"
+    },
+    {
+      "path": "Packages/TORCSRaceEngine/RaceLapTiming.swift",
+      "sha256": "d0ad7c90d67abb322a9df27f4c04b7be62c4d6c6bdb4e9b86620851fbf6e58e7"
+    },
+    {
+      "path": "Packages/TORCSRaceEngine/RacePitController.swift",
+      "sha256": "f6589c9af75455924d2089f6e9a1af7131ce349c65130703ecf0f4df2285f949"
+    },
+    {
+      "path": "Packages/TORCSRaceEngine/RacePitSimulation.swift",
+      "sha256": "0110f88ac340054911c28107ad33a6ec84551c06659dc68c7d3079023628e938"
+    },
+    {
+      "path": "Packages/TORCSSimulation/Aerodynamics.swift",
+      "sha256": "0cf70a24bcb7dff251cda08c46c23763a0c2e0459cd4132fee4607ccf89c557a"
+    },
+    {
+      "path": "Packages/TORCSSimulation/Axle.swift",
+      "sha256": "c5bebecf6e014668ba30fe29851342c856d62093e6f5847775f0d599bdbd69b1"
+    },
+    {
+      "path": "Packages/TORCSSimulation/Brakes.swift",
+      "sha256": "d81a6cab599167a3df720440c460ebfec98e4a97e7b3822bb6694fbda733a36e"
+    },
+    {
+      "path": "Packages/TORCSSimulation/Chassis.swift",
+      "sha256": "6d2243fad02223dea0db4353d5dea5dcacdb0456eec5a4130cf50100d9b5b1ca"
+    },
+    {
+      "path": "Packages/TORCSSimulation/CollisionAffineTransform.swift",
+      "sha256": "906b82707e89e651ae3d271d195d96c05db145d86d9fab1e363af2a95ca8ef99"
+    },
+    {
+      "path": "Packages/TORCSSimulation/ComplexCollision.swift",
+      "sha256": "d8b43ddd1a56842051c160b2fde14552fc6961a545b9daa96fe0bf8620c4a293"
+    },
+    {
+      "path": "Packages/TORCSSimulation/ComponentBench.swift",
+      "sha256": "d9c67a4cf92f6047346a91b2841184df5cb6c2bd859f0d633754cdec5f9d6393"
+    },
+    {
+      "path": "Packages/TORCSSimulation/ConvexCollision.swift",
+      "sha256": "0fa6a729ee38b10cbb7b32b5baf3e687fcbb995647711f13c1cdcbd21dfe34bc"
+    },
+    {
+      "path": "Packages/TORCSSimulation/Differential.swift",
+      "sha256": "58cc647f1b48d33b6978d9f596e361342edbb0f92136176c01f4a1fe2575f7f1"
+    },
+    {
+      "path": "Packages/TORCSSimulation/DriverCommand.swift",
+      "sha256": "42ef101da62089ac6e661df6ca7b6bd6743bd1033de758b980d26d9d93e8725e"
+    },
+    {
+      "path": "Packages/TORCSSimulation/Engine.swift",
+      "sha256": "fba365b7de9a19260df6c37f601ef5b1ef07edca6a5b3269fe0653a7ea39a5f9"
+    },
+    {
+      "path": "Packages/TORCSSimulation/EnvironmentCollision.swift",
+      "sha256": "4a9bca7f35715677038fc3d8086a72148517c081ad9d3f5c5626e374579ce01a"
+    },
+    {
+      "path": "Packages/TORCSSimulation/MultiVehicleSimulation.swift",
+      "sha256": "936c7c88d8290a7b189f412ff2d7b6835e77efa5cb90fd545c033610ec57710f"
+    },
+    {
+      "path": "Packages/TORCSSimulation/ObjectCollision.swift",
+      "sha256": "157d9708a573d1f6b01fd4ba945bd5a383efe00439ed3e35b7341d30d517eac2"
+    },
+    {
+      "path": "Packages/TORCSSimulation/PitReconfiguration.swift",
+      "sha256": "2fb939b8418533d340be26004e5b78ce702a8d6839114c36f428371693780d84"
+    },
+    {
+      "path": "Packages/TORCSSimulation/PitSetup.swift",
+      "sha256": "76046757511bf19621d968c503455737fc867bc62d9c5b6c7d53e00f1231880d"
+    },
+    {
+      "path": "Packages/TORCSSimulation/RunningGearConfiguration.swift",
+      "sha256": "5e2e7b93d8b0d06c3c2557b0639de86d4b97cf56f900e7075ea2cfcdbaca2169"
+    },
+    {
+      "path": "Packages/TORCSSimulation/RunningGearState.swift",
+      "sha256": "bc025856b7e29396974a11385177f9b37543c13e173b91909a6acb28a67cbffa"
+    },
+    {
+      "path": "Packages/TORCSSimulation/SingleVehicleSimulation.swift",
+      "sha256": "e50f7f6fffdbc495f2124696fa496b2596ed9815c5b9cc4f5ff11f98485c9171"
+    },
+    {
+      "path": "Packages/TORCSSimulation/Steering.swift",
+      "sha256": "d51ba86a8ca758572455d7fd40d9061de8ea8f8d85dc161da499a1d6e4f22e33"
+    },
+    {
+      "path": "Packages/TORCSSimulation/Suspension.swift",
+      "sha256": "f3297660f059a1bd332ed2a76aff6d1207cdd401161d665f8be1e8ba0b111116"
+    },
+    {
+      "path": "Packages/TORCSSimulation/TireThermal.swift",
+      "sha256": "8a633a65d651f75cd1d57605563baa04afaa8c93b1a5c79a51b3163b04af400f"
+    },
+    {
+      "path": "Packages/TORCSSimulation/TrackWallCollision.swift",
+      "sha256": "d7243df88753ee8a93765c6bbde2598a872670359aa9d9a5acdef5bddf872294"
+    },
+    {
+      "path": "Packages/TORCSSimulation/Transmission.swift",
+      "sha256": "7176edae4415add6aa5b72da052d43f4cf380436fce3d38ca9c85b4d92b8d830"
+    },
+    {
+      "path": "Packages/TORCSSimulation/VehicleDynamics.swift",
+      "sha256": "ebd6b8dc9d4cceb7d8818287beb664a89c19861b05a2255de83499f9b59a17d3"
+    },
+    {
+      "path": "Packages/TORCSSimulation/VehicleMassProperties.swift",
+      "sha256": "bf9d7f13a90014f25aeeed4f98dd8865d9f0e715997660596d4545a09b91ead3"
+    },
+    {
+      "path": "Packages/TORCSSimulation/VehicleRemoval.swift",
+      "sha256": "0bc62415d30c33a92be24cfd417ab0d44f65013b5cb78f0125a6ce615eebe194"
+    },
+    {
+      "path": "Packages/TORCSSimulation/VehicleVisualSnapshot.swift",
+      "sha256": "f3f48d87720e4e40eac515a795893e0d24432d3666188c8c37a4e5e13c9765d8"
+    },
+    {
+      "path": "Packages/TORCSSimulation/WheelForce.swift",
+      "sha256": "f9ac9807d0c88566405e7d322c52196199c18dd0e23bd822b57beec9f4b3eb38"
+    },
+    {
+      "path": "Packages/TORCSSimulation/WheelKinematics.swift",
+      "sha256": "de0d71ee9557072805ee295c1995506d3bfdc6bba2593c52866beb9bb8c072ba"
+    },
+    {
+      "path": "Packages/TORCSSimulation/WheelRide.swift",
+      "sha256": "9b37444bba3c0ef0817b727ad9a6c74a1bd9ef5863fda2bca50c6f17e55f7658"
+    },
+    {
+      "path": "Packages/TORCSSimulation/WheelRotation.swift",
+      "sha256": "aba02fbdccac7a373d0cb9fb9c66395cb9995a6d8c55f27240f443ee6755e145"
+    },
+    {
+      "path": "Packages/TORCSTelemetry/ComponentScenario.swift",
+      "sha256": "77a71bf6033eeb5be978c3dccc908af1e2508ed5e71360139b361805a45b1709"
+    },
+    {
+      "path": "Packages/TORCSTelemetry/StreamingTelemetryDiff.swift",
+      "sha256": "816d1501d902627ab951914a801c74cad6dc49da20bcd7427b934ad0c0c7b06b"
+    },
+    {
+      "path": "Packages/TORCSTelemetry/Telemetry.swift",
+      "sha256": "c7ae3d6f73ccc1a7cc03bedd510f9f0f457e9a0a5494d89f9996af77e065093e"
+    },
+    {
+      "path": "Packages/TORCSTelemetry/TelemetryReader.swift",
+      "sha256": "86d7b01fb222576845df1d7d4c3e283a3da1e2b0bf948ff4f49c8e79b65190c5"
+    },
+    {
+      "path": "Packages/TORCSTelemetry/VehicleTelemetry.swift",
+      "sha256": "848aeced5a2edd51d6c156a160a57a9068e1f21cfe685d5e3825938934e54f47"
+    },
+    {
+      "path": "Packages/TORCSTrack/TrackBuilder.swift",
+      "sha256": "f86b8926ca1aae6f4362352f2b824b2dc4cfbd44a1fb60ad6a40616df924f4af"
+    },
+    {
+      "path": "Packages/TORCSTrack/TrackGeometry.swift",
+      "sha256": "cd4d01d0947728a0fdff75d35c8c523f4752a7270f1ef86d279c58bf18159ea7"
+    },
+    {
+      "path": "Packages/TORCSTrack/TrackGraphics.swift",
+      "sha256": "788bf4f7bd456dd9d1ff4b25b92cd4a11b96c51e0e2e90d723254378ee05963d"
+    },
+    {
+      "path": "Packages/TORCSTrack/TrackInfrastructure.swift",
+      "sha256": "918f19b5828cf834faeecbf763cbe1a56cdadf25bce96d04f975ad0e49612931"
+    },
+    {
+      "path": "Packages/TORCSTrack/TrackQueries.swift",
+      "sha256": "26f843adb80188ace94c844f7cce2c533b92be1b81ef9c2b2e3204dbe931856b"
+    },
+    {
+      "path": "Tests/UnitTests/ACMeshCacheTests.swift",
+      "sha256": "69ad657867cab63c46ea94f770fde8c23a981c3a78a0f3082d98bdcb00f2e39f"
+    },
+    {
+      "path": "Tests/UnitTests/ACSceneTests.swift",
+      "sha256": "2f8d0c7976a70f9d0dddfa7b181c00ec5201dede037b0f3eb42ef5024c11ac47"
+    },
+    {
+      "path": "Tests/UnitTests/AerodynamicsTests.swift",
+      "sha256": "d6ebfdff964c9e90eb836167e05a01e8b2c425625acd028e076d3bf2a0c24454"
+    },
+    {
+      "path": "Tests/UnitTests/AxleKinematicsTests.swift",
+      "sha256": "0f2cc0419a44c839e55dd17e434d7752e9ad56af26a43b9ee6aaf660472da41e"
+    },
+    {
+      "path": "Tests/UnitTests/CarReflectionTests.swift",
+      "sha256": "2664cbe38369902c873980f2d897888bd14edc8edd8a718db020e4c4a214e011"
+    },
+    {
+      "path": "Tests/UnitTests/CarTrackShadowTests.swift",
+      "sha256": "69530b0d2eab1d6142672817aeffd8127b85cb72dd5ee4fa51648ba1955cf274"
+    },
+    {
+      "path": "Tests/UnitTests/ChassisTests.swift",
+      "sha256": "b64abf8cfe4e9826cb276173e50579dd18082199779f1bdbabab1bcd525f0e28"
+    },
+    {
+      "path": "Tests/UnitTests/ComplexCollisionTests.swift",
+      "sha256": "1521b4fbbc383acc3b6a0d55c58b892068c84c5c1453002be431bd9362cdbe7f"
+    },
+    {
+      "path": "Tests/UnitTests/ConvexCollisionTests.swift",
+      "sha256": "af0ffa407eb18f3df18f40f031d0b1bf9be4e30c7adbd5bafc4491090210137a"
+    },
+    {
+      "path": "Tests/UnitTests/CoreTests.swift",
+      "sha256": "0fcab047d5bd816e34cc1fe3914ca259e3f9b203bff2b2a635e39c319b0772bf"
+    },
+    {
+      "path": "Tests/UnitTests/DifferentialTests.swift",
+      "sha256": "06d2e3a096b1d1cb6d756dd66b15beeb1bf0a7d263c4bd2e13fb77cc7b5538ad"
+    },
+    {
+      "path": "Tests/UnitTests/DriverControlTests.swift",
+      "sha256": "34b6ae1c66c68c14043b1015dccfb5aeeda0a4b2b87501d7586d79482692c9c6"
+    },
+    {
+      "path": "Tests/UnitTests/DrivingInputTests.swift",
+      "sha256": "68f3e8bf12b27caef9549f9c12c9f31ce23ed6efa97c54fb211ea86b9d953693"
+    },
+    {
+      "path": "Tests/UnitTests/DrivingRuntimeTests.swift",
+      "sha256": "2f331ee98d2565a70585b2db4920d53b12cba164c0ad10f6df497400a84096e7"
+    },
+    {
+      "path": "Tests/UnitTests/DrivingVisualTests.swift",
+      "sha256": "7b21156bb573ec6ca71031461ec4fd2df9286cedd6cec91db1b612d38b50a5b4"
+    },
+    {
+      "path": "Tests/UnitTests/EngineTests.swift",
+      "sha256": "e8d00cf2700306175a2ef5c3ca34bd5261bdc79c3e5ac31f21ab25b985511b56"
+    },
+    {
+      "path": "Tests/UnitTests/EnvironmentCollisionTests.swift",
+      "sha256": "bcf7156066544fcf8ccd71620931cc4c9fc0f858811001668a2fc8d2e5e7acc6"
+    },
+    {
+      "path": "Tests/UnitTests/ExteriorCameraTests.swift",
+      "sha256": "34737b911790c3ec381e61b88ba4c45f661c30901867aed859a9165c4de8fd91"
+    },
+    {
+      "path": "Tests/UnitTests/FixedPairDispatchTests.swift",
+      "sha256": "a6448e73f99c3383ba62fc067ece900a6413053dac52cabf1de6d49f17dc9cdd"
+    },
+    {
+      "path": "Tests/UnitTests/FullReferenceTests.swift",
+      "sha256": "07b57847801d7297c4b2a7b578f939d1e342ec6ae9446f465c68c52505371384"
+    },
+    {
+      "path": "Tests/UnitTests/FullSingleCarTests.swift",
+      "sha256": "2e9a0e93e82e64b39fc2ae7297e6b1979968e3dcb953d206e1690bd81b1ba0f0"
+    },
+    {
+      "path": "Tests/UnitTests/MixedCollisionTests.swift",
+      "sha256": "0cc016cfb255434654114db8b53567f8d89c7fb2c53a147372b4195f60db4eab"
+    },
+    {
+      "path": "Tests/UnitTests/MultiVehicleTests.swift",
+      "sha256": "a8689754b784442fb54708f10f88352c24c17682c98827899267b7ef9787f9a0"
+    },
+    {
+      "path": "Tests/UnitTests/ObjectCollisionTests.swift",
+      "sha256": "68ef7ca79b3df7ecbe5a36cd172492d4a39eb44b9265bfdd08a6860563681588"
+    },
+    {
+      "path": "Tests/UnitTests/PNGTextureTests.swift",
+      "sha256": "7e034ad5db507e67d9cddb6f37437c55f765a432337c3d33ce387861e0f7b6b3"
+    },
+    {
+      "path": "Tests/UnitTests/ParameterMergeTests.swift",
+      "sha256": "b01c014a6ff6aff233c7de45c54d9e1aa3521c01ccb162780d7bf062539b48fc"
+    },
+    {
+      "path": "Tests/UnitTests/ParameterTests.swift",
+      "sha256": "93e88cc2f4242300352bffae0b73d9c4d04c70a3ddd6b62af60c19d8ab8f93a5"
+    },
+    {
+      "path": "Tests/UnitTests/PitServiceTests.swift",
+      "sha256": "6761059b0df6e8c3f97d6214f08e199271cce7f54e73ee725e0aece7774dd8ae"
+    },
+    {
+      "path": "Tests/UnitTests/PitSetupTests.swift",
+      "sha256": "1bd0c2fd495d937aea5e8e0cef2b3f976ed7850d3029f96909569fa77cd4b82a"
+    },
+    {
+      "path": "Tests/UnitTests/RaceLapTimingTests.swift",
+      "sha256": "1e84bbc1f788db534ded957e603702dfb5f845d9d696709c7a21f75352f10f5e"
+    },
+    {
+      "path": "Tests/UnitTests/RacePitRuntimeTests.swift",
+      "sha256": "653d9d1f8da20bc7c0579645f1adf32ec9bb0bcd656d792f6112dd993ea5d071"
+    },
+    {
+      "path": "Tests/UnitTests/RacePitTests.swift",
+      "sha256": "29e687bee8b33f92fcfcbe5ac11b7da015cffb5c04026c2f26d17e63787d24f6"
+    },
+    {
+      "path": "Tests/UnitTests/RasterRepeatTests.swift",
+      "sha256": "5ded93f4221d2d8ea2839927b41ab1b9e3685becf9dd95df75c80dca6dba0f31"
+    },
+    {
+      "path": "Tests/UnitTests/RobotReferenceTests.swift",
+      "sha256": "1009ced6f1a0ea92bb67915aa4016233c6b186868aa61597a1963d9114b3c216"
+    },
+    {
+      "path": "Tests/UnitTests/RunningGearIntegrationTests.swift",
+      "sha256": "3b3a837a9c5521c4e4d7b33c38eb4848675df1935be1a7b94b16d489304f92fe"
+    },
+    {
+      "path": "Tests/UnitTests/RunningGearTests.swift",
+      "sha256": "b999db57532ed8c6df31180b4a927162db9ccc368b51bbe93a94cca14b87f841"
+    },
+    {
+      "path": "Tests/UnitTests/SceneRenderingTests.swift",
+      "sha256": "f27e2e329a2d1fe989103d62f517e19813eacf35c718f06959f0cffb83e20742"
+    },
+    {
+      "path": "Tests/UnitTests/SingleVehicleRuntimeTests.swift",
+      "sha256": "a8659d7f5794006bcd754be93e369e83195a4bee04bd9e1501b0184de633f19a"
+    },
+    {
+      "path": "Tests/UnitTests/StreamingTelemetryTests.swift",
+      "sha256": "8a08971affa1fcb778a23fae6003dac17d8fe999c0b9cd0de7d519b31d3c57c6"
+    },
+    {
+      "path": "Tests/UnitTests/TelemetryTests.swift",
+      "sha256": "9c97535e94f6beb915366caba7abf0d7505bbd12321730a33179c39657d3a74c"
+    },
+    {
+      "path": "Tests/UnitTests/TextureCacheTests.swift",
+      "sha256": "f6308d91c674f1396206e127f08ef32e985baa1f2b2b00e2e1dbe2aa27919103"
+    },
+    {
+      "path": "Tests/UnitTests/TextureImageTests.swift",
+      "sha256": "40d6a6939a7f1f49d2076fb5d1ab2b2b88e08cc3b16e422e2065ffb9835ee5e0"
+    },
+    {
+      "path": "Tests/UnitTests/TrackEnvironmentTests.swift",
+      "sha256": "c9578b0f2d953971f75386a652b91fcac72ce9c4be147b862762fcb6be21f0bb"
+    },
+    {
+      "path": "Tests/UnitTests/TrackGeometryTests.swift",
+      "sha256": "c3d463859754308ab5ec8d54589b0d2aff09a0933f853f1d54cbe9df9474e0e0"
+    },
+    {
+      "path": "Tests/UnitTests/TrackWallCollisionTests.swift",
+      "sha256": "03b2c4398d0c941e2efabcb777c797a246b705ea7f4d17950ceca3beeb4f22b6"
+    },
+    {
+      "path": "Tests/UnitTests/TransmissionTests.swift",
+      "sha256": "603b526feb498c27b1fd75d41075d6591f8733d8a7788cd20e19813c13d542d2"
+    },
+    {
+      "path": "Tests/UnitTests/VehicleDynamicsTests.swift",
+      "sha256": "adb9396023c727280fc8ec0162bf23a83fbe7c097e47aaba38b64b417020366d"
+    },
+    {
+      "path": "Tests/UnitTests/VehicleLifecycleTests.swift",
+      "sha256": "5d8451784f60dc44d3118aef45f1a7af1ddf577151c70b2927350cf39220ef9d"
+    },
+    {
+      "path": "Tests/UnitTests/VehicleMassTests.swift",
+      "sha256": "281ce45e1074815999bac48d0434612df7491ccb4f48633f1e5d5ce56520d5e2"
+    },
+    {
+      "path": "Tests/UnitTests/VehiclePresentationTests.swift",
+      "sha256": "174b706673815e9b505097c4e04e22db3fc10b2768777783fd32579df1b8e437"
+    },
+    {
+      "path": "Tests/UnitTests/VehicleRemovalTests.swift",
+      "sha256": "789c582a9c3b5e8cba10eec87a4259a6f143ac64aed7a3382e3bceb0155052f9"
+    },
+    {
+      "path": "Tests/UnitTests/WheelForceTests.swift",
+      "sha256": "f1ab1507f12c9e2fee49248c39a93c67b9e8642f9d6d4758b282db3b87679a22"
+    },
+    {
+      "path": "Tests/UnitTests/WheelRideTests.swift",
+      "sha256": "ef17ed26f6602a84acc69165d7bb6b1ccc3c0c6810df5422de44a8adc9fbc3d5"
+    },
+    {
+      "path": "Tests/UnitTests/WheelThermalRotationTests.swift",
+      "sha256": "efb0ab45e31394d47c3bd83cf444b27b02455fc59846c4c867ea07fd7a71162c"
+    },
+    {
+      "path": "Scripts/build-app.sh",
+      "sha256": "75515f1fd8e61f7c15cb56b75bdefdcaf80d43293388d0ff7c3f2556f1be28d5"
+    },
+    {
+      "path": "Scripts/notarize.sh",
+      "sha256": "f36c2de9befa208c9e80b01bd389b0292c7302c61ce29ca2ec9120aeaccb7d2b"
+    },
+    {
+      "path": "Scripts/prepare-driving-session.py",
+      "sha256": "b136266e883b061ceeeb18b7e695f9134d3f17894f2a4aa4a6bb13d603f8cee3"
+    },
+    {
+      "path": "Scripts/verify-assets.py",
+      "sha256": "e492e7201f93867ff25bc45328b7a036e8189735b49c0836875aa7c036b2e010"
+    },
+    {
+      "path": "Scripts/verify-car-collision.sh",
+      "sha256": "ecea67eedca4c013b5872944b66a7570d602088d057b835039f486fcd9a8c4ad"
+    },
+    {
+      "path": "Scripts/verify-provenance.py",
+      "sha256": "67b573498681edb106d1f0d1614e683dda34b775ebb50e3a095a6232d3d5a42b"
+    },
+    {
+      "path": "Scripts/verify-reference-world.py",
+      "sha256": "0b8bdae4828fc554c0406a9574357880f675ed362257ac3723470b2fdfd71e4a"
+    },
+    {
+      "path": "Scripts/verify-scenes.py",
+      "sha256": "4cabe3b65c853af50bca249b068b983838b3160ddbeb6e5230fea92fc465ec7a"
+    },
+    {
+      "path": "Scripts/verify-single-car.sh",
+      "sha256": "5d53f5d393024107381da224bf944ee18e072cde46b43d55a4a608b8dd219b1c"
+    },
+    {
+      "path": "Scripts/verify-streaming-telemetry.py",
+      "sha256": "02bc8d684d88cb250ffe8aea5afde67684554e6a99478b965f8ed7776e6d5d9e"
+    },
+    {
+      "path": "Scripts/verify-textures.py",
+      "sha256": "8fb5b72554b7aa0a57a3532e859442bc68a4dbfaf7080a195a1c8ecbc3753ae6"
+    },
+    {
+      "path": "Scripts/verify-upstream-archive.py",
+      "sha256": "a90a39bb0dd83b4161f249978ea3faeade2f2ab387769a8945598f063d11605b"
+    },
+    {
+      "path": "Scripts/verify-vehicle-scene.py",
+      "sha256": "4317b96aace4ef692ccef559e56ca3391e30b6cb57e829dbdc475a591f0e9ded"
+    },
+    {
+      "path": "Scripts/verify.sh",
+      "sha256": "47b0f5e6fca5fa3c80d31f5c8b97f6a906487c4a94c5d2ee47103ad37710cf11"
+    },
+    {
+      "path": "Package.swift",
+      "sha256": "7e519ec6d0a9e65dee2cfa59bfd10736d019c66a62f8bdd2dab2db60f616e24f"
+    },
+    {
+      "path": "Upstream/Reference/asset-instrumentation.cpp",
+      "sha256": "243d284e7bc6db9ba1619b3a37ce9b8b2ed7344f3010d2ec5ac18884c8682ade"
+    },
+    {
+      "path": "Upstream/Reference/graphics-instrumentation.cpp",
+      "sha256": "73d5d669ece3cb27e68536722ebbe210165638e7ac70170e034b2b451fd64e0d"
+    },
+    {
+      "path": "Upstream/Reference/include/CReference.h",
+      "sha256": "4c87e8a5772dd51b5bf850f2c05712ac4dcf3473f853523f56a122732f7afd0a"
+    },
+    {
+      "path": "Upstream/Reference/graphics/track-shadow-matrix.inc",
+      "sha256": "6fff13be1fbb34f79b730216cc8a38bd58ef38f582afbcaecdac18218fcb31f5"
+    },
+    {
+      "path": "Upstream/Reference/graphics/car-shadow-scale-init.inc",
+      "sha256": "617c7aeee199e3f943109a14e068d1e68e33568a5c5721299558c59ec6efbe58"
+    },
+    {
+      "path": "Upstream/Reference/graphics/wheel-model-load.inc",
+      "sha256": "24e839f58719081ec0ce9bb036ae213eda87d12316ff2916ea26aa64ca986759"
+    },
+    {
+      "path": "Upstream/source-manifest.json",
+      "sha256": "15511e46a757470670d12e3315353de71549d573e1b79b1e466e9ebf3dab7288"
+    },
+    {
+      "path": "Resources/asset-manifest.json",
+      "sha256": "b341d477b01d90fdd55984a3c5b3c8ede25674614a1c9915fa7657e3670d03d3"
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES.md",
+      "sha256": "6a4268eeb2a35a9306c9550f1fc899e26e855dfd94a157fcfe85f1385095e9fd"
+    },
+    {
+      "path": "Documentation/CAR_TRACK_SHADOWS.md",
+      "sha256": "7a2203295dd7382413532d54750346eb899138071c60149026851b823dea7edb"
+    },
+    {
+      "path": "Documentation/PORT_STATUS.md",
+      "sha256": "b54f3e4cb3c744ac79a8588649c027dfff982ddfbdd0c8993ed3e9592a2006d0"
+    },
+    {
+      "path": "Documentation/UPSTREAM.md",
+      "sha256": "dab1949497beba710a828828f3de6b8b1a89c1c9a037e415f802d53810425336"
+    },
+    {
+      "path": "Documentation/ASSET_PIPELINE.md",
+      "sha256": "6f5514f0b5531982648d44135e6fb5fe0ca45bde217a3eab054d8476a02725c9"
+    },
+    {
+      "path": "README.md",
+      "sha256": "57ef2797539a09fcdbbf4e46f02478ad93553d149a9f623bd1c34af75c0b6a70"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "Artifacts/track-shadow-preview-final-first/bonnet.png",
+      "sha256": "124bee631f5a618f17a5315fb6c97034d75572c074244c657fd389fe532d1479"
+    },
+    {
+      "path": "Artifacts/track-shadow-preview-final-first/chase.png",
+      "sha256": "3f2a6867db04c573c54e1c10495c8c8fcfc716892a8af1d634a5edc271a5b9e2"
+    },
+    {
+      "path": "Artifacts/track-shadow-preview-final-first/classic-no-shadow.png",
+      "sha256": "45611c2fa30ad5416e11226f8cdf80ed2577439cef1a935e69e629b969c56655"
+    },
+    {
+      "path": "Artifacts/track-shadow-preview-final-first/classic-shadow-no-reflections.png",
+      "sha256": "4ac94234438df1c0ae174e806a92f452c1fa046b3e4dfde1cb64d529cd024c99"
+    },
+    {
+      "path": "Artifacts/track-shadow-preview-final-first/classic-shadow-no-track-projection.png",
+      "sha256": "3f2a6867db04c573c54e1c10495c8c8fcfc716892a8af1d634a5edc271a5b9e2"
+    },
+    {
+      "path": "Artifacts/track-shadow-preview-final-first/classic-shadow.png",
+      "sha256": "3f2a6867db04c573c54e1c10495c8c8fcfc716892a8af1d634a5edc271a5b9e2"
+    },
+    {
+      "path": "Artifacts/track-shadow-preview-final-first/enhanced-shadow.png",
+      "sha256": "a9d648eeb52066bba1e72825ce867172143bb4fd7e696f9175fa5336f005de7c"
+    },
+    {
+      "path": "Artifacts/track-shadow-preview-final-first/far-chase.png",
+      "sha256": "146f33901ddabad0f611b592a75c698e35110d7f595f6402f80117add5fae75e"
+    },
+    {
+      "path": "Artifacts/track-shadow-preview-final-first/low-chase.png",
+      "sha256": "6cce95b79841a5853205ad90611d4ae20e4aa77d1679980514290de3458c28af"
+    },
+    {
+      "path": "Artifacts/track-shadow-preview-final-first/near-chase.png",
+      "sha256": "503ec6535ae39db1d206783cf314ada32bab77d6453bd7372ab9fc53daed683c"
+    },
+    {
+      "path": "Artifacts/track-shadow-preview-final-first/overhead-1.png",
+      "sha256": "988675aa220ad588737bfda24bab026f6ddc27fa366bea1c935418232c64a5f2"
+    },
+    {
+      "path": "Artifacts/track-shadow-preview-final-first/overhead-2.png",
+      "sha256": "b40e3c6aeed3cf2f8ab5fc0a36ae1e606834d95fa9456c95dcfe5cb0fef79434"
+    },
+    {
+      "path": "Artifacts/track-shadow-preview-final-first/overhead-3.png",
+      "sha256": "17d78263100223c992d4edbc4aad2bfa46cb53ba701341264cd155fb2c14473b"
+    },
+    {
+      "path": "Artifacts/track-shadow-preview-final-first/overhead-4.png",
+      "sha256": "c3b0c50ed10b41063a96081e761cbc864526c0d713b798247b1ce1a66102c10e"
+    },
+    {
+      "path": "Artifacts/track-shadow-preview-final-first/previous-placeholder-lighting.png",
+      "sha256": "5c843964fd3b23482ddb039a453e7613d524e94aacdddbbe0f1d90fd502e33db"
+    },
+    {
+      "path": "Artifacts/track-shadow-preview-final-first/projection-witness-disabled.png",
+      "sha256": "37d6508651ad3beead819a62c96e504359d04fab3041ff6652f4cca807fcd1f1"
+    },
+    {
+      "path": "Artifacts/track-shadow-preview-final-first/projection-witness-enabled.png",
+      "sha256": "3db639fa4fdd01620f3f44e0bbd00b912c95dc59e18d00a6f22f1802a2ac7d47"
+    },
+    {
+      "path": "Artifacts/track-shadow-preview-final-first/report.json",
+      "sha256": "5cf177d16610b80a43b417e5f2d0b693b0fd726ed6f910dc9af0040ad5925fc8"
+    },
+    {
+      "path": "Artifacts/track-shadow-preview-final-first/reverse.png",
+      "sha256": "60b00e041856d1b7a760acab6e6c8418ece68dbe22a0cfc783520927bdeca49c"
+    },
+    {
+      "path": "Artifacts/track-shadow-preview-final-first/road.png",
+      "sha256": "0587f014a3a9a7e60cd0e574a67bd0dd8580aa4ba12e16eec200dd32b7c4c955"
+    },
+    {
+      "path": "Artifacts/track-shadow-preview-final-first/side-1.png",
+      "sha256": "17ad812dfb4af3a04fbb1e9823ff03094849be5f8f659e6062d04f4f67aaa10e"
+    },
+    {
+      "path": "Artifacts/track-shadow-preview-final-first/side-2.png",
+      "sha256": "bb559c2c1a83e4a7351e36b63e1204ae489b1478d9e25c4d81255b253aa3c6cd"
+    },
+    {
+      "path": "Artifacts/track-shadow-preview-final-first/side-3.png",
+      "sha256": "111f8d7ca0d19deda5a3ff8a7a0366696b1bd9ac068398fb0b9391da07ccd841"
+    },
+    {
+      "path": "Artifacts/track-shadow-preview-final-first/side-4.png",
+      "sha256": "1727ba2ef135c96f2bdcfc136a25a915152eb888b3efa87248e5aa54d3ab6c68"
+    },
+    {
+      "path": "Artifacts/track-shadow-preview-final-first/side-5.png",
+      "sha256": "0bb74ce44fefec2e505b8c308c1705c4d6ccda631232de98326f30d816fb2727"
+    },
+    {
+      "path": "Artifacts/track-shadow-preview-final-first/side-6.png",
+      "sha256": "7ac95d9c199e4ff6aee1c364a2ae112ba5cf47b6a136a63fe96dd0fbf3401ce3"
+    },
+    {
+      "path": "Artifacts/track-shadow-preview-final-first/side-7.png",
+      "sha256": "7b2cfdbeb5648ded0dc988e6ae5a444626fd2084c2b06f4eb7ffc6d4ec3d0e7a"
+    },
+    {
+      "path": "Artifacts/track-shadow-preview-final-first/side-8.png",
+      "sha256": "66403c20f11826c9ed332f0fb3e39dc3b25148ab6d9d24a02e954d5578bb863f"
+    },
+    {
+      "path": "Artifacts/track-shadow-preview-final-first/track-chase.png",
+      "sha256": "a64f0b6520788920b41b20373c6d7cbc550053df263a1f160eb8827d0473c1e8"
+    },
+    {
+      "path": "Artifacts/track-shadow-preview-final-second/bonnet.png",
+      "sha256": "124bee631f5a618f17a5315fb6c97034d75572c074244c657fd389fe532d1479"
+    },
+    {
+      "path": "Artifacts/track-shadow-preview-final-second/chase.png",
+      "sha256": "3f2a6867db04c573c54e1c10495c8c8fcfc716892a8af1d634a5edc271a5b9e2"
+    },
+    {
+      "path": "Artifacts/track-shadow-preview-final-second/classic-no-shadow.png",
+      "sha256": "45611c2fa30ad5416e11226f8cdf80ed2577439cef1a935e69e629b969c56655"
+    },
+    {
+      "path": "Artifacts/track-shadow-preview-final-second/classic-shadow-no-reflections.png",
+      "sha256": "4ac94234438df1c0ae174e806a92f452c1fa046b3e4dfde1cb64d529cd024c99"
+    },
+    {
+      "path": "Artifacts/track-shadow-preview-final-second/classic-shadow-no-track-projection.png",
+      "sha256": "3f2a6867db04c573c54e1c10495c8c8fcfc716892a8af1d634a5edc271a5b9e2"
+    },
+    {
+      "path": "Artifacts/track-shadow-preview-final-second/classic-shadow.png",
+      "sha256": "3f2a6867db04c573c54e1c10495c8c8fcfc716892a8af1d634a5edc271a5b9e2"
+    },
+    {
+      "path": "Artifacts/track-shadow-preview-final-second/enhanced-shadow.png",
+      "sha256": "a9d648eeb52066bba1e72825ce867172143bb4fd7e696f9175fa5336f005de7c"
+    },
+    {
+      "path": "Artifacts/track-shadow-preview-final-second/far-chase.png",
+      "sha256": "146f33901ddabad0f611b592a75c698e35110d7f595f6402f80117add5fae75e"
+    },
+    {
+      "path": "Artifacts/track-shadow-preview-final-second/low-chase.png",
+      "sha256": "6cce95b79841a5853205ad90611d4ae20e4aa77d1679980514290de3458c28af"
+    },
+    {
+      "path": "Artifacts/track-shadow-preview-final-second/near-chase.png",
+      "sha256": "503ec6535ae39db1d206783cf314ada32bab77d6453bd7372ab9fc53daed683c"
+    },
+    {
+      "path": "Artifacts/track-shadow-preview-final-second/overhead-1.png",
+      "sha256": "988675aa220ad588737bfda24bab026f6ddc27fa366bea1c935418232c64a5f2"
+    },
+    {
+      "path": "Artifacts/track-shadow-preview-final-second/overhead-2.png",
+      "sha256": "b40e3c6aeed3cf2f8ab5fc0a36ae1e606834d95fa9456c95dcfe5cb0fef79434"
+    },
+    {
+      "path": "Artifacts/track-shadow-preview-final-second/overhead-3.png",
+      "sha256": "17d78263100223c992d4edbc4aad2bfa46cb53ba701341264cd155fb2c14473b"
+    },
+    {
+      "path": "Artifacts/track-shadow-preview-final-second/overhead-4.png",
+      "sha256": "c3b0c50ed10b41063a96081e761cbc864526c0d713b798247b1ce1a66102c10e"
+    },
+    {
+      "path": "Artifacts/track-shadow-preview-final-second/previous-placeholder-lighting.png",
+      "sha256": "5c843964fd3b23482ddb039a453e7613d524e94aacdddbbe0f1d90fd502e33db"
+    },
+    {
+      "path": "Artifacts/track-shadow-preview-final-second/projection-witness-disabled.png",
+      "sha256": "37d6508651ad3beead819a62c96e504359d04fab3041ff6652f4cca807fcd1f1"
+    },
+    {
+      "path": "Artifacts/track-shadow-preview-final-second/projection-witness-enabled.png",
+      "sha256": "3db639fa4fdd01620f3f44e0bbd00b912c95dc59e18d00a6f22f1802a2ac7d47"
+    },
+    {
+      "path": "Artifacts/track-shadow-preview-final-second/report.json",
+      "sha256": "60eee57a8e3851f11c4bbdbc3ad0ffb92ff6db9a4e4e904eed61266cbff02b47"
+    },
+    {
+      "path": "Artifacts/track-shadow-preview-final-second/reverse.png",
+      "sha256": "60b00e041856d1b7a760acab6e6c8418ece68dbe22a0cfc783520927bdeca49c"
+    },
+    {
+      "path": "Artifacts/track-shadow-preview-final-second/road.png",
+      "sha256": "0587f014a3a9a7e60cd0e574a67bd0dd8580aa4ba12e16eec200dd32b7c4c955"
+    },
+    {
+      "path": "Artifacts/track-shadow-preview-final-second/side-1.png",
+      "sha256": "17ad812dfb4af3a04fbb1e9823ff03094849be5f8f659e6062d04f4f67aaa10e"
+    },
+    {
+      "path": "Artifacts/track-shadow-preview-final-second/side-2.png",
+      "sha256": "bb559c2c1a83e4a7351e36b63e1204ae489b1478d9e25c4d81255b253aa3c6cd"
+    },
+    {
+      "path": "Artifacts/track-shadow-preview-final-second/side-3.png",
+      "sha256": "111f8d7ca0d19deda5a3ff8a7a0366696b1bd9ac068398fb0b9391da07ccd841"
+    },
+    {
+      "path": "Artifacts/track-shadow-preview-final-second/side-4.png",
+      "sha256": "1727ba2ef135c96f2bdcfc136a25a915152eb888b3efa87248e5aa54d3ab6c68"
+    },
+    {
+      "path": "Artifacts/track-shadow-preview-final-second/side-5.png",
+      "sha256": "0bb74ce44fefec2e505b8c308c1705c4d6ccda631232de98326f30d816fb2727"
+    },
+    {
+      "path": "Artifacts/track-shadow-preview-final-second/side-6.png",
+      "sha256": "7ac95d9c199e4ff6aee1c364a2ae112ba5cf47b6a136a63fe96dd0fbf3401ce3"
+    },
+    {
+      "path": "Artifacts/track-shadow-preview-final-second/side-7.png",
+      "sha256": "7b2cfdbeb5648ded0dc988e6ae5a444626fd2084c2b06f4eb7ffc6d4ec3d0e7a"
+    },
+    {
+      "path": "Artifacts/track-shadow-preview-final-second/side-8.png",
+      "sha256": "66403c20f11826c9ed332f0fb3e39dc3b25148ab6d9d24a02e954d5578bb863f"
+    },
+    {
+      "path": "Artifacts/track-shadow-preview-final-second/track-chase.png",
+      "sha256": "a64f0b6520788920b41b20373c6d7cbc550053df263a1f160eb8827d0473c1e8"
+    },
+    {
+      "path": "Artifacts/track-shadow-validation/bonnet.png",
+      "sha256": "124bee631f5a618f17a5315fb6c97034d75572c074244c657fd389fe532d1479"
+    },
+    {
+      "path": "Artifacts/track-shadow-validation/chase.png",
+      "sha256": "3f2a6867db04c573c54e1c10495c8c8fcfc716892a8af1d634a5edc271a5b9e2"
+    },
+    {
+      "path": "Artifacts/track-shadow-validation/classic-no-shadow.png",
+      "sha256": "45611c2fa30ad5416e11226f8cdf80ed2577439cef1a935e69e629b969c56655"
+    },
+    {
+      "path": "Artifacts/track-shadow-validation/classic-shadow-no-reflections.png",
+      "sha256": "4ac94234438df1c0ae174e806a92f452c1fa046b3e4dfde1cb64d529cd024c99"
+    },
+    {
+      "path": "Artifacts/track-shadow-validation/classic-shadow-no-track-projection.png",
+      "sha256": "3f2a6867db04c573c54e1c10495c8c8fcfc716892a8af1d634a5edc271a5b9e2"
+    },
+    {
+      "path": "Artifacts/track-shadow-validation/classic-shadow.png",
+      "sha256": "3f2a6867db04c573c54e1c10495c8c8fcfc716892a8af1d634a5edc271a5b9e2"
+    },
+    {
+      "path": "Artifacts/track-shadow-validation/enhanced-shadow.png",
+      "sha256": "a9d648eeb52066bba1e72825ce867172143bb4fd7e696f9175fa5336f005de7c"
+    },
+    {
+      "path": "Artifacts/track-shadow-validation/far-chase.png",
+      "sha256": "146f33901ddabad0f611b592a75c698e35110d7f595f6402f80117add5fae75e"
+    },
+    {
+      "path": "Artifacts/track-shadow-validation/low-chase.png",
+      "sha256": "6cce95b79841a5853205ad90611d4ae20e4aa77d1679980514290de3458c28af"
+    },
+    {
+      "path": "Artifacts/track-shadow-validation/near-chase.png",
+      "sha256": "503ec6535ae39db1d206783cf314ada32bab77d6453bd7372ab9fc53daed683c"
+    },
+    {
+      "path": "Artifacts/track-shadow-validation/overhead-1.png",
+      "sha256": "988675aa220ad588737bfda24bab026f6ddc27fa366bea1c935418232c64a5f2"
+    },
+    {
+      "path": "Artifacts/track-shadow-validation/overhead-2.png",
+      "sha256": "b40e3c6aeed3cf2f8ab5fc0a36ae1e606834d95fa9456c95dcfe5cb0fef79434"
+    },
+    {
+      "path": "Artifacts/track-shadow-validation/overhead-3.png",
+      "sha256": "17d78263100223c992d4edbc4aad2bfa46cb53ba701341264cd155fb2c14473b"
+    },
+    {
+      "path": "Artifacts/track-shadow-validation/overhead-4.png",
+      "sha256": "c3b0c50ed10b41063a96081e761cbc864526c0d713b798247b1ce1a66102c10e"
+    },
+    {
+      "path": "Artifacts/track-shadow-validation/previous-placeholder-lighting.png",
+      "sha256": "5c843964fd3b23482ddb039a453e7613d524e94aacdddbbe0f1d90fd502e33db"
+    },
+    {
+      "path": "Artifacts/track-shadow-validation/projection-witness-disabled.png",
+      "sha256": "37d6508651ad3beead819a62c96e504359d04fab3041ff6652f4cca807fcd1f1"
+    },
+    {
+      "path": "Artifacts/track-shadow-validation/projection-witness-enabled.png",
+      "sha256": "3db639fa4fdd01620f3f44e0bbd00b912c95dc59e18d00a6f22f1802a2ac7d47"
+    },
+    {
+      "path": "Artifacts/track-shadow-validation/report.json",
+      "sha256": "11c82d00b91b58b8642452c9ac3ad4fec8278246f994d35b4863008effe19f5a"
+    },
+    {
+      "path": "Artifacts/track-shadow-validation/reverse.png",
+      "sha256": "60b00e041856d1b7a760acab6e6c8418ece68dbe22a0cfc783520927bdeca49c"
+    },
+    {
+      "path": "Artifacts/track-shadow-validation/road.png",
+      "sha256": "0587f014a3a9a7e60cd0e574a67bd0dd8580aa4ba12e16eec200dd32b7c4c955"
+    },
+    {
+      "path": "Artifacts/track-shadow-validation/side-1.png",
+      "sha256": "17ad812dfb4af3a04fbb1e9823ff03094849be5f8f659e6062d04f4f67aaa10e"
+    },
+    {
+      "path": "Artifacts/track-shadow-validation/side-2.png",
+      "sha256": "bb559c2c1a83e4a7351e36b63e1204ae489b1478d9e25c4d81255b253aa3c6cd"
+    },
+    {
+      "path": "Artifacts/track-shadow-validation/side-3.png",
+      "sha256": "111f8d7ca0d19deda5a3ff8a7a0366696b1bd9ac068398fb0b9391da07ccd841"
+    },
+    {
+      "path": "Artifacts/track-shadow-validation/side-4.png",
+      "sha256": "1727ba2ef135c96f2bdcfc136a25a915152eb888b3efa87248e5aa54d3ab6c68"
+    },
+    {
+      "path": "Artifacts/track-shadow-validation/side-5.png",
+      "sha256": "0bb74ce44fefec2e505b8c308c1705c4d6ccda631232de98326f30d816fb2727"
+    },
+    {
+      "path": "Artifacts/track-shadow-validation/side-6.png",
+      "sha256": "7ac95d9c199e4ff6aee1c364a2ae112ba5cf47b6a136a63fe96dd0fbf3401ce3"
+    },
+    {
+      "path": "Artifacts/track-shadow-validation/side-7.png",
+      "sha256": "7b2cfdbeb5648ded0dc988e6ae5a444626fd2084c2b06f4eb7ffc6d4ec3d0e7a"
+    },
+    {
+      "path": "Artifacts/track-shadow-validation/side-8.png",
+      "sha256": "66403c20f11826c9ed332f0fb3e39dc3b25148ab6d9d24a02e954d5578bb863f"
+    },
+    {
+      "path": "Artifacts/track-shadow-validation/track-chase.png",
+      "sha256": "a64f0b6520788920b41b20373c6d7cbc550053df263a1f160eb8827d0473c1e8"
+    },
+    {
+      "path": "Artifacts/track-shadow-legacy-session/bonnet.png",
+      "sha256": "124bee631f5a618f17a5315fb6c97034d75572c074244c657fd389fe532d1479"
+    },
+    {
+      "path": "Artifacts/track-shadow-legacy-session/chase.png",
+      "sha256": "3f2a6867db04c573c54e1c10495c8c8fcfc716892a8af1d634a5edc271a5b9e2"
+    },
+    {
+      "path": "Artifacts/track-shadow-legacy-session/classic-no-shadow.png",
+      "sha256": "45611c2fa30ad5416e11226f8cdf80ed2577439cef1a935e69e629b969c56655"
+    },
+    {
+      "path": "Artifacts/track-shadow-legacy-session/classic-shadow-no-reflections.png",
+      "sha256": "4ac94234438df1c0ae174e806a92f452c1fa046b3e4dfde1cb64d529cd024c99"
+    },
+    {
+      "path": "Artifacts/track-shadow-legacy-session/classic-shadow-no-track-projection.png",
+      "sha256": "3f2a6867db04c573c54e1c10495c8c8fcfc716892a8af1d634a5edc271a5b9e2"
+    },
+    {
+      "path": "Artifacts/track-shadow-legacy-session/classic-shadow.png",
+      "sha256": "3f2a6867db04c573c54e1c10495c8c8fcfc716892a8af1d634a5edc271a5b9e2"
+    },
+    {
+      "path": "Artifacts/track-shadow-legacy-session/enhanced-shadow.png",
+      "sha256": "a9d648eeb52066bba1e72825ce867172143bb4fd7e696f9175fa5336f005de7c"
+    },
+    {
+      "path": "Artifacts/track-shadow-legacy-session/far-chase.png",
+      "sha256": "146f33901ddabad0f611b592a75c698e35110d7f595f6402f80117add5fae75e"
+    },
+    {
+      "path": "Artifacts/track-shadow-legacy-session/low-chase.png",
+      "sha256": "6cce95b79841a5853205ad90611d4ae20e4aa77d1679980514290de3458c28af"
+    },
+    {
+      "path": "Artifacts/track-shadow-legacy-session/near-chase.png",
+      "sha256": "503ec6535ae39db1d206783cf314ada32bab77d6453bd7372ab9fc53daed683c"
+    },
+    {
+      "path": "Artifacts/track-shadow-legacy-session/overhead-1.png",
+      "sha256": "988675aa220ad588737bfda24bab026f6ddc27fa366bea1c935418232c64a5f2"
+    },
+    {
+      "path": "Artifacts/track-shadow-legacy-session/overhead-2.png",
+      "sha256": "b40e3c6aeed3cf2f8ab5fc0a36ae1e606834d95fa9456c95dcfe5cb0fef79434"
+    },
+    {
+      "path": "Artifacts/track-shadow-legacy-session/overhead-3.png",
+      "sha256": "17d78263100223c992d4edbc4aad2bfa46cb53ba701341264cd155fb2c14473b"
+    },
+    {
+      "path": "Artifacts/track-shadow-legacy-session/overhead-4.png",
+      "sha256": "c3b0c50ed10b41063a96081e761cbc864526c0d713b798247b1ce1a66102c10e"
+    },
+    {
+      "path": "Artifacts/track-shadow-legacy-session/previous-placeholder-lighting.png",
+      "sha256": "5c843964fd3b23482ddb039a453e7613d524e94aacdddbbe0f1d90fd502e33db"
+    },
+    {
+      "path": "Artifacts/track-shadow-legacy-session/report.json",
+      "sha256": "94f446d4cd1caaea2e2bd12fd3eacf5d2187760d20538db58b8527b4fa0b0af0"
+    },
+    {
+      "path": "Artifacts/track-shadow-legacy-session/reverse.png",
+      "sha256": "60b00e041856d1b7a760acab6e6c8418ece68dbe22a0cfc783520927bdeca49c"
+    },
+    {
+      "path": "Artifacts/track-shadow-legacy-session/road.png",
+      "sha256": "0587f014a3a9a7e60cd0e574a67bd0dd8580aa4ba12e16eec200dd32b7c4c955"
+    },
+    {
+      "path": "Artifacts/track-shadow-legacy-session/side-1.png",
+      "sha256": "17ad812dfb4af3a04fbb1e9823ff03094849be5f8f659e6062d04f4f67aaa10e"
+    },
+    {
+      "path": "Artifacts/track-shadow-legacy-session/side-2.png",
+      "sha256": "bb559c2c1a83e4a7351e36b63e1204ae489b1478d9e25c4d81255b253aa3c6cd"
+    },
+    {
+      "path": "Artifacts/track-shadow-legacy-session/side-3.png",
+      "sha256": "111f8d7ca0d19deda5a3ff8a7a0366696b1bd9ac068398fb0b9391da07ccd841"
+    },
+    {
+      "path": "Artifacts/track-shadow-legacy-session/side-4.png",
+      "sha256": "1727ba2ef135c96f2bdcfc136a25a915152eb888b3efa87248e5aa54d3ab6c68"
+    },
+    {
+      "path": "Artifacts/track-shadow-legacy-session/side-5.png",
+      "sha256": "0bb74ce44fefec2e505b8c308c1705c4d6ccda631232de98326f30d816fb2727"
+    },
+    {
+      "path": "Artifacts/track-shadow-legacy-session/side-6.png",
+      "sha256": "7ac95d9c199e4ff6aee1c364a2ae112ba5cf47b6a136a63fe96dd0fbf3401ce3"
+    },
+    {
+      "path": "Artifacts/track-shadow-legacy-session/side-7.png",
+      "sha256": "7b2cfdbeb5648ded0dc988e6ae5a444626fd2084c2b06f4eb7ffc6d4ec3d0e7a"
+    },
+    {
+      "path": "Artifacts/track-shadow-legacy-session/side-8.png",
+      "sha256": "66403c20f11826c9ed332f0fb3e39dc3b25148ab6d9d24a02e954d5578bb863f"
+    },
+    {
+      "path": "Artifacts/track-shadow-legacy-session/track-chase.png",
+      "sha256": "a64f0b6520788920b41b20373c6d7cbc550053df263a1f160eb8827d0473c1e8"
+    },
+    {
+      "path": "Artifacts/track-shadow-debug-final.log",
+      "sha256": "79fe6b41063628da39372210aa7f372aa196c8465a11c46f555255116a23bb4d"
+    },
+    {
+      "path": "Artifacts/track-shadow-release-final.log",
+      "sha256": "f8fd559b52aa59f146720c7ed13a63577225809f0f747b30ebe07767dec0f652"
+    },
+    {
+      "path": "Artifacts/track-shadow-asan.log",
+      "sha256": "5ec3a21a551e99328288c1b2956f8f37faf21036aaa4ec966c899e1d4eca73cd"
+    },
+    {
+      "path": "Artifacts/track-shadow-order-debug.log",
+      "sha256": "943571adad55f19ddac9e602913e90def6afbc50096fe393459d14ec32d11356"
+    },
+    {
+      "path": "Artifacts/track-shadow-order-release.log",
+      "sha256": "5f3a3ddcbb6e22afb5b4612f252941f3a05cab3c3a1ed747d4202d7bd6d911f8"
+    },
+    {
+      "path": "Artifacts/track-shadow-order-asan.log",
+      "sha256": "1b1ae0ea772732b79b916b7f68e7441abc3ed8bbb9db1ba0e4095b905c4943cb"
+    },
+    {
+      "path": "Artifacts/track-shadow-provenance.log",
+      "sha256": "bb0a15ff7a0a3bef49403cb853c18b858b7268958f263043f44d8b5c8479856a"
+    },
+    {
+      "path": "Artifacts/track-shadow-prepare.log",
+      "sha256": "4dbdd34947ffe0a1df63a15531a7e663929fce112f35c065028fae3f0764aaf9"
+    },
+    {
+      "path": "Artifacts/track-shadow-app-build.log",
+      "sha256": "1fb786cd4dfd954c324bca4a6c1e751390b3015051e315f9f73b2143c3cb4dbe"
+    },
+    {
+      "path": "Artifacts/track-shadow-preview-final-first.log",
+      "sha256": "f44c3e4ffe53f90e126c3a5f9d78fd70d34156debaefd1f355cc1ae3cb04a141"
+    },
+    {
+      "path": "Artifacts/track-shadow-preview-final-second.log",
+      "sha256": "6ffe70d2f2cf200853179b9d9b922b6b529f4df31100d054d08c25cf9abdb76c"
+    },
+    {
+      "path": "Artifacts/track-shadow-validation.log",
+      "sha256": "157c55e57182aa986f8b5f1e8be763ef2809742bf2d0efa28f8aea998d3a5b83"
+    },
+    {
+      "path": "Artifacts/track-shadow-legacy-session.log",
+      "sha256": "3484f0fba9f00985c8c5ee33f4c97cce59331f3c0e94908bf6a528c637a7026a"
+    },
+    {
+      "path": "Artifacts/track-shadow-metal-smoke.log",
+      "sha256": "7c307493192b70189dfcb95937600d572fed01a81f577ac8302965950bc5ab5f"
+    },
+    {
+      "path": "Artifacts/track-shadow-memory.json",
+      "sha256": "40cff6fc9f3a1df970625295d8241b35b6b8ef21b51b676aa45272e03849a1eb"
+    },
+    {
+      "path": "Artifacts/track-shadow-bounds.json",
+      "sha256": "1276c66b1006fe5682f4271cbacacc6af0b5e2a193c2e4c7f97684be638b31c7"
+    },
+    {
+      "path": "Artifacts/track-shadow-test-inventory.txt",
+      "sha256": "303e1688723283887f7d26842a3072f18ac1e343f90c832225d13ab036b40ea6"
+    }
+  ],
+  "limitations": [
+    "Selected models, detailed wheels and M2 only",
+    "Baked projection, not scene-wide dynamic shadows",
+    "Original GL screenshot equality unverified",
+    "Missing detailed-wheel models and complete original graphics initialization unverified",
+    "No new interactive driving acceptance run",
+    "Seven unresolved shared track/environment artwork inputs remain local-only; no prepared content bundled",
+    "Full goal including remaining cameras, mirrors, effects, racing, native robots, audio, replay, performance acceptance and distribution remains open"
+  ]
+}

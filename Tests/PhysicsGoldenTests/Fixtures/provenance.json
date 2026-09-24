@@ -1,0 +1,11 @@
+{
+  "scenario": "component-sweep-v1",
+  "scope": "Isolated suspension, brake and steering functions, not a vehicle or race",
+  "upstream": "TORCS 1.3.9",
+  "archive_sha256": "f9c69e86d290295467451b01d7838d85005ba613644a6fe8a3f85a7c6a03cd4c",
+  "generator": "swift run torcs-reference --ticks 512 --telemetry Tests/PhysicsGoldenTests/Fixtures/components.jsonl",
+  "architecture": "arm64-apple-macos",
+  "toolchain": "Apple Swift 6.3.3 / Xcode 26.6 (17F113)",
+  "sha256": "f0f21b90f6ee5c1fe27cf0678601d11e6a6f812c5a4e5a950ccc5c628929cf0b",
+  "license": "GPL-2.0-only (generated test data)"
+}

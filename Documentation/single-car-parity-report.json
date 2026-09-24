@@ -1,0 +1,304 @@
+{
+  "absoluteTolerance": 1e-05,
+  "archiveSHA256": "f9c69e86d290295467451b01d7838d85005ba613644a6fe8a3f85a7c6a03cd4c",
+  "crossBuild": "Each native build matches its own original reference. Full-update barrier ticks: debug/ASan 1459, release 1432; cross-build trajectory identity is not claimed.",
+  "excluded": [
+    "SOLID car/object collision detection and response",
+    "Removal/tow/pit lifecycle",
+    "Pit-time reconfiguration",
+    "Multi-car simulation scheduling",
+    "Race engine and robots",
+    "Complete replay format",
+    "Validated steady-state cornering",
+    "Gameplay/rendered car and track",
+    "Cross-platform/cross-build bit identity"
+  ],
+  "fixtureSHA256": {
+    "155-DTM.xml": "7b069b816636ed85ace6b440d87aa400c3e54716170766df3e7a7483475f52bb",
+    "Track-4WD-GrB.xml": "b08bc4a12ccfeff49ce1d608583a858cec69985d94aa057640d231016fed37eb",
+    "aalborg.xml": "bfd4bfc66977a515e1d5bafb37e1698adaa9b05808d4da003f94d98a570a7b57",
+    "objects.xml": "446e70833abb16942559315db5c4d224bd5a2a2da72b526e5d097c52fb2f0b37",
+    "surfaces.xml": "9e0c5fb78cd7d9fd635beed670750f69c851ab14a83e275fab2973330797bbb9"
+  },
+  "maximumObservedAbsoluteError": 0,
+  "observations": {
+    "addressSanitizer": [
+      {
+        "check": "DRIVER_CONFIG",
+        "fields": 20,
+        "maxAbsolute": 0.0
+      },
+      {
+        "cases": 1344,
+        "check": "DRIVER_COMMAND",
+        "fields": 6720,
+        "maxAbsolute": 0.0
+      },
+      {
+        "barrierTicks": 1459,
+        "check": "FULL_SINGLE_CAR",
+        "fields": 8214325,
+        "groundTicks": 0,
+        "maxAbsolute": 0.0,
+        "movingTicks": 9726,
+        "prestartTicks": 500,
+        "randomDraws": 22505,
+        "scenarios": 5,
+        "ticks": 22505
+      },
+      {
+        "chassisFields": 19000,
+        "check": "FRESH_PRESTART",
+        "driverFields": 800,
+        "maxAbsolute": 0,
+        "telemetryFields": 28400,
+        "ticks": 200
+      },
+      {
+        "check": "NATIVE_RUNTIME",
+        "fields": 2130000,
+        "maxAbsolute": 0.0,
+        "scenarios": 5,
+        "ticks": 15000
+      },
+      {
+        "check": "OWNED_RANDOM",
+        "copiedDraws": 900,
+        "draws": 90000,
+        "maxAbsolute": 0,
+        "seeds": 9
+      }
+    ],
+    "debug": [
+      {
+        "check": "DRIVER_CONFIG",
+        "fields": 20,
+        "maxAbsolute": 0.0
+      },
+      {
+        "cases": 1344,
+        "check": "DRIVER_COMMAND",
+        "fields": 6720,
+        "maxAbsolute": 0.0
+      },
+      {
+        "barrierTicks": 1459,
+        "check": "FULL_SINGLE_CAR",
+        "fields": 8214325,
+        "groundTicks": 0,
+        "maxAbsolute": 0.0,
+        "movingTicks": 9726,
+        "prestartTicks": 500,
+        "randomDraws": 22505,
+        "scenarios": 5,
+        "ticks": 22505
+      },
+      {
+        "chassisFields": 19000,
+        "check": "FRESH_PRESTART",
+        "driverFields": 800,
+        "maxAbsolute": 0,
+        "telemetryFields": 28400,
+        "ticks": 200
+      },
+      {
+        "check": "NATIVE_RUNTIME",
+        "fields": 2130000,
+        "maxAbsolute": 0.0,
+        "scenarios": 5,
+        "ticks": 15000
+      },
+      {
+        "check": "OWNED_RANDOM",
+        "copiedDraws": 900,
+        "draws": 90000,
+        "maxAbsolute": 0,
+        "seeds": 9
+      }
+    ],
+    "release": [
+      {
+        "check": "DRIVER_CONFIG",
+        "fields": 20,
+        "maxAbsolute": 0.0
+      },
+      {
+        "cases": 1344,
+        "check": "DRIVER_COMMAND",
+        "fields": 6720,
+        "maxAbsolute": 0.0
+      },
+      {
+        "barrierTicks": 1432,
+        "check": "FULL_SINGLE_CAR",
+        "fields": 8214325,
+        "groundTicks": 0,
+        "maxAbsolute": 0.0,
+        "movingTicks": 9726,
+        "prestartTicks": 500,
+        "randomDraws": 22505,
+        "scenarios": 5,
+        "ticks": 22505
+      },
+      {
+        "chassisFields": 19000,
+        "check": "FRESH_PRESTART",
+        "driverFields": 800,
+        "maxAbsolute": 0,
+        "telemetryFields": 28400,
+        "ticks": 200
+      },
+      {
+        "check": "NATIVE_RUNTIME",
+        "fields": 2130000,
+        "maxAbsolute": 0.0,
+        "scenarios": 5,
+        "ticks": 15000
+      },
+      {
+        "check": "OWNED_RANDOM",
+        "copiedDraws": 900,
+        "draws": 90000,
+        "maxAbsolute": 0,
+        "seeds": 9
+      }
+    ]
+  },
+  "oracle": "Unchanged original SimUpdate with original SOLID dispatch enabled. Private ctrlCheck exposed by including unchanged simu.cpp once. Existing debug/release braking goldens not regenerated.",
+  "randomAlgorithmReference": "https://github.com/apple-oss-distributions/Libc/blob/main/stdlib/FreeBSD/rand.c",
+  "randomStream": "Owned Swift Park\u2013Miller recurrence with Darwin zero-seed substitution and original urandom Float scaling; continuous native versus original stream checked, not other-platform libc compatibility.",
+  "relativeTolerance": 1e-06,
+  "releaseCLI": [
+    {
+      "captureSHA256": {
+        "reference": "85c6ce16044085cc710fe6a99c298226a766340f0d2e2017ad63805fd853a071",
+        "sim": "85c6ce16044085cc710fe6a99c298226a766340f0d2e2017ad63805fd853a071"
+      },
+      "fields": 142,
+      "maxAbsolute": 0,
+      "repeatable": true,
+      "scenario": "stationary",
+      "ticks": 3000
+    },
+    {
+      "captureSHA256": {
+        "reference": "579d321f296b3edf0745f2477b07f39b96ef6f35ed784652f899d3349a7aca0f",
+        "sim": "579d321f296b3edf0745f2477b07f39b96ef6f35ed784652f899d3349a7aca0f"
+      },
+      "fields": 142,
+      "maxAbsolute": 0,
+      "repeatable": true,
+      "scenario": "acceleration",
+      "ticks": 3000
+    },
+    {
+      "captureSHA256": {
+        "reference": "fce13f7784455622298437c6ded714f4790c33af0aa30983ee10dfbb22f58f66",
+        "sim": "fce13f7784455622298437c6ded714f4790c33af0aa30983ee10dfbb22f58f66"
+      },
+      "fields": 142,
+      "maxAbsolute": 0,
+      "repeatable": true,
+      "scenario": "braking",
+      "ticks": 3000
+    },
+    {
+      "captureSHA256": {
+        "reference": "9197a744cf53a700621630fe37d1e6f36937eec81ceb0f0d54709ad80539cec8",
+        "sim": "9197a744cf53a700621630fe37d1e6f36937eec81ceb0f0d54709ad80539cec8"
+      },
+      "fields": 142,
+      "maxAbsolute": 0,
+      "repeatable": true,
+      "scenario": "cornering",
+      "ticks": 3000
+    },
+    {
+      "captureSHA256": {
+        "reference": "ef8c1dd5438e86f8cf88476ab46e57e1f546bd8adc1a87969d18ba9ec085f872",
+        "sim": "ef8c1dd5438e86f8cf88476ab46e57e1f546bd8adc1a87969d18ba9ec085f872"
+      },
+      "fields": 142,
+      "maxAbsolute": 0,
+      "repeatable": true,
+      "scenario": "combined",
+      "ticks": 3000
+    }
+  ],
+  "schema": 1,
+  "scope": "Selected active single-car full SimUpdate comparisons, control checking, native continuous random stream and standalone telemetry",
+  "sourceSHA256": {
+    "Package.swift": "b49d429e918815eb72deff2d5658e3f065d803e54fe3fe1b5d3f8a8194b356f0",
+    "Packages/TORCSConfiguration/ParameterMerge.swift": "309fbc9b2f8f53ad60b1c243a9783ae4e09b360c39a8348a9fe03bd472c5566a",
+    "Packages/TORCSConfiguration/Parameters.swift": "57c0b897863c665529ecc372f16fe85053bb49b18fe58991ffe6cdc3fe3d9efd",
+    "Packages/TORCSConfiguration/Units.swift": "1ffd7895e0db85bd97d9986411b9d359b32455a6de1a3a350b1efef957b9fc31",
+    "Packages/TORCSSimulation/Aerodynamics.swift": "6797247f320764baf4cf6ffeaedf2b581f8c02b0c7ef82fbccb742c2b9139878",
+    "Packages/TORCSSimulation/Axle.swift": "c5bebecf6e014668ba30fe29851342c856d62093e6f5847775f0d599bdbd69b1",
+    "Packages/TORCSSimulation/Brakes.swift": "d81a6cab599167a3df720440c460ebfec98e4a97e7b3822bb6694fbda733a36e",
+    "Packages/TORCSSimulation/Chassis.swift": "4c8cad5ddec5e97475d2687161fb8518a58edc9b9914ee89c1bfd58ec66b5231",
+    "Packages/TORCSSimulation/ComponentBench.swift": "d9c67a4cf92f6047346a91b2841184df5cb6c2bd859f0d633754cdec5f9d6393",
+    "Packages/TORCSSimulation/Differential.swift": "ed233cdaba98b9d7e8f79b72e7f080bde7eb052f65da6f5abdacd9d9d6426ed5",
+    "Packages/TORCSSimulation/DriverCommand.swift": "ad8487850cc73b8ec0d7bea636081c3c7ba45eca64a3fc35a3b5f30eca550836",
+    "Packages/TORCSSimulation/Engine.swift": "9da1c85776cbefd783aaef7c0c84796c6511a35868e62e67bf278e00728519a6",
+    "Packages/TORCSSimulation/EnvironmentCollision.swift": "7c71fc96f8b788fab270eff5c1643bf55c4904a2b55516d6a040d00be01e5f28",
+    "Packages/TORCSSimulation/RunningGearConfiguration.swift": "e0414426d0ef6581e5f363c41b3d432ea9253292867742fa4c24f8bcb3cfd143",
+    "Packages/TORCSSimulation/RunningGearState.swift": "5eb5ea50252344c1a72ccd1de061dc85b0e5c7a07d15d2f25f5482c830d9f75f",
+    "Packages/TORCSSimulation/SingleVehicleSimulation.swift": "c1b9262e3ce994d29fe36215d21e6a7bd5ed8e54eb6af832ed09b37bfae60d84",
+    "Packages/TORCSSimulation/Steering.swift": "d51ba86a8ca758572455d7fd40d9061de8ea8f8d85dc161da499a1d6e4f22e33",
+    "Packages/TORCSSimulation/Suspension.swift": "f3297660f059a1bd332ed2a76aff6d1207cdd401161d665f8be1e8ba0b111116",
+    "Packages/TORCSSimulation/TireThermal.swift": "8a633a65d651f75cd1d57605563baa04afaa8c93b1a5c79a51b3163b04af400f",
+    "Packages/TORCSSimulation/Transmission.swift": "1e54ac107cab492d3825571090e9f7e0d55080a4d3dfb1a13e85ab1c13ebd02b",
+    "Packages/TORCSSimulation/VehicleDynamics.swift": "d1ea86afd0b11f256d2a51a5893535e65e06b1fc1e9e93383c5469ad89eaa253",
+    "Packages/TORCSSimulation/VehicleMassProperties.swift": "bf9d7f13a90014f25aeeed4f98dd8865d9f0e715997660596d4545a09b91ead3",
+    "Packages/TORCSSimulation/WheelForce.swift": "f49070d82d33d70f0e1e451d47cfc9d835ca8cc58cb82e9ef742525e5b589a2f",
+    "Packages/TORCSSimulation/WheelKinematics.swift": "de0d71ee9557072805ee295c1995506d3bfdc6bba2593c52866beb9bb8c072ba",
+    "Packages/TORCSSimulation/WheelRide.swift": "9b37444bba3c0ef0817b727ad9a6c74a1bd9ef5863fda2bca50c6f17e55f7658",
+    "Packages/TORCSSimulation/WheelRotation.swift": "aba02fbdccac7a373d0cb9fb9c66395cb9995a6d8c55f27240f443ee6755e145",
+    "Packages/TORCSTelemetry/VehicleTelemetry.swift": "5ddb962552239da44dc64d01a247f27e68d04953813d6fe4e5469d5840d58222",
+    "Packages/TORCSTrack/TrackBuilder.swift": "f86b8926ca1aae6f4362352f2b824b2dc4cfbd44a1fb60ad6a40616df924f4af",
+    "Packages/TORCSTrack/TrackGeometry.swift": "cd4d01d0947728a0fdff75d35c8c523f4752a7270f1ef86d279c58bf18159ea7",
+    "Packages/TORCSTrack/TrackInfrastructure.swift": "918f19b5828cf834faeecbf763cbe1a56cdadf25bce96d04f975ad0e49612931",
+    "Packages/TORCSTrack/TrackQueries.swift": "26f843adb80188ace94c844f7cce2c533b92be1b81ef9c2b2e3204dbe931856b",
+    "Scripts/verify-single-car.sh": "5d53f5d393024107381da224bf944ee18e072cde46b43d55a4a608b8dd219b1c",
+    "Tests/UnitTests/ChassisTests.swift": "b64abf8cfe4e9826cb276173e50579dd18082199779f1bdbabab1bcd525f0e28",
+    "Tests/UnitTests/DriverControlTests.swift": "34b6ae1c66c68c14043b1015dccfb5aeeda0a4b2b87501d7586d79482692c9c6",
+    "Tests/UnitTests/EngineTests.swift": "e8d00cf2700306175a2ef5c3ca34bd5261bdc79c3e5ac31f21ab25b985511b56",
+    "Tests/UnitTests/EnvironmentCollisionTests.swift": "bcf7156066544fcf8ccd71620931cc4c9fc0f858811001668a2fc8d2e5e7acc6",
+    "Tests/UnitTests/FullSingleCarTests.swift": "2e9a0e93e82e64b39fc2ae7297e6b1979968e3dcb953d206e1690bd81b1ba0f0",
+    "Tests/UnitTests/RunningGearIntegrationTests.swift": "3b3a837a9c5521c4e4d7b33c38eb4848675df1935be1a7b94b16d489304f92fe",
+    "Tests/UnitTests/SingleVehicleRuntimeTests.swift": "a8659d7f5794006bcd754be93e369e83195a4bee04bd9e1501b0184de633f19a",
+    "Tests/UnitTests/TransmissionTests.swift": "603b526feb498c27b1fd75d41075d6591f8733d8a7788cd20e19813c13d542d2",
+    "Tests/UnitTests/VehicleDynamicsTests.swift": "adb9396023c727280fc8ec0162bf23a83fbe7c097e47aaba38b64b417020366d",
+    "Tools/TORCSReferenceSupport/ReferenceWorld.swift": "518cb0488413aff4a0fc45ac08e682eb0513538c359656f027eb7afffb8a6745",
+    "Tools/torcs-sim/VehicleScenarioCLI.swift": "4f4894bc4ca5b7149d43d490a89c99fb01a1bed1dcd200e7160c934b76de8620",
+    "Tools/torcs-sim/main.swift": "943bd0c3beae96b9d9c07a159e69df00bb36648546d7f039c9ad0c91aa4f0178",
+    "Upstream/Reference/aero.cpp": "45e7b1d62d7c94000c2ecd6a2682a8d6af2ceb74fb70faec346bc6228521fdd9",
+    "Upstream/Reference/atmosphere.cpp": "3141cc1b0d9bd354e6ceab425faa281cc51bacedd971467defc12f3943a0daff",
+    "Upstream/Reference/axle.cpp": "8a93b97dd8ad6aa6126bf0c622fdf0cb7468c37a439c413b61eb503a1dae009d",
+    "Upstream/Reference/brake.cpp": "1f7b7adc4fa04630059d72974d5fe2feffd8face8eb23525de1018b34b3cd0e9",
+    "Upstream/Reference/car.cpp": "dcdf23c12c6a8207baa6d00cb4def869dd903ae48797ad201419b34484e7c966",
+    "Upstream/Reference/categories.cpp": "91a1f703593d75fe47f3af8b5535579da7ee931c1482b406dae16c2e677ef2c6",
+    "Upstream/Reference/collide.cpp": "d72b3b5585cf34da5d3649b8d3199663be088fff24b0736cb281908d660ce230",
+    "Upstream/Reference/differential.cpp": "aa8ef862e3f2e5df5fdbf84c23f38c6bf8f045a26ac144c26b76d60cab69262d",
+    "Upstream/Reference/engine.cpp": "5908f58ae310926bdb6b766b6a061ecab3ea7178ef4bfbbc2aa520ba59ffbd55",
+    "Upstream/Reference/include/CReference.h": "68f9ed01f81db576f9214c82a68463add62e66d4ca30b567e4f920b6614e79e2",
+    "Upstream/Reference/plib/sg.cxx": "df99a14128ae32ea98f20fed4340f9967187d56d9c2a2b4733a96092d12c31ce",
+    "Upstream/Reference/private/car.h": "6925000ae7bfa0b2101824dcb245b80ef8d025209276cf06bfcbd1510304940c",
+    "Upstream/Reference/private/sim.h": "308036d005d0236e67815732793117d7f6c28e6aa850bfa6634a372e1df4ac34",
+    "Upstream/Reference/private/tgf.h": "0e65ffbeaf411826cf1427ae2e9bff556c72c636e71862022eec1be6b4299e2a",
+    "Upstream/Reference/simu.cpp": "d5638f23811069e489acc5c6f736c0b897291dd107bd05a44bc181b792737e38",
+    "Upstream/Reference/simulation-instrumentation.cpp": "5ba04c44a299c2065576cea358a1e516fb4fba2cf8dfe7e5734105d859554384",
+    "Upstream/Reference/steer.cpp": "b6147f9670122988c012ed3a23c539a2c393095044b0982ab04dd8038c793344",
+    "Upstream/Reference/susp.cpp": "05a6075c968089fb61b34a9b40f6cc0ba3c7456ad3943ff446c5d39aefb625e8",
+    "Upstream/Reference/transmission.cpp": "8598ffc4323a95e14aba789ebe45c13760dabdf47c1aced559936d80c253a610",
+    "Upstream/Reference/wheel.cpp": "7228fe05860615082f075cd2970c4bcdf48a242623a609427da34227b15125ec",
+    "Upstream/Reference/world.cpp": "17a3f6f9cbfdaebb41cea9b5c3ce6f3ad7016ec08b14a3ddf431e60cec53c99b"
+  },
+  "testCounts": {
+    "addressSanitizerSelected": 10,
+    "debug": 79,
+    "release": 79
+  },
+  "toolchain": "Swift 6.3.3 / Xcode 26.6 / Apple Silicon",
+  "upstream": "TORCS 1.3.9"
+}

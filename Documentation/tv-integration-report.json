@@ -1,0 +1,242 @@
+{
+  "schema": 1,
+  "date": "2026-09-23",
+  "increment": "Original TV director immutable publication, shared screen acknowledgements and F11 picker/zoom",
+  "goalComplete": false,
+  "cameraCount": 31,
+  "reference": "TORCS 1.3.9",
+  "tests": {
+    "fullDebug": 238,
+    "selectedRelease": 35,
+    "selectedASan": 35,
+    "failures": 0
+  },
+  "publication": {
+    "physicsPublications": 2000,
+    "displayFrames": 240,
+    "repeatedAdditionClockExact": true,
+    "pausedSeconds": 600
+  },
+  "multiCarIntegration": {
+    "nativeCars": 3,
+    "physicsTicks": 3000,
+    "screens": 2,
+    "directorUpdates": 752,
+    "automaticSwitches": 37,
+    "manualCarChanges": 7,
+    "selectionPrioritiesViewabilityClocksSharedAcknowledgements": "exact against original",
+    "raceOrder": "authored permutations, not race standings implementation"
+  },
+  "zoom": {
+    "originalUpdates": 1221,
+    "preferenceKey": "fovy-9-0",
+    "standard": 9,
+    "minimum": 1,
+    "maximum": 90
+  },
+  "rendering": {
+    "preview": "build/TORCSTVPreview.app",
+    "adHocSignatureVerified": true,
+    "freshProcesses": 3,
+    "imagesPerProcess": 24,
+    "exactRepeatPairsPerProcess": 24,
+    "identicalReportsAcrossProcesses": true,
+    "nativeRunsPerProcess": 2,
+    "framesPerNativeRun": 901,
+    "validation": "Metal API and GPU validation enabled; no faults reported",
+    "scene": "one native 155-DTM on Aalborg; no multi-car GUI or multi-car rendering claim",
+    "qualityModes": [
+      "classic",
+      "4x MSAA and 4x anisotropic filtering"
+    ],
+    "shadows": "existing terrain-following car shadow and baked track projection retained",
+    "rendererAndShaderUnchanged": true,
+    "performanceClaim": false
+  },
+  "flyClockCorrection": {
+    "input": "repeated Double addition raceTime instead of fixed-step multiplication",
+    "rerenderedImages": 24,
+    "changedImagesVersusPreviousPreview": [],
+    "changedPosesVersusPreviousPreview": [],
+    "exactRepeatPairs": 24
+  },
+  "provenance": {
+    "verifiedPinnedEntries": 221,
+    "newImportedFiles": 0,
+    "newArtwork": 0
+  },
+  "preserved": {
+    "build/TORCSFlyPreview.app/Contents/MacOS/TORCSMac": "a144864b22b58651e22bf9c4bde50f83f55dd230c593f5048f8bf0541d9f097e",
+    "build/TORCSZoomPreview.app/Contents/MacOS/TORCSMac": "276975ad97cb255bc1c40385cdc1bf567fce72d41c7d1f9a6b5bb8d562c2788c",
+    "Packages/TORCSMetal/SceneRenderer.swift": "752fbbe1bedf4f98d80ee072f928dfcf93f025804e1cf8efbd12a441354f59b9",
+    "Packages/TORCSMetal/Scene.metal": "4396144a2cfc7eb97ad10ddcc09d898b01d979b328bb4f15de8742b2e62e3e66",
+    "/Users/holgervonameln/Library/Application Support/TORCSMac/cameras.json": "b62c5a2a334ac0748b201b64b9dbe3ade377d796a596fcba7bd38833a4c084e8"
+  },
+  "nativeRuntimeHasNoDirectCPlusPlusOrExpat": true,
+  "sourceSnapshot": [
+    {
+      "path": "Package.swift",
+      "sha256": "23a60149e1d4288bebf8089c667ae0df8dd07681191d5ca69c4ee64126108bda"
+    },
+    {
+      "path": "Packages/TORCSRaceEngine/DrivingRuntime.swift",
+      "sha256": "318e5c4c7200382778095ed7d8a9a672d0c5f0e78a863684f5f75adc82047ede"
+    },
+    {
+      "path": "Packages/TORCSRaceEngine/RacePresentationCar.swift",
+      "sha256": "615fd1c869d94aebe0de80dc2a9e1f81a86a9d2838267fe291b74c196a9ce01b"
+    },
+    {
+      "path": "Packages/TORCSRaceEngine/PresentationCollisionHistory.swift",
+      "sha256": "d28d5565f8a2ed3c8a54a00060ebc2dba3dd5782319752f08fdc63ef0e0445b1"
+    },
+    {
+      "path": "Packages/TORCSMetal/TVPresentation.swift",
+      "sha256": "4a69d5a4804d4804105ac7edf273e0a40cbc7f5fb35de879c02fb5144a8c243e"
+    },
+    {
+      "path": "Packages/TORCSMetal/TVDirector.swift",
+      "sha256": "b6ee5476dc1f3437c3640da0d6ef1c6c886101f497c42ee6a35a3edc44616bd6"
+    },
+    {
+      "path": "Packages/TORCSMetal/TVCamera.swift",
+      "sha256": "a16be32bb3cece3b1e6039dcbbbea56964f296171723309e56809f5dafd6697e"
+    },
+    {
+      "path": "Packages/TORCSMetal/DrivingCamera.swift",
+      "sha256": "c406efeb63143d65c1f15ea3fa98327507a754a36ac6c63bcf36febe33c7c06f"
+    },
+    {
+      "path": "Packages/TORCSMetal/CameraZoom.swift",
+      "sha256": "e4898b2cfcf54970980e1c6af98fd4579a900d24882930ccba018d8b9e1bdf07"
+    },
+    {
+      "path": "Packages/TORCSTrack/TrackBuilder.swift",
+      "sha256": "4ecc999e55a25b339514a95fbf97443d4ac80439402c73898ae805758531828a"
+    },
+    {
+      "path": "App/DrivingSession.swift",
+      "sha256": "bd697d825a577705f9f564df0948a2f4fbc4d8573c84f5b4d08446a7404cf8ec"
+    },
+    {
+      "path": "App/TVVisualSmoke.swift",
+      "sha256": "d0ec663ed06e98b3336a1668e8fcb134524e6467e02166570b18183a9761b387"
+    },
+    {
+      "path": "App/FlyVisualSmoke.swift",
+      "sha256": "c4d9d3779cc484b5b07a5b5e3933bb913be84c3c4ba920d0456a0811afff1843"
+    },
+    {
+      "path": "App/DrivingVisualSmoke.swift",
+      "sha256": "e621120b5e8d88aa52ff4019c35f487435d7e3f0b5dac519a0d64e8539a965c4"
+    },
+    {
+      "path": "App/TORCSMacApp.swift",
+      "sha256": "99ab16257f1745c83111dbf04cd56b1c6f506c2bdf97e54bd92598eda8631045"
+    },
+    {
+      "path": "Tests/UnitTests/TVPresentationTests.swift",
+      "sha256": "8d66a47c4ae015ef6c9b26430c057209725ebbed2839fb54363dd1f4e6f1ae48"
+    },
+    {
+      "path": "Tests/UnitTests/DrivingRuntimeTests.swift",
+      "sha256": "704ecfb067361bf478bf507be3b3293291e98c803dd78f2e9aa2380cd5d54695"
+    },
+    {
+      "path": "Tests/UnitTests/TracksideCameraTests.swift",
+      "sha256": "455888e7d4e254696010a87f980e03058c78981b3d3c04b816e37ee246d62b35"
+    },
+    {
+      "path": "Tests/UnitTests/CameraZoomTests.swift",
+      "sha256": "05bc0ef7b6a255e1e00a39e508e9f23a21cf15ef1da17c259467d6ec01bb51d3"
+    },
+    {
+      "path": "Tests/UnitTests/ExteriorCameraTests.swift",
+      "sha256": "d617eb448608c6a626c990b141a53fb372cc9a4a76b2608d0f4fea767507bb1c"
+    },
+    {
+      "path": "Upstream/Reference/graphics-instrumentation.cpp",
+      "sha256": "c17d081e73513ff961258d1f84a79c4350bfee85b55a55ccab55548bc8e89949"
+    },
+    {
+      "path": "Upstream/Reference/world.cpp",
+      "sha256": "bf3bd0da39bbced6489195acc1336e7132127e711bad4724ac1c4526aa39112a"
+    },
+    {
+      "path": "Upstream/Reference/include/CReference.h",
+      "sha256": "30d185c03fdc072cc96fad024cba0e54810748866fbccdb45e38c0539b619b67"
+    },
+    {
+      "path": "Tools/TORCSReferenceSupport/ReferenceWorld.swift",
+      "sha256": "4f55b8997711a43f1d3d5110ce43b9a2845bf8913cd5378b392c85b6a7d508c4"
+    }
+  ],
+  "evidenceSnapshot": [
+    {
+      "path": "Artifacts/tv-integration-full-debug.log",
+      "sha256": "31f17ffcd41975d6fe6c5e99aa245f2231cc0d9e25018932b6c547445a9cfd3b"
+    },
+    {
+      "path": "Artifacts/tv-integration-release.log",
+      "sha256": "0c693803a17723eb873e5371bbf0eb26ced56d516f0cfaaa0b3190fdef5dd172"
+    },
+    {
+      "path": "Artifacts/tv-integration-asan.log",
+      "sha256": "e4b0b4e950b5a4d96a9e620a82d537fd6faed7e0bde492ac3279953625c44bd6"
+    },
+    {
+      "path": "Artifacts/tv-integration-provenance.log",
+      "sha256": "7fcc7098f74326411b64c3372711f39191ea97c02f2cfc1e40f9982f59bd71f8"
+    },
+    {
+      "path": "Artifacts/tv-integration-package.log",
+      "sha256": "03f6fe0746efa0993ff3b46af092b61538771a25dce861938ed283fad6f34f5f"
+    },
+    {
+      "path": "Artifacts/tv-integration-runtime-libraries.log",
+      "sha256": "433ae038753327cf2a9e085fe1397eab17795376746275fb1ec6edffdfbc30db"
+    },
+    {
+      "path": "Artifacts/tv-preview-first.log",
+      "sha256": "d73e2acce0b98acba2bf2bc034e717a4bb22cc051aae98fed0d9ef6ddb478a57"
+    },
+    {
+      "path": "Artifacts/tv-preview-second.log",
+      "sha256": "d73e2acce0b98acba2bf2bc034e717a4bb22cc051aae98fed0d9ef6ddb478a57"
+    },
+    {
+      "path": "Artifacts/tv-preview-validation.log",
+      "sha256": "65cf0b1cb0640e5d69c6dad5277d2649bccc8a3b1989421a62b0482d2101e372"
+    },
+    {
+      "path": "Artifacts/tv-fly-clock.log",
+      "sha256": "121da35d55765d5743a4409a45c5bc1bad76f4e98c4166031a8f37b0767ab157"
+    },
+    {
+      "path": "Artifacts/tv-preview-first/report.json",
+      "sha256": "75aa2ce72a465ec077aae4d7250446e69c93586ce9c628bbb0b128bef8f7529a"
+    },
+    {
+      "path": "Artifacts/tv-preview-second/report.json",
+      "sha256": "75aa2ce72a465ec077aae4d7250446e69c93586ce9c628bbb0b128bef8f7529a"
+    },
+    {
+      "path": "Artifacts/tv-preview-validation/report.json",
+      "sha256": "75aa2ce72a465ec077aae4d7250446e69c93586ce9c628bbb0b128bef8f7529a"
+    },
+    {
+      "path": "Artifacts/tv-fly-clock/report.json",
+      "sha256": "2d42a092fb4a732616cf2affc5ba0a25a83aa01af9da243383319c9c156c179e"
+    }
+  ],
+  "remaining": [
+    "interactive Fly/TV picker, pause, zoom/reset and relaunch acceptance",
+    "multi-car rendered selection and projected shadows",
+    "full race standings and multi-car GUI",
+    "original graph.xml director configuration",
+    "other original scene effects, scene-wide shadows and content coverage",
+    "full race lifecycle, native AI, audio and replay",
+    "physical controllers after visual priorities",
+    "performance and distribution acceptance"
+  ]
+}

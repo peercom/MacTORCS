@@ -1,0 +1,268 @@
+{
+  "schema": 1,
+  "date": "2026-09-23",
+  "increment": "Per-car projected shadow resources, view visibility and actual native traffic TV rendering",
+  "goalComplete": false,
+  "reference": "TORCS 1.3.9",
+  "tests": {
+    "selectedDebug": 28,
+    "selectedRelease": 28,
+    "selectedASan": 28,
+    "inventory": 242,
+    "failures": 0,
+    "fullSuiteRerun": false,
+    "previousFullDebug": 238,
+    "originalVisibilityCases": 2696,
+    "originalGeometryCases": 1000,
+    "originalGeometryVertices": 6000,
+    "maximumVertexAbsoluteError": 7.6293945e-06,
+    "overlapAndNormalAndMirrorGPUCases": true
+  },
+  "rendering": {
+    "cars": 3,
+    "cameraCount": 31,
+    "nativeRunsPerProcess": 2,
+    "displayFramesPerRun": 901,
+    "physicsTicksPerRun": 7500,
+    "targetSwitchesPerRun": 6,
+    "capturedAutomaticSwitchesPerRun": 4,
+    "imagesPerProcess": 80,
+    "immediateExactRepeatPairsPerProcess": 80,
+    "freshProcessesWithIdenticalCapturesAndViewRecords": 4,
+    "metalAPIAndGPUValidationFaultsReported": 0,
+    "shadowChangedChannelsPerProcess": 551744,
+    "actualMirrorCaptureChangedShadowChannels": 0,
+    "mirrorEvidence": "Actual initial traffic mirror submits two other-car shadows, cropped/occluded in captured pixels. Independent GPU crop fixtures show other-car shadows and exclude only the current car.",
+    "mainShadowDraws": 3,
+    "driverMainPlusMirrorShadowDraws": 5,
+    "sharedShadowGPUTextures": 1,
+    "sceneGPUTextures": 32,
+    "noNewRenderPasses": true,
+    "shaderSourceUnchanged": true,
+    "perFrameTextureUploads": 0,
+    "raceOrder": "Fixed launch order; scripted commands, no native AI or standings claim",
+    "gui": "Existing prepared single-car driving session; no multi-car gameplay UI"
+  },
+  "performance": {
+    "host": "Apple M2, 8 GiB, macOS 26.2",
+    "scope": "Optional 960x640 stationary three-car offscreen GPU commands; 60 interleaved samples after 10 warmups. Not gameplay FPS or whole-race performance.",
+    "sceneFrame": 30,
+    "width": 960,
+    "height": 640,
+    "warmupsPerMode": 10,
+    "samplesPerMode": 60,
+    "modes": [
+      {
+        "gpuMedianMS": 0.6448749918490648,
+        "gpuP95MS": 1.5245000831782818,
+        "mode": 0,
+        "offscreenWallMedianMS": 4.668333334848285,
+        "quality": false,
+        "samples": 60,
+        "shadows": false
+      },
+      {
+        "gpuMedianMS": 0.6454165559262037,
+        "gpuP95MS": 1.5412499196827412,
+        "mode": 1,
+        "offscreenWallMedianMS": 4.699750104919076,
+        "quality": false,
+        "samples": 60,
+        "shadows": true
+      },
+      {
+        "gpuMedianMS": 0.7781251333653927,
+        "gpuP95MS": 1.74604170024395,
+        "mode": 2,
+        "offscreenWallMedianMS": 4.782000090926886,
+        "quality": true,
+        "samples": 60,
+        "shadows": false
+      },
+      {
+        "gpuMedianMS": 0.7752915844321251,
+        "gpuP95MS": 1.6405831556767225,
+        "mode": 3,
+        "offscreenWallMedianMS": 4.720875062048435,
+        "quality": true,
+        "samples": 60,
+        "shadows": true
+      }
+    ],
+    "interpretation": "Median shadow-on/off GPU differences are below 0.003 ms and smaller than observed timing variation. No speedup, gameplay FPS or general performance claim. CPU projection/physics/resource loading are excluded."
+  },
+  "singleCarRegressions": [
+    {
+      "new": "multi-shadow-single-tv",
+      "baseline": "tv-preview-first",
+      "images": 24,
+      "identicalImagesAndMetadata": true
+    },
+    {
+      "new": "multi-shadow-single-fly",
+      "baseline": "tv-fly-clock",
+      "images": 24,
+      "identicalImagesAndMetadata": true
+    }
+  ],
+  "packaged": {
+    "path": "build/TORCSMultiShadowPreview.app",
+    "adHocSignatureVerified": true,
+    "binarySHA256": "15775a8b90d53a671fe4fc1f12eeeb80188fcb2dc099834c45ab76bb5cc5ac8f",
+    "nativeBinaryHasNoDirectCPlusPlusOrExpat": true
+  },
+  "provenance": {
+    "verifiedPinnedEntries": 221,
+    "newPinnedOriginalSources": 0,
+    "newOriginalArtwork": 0,
+    "newVerbatimExcerpt": "shadow-visibility.inc from already pinned grcar.cpp"
+  },
+  "preserved": {
+    "build/TORCSTVPreview.app/Contents/MacOS/TORCSMac": "9f393c487a68e7a409152f77a80159b695ac34411cec035a78906a039e2faf0f",
+    "build/TORCSFlyPreview.app/Contents/MacOS/TORCSMac": "a144864b22b58651e22bf9c4bde50f83f55dd230c593f5048f8bf0541d9f097e",
+    "Packages/TORCSMetal/Scene.metal": "4396144a2cfc7eb97ad10ddcc09d898b01d979b328bb4f15de8742b2e62e3e66",
+    "/Users/holgervonameln/Library/Application Support/TORCSMac/cameras.json": "b62c5a2a334ac0748b201b64b9dbe3ade377d796a596fcba7bd38833a4c084e8"
+  },
+  "sourceSnapshot": [
+    {
+      "path": "Packages/TORCSMetal/SceneShadow.swift",
+      "sha256": "bdba19a736ccd0cd4e69d0b7b35415f456fb5768424c94ea6eedfbf6694fe49f"
+    },
+    {
+      "path": "Packages/TORCSMetal/SceneRenderer.swift",
+      "sha256": "150c149a473d94a552188b6174404f1f050285da4e609a96f39a54f9930a348f"
+    },
+    {
+      "path": "Packages/TORCSMetal/RearViewMirror.swift",
+      "sha256": "8c77ca719e88e0f24ac9105fc78072e2f6d2300928d5254b805fae5d4f443b72"
+    },
+    {
+      "path": "Packages/TORCSMetal/CarShadow.swift",
+      "sha256": "06613d1ae80f5fbd41db284647d7ea777d60fd4dea9e415f27693cc90168875b"
+    },
+    {
+      "path": "Packages/TORCSMetal/Scene.metal",
+      "sha256": "4396144a2cfc7eb97ad10ddcc09d898b01d979b328bb4f15de8742b2e62e3e66"
+    },
+    {
+      "path": "Tests/UnitTests/MultiCarShadowTests.swift",
+      "sha256": "31c5f09d1deb04e1543e9819ba115094eedda6c6341ff12acf78680e7d7057d8"
+    },
+    {
+      "path": "App/TrafficVisualSmoke.swift",
+      "sha256": "4ff196866d2ce2bff6940eecb160b7debd4fc0ed1bd92a4f39259a1ce9ba471e"
+    },
+    {
+      "path": "App/TORCSMacApp.swift",
+      "sha256": "2ae0fb9548bdc4610800eace8a82b3c13305a9084385185ae2d925bccfb538d1"
+    },
+    {
+      "path": "Upstream/Reference/graphics-instrumentation.cpp",
+      "sha256": "738ebd0507133318cb6d0cc9be3f13c4d36e9603e2b10cf0a2b023f5f9316881"
+    },
+    {
+      "path": "Upstream/Reference/graphics/shadow-visibility.inc",
+      "sha256": "f333ec2959f5f44789284d2e415561d4c81f971fc2adafb4e0dc8f418b08f85a"
+    },
+    {
+      "path": "Upstream/Reference/include/CReference.h",
+      "sha256": "32723fcc963d933cd589abfcdb7f3ffb5dae7e59ec6ef0035d9f7ed7644fdd42"
+    },
+    {
+      "path": "Scripts/verify-provenance.py",
+      "sha256": "cdeca1a0a8f0757061e8d0963f5a5968b6203324f0d0c754fc5977e34475561d"
+    }
+  ],
+  "evidenceSnapshot": [
+    {
+      "path": "Artifacts/multi-shadow-debug.log",
+      "sha256": "cca1712cddb713995079885d3767ee0804177e2f8a413b9b4a6f03d3725abda0"
+    },
+    {
+      "path": "Artifacts/multi-shadow-release.log",
+      "sha256": "d7b83a218b53827461e86a08d7ffaf3ab68ac026ea634495872b0c6c6c2f0f15"
+    },
+    {
+      "path": "Artifacts/multi-shadow-asan.log",
+      "sha256": "11b71650aa72169e8d9b55004ef0036a0d3c48e216889a49af312b1ca0e3b3eb"
+    },
+    {
+      "path": "Artifacts/multi-shadow-inventory.log",
+      "sha256": "795a9181c202926754978db9c22bcb54994458e45beb907f7aef7eb20c3bf8df"
+    },
+    {
+      "path": "Artifacts/multi-shadow-provenance.log",
+      "sha256": "ad519d132e152e180c290f8101048ae0bb98515cc7d31647b16f0dcaac1388ea"
+    },
+    {
+      "path": "Artifacts/multi-shadow-package.log",
+      "sha256": "25c88564339a2b20d179089206c51d179458957725c7c460686091a3728326fb"
+    },
+    {
+      "path": "Artifacts/multi-shadow-runtime-libraries.log",
+      "sha256": "0588973e35b3f7d98268b0dd23eca57ed72507f262c66660f471051cccfd770a"
+    },
+    {
+      "path": "Artifacts/multi-shadow-pre-benchmark-processes.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "Artifacts/multi-shadow-single-tv.log",
+      "sha256": "d73e2acce0b98acba2bf2bc034e717a4bb22cc051aae98fed0d9ef6ddb478a57"
+    },
+    {
+      "path": "Artifacts/multi-shadow-single-fly.log",
+      "sha256": "121da35d55765d5743a4409a45c5bc1bad76f4e98c4166031a8f37b0767ab157"
+    },
+    {
+      "path": "Artifacts/traffic-shadows-first.log",
+      "sha256": "a0aac641078e3841b0a94fec3cbae407e9052987e36cfe696190e1d1c882158a"
+    },
+    {
+      "path": "Artifacts/traffic-shadows-second.log",
+      "sha256": "a0aac641078e3841b0a94fec3cbae407e9052987e36cfe696190e1d1c882158a"
+    },
+    {
+      "path": "Artifacts/traffic-shadows-validation.log",
+      "sha256": "c644c6e1c7a0552db3beff72a54525aade37bba7cb8a686d70d9dd8b13538128"
+    },
+    {
+      "path": "Artifacts/traffic-shadows-benchmark.log",
+      "sha256": "a0aac641078e3841b0a94fec3cbae407e9052987e36cfe696190e1d1c882158a"
+    },
+    {
+      "path": "Artifacts/traffic-shadows-first/report.json",
+      "sha256": "ddc355bc32406e6ee816e3987e20cd2b041d5088ed402e8c9af28314c54bb8da"
+    },
+    {
+      "path": "Artifacts/traffic-shadows-second/report.json",
+      "sha256": "ddc355bc32406e6ee816e3987e20cd2b041d5088ed402e8c9af28314c54bb8da"
+    },
+    {
+      "path": "Artifacts/traffic-shadows-validation/report.json",
+      "sha256": "ddc355bc32406e6ee816e3987e20cd2b041d5088ed402e8c9af28314c54bb8da"
+    },
+    {
+      "path": "Artifacts/traffic-shadows-benchmark/report.json",
+      "sha256": "0fd56d0734c66136dbbb9699c2b304db0466768a9ae210112cb29c25a7c8e606"
+    },
+    {
+      "path": "Artifacts/multi-shadow-single-tv/report.json",
+      "sha256": "75aa2ce72a465ec077aae4d7250446e69c93586ce9c628bbb0b128bef8f7529a"
+    },
+    {
+      "path": "Artifacts/multi-shadow-single-fly/report.json",
+      "sha256": "2d42a092fb4a732616cf2affc5ba0a25a83aa01af9da243383319c9c156c179e"
+    }
+  ],
+  "remaining": [
+    "interactive multi-car racing, standings and native AI",
+    "multi-car Fly scene-height assembly",
+    "other original effects and whole-scene rendering fidelity",
+    "scene-wide shadows and broader cars/tracks/GPU measurements",
+    "interactive Fly/TV zoom/reset and relaunch acceptance",
+    "complete race lifecycle, audio and replay",
+    "physical controllers after visual priorities",
+    "distribution licensing, profiling and notarization"
+  ]
+}

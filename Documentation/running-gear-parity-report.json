@@ -1,0 +1,170 @@
+{
+  "absoluteTolerance": 1e-05,
+  "archiveSHA256": "f9c69e86d290295467451b01d7838d85005ba613644a6fe8a3f85a7c6a03cd4c",
+  "configurationCases": {
+    "authored": "12 variants plus empty/default XML; same mass/CG/static load context supplied to isolated original and native component setup",
+    "invalid": "Five native singular/invalid parameter configurations rejected",
+    "originalCar": "155-DTM + Track-4WD-GrB merged by each implementation"
+  },
+  "excluded": [
+    "Engine/clutch/gearbox/driven differentials",
+    "Chassis force and motion integration",
+    "Aero/collision integration",
+    "Pit-time setup reconfiguration",
+    "Full race/robot execution",
+    "Playable driving",
+    "Performance and long-race stability",
+    "Cross-platform bit identity"
+  ],
+  "fixtureSHA256": {
+    "155-DTM.xml": "7b069b816636ed85ace6b440d87aa400c3e54716170766df3e7a7483475f52bb",
+    "Track-4WD-GrB.xml": "b08bc4a12ccfeff49ce1d608583a858cec69985d94aa057640d231016fed37eb",
+    "aalborg.xml": "bfd4bfc66977a515e1d5bafb37e1698adaa9b05808d4da003f94d98a570a7b57",
+    "objects.xml": "446e70833abb16942559315db5c4d224bd5a2a2da72b526e5d097c52fb2f0b37",
+    "surfaces.xml": "9e0c5fb78cd7d9fd635beed670750f69c851ab14a83e275fab2973330797bbb9"
+  },
+  "observations": {
+    "addressSanitizer": [
+      {
+        "check": "AXLE_FORCE",
+        "maxAbsolute": 0.0,
+        "samples": 3750,
+        "thirdActive": 2012,
+        "travelGated": 900
+      },
+      {
+        "check": "WHEEL_KINEMATICS",
+        "maxAbsolute": 0.0,
+        "samples": 2400
+      },
+      {
+        "blended": 6973,
+        "check": "RUNNING_GEAR_SEQUENCE",
+        "fields": 1920000,
+        "maxAbsolute": 0.0,
+        "thermalResets": 2000,
+        "ticks": 10000,
+        "wheelTicks": 40000
+      },
+      {
+        "cases": 13,
+        "check": "RUNNING_GEAR_AUTHORED",
+        "fields": 3640,
+        "massFallbacks": 24,
+        "maxAbsolute": 0.0
+      },
+      {
+        "check": "RUNNING_GEAR_CAR",
+        "fields": 280,
+        "maxAbsolute": 0.0
+      }
+    ],
+    "debug": [
+      {
+        "check": "AXLE_FORCE",
+        "maxAbsolute": 0.0,
+        "samples": 3750,
+        "thirdActive": 2012,
+        "travelGated": 900
+      },
+      {
+        "check": "WHEEL_KINEMATICS",
+        "maxAbsolute": 0.0,
+        "samples": 2400
+      },
+      {
+        "blended": 6973,
+        "check": "RUNNING_GEAR_SEQUENCE",
+        "fields": 1920000,
+        "maxAbsolute": 0.0,
+        "thermalResets": 2000,
+        "ticks": 10000,
+        "wheelTicks": 40000
+      },
+      {
+        "cases": 13,
+        "check": "RUNNING_GEAR_AUTHORED",
+        "fields": 3640,
+        "massFallbacks": 24,
+        "maxAbsolute": 0.0
+      },
+      {
+        "check": "RUNNING_GEAR_CAR",
+        "fields": 280,
+        "maxAbsolute": 0.0
+      }
+    ],
+    "release": [
+      {
+        "check": "AXLE_FORCE",
+        "maxAbsolute": 0.0,
+        "samples": 3750,
+        "thirdActive": 2012,
+        "travelGated": 900
+      },
+      {
+        "check": "WHEEL_KINEMATICS",
+        "maxAbsolute": 0.0,
+        "samples": 2400
+      },
+      {
+        "blended": 6973,
+        "check": "RUNNING_GEAR_SEQUENCE",
+        "fields": 1920000,
+        "maxAbsolute": 0.0,
+        "thermalResets": 2000,
+        "ticks": 10000,
+        "wheelTicks": 40000
+      },
+      {
+        "cases": 13,
+        "check": "RUNNING_GEAR_AUTHORED",
+        "fields": 3640,
+        "massFallbacks": 24,
+        "maxAbsolute": 0.0
+      },
+      {
+        "check": "RUNNING_GEAR_CAR",
+        "fields": 280,
+        "maxAbsolute": 0.0
+      }
+    ]
+  },
+  "relativeTolerance": 1e-06,
+  "schema": 1,
+  "scope": "Fresh-car wheel/axle configuration, chassis-to-wheel kinematics, anti-roll/third spring and four-wheel stages with forced chassis and explicitly undriven axles",
+  "sequenceInputs": "10,000 ticks at 2 ms; supplied chassis pose/velocity, wheel steering/brake pressure, atmospheric pressure/temperature and tire rule factor; first 500 ticks reset all four tires as in original pre-simulation",
+  "sourceSHA256": {
+    "Packages/TORCSSimulation/Axle.swift": "c5bebecf6e014668ba30fe29851342c856d62093e6f5847775f0d599bdbd69b1",
+    "Packages/TORCSSimulation/Brakes.swift": "d81a6cab599167a3df720440c460ebfec98e4a97e7b3822bb6694fbda733a36e",
+    "Packages/TORCSSimulation/RunningGearConfiguration.swift": "e0414426d0ef6581e5f363c41b3d432ea9253292867742fa4c24f8bcb3cfd143",
+    "Packages/TORCSSimulation/RunningGearState.swift": "f52c5fe34cd94732a277cfbf4db2c036c044429ca85297ac93504e76ace0ead7",
+    "Packages/TORCSSimulation/Suspension.swift": "f3297660f059a1bd332ed2a76aff6d1207cdd401161d665f8be1e8ba0b111116",
+    "Packages/TORCSSimulation/TireThermal.swift": "8a633a65d651f75cd1d57605563baa04afaa8c93b1a5c79a51b3163b04af400f",
+    "Packages/TORCSSimulation/VehicleMassProperties.swift": "bf9d7f13a90014f25aeeed4f98dd8865d9f0e715997660596d4545a09b91ead3",
+    "Packages/TORCSSimulation/WheelForce.swift": "f49070d82d33d70f0e1e451d47cfc9d835ca8cc58cb82e9ef742525e5b589a2f",
+    "Packages/TORCSSimulation/WheelKinematics.swift": "12d723b88707576dbf6e4899dc99f998fed739a58d552ecfaa9dc815701cecfe",
+    "Packages/TORCSSimulation/WheelRide.swift": "9b37444bba3c0ef0817b727ad9a6c74a1bd9ef5863fda2bca50c6f17e55f7658",
+    "Packages/TORCSSimulation/WheelRotation.swift": "aba02fbdccac7a373d0cb9fb9c66395cb9995a6d8c55f27240f443ee6755e145",
+    "Packages/TORCSTrack/TrackBuilder.swift": "f86b8926ca1aae6f4362352f2b824b2dc4cfbd44a1fb60ad6a40616df924f4af",
+    "Packages/TORCSTrack/TrackQueries.swift": "26f843adb80188ace94c844f7cce2c533b92be1b81ef9c2b2e3204dbe931856b",
+    "Tests/UnitTests/AxleKinematicsTests.swift": "0f2cc0419a44c839e55dd17e434d7752e9ad56af26a43b9ee6aaf660472da41e",
+    "Tests/UnitTests/RunningGearIntegrationTests.swift": "c2bdadbdbcd375e14df68f32a216125d7b2c4153ee95d6703b5ca1384693cd1b",
+    "Tests/UnitTests/RunningGearTests.swift": "814513500841fc5341e0185ba9acf1b88aebaa58a35bcbfc6fd5bf257820fec7",
+    "Tools/TORCSReferenceSupport/ReferenceWorld.swift": "c0f76b794558e4d7ec5690be7966ab0a0971ec3ea0d267136b6eecd75b64bac6",
+    "Upstream/Reference/axle.cpp": "8a93b97dd8ad6aa6126bf0c622fdf0cb7468c37a439c413b61eb503a1dae009d",
+    "Upstream/Reference/brake.cpp": "1f7b7adc4fa04630059d72974d5fe2feffd8face8eb23525de1018b34b3cd0e9",
+    "Upstream/Reference/bridge.cpp": "ee237a7b5cc0c6b0f5df116419c74442ccd2ffeeb9184febfbb14dc852fb3bab",
+    "Upstream/Reference/car.cpp": "dcdf23c12c6a8207baa6d00cb4def869dd903ae48797ad201419b34484e7c966",
+    "Upstream/Reference/include/CReference.h": "f495f7be9c0e4fc75fbd667e3f75d594d92335083625c94109c6034afd1efffd",
+    "Upstream/Reference/plib/sg.cxx": "df99a14128ae32ea98f20fed4340f9967187d56d9c2a2b4733a96092d12c31ce",
+    "Upstream/Reference/private/plib/sg.h": "9d2bf096f7a6bf2d7b1a4d6b6efdb445638330336e1c8066cd87a2d62b04a631",
+    "Upstream/Reference/susp.cpp": "05a6075c968089fb61b34a9b40f6cc0ba3c7456ad3943ff446c5d39aefb625e8",
+    "Upstream/Reference/wheel.cpp": "7228fe05860615082f075cd2970c4bcdf48a242623a609427da34227b15125ec",
+    "Upstream/Reference/world.cpp": "438670e045f1dd6afc3ce1a40e9f6ca852449e3f19d5ec5cba64411863f28080"
+  },
+  "toolchain": "Swift 6.3.3 / Xcode 26.6 / Apple Silicon",
+  "upstream": "TORCS 1.3.9",
+  "wearAbsoluteTolerance": 1e-12,
+  "wearRelativeTolerance": 1e-10
+}

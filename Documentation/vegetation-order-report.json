@@ -1,0 +1,347 @@
+{
+  "schema": 1,
+  "date": "2026-09-24",
+  "goalComplete": false,
+  "status": "Optional 3D tree prototype: normal 56-view captures and timing completed; smaller smoothed-view repeat differences remain",
+  "acceptedAsLatestValidatedPreview": false,
+  "implementation": {
+    "placements": 169,
+    "familyCounts": [
+      81,
+      79,
+      9
+    ],
+    "replacedSourceBatches": 676,
+    "otherAtlasBatchesRetained": 5,
+    "sharedMeshes": 18,
+    "variantsPerFamily": 3,
+    "geometryLODs": 2,
+    "nearMinimumProjectedHeightPixels": 160,
+    "middleMinimumProjectedHeightPixels": 35,
+    "distantMode": "original source planes",
+    "defaultEnabled": false,
+    "instancedGroupsAtMostPerTrackView": 18,
+    "instanceUploadChunk": 512,
+    "sourceAtlasReused": true,
+    "newTextures": 0,
+    "foliage": "Opaque irregular procedural clusters with source-family foliage patches; modeled trunks and branches",
+    "mirrorSelectionIndependent": true,
+    "flyCanopyHeightIncludedWhenEnabled": true,
+    "physicsChanged": false,
+    "treeShadowsImplemented": false,
+    "geometryLicense": "CC-BY-SA-4.0 for new untextured generated geometry; source code GPL-2.0-only; existing atlas remains under original artwork terms",
+    "submission": "Opaque tree block precedes original draw stream; original states still apply at skipped replacement-tree leaves"
+  },
+  "tests": {
+    "fullRelease": 274,
+    "selectedRelease": 38,
+    "selectedAddressSanitizer": 38,
+    "failuresInThoseSuites": 0,
+    "newTests": 3,
+    "gpuTreeViews": 18,
+    "gpuImmediateRepeatPairs": 18,
+    "originalRestorationExact": true,
+    "mirrorNearMainFarAndHiddenInstanceChecks": true,
+    "existingCarRasterRepeats": 720,
+    "existingCarRasterChangedChannels": 0,
+    "fullReleaseSeconds": 141.816
+  },
+  "visualInvestigation": {
+    "normalReleaseProcesses": 2,
+    "normalReleaseImmediateRepeatPairs": 112,
+    "normalReleaseExactImmediatePairs": 111,
+    "normalReleaseRemainingImmediatePair": {
+      "changedChannels": 3,
+      "maximumByteDelta": 1,
+      "withinUnchangedTolerance": true
+    },
+    "debugImmediateRepeatPairs": 56,
+    "originalRestorationExact": true,
+    "cameraCoverage": "Chase, trackside, Driver/mirror, TV, Fly and three views of each tree family, both quality modes",
+    "matchingCrossProcessImageHashes": 55,
+    "totalCrossProcessImages": 56,
+    "crossProcessDifferences": {
+      "tv-quality-volume": {
+        "changedChannels": 3,
+        "maximumByteDelta": 1
+      }
+    },
+    "matchingCameraPhysicsAndDrawRecords": true,
+    "metalValidationPassed": false,
+    "metalValidationFailure": {
+      "view": "Trackside-quality-volume",
+      "changedChannels": 32,
+      "maximumByteDelta": 6,
+      "affectedPixels": 19,
+      "boundsXY": [
+        446,
+        269,
+        453,
+        292
+      ],
+      "firstAndNextTwoMatch": true,
+      "recordedCommandsEqual": true,
+      "resourceFaultReported": false
+    },
+    "previousFirstFrameFailureReproduced": {
+      "package": "build/TORCSVegetationPreview.app",
+      "changedChannels": 3787,
+      "maximumByteDelta": 52
+    },
+    "separateBufferBindingsDidNotFixPreviousFailure": true,
+    "orderChangePassesPreviousFailingView": true,
+    "rootCauseEstablished": false,
+    "imageToleranceChanged": false,
+    "framesDiscardedForImageAcceptance": false,
+    "appearance": "Geometry has real volume; conifers still look stacked and broadleaf crowns too smooth at close range. Visual refinement remains open."
+  },
+  "performance": {
+    "benchmarkCompleted": true,
+    "host": "Apple M2, 8 GiB, macOS 26.2",
+    "resolution": [
+      960,
+      640
+    ],
+    "timings": [
+      {
+        "enhanced": false,
+        "gpuMedianMS": 0.6467499770224094,
+        "gpuP95MS": 1.5637499745935202,
+        "quality": false,
+        "samples": 60,
+        "wallMedianMS": 5.862624850124121
+      },
+      {
+        "enhanced": true,
+        "gpuMedianMS": 0.6445415783673525,
+        "gpuP95MS": 2.336083212867379,
+        "quality": false,
+        "samples": 60,
+        "wallMedianMS": 5.359166767448187
+      },
+      {
+        "enhanced": false,
+        "gpuMedianMS": 0.7937916088849306,
+        "gpuP95MS": 2.342625055462122,
+        "quality": true,
+        "samples": 60,
+        "wallMedianMS": 5.950875114649534
+      },
+      {
+        "enhanced": true,
+        "gpuMedianMS": 0.7299999706447124,
+        "gpuP95MS": 1.1116249952465296,
+        "quality": true,
+        "samples": 60,
+        "wallMedianMS": 5.298875039443374
+      }
+    ],
+    "chaseTreeDraws": 10,
+    "chaseTreeTriangles": 131696,
+    "measuredDrawRangeAcrossAllViews": [
+      6,
+      16
+    ],
+    "scope": "Optional volume enhancement using existing local artwork. Fixed native settled pose and matched camera views; Fly canopy height tested separately. Tree shadows and moving LOD transition acceptance remain pending. Stationary offscreen timings exclude loading and physics; no full-race FPS claim.",
+    "backgroundDesktopActivityRecorded": true,
+    "noPerformanceImprovementClaimed": true,
+    "fullRaceFPSClaimed": false,
+    "flyCanopyQuery": {
+      "canopyQueries": {
+        "maximumUS": 220.29154933989048,
+        "medianUS": 92.58324280381203,
+        "p95US": 167.7917316555977,
+        "samples": 1014
+      },
+      "checksum": -223977064.07364845,
+      "outsideQueries": {
+        "maximumUS": 0.37509016692638397,
+        "medianUS": 0.250060111284256,
+        "p95US": 0.250060111284256,
+        "samples": 192
+      },
+      "schema": 1,
+      "scope": "Release CPU timing of the additional detailed-canopy query at all 169 tree centers and outside the forest; one warmup sweep, six measured sweeps. Excludes original scene-height query, loading, simulation and rendering.",
+      "trees": 169
+    }
+  },
+  "package": {
+    "path": "build/TORCSTreePreview.app",
+    "status": "Experimental optional tree preview; full raster acceptance remains open",
+    "binarySHA256": "d70cfb376c3440d73bb7845f6af1709357cd0d9d1bb685d84ae05d6d252786e1",
+    "adHocSignatureVerified": true,
+    "metalSmokePassed": true,
+    "noDirectCPlusPlusOrExpatDependency": true,
+    "artworkBundled": false,
+    "pinnedSourceContentFiles": 229,
+    "latestValidatedBaseline": "build/TORCSOrderPreview.app",
+    "priorTreePreviewPreserved": true
+  },
+  "preservationAudit": [
+    {
+      "path": "build/TORCSOrderPreview.app/Contents/MacOS/TORCSMac",
+      "baselineSHA256": "36e40369ec24b7e8b71551a349ba6b82ee4b18c77c8f1d89e87c5502591f6b74",
+      "currentSHA256": "36e40369ec24b7e8b71551a349ba6b82ee4b18c77c8f1d89e87c5502591f6b74",
+      "unchanged": true
+    },
+    {
+      "path": "build/TORCSLightPreview.app/Contents/MacOS/TORCSMac",
+      "baselineSHA256": "90fbc86e1a479b37d5cc3c7a8dc23d4c3148e2d69af5498bc12b2275bbae181f",
+      "currentSHA256": "90fbc86e1a479b37d5cc3c7a8dc23d4c3148e2d69af5498bc12b2275bbae181f",
+      "unchanged": true
+    },
+    {
+      "path": "/Users/holgervonameln/Library/Application Support/TORCSMac/cameras.json",
+      "baselineSHA256": "7493b4ac79f8bc9058190ea5218c47ddf3f67552d8f6d3ed39da49ab40374dda",
+      "currentSHA256": "7493b4ac79f8bc9058190ea5218c47ddf3f67552d8f6d3ed39da49ab40374dda",
+      "unchanged": true
+    }
+  ],
+  "sourceSnapshot": [
+    {
+      "path": "Packages/TORCSMetal/VegetationForest.swift",
+      "sha256": "381941e4ff3d2dcac097d1f9afd1547ea3b1804dc4553330fa07315bd0749750"
+    },
+    {
+      "path": "Packages/TORCSMetal/VegetationRenderState.swift",
+      "sha256": "d1d0708d951763576787254205ad3611c2345fd05e3fe2e1035e4619846356ad"
+    },
+    {
+      "path": "Packages/TORCSMetal/SceneRenderer.swift",
+      "sha256": "10900ef3acb7b36635c3bbdf8e965f8032b207d755bee9dd959d9acf0bcad10c"
+    },
+    {
+      "path": "Packages/TORCSMetal/Scene.metal",
+      "sha256": "d13910858d9642d78d193f37f09c338191a6b85c140480092517d9afa128b27d"
+    },
+    {
+      "path": "Packages/TORCSMetal/SceneDrawOrder.swift",
+      "sha256": "f7bba22bc15bc52e11a2133db8110a92c2a421cf70f23f482c55c04d45909636"
+    },
+    {
+      "path": "Packages/TORCSMetal/DrivingSceneHeight.swift",
+      "sha256": "68800a6d402bf5243773731b0105f049873c7a9479fe10370f4b64f3b2019cd4"
+    },
+    {
+      "path": "App/DrivingSession.swift",
+      "sha256": "fb6400a685013895f6171844a9ad850027ffd5aa4d8bec203d1f07f250438849"
+    },
+    {
+      "path": "App/VegetationVisualSmoke.swift",
+      "sha256": "18968d8c20d98b6dcb8f633ff43ec0ca62f5f7dba5635adced7ddd804cb3fcac"
+    },
+    {
+      "path": "App/TORCSMacApp.swift",
+      "sha256": "88fe53f6de00e3dfda93d20ab95694e1bceb6d45390c59ad56bb54b5c4be0b53"
+    },
+    {
+      "path": "Tests/UnitTests/VegetationTests.swift",
+      "sha256": "edcc026f5453df33efea824904d96d108ffc02a2943447084036225157add288"
+    }
+  ],
+  "evidenceSnapshot": [
+    {
+      "path": "Artifacts/vegetation-order-full-release.log",
+      "sha256": "213876d25a926f30db63dc07e121a1f845d8d13c099928c774b4c6f6fa865269"
+    },
+    {
+      "path": "Artifacts/vegetation-order-release-tests.log",
+      "sha256": "10bb50602be8b7a8cef17ba5a07e484902abacbb6cc965ebf41f67d33043c9d1"
+    },
+    {
+      "path": "Artifacts/vegetation-order-asan-tests.log",
+      "sha256": "c2b09bc360308c8746895a88c4797781662f427a337700d37f7e0e51062d20f1"
+    },
+    {
+      "path": "Artifacts/vegetation-early-pass.log",
+      "sha256": "c38112057a53a7f27ff5a914ab46a8bbfa059316806139214cd7ec7cee301c22"
+    },
+    {
+      "path": "Artifacts/vegetation-order-negative-control.log",
+      "sha256": "f202c4047ed6a1a70d051ce11d2cf89dc29dd99d5e55333dffc9e99f8443a58a"
+    },
+    {
+      "path": "Artifacts/vegetation-binding-isolation.log",
+      "sha256": "f202c4047ed6a1a70d051ce11d2cf89dc29dd99d5e55333dffc9e99f8443a58a"
+    },
+    {
+      "path": "Artifacts/tree-preview-benchmark.log",
+      "sha256": "c40efe9ba910e81d4b391341d13fe3e8321fc240edc028d1b98c0196dc856dd2"
+    },
+    {
+      "path": "Artifacts/tree-preview-benchmark/report.json",
+      "sha256": "fb6205377ac3f50c65cc8925fd48a4e819be783a672615411d1fce5056197f53"
+    },
+    {
+      "path": "Artifacts/tree-preview-repeat.log",
+      "sha256": "c38112057a53a7f27ff5a914ab46a8bbfa059316806139214cd7ec7cee301c22"
+    },
+    {
+      "path": "Artifacts/tree-preview-repeat/report.json",
+      "sha256": "ed76ba7bbbd66086814edd44b1c8c472bebe598ef56192f6ed95c340b77657c5"
+    },
+    {
+      "path": "Artifacts/tree-preview-validation.log",
+      "sha256": "08a935e41bb73c20b5e21ef8b07b8a4bacc97a46e46b9937c6c3de307d66a97f"
+    },
+    {
+      "path": "Artifacts/tree-preview-package.log",
+      "sha256": "3bbae35ff7ebbe33b6a4eee929f96a408e574fbb43748fc412add18c51e8de04"
+    },
+    {
+      "path": "Artifacts/tree-preview-signature.log",
+      "sha256": "b9289922778332c32abf47b09a4f6c065cba2dfb4e194106f840a7a1bc439cbe"
+    },
+    {
+      "path": "Artifacts/tree-preview-libraries.log",
+      "sha256": "ce71a40595ca1e154e9eae4918b891ac3cac66d074bc19f1607e47bfdcd1ea3b"
+    },
+    {
+      "path": "Artifacts/tree-preview-metal-smoke.log",
+      "sha256": "7c307493192b70189dfcb95937600d572fed01a81f577ac8302965950bc5ab5f"
+    },
+    {
+      "path": "Artifacts/tree-preview-provenance.log",
+      "sha256": "7afd9018e488fb36b235e2f4693c3bba97eea66019545ffa1d9cf211b8d646ed"
+    },
+    {
+      "path": "Artifacts/tree-preview-performance-processes.txt",
+      "sha256": "a99622a116eaf3c5bff2b3cb4f4ccda23ec87d47a0681a7ce93785cbc42e3ce2"
+    },
+    {
+      "path": "Artifacts/vegetation-height-timing.json",
+      "sha256": "23941a2dc889834c87d94a42c8183d465aed2ceef52dd1ff90811db1286b922b"
+    },
+    {
+      "path": "Artifacts/VegetationHeightBench.swift",
+      "sha256": "cfd255bbeb1b6a4645fa6715c6771f048e176d01b3e439a60e667f62b1c5f823"
+    },
+    {
+      "path": "Artifacts/vegetation-height-bench-command.json",
+      "sha256": "9de0b93d263e6e23ee2059f338d690e5398f7ae0517b10d044fbea9690f6aaa0"
+    },
+    {
+      "path": "Artifacts/tree-preview-validation/failed-first.png",
+      "sha256": "dffffc6da8a932add5d12cb63a97dcf6a7ef4370359a4e26219ffa67311174fb"
+    },
+    {
+      "path": "Artifacts/tree-preview-validation/failed-repeat.png",
+      "sha256": "2b86dac65c4031d663a4f88f6a9fee6601226d7d29ecce88c91ef8d7986c3793"
+    },
+    {
+      "path": "Artifacts/tree-preview-validation/failed-next-0.png",
+      "sha256": "dffffc6da8a932add5d12cb63a97dcf6a7ef4370359a4e26219ffa67311174fb"
+    },
+    {
+      "path": "Artifacts/tree-preview-validation/failed-next-1.png",
+      "sha256": "dffffc6da8a932add5d12cb63a97dcf6a7ef4370359a4e26219ffa67311174fb"
+    }
+  ],
+  "next": [
+    "Isolate smoothed trackside repeat and TV cross-process differences without weakening acceptance",
+    "Improve branch/foliage silhouette and material appearance, then validate moving LOD transitions",
+    "Add measured nearby tree shadows; keep tree option disabled by default until accepted",
+    "Resolve separate inherited-alpha wheel repeat regression",
+    "Continue full TORCS race lifecycle, robots, audio, replay, content and distribution"
+  ]
+}

@@ -1,0 +1,230 @@
+{
+  "schema": 1,
+  "date": "2026-09-23",
+  "increment": "Original TV director, selected-car projection and presentation collision history",
+  "previousGoalTurn": "progress",
+  "goalComplete": false,
+  "integration": {
+    "tvInPicker": false,
+    "pickerCameras": 30,
+    "newPackagedPreview": false,
+    "previousPreviewPreserved": "build/TORCSFlyPreview.app",
+    "userSessionAutomated": false,
+    "raceFrameCollisionHistoryPublished": false,
+    "sharedAcknowledgementFlow": "Tested with two directors; application owner integration pending",
+    "simulationStateMutatedByPresentation": false
+  },
+  "reference": {
+    "release": "TORCS 1.3.9",
+    "archiveSHA256": "f9c69e86d290295467451b01d7838d85005ba613644a6fe8a3f85a7c6a03cd4c",
+    "sourceLicenseEntries": 175,
+    "contentEntries": 46,
+    "archiveVerifiedOriginalFiles": 221,
+    "newOriginalSourceFiles": 1,
+    "newOriginalArtwork": 0,
+    "originalTVExcerpts": 2,
+    "adapter": "Unchanged helper/class/factory and inherited road-zoom; access-only class-to-struct macro exposes scheduling state; supplied screen/parameter/car storage",
+    "wholeRaceOrOpenGLReference": false
+  },
+  "validation": {
+    "newTests": 9,
+    "selectedDebug": 33,
+    "selectedRelease": 33,
+    "selectedAddressSanitizer": 33,
+    "inventory": 234,
+    "fullSuiteRunThisIncrement": false,
+    "previousFullDebug": 225,
+    "previousFullDebugScope": "Before final hidden-shadow correction in prior F10 increment; see its report",
+    "failures": 0,
+    "buildRetries": "Initial tests required explicit Float boundary literals; projection validation was corrected to use SceneCamera matrix access. Completed final suites pass. No source was edited during compilation."
+  },
+  "selection": {
+    "sequentialUpdates": 24000,
+    "carCounts": [
+      1,
+      2,
+      3,
+      8,
+      32
+    ],
+    "settingsSets": 4,
+    "slotSwitches": 6883,
+    "allUnviewableSchedulingStates": 10255,
+    "raceReorders": 2180,
+    "extraBoundaryUpdates": 440,
+    "prioritiesViewabilityClocksSelectionAndClears": "exact",
+    "supportedCarCountBound": [
+      1,
+      1024
+    ],
+    "maximumOtherScreens": 3,
+    "fullSupportedBoundParityClaimed": false
+  },
+  "projection": {
+    "originalDirectorUpdates": 2400,
+    "targetChanges": 303,
+    "maximumPoseAndMatrixAbsoluteError": 0,
+    "roadsideZoomUpdates": 600,
+    "roadsideLocations": 3,
+    "zoomScales": [
+      1.5,
+      9,
+      30,
+      90,
+      200
+    ],
+    "aspects": [
+      1,
+      1.5,
+      2.1
+    ],
+    "failedProjectionRollsBackSelection": true,
+    "newGPUOutputClaimed": false
+  },
+  "collisions": {
+    "cadencePerCarPublications": 36000,
+    "displayCadencesInPhysicsTicks": [
+      1,
+      4,
+      8,
+      17
+    ],
+    "directorUpdates": 4302,
+    "clears": 808,
+    "sharedScreens": 2,
+    "sharedPerCarPublications": 8000,
+    "sharedDirectorUpdates": 800,
+    "sharedClears": 224,
+    "secondScreenClears": 27,
+    "legacyLatchEquivalence": "exact",
+    "inactiveStalePublicationSuppressed": true,
+    "badTicksRollback": true
+  },
+  "nativeIsolation": {
+    "physicsTicks": 4000,
+    "tvViews": 500,
+    "viewsWithPendingCollision": 139,
+    "telemetryFieldsPerTick": 142,
+    "telemetryRNGAndPublishedCollision": "exactly unchanged against native run without presentation",
+    "humanLapOrAIClaimed": false
+  },
+  "rendering": {
+    "unchanged": [
+      "Packages/TORCSMetal/SceneRenderer.swift",
+      "Packages/TORCSMetal/Scene.metal",
+      "App/DrivingSession.swift"
+    ],
+    "existingPreviewBinaryUnchanged": true,
+    "cameraWorldChange": "Optional zoom scale argument; former default 9 preserved and prior camera regressions pass",
+    "performanceClaimed": false,
+    "newUIOrScreenshotClaimed": false
+  },
+  "sourceSnapshot": [
+    {
+      "path": "Packages/TORCSMetal/TVDirector.swift",
+      "sha256": "b6ee5476dc1f3437c3640da0d6ef1c6c886101f497c42ee6a35a3edc44616bd6"
+    },
+    {
+      "path": "Packages/TORCSMetal/TVCamera.swift",
+      "sha256": "a16be32bb3cece3b1e6039dcbbbea56964f296171723309e56809f5dafd6697e"
+    },
+    {
+      "path": "Packages/TORCSMetal/CameraWorld.swift",
+      "sha256": "c5b4e208b49e73058135375180eec057b4b0f46b50c6a5f3bca5e10b2b6c7129"
+    },
+    {
+      "path": "Packages/TORCSRaceEngine/PresentationCollisionHistory.swift",
+      "sha256": "d28d5565f8a2ed3c8a54a00060ebc2dba3dd5782319752f08fdc63ef0e0445b1"
+    },
+    {
+      "path": "Tests/UnitTests/TVDirectorTests.swift",
+      "sha256": "83a273051f95461a98c204f33cc8e2820ab6e3c450f73804f4a6e5c398f6b6be"
+    },
+    {
+      "path": "Upstream/Reference/graphics-instrumentation.cpp",
+      "sha256": "4d4ac90f1bed29430a55340b84c87cc37347530ad26faa5744cf8b7dbead6d51"
+    },
+    {
+      "path": "Upstream/Reference/include/CReference.h",
+      "sha256": "12110e16fb7414dfff9ad18aa3785b179c8336f6efbfcf2041da436ffd414c91"
+    },
+    {
+      "path": "Upstream/Reference/graphics/camera-tv.inc",
+      "sha256": "0af7da7ff98ab0aa401d15c479d36e506f6f67c361ac448716ead159a86842d3"
+    },
+    {
+      "path": "Upstream/Reference/graphics/camera-tv-preset.inc",
+      "sha256": "432fb444b804be7616b47e9fef2ff9802e68e999b665b62930121c6e2ea6a3c3"
+    },
+    {
+      "path": "Upstream/Reference/graphics/grmain.h",
+      "sha256": "72d25d7a2a03fbdd7abdc3a056244f6f5916302bcf7e596c2e22ce0ec5141c56"
+    },
+    {
+      "path": "Upstream/Reference/private/graphic.h",
+      "sha256": "9fc9296c4687db4808e502a5458cf5ce6cabf6e1ae41dc77f123035ee0ae3e8c"
+    },
+    {
+      "path": "Scripts/verify-provenance.py",
+      "sha256": "1f3a9e682322c2b69b22777411378a880c6c8e7c493ee76ee8c7f69276005894"
+    },
+    {
+      "path": "Upstream/source-manifest.json",
+      "sha256": "f6ff9f8534c6cbb1e51e00f3c923c2f4c84d25fd7bda383a1154cf845bb27319"
+    },
+    {
+      "path": "Package.swift",
+      "sha256": "9f59124c384971ee455a2a243be3eb3bec2c6448d4e1b6ef687b7a7bdc458902"
+    },
+    {
+      "path": "Packages/TORCSMetal/SceneRenderer.swift",
+      "sha256": "752fbbe1bedf4f98d80ee072f928dfcf93f025804e1cf8efbd12a441354f59b9"
+    },
+    {
+      "path": "Packages/TORCSMetal/Scene.metal",
+      "sha256": "4396144a2cfc7eb97ad10ddcc09d898b01d979b328bb4f15de8742b2e62e3e66"
+    },
+    {
+      "path": "App/DrivingSession.swift",
+      "sha256": "98a5d787ed0c6b0709caab300339e6ef698ef2059cc491653b246aae947c908b"
+    }
+  ],
+  "evidenceSnapshot": [
+    {
+      "path": "Artifacts/tv-director-debug-final.log",
+      "sha256": "a908ba36d529befba8b8535c0fca93eaf0d458c0bcb096147677e7e7b5cfc716"
+    },
+    {
+      "path": "Artifacts/tv-director-release.log",
+      "sha256": "4b89f24df14c24cf984065af83e85a33ff17600a2f251c434b492dbebef5f3e8"
+    },
+    {
+      "path": "Artifacts/tv-director-asan.log",
+      "sha256": "9596e43f0a0730da90162331dd44aee30f7391a8b0ff2941d3a8baab7b9b5e73"
+    },
+    {
+      "path": "Artifacts/tv-director-inventory.log",
+      "sha256": "0ad4ebc2d23d752220b38873024311cb18abd78365618a2d1c2b83ae85a34d87"
+    },
+    {
+      "path": "Artifacts/tv-director-runtime-libraries.log",
+      "sha256": "8b7740d7a22bbede01fae569b39350a51f087ee57e525820bce519e4bc526e57"
+    },
+    {
+      "path": "Artifacts/tv-provenance-final.log",
+      "sha256": "7fcc7098f74326411b64c3372711f39191ea97c02f2cfc1e40f9982f59bd71f8"
+    },
+    {
+      "path": "Artifacts/tv-archive.log",
+      "sha256": "651ddf53dc3ea8ddeb005972f46f32ba6dcfae8b3b89751b14b28230dfefbc57"
+    }
+  ],
+  "remaining": [
+    "Publish collision history per physics step and race-order car metadata into immutable race frames",
+    "Share acknowledgement cursors across presentation screens and apply original car-change clears",
+    "Preserve global track width in native metadata",
+    "Integrate F11 picker, original zoom/preferences and native pause/switch behavior",
+    "Validate actual multi-car rendering and TV target changes",
+    "Broader effects, shadows, race lifecycle, AI, audio, replay and distribution"
+  ]
+}

@@ -1,0 +1,322 @@
+{
+  "schema": 1,
+  "date": "2026-09-23",
+  "increment": "Original F8/F9 trackside cameras and version-4 camera metadata",
+  "goalComplete": false,
+  "reference": {
+    "release": "TORCS 1.3.9",
+    "archiveSHA256": "f9c69e86d290295467451b01d7838d85005ba613644a6fe8a3f85a7c6a03cd4c",
+    "sourceEntries": 165,
+    "contentEntries": 46,
+    "newVerbatimExcerpts": 3,
+    "cameraUpdates": 2400,
+    "fallbackUpdates": 800,
+    "cameraMaximumAbsoluteError": 0,
+    "projectionAspects": [
+      1,
+      1.5,
+      2.1
+    ],
+    "aalborg": {
+      "cameras": 10,
+      "geometrySegments": 1123,
+      "assignedMainSegments": 371,
+      "positionMaximumAbsoluteError": 0
+    },
+    "authoredFixtures": {
+      "geometrySegmentsPerFixture": 42,
+      "mainSegments": 14,
+      "cameras": [
+        0,
+        1,
+        3
+      ],
+      "assignedMainSegments": [
+        0,
+        4,
+        14
+      ],
+      "positionMaximumAbsoluteError": 0
+    }
+  },
+  "tests": {
+    "debugFull": 207,
+    "releaseSelected": 48,
+    "addressSanitizerSelected": 48,
+    "failures": 0,
+    "releaseAndASanSelection": "TracksideCameraTests|TrackGeometryTests|EdgeSmoothingTests|RearViewMirrorTests|SurveyCameraTests|CarTrackShadowTests|CarReflectionTests|TrackEnvironmentTests|SceneRenderingTests|DrivingVisualTests|ExteriorCameraTests|RasterRepeatTests|VehiclePresentationTests",
+    "earlierAttempts": "Compile mistakes corrected; authored reference fixture now omits empty Cameras section to avoid original loader fatal path. Earlier logs retained."
+  },
+  "rendering": {
+    "cameraCount": 29,
+    "cameraRepeatPairsPerRun": 58,
+    "tracksideSettledPlacementsPerRun": 10,
+    "tracksidePlacementRepeatPairsPerRun": 20,
+    "pngPerRun": 100,
+    "identicalFreshRuns": 3,
+    "previousPNGsUnchanged": 76,
+    "rendererAndShaderUnchanged": [
+      "Packages/TORCSMetal/SceneRenderer.swift",
+      "Packages/TORCSMetal/Scene.metal"
+    ],
+    "metalValidationReportedFaults": 0,
+    "originalGLPixelParityClaimed": false
+  },
+  "packaged": {
+    "app": "build/TORCSTracksidePreview.app",
+    "bundleID": "org.torcs.mac.trackside-preview",
+    "signing": "ad hoc, strict verification passed",
+    "bundledPreparedContent": false,
+    "binarySHA256": "498d1c71831440d1ef5facb164e5bd1d605109c50d7d2fc3b616dc2efdb46083"
+  },
+  "interactiveUI": {
+    "date": "2026-09-23",
+    "app": "build/TORCSTracksidePreview.app",
+    "status": "pending_locked_mac",
+    "attempt": "Native UI tool getApp with the built preview path",
+    "result": "The Mac is locked and automatic unlock could not unlock it.",
+    "requestedUserAction": "Unlock the Mac to finish the native UI check, or leave it pending.",
+    "newPickerEntriesVerifiedInteractively": false,
+    "offscreenPackagedRenderingVerified": true,
+    "remainingChecks": [
+      "Select Trackside and Trackside zoom in the native camera picker",
+      "Confirm paused redraw and optional Smooth edges",
+      "Confirm mirror is unavailable in both new views"
+    ]
+  },
+  "runs": [
+    "Artifacts/trackside-preview-first",
+    "Artifacts/trackside-preview-second",
+    "Artifacts/trackside-validation"
+  ],
+  "pngSHA256": {
+    "bonnet-smooth.png": "656b76f5047acd639fddd0c3e34d967b2089af00a54d8822da922b28ece80592",
+    "bonnet.png": "124bee631f5a618f17a5315fb6c97034d75572c074244c657fd389fe532d1479",
+    "chase-smooth.png": "6815328736e8e66e1102ec4f492e491bdd0feb42f91cc1c5d21bb9e02429fc3f",
+    "chase.png": "3f2a6867db04c573c54e1c10495c8c8fcfc716892a8af1d634a5edc271a5b9e2",
+    "circuit-center-smooth.png": "ac24e2d1a7fa65a937b5539e5516be4cc0415e34a93dc3434039041ef5e3c500",
+    "circuit-center.png": "2fde92d838b5c9c022e3fd2e039de50c1939a37345525cf5b06e153d2e7e8385",
+    "classic-no-shadow.png": "45611c2fa30ad5416e11226f8cdf80ed2577439cef1a935e69e629b969c56655",
+    "classic-shadow-no-reflections.png": "4ac94234438df1c0ae174e806a92f452c1fa046b3e4dfde1cb64d529cd024c99",
+    "classic-shadow-no-track-projection.png": "3f2a6867db04c573c54e1c10495c8c8fcfc716892a8af1d634a5edc271a5b9e2",
+    "classic-shadow.png": "3f2a6867db04c573c54e1c10495c8c8fcfc716892a8af1d634a5edc271a5b9e2",
+    "driver-smooth.png": "776cf5f2ad6ae73c50d2814ae6deab61784343add3fd545a6accad2c3c19c0bb",
+    "driver.png": "58d289a6ec44c8882685367e82ed4fc6ed2315d037f71856c04eeded3dbd03a5",
+    "enhanced-shadow.png": "a9d648eeb52066bba1e72825ce867172143bb4fd7e696f9175fa5336f005de7c",
+    "far-chase-smooth.png": "3f4604f5acfe86d93c0a26a5fd18fe780eeab6f94fda86416921aadf1c5a11f9",
+    "far-chase.png": "146f33901ddabad0f611b592a75c698e35110d7f595f6402f80117add5fae75e",
+    "low-chase-smooth.png": "29d561d2204ce485db016340c0369e83f8d6972378974701b3449a1c6a9e938f",
+    "low-chase.png": "6cce95b79841a5853205ad90611d4ae20e4aa77d1679980514290de3458c28af",
+    "mirror-bonnet-off.png": "124bee631f5a618f17a5315fb6c97034d75572c074244c657fd389fe532d1479",
+    "mirror-bonnet-on.png": "e8aa4f51b8f82c8e00814c1e7aa716ac3a8308aee8ff64b1506661d7a695f18f",
+    "mirror-driver-odd-size.png": "74cd6224e780e3118ee20c5dd9b777f8315f422e96fa12505e3f6625a1a64684",
+    "mirror-driver-off.png": "58d289a6ec44c8882685367e82ed4fc6ed2315d037f71856c04eeded3dbd03a5",
+    "mirror-driver-on.png": "da917e478bb9e9b572ffb753e91b96c8005ca991f80f1b25ade0f796ec916466",
+    "mirror-road-off.png": "0587f014a3a9a7e60cd0e574a67bd0dd8580aa4ba12e16eec200dd32b7c4c955",
+    "mirror-road-on.png": "2a4803ba40d85b1e6bb464852ea594b5842227a7ba5130e83773067e262808dd",
+    "near-chase-smooth.png": "9beea35341442ee65a37875ae3ec67d9ab747a63e76a46a59fb349c617048e8d",
+    "near-chase.png": "503ec6535ae39db1d206783cf314ada32bab77d6453bd7372ab9fc53daed683c",
+    "overhead-1-smooth.png": "2d57e89731ffcc2b701ff73d8158f50de5e8c4751b10c0b7fb60d02f5eecde49",
+    "overhead-1.png": "988675aa220ad588737bfda24bab026f6ddc27fa366bea1c935418232c64a5f2",
+    "overhead-2-smooth.png": "48b88bda85a72ca5eac957130ed77891ffbe391baee1e289423dd366d89b80ab",
+    "overhead-2.png": "b40e3c6aeed3cf2f8ab5fc0a36ae1e606834d95fa9456c95dcfe5cb0fef79434",
+    "overhead-3-smooth.png": "3dd554e027d3eee33d3704dd47634a70275ef44077f677d842969d74a450e5b7",
+    "overhead-3.png": "17d78263100223c992d4edbc4aad2bfa46cb53ba701341264cd155fb2c14473b",
+    "overhead-4-smooth.png": "01fd2611aedc13e0d4b2f9aceedd19b6f94385354e4944d1e3e0473e160d389d",
+    "overhead-4.png": "c3b0c50ed10b41063a96081e761cbc864526c0d713b798247b1ce1a66102c10e",
+    "panorama-1-smooth.png": "5397be26ebec87e9817eefe1cd28ed64d410421c0f3ffa92428b2971be63278f",
+    "panorama-1.png": "9a0b3f2c39c21e3c36e986444fe5f13ac422379c1ef8f6c07a38dca56d17a2f0",
+    "panorama-2-smooth.png": "38e25438382951f52a2e5c38b18a67b079c3f6fc4c00a76d4918f149d04defc1",
+    "panorama-2.png": "cac49b622df7b0f4c397ac0080cfe920586739356813b5bb1a30003388181632",
+    "panorama-3-smooth.png": "c7da0b4e8279cb75f5d614912d732c4da17afdf6fa2039b4bc5c3483656a263f",
+    "panorama-3.png": "244f5c3db08553c2bc92872bdaf1476b4ac9211d9dd444663246f64f97ab38d9",
+    "panorama-4-smooth.png": "ee0ff48a0640261e887959388abe6900f2f054cdc804afe949eda5a1509942c7",
+    "panorama-4.png": "f99139919dd8ca99616be3384d1ef81a4cfbd11a5958c9a2eafa05acedd4bd72",
+    "panorama-5-smooth.png": "547f939c63ce87cecbbf8658eb7409344ebe56b4614921a7d078c1d1b6d76541",
+    "panorama-5.png": "296af151a771d63a9eb4d5f179dbe7f8a4d27bb1c7e2554dc9f52a3f4f40fc4a",
+    "previous-placeholder-lighting.png": "5c843964fd3b23482ddb039a453e7613d524e94aacdddbbe0f1d90fd502e33db",
+    "projection-witness-disabled.png": "37d6508651ad3beead819a62c96e504359d04fab3041ff6652f4cca807fcd1f1",
+    "projection-witness-enabled.png": "3db639fa4fdd01620f3f44e0bbd00b912c95dc59e18d00a6f22f1802a2ac7d47",
+    "reverse-smooth.png": "b219ff26ab90c9345d6be3697bdaf62d40be4379bc1d1a19e4cac74f916b0789",
+    "reverse.png": "60b00e041856d1b7a760acab6e6c8418ece68dbe22a0cfc783520927bdeca49c",
+    "road-camera-0-fixed.png": "35979668a46079edcea3be748801ce3aeb16abc00eeb003db3232e687d1b337a",
+    "road-camera-0-zoom.png": "f55268110ebc707bbb34536349532301482e5737e7db932c1ee10449a5708acb",
+    "road-camera-1-fixed.png": "66941d351abfa4941a8de4c7c225f5933f5729d92c3e7d0300a73f354c5516ed",
+    "road-camera-1-zoom.png": "9522417c00af993838ca8f22ac84182ee05ba9d441383cbd60424d39831ea7bf",
+    "road-camera-2-fixed.png": "cbfbdbb4f333206187cb3f01feed275137448d64a607cff8ff36a736a8ca2ad6",
+    "road-camera-2-zoom.png": "c3f916c2e46e6a76120ac7d844c0de318e37c048e55ae21272e21ab8b7deb6f2",
+    "road-camera-3-fixed.png": "c671cc220fbf12b3e4b25d849f81eb33496975a9cf17f054f1c5de525b5fa79c",
+    "road-camera-3-zoom.png": "dbf3e7c3e4565fe03a1fba1b978fa00c4c69bbf7f4459e9976a81ab51e6f6e55",
+    "road-camera-4-fixed.png": "24bc7bdcbed68a7279fd457a68d840942d4011452cef4c0ec42dd7f117aa1ec8",
+    "road-camera-4-zoom.png": "e46e9c7b362bf70885db5eb423b5a2e02874e4971949dd8d7dd2e5de898ca2c6",
+    "road-camera-5-fixed.png": "2bdfe8b649009866bd3e2b032603f944afc97b0cf006b9f0c1c2dd461cd8c400",
+    "road-camera-5-zoom.png": "3a15611454292d99d6cfe300d8ec4ec900140924633e1d0c3892a2a56d14a30d",
+    "road-camera-6-fixed.png": "bc8875112748c267f4eba51c3563ec3b08a814a96aecb747f677ba59f28e8c9b",
+    "road-camera-6-zoom.png": "c3512e3a1356d68fdd2bad6c37d51fbe9a8ac7882c294738b7312b2de688e289",
+    "road-camera-7-fixed.png": "f36e5ca46b0847a18785b94243b07d91c8aef27265234c12c2ce5f79297572e8",
+    "road-camera-7-zoom.png": "ea5c860840047438930aee1727d3395e97ab3055574c52878414181e6d5a5d1d",
+    "road-camera-8-fixed.png": "45134e2d32c7ad45400a0dcd22be85732cd9f63b50e86323d89e0cd200f6fda8",
+    "road-camera-8-zoom.png": "286f2feb326ef28e6f62b5a4eac2e600005792bc8661db1e73f1bad8626f5e36",
+    "road-camera-9-fixed.png": "0b5367106ca6fbda17720a2a7c49ff216232fedb66f1f5540d0c32517bfd8759",
+    "road-camera-9-zoom.png": "0fac3942cba9378a61a9d79c4d39e28cd5073dd4efe5d2916bb3b89efbf30434",
+    "road-smooth.png": "f3715ba1dba95ce343698585beab005f45077568c4fb65cce5e39919616b3af8",
+    "road.png": "0587f014a3a9a7e60cd0e574a67bd0dd8580aa4ba12e16eec200dd32b7c4c955",
+    "side-1-smooth.png": "4ac9cf2445c26abb908ab66f2c3c191cb2ce00c9d893781573be6d2badcddb94",
+    "side-1.png": "17ad812dfb4af3a04fbb1e9823ff03094849be5f8f659e6062d04f4f67aaa10e",
+    "side-2-smooth.png": "65d85338fc8b48a17c835aa9732000eb42a7c21a32094860d947c0630d63a22c",
+    "side-2.png": "bb559c2c1a83e4a7351e36b63e1204ae489b1478d9e25c4d81255b253aa3c6cd",
+    "side-3-smooth.png": "a34d273e1c3e821847892afa32ec2861ddb6fbbaad67845a77b3e0c508c3c91f",
+    "side-3.png": "111f8d7ca0d19deda5a3ff8a7a0366696b1bd9ac068398fb0b9391da07ccd841",
+    "side-4-smooth.png": "c6888c3ca1e76d6d155765250c4f11898dafd926d0327fa8a5f642731aeec367",
+    "side-4.png": "1727ba2ef135c96f2bdcfc136a25a915152eb888b3efa87248e5aa54d3ab6c68",
+    "side-5-smooth.png": "2037459c01c30627178b5608896723932afa090b4a510e2d29287bbd7cf7c7c1",
+    "side-5.png": "0bb74ce44fefec2e505b8c308c1705c4d6ccda631232de98326f30d816fb2727",
+    "side-6-smooth.png": "6ee0cc79ea7203f0c6c8230265064408d2c18d849885686fea3ece724a15f5db",
+    "side-6.png": "7ac95d9c199e4ff6aee1c364a2ae112ba5cf47b6a136a63fe96dd0fbf3401ce3",
+    "side-7-smooth.png": "8f595de09afb5b9502b792110f16e5bb6c7a4ba15f6e19441434b0ee76dcf8d3",
+    "side-7.png": "7b2cfdbeb5648ded0dc988e6ae5a444626fd2084c2b06f4eb7ffc6d4ec3d0e7a",
+    "side-8-smooth.png": "d6f735a7c017f3fa3578b12f26ee8070624658dbfed080e5bdedc938e7ab0fce",
+    "side-8.png": "66403c20f11826c9ed332f0fb3e39dc3b25148ab6d9d24a02e954d5578bb863f",
+    "smoothing-chase-off.png": "3f2a6867db04c573c54e1c10495c8c8fcfc716892a8af1d634a5edc271a5b9e2",
+    "smoothing-chase-on.png": "6815328736e8e66e1102ec4f492e491bdd0feb42f91cc1c5d21bb9e02429fc3f",
+    "smoothing-driver-odd-size.png": "db42d2fce6517779cfab8aa57e57b6d942bd90e6309cb419d2f23daf7b8dd342",
+    "smoothing-driver-off.png": "da917e478bb9e9b572ffb753e91b96c8005ca991f80f1b25ade0f796ec916466",
+    "smoothing-driver-on.png": "802b54cbc3825fa79de17501cc2f99a5079a7c6475a9f7fee22f46719abc1e7e",
+    "smoothing-side-3-off.png": "111f8d7ca0d19deda5a3ff8a7a0366696b1bd9ac068398fb0b9391da07ccd841",
+    "smoothing-side-3-on.png": "a34d273e1c3e821847892afa32ec2861ddb6fbbaad67845a77b3e0c508c3c91f",
+    "track-chase-smooth.png": "11d39e8db94edb523a3d7a475136d342199ca61a90b091f273c7d2f1aabc0f47",
+    "track-chase.png": "a64f0b6520788920b41b20373c6d7cbc550053df263a1f160eb8827d0473c1e8",
+    "trackside-smooth.png": "233181052acdbc0c4cb20eaa7f5541f45206a642d2815d9a2bdefc7fb17767e9",
+    "trackside-zoom-smooth.png": "b1cd103acf08381b8d31d49249b01859c88d325365cf046b67537e0062f4b518",
+    "trackside-zoom.png": "51427874c36c78481cc5e1d9524997248fff9f225e82188ef36741cf96c55ea4",
+    "trackside.png": "7fbf273c515b31b09394d6113f96edf41d9e4c784b896691f720f658e25b961e"
+  },
+  "sourceSnapshot": [
+    {
+      "path": "Packages/TORCSTrack/TrackBuilder.swift",
+      "sha256": "717ce97e6690d10906462b5a97afebf5ed95a9c7aafce8234e0fd0cc2e2b789e"
+    },
+    {
+      "path": "Packages/TORCSTrack/TrackRoadCamera.swift",
+      "sha256": "44a12b4509f2db57a5644c92459023a5f7f003cc7b720246e1702b548b0f4184"
+    },
+    {
+      "path": "Packages/TORCSMetal/DrivingCamera.swift",
+      "sha256": "18bbf34c29576294035e76c5ed9971e7d01bce77c54ae72c1418015e48407eaf"
+    },
+    {
+      "path": "Packages/TORCSMetal/CameraWorld.swift",
+      "sha256": "26d277a72ca8efb1d7798a5265a978142f7add5fe47b021c6f484ec5f4ef823a"
+    },
+    {
+      "path": "Packages/TORCSMetal/SceneRenderer.swift",
+      "sha256": "752fbbe1bedf4f98d80ee072f928dfcf93f025804e1cf8efbd12a441354f59b9"
+    },
+    {
+      "path": "Packages/TORCSMetal/Scene.metal",
+      "sha256": "4396144a2cfc7eb97ad10ddcc09d898b01d979b328bb4f15de8742b2e62e3e66"
+    },
+    {
+      "path": "App/DrivingSession.swift",
+      "sha256": "572b0ea11c828c4b10dcc0797a4525e2cb5820306c1c22b53650ca7cc013ead8"
+    },
+    {
+      "path": "App/DrivingVisualSmoke.swift",
+      "sha256": "fe0d54bdf6d07b4366febc6dd08ed445a73a57e7029bb110c3914b18664003cf"
+    },
+    {
+      "path": "App/TracksideSmoke.swift",
+      "sha256": "ec5db9edc8382248a1afa68b38da42ab118e0c0344e454cb821a7e3efb9950d7"
+    },
+    {
+      "path": "Tests/UnitTests/TracksideCameraTests.swift",
+      "sha256": "9d47a1d23bdb3fac708eab398261acac42335f747b3ff4b47f43f59d53f4f59f"
+    },
+    {
+      "path": "Tests/UnitTests/ExteriorCameraTests.swift",
+      "sha256": "d8ce7008c24891603dea8b58c226c4b94d655cfa244109bf115e4d0a51b433df"
+    },
+    {
+      "path": "Upstream/Reference/graphics-instrumentation.cpp",
+      "sha256": "d7c3190601da85a4112995854248862d225a1a7e8cbaa0584ab36c480baf23ee"
+    },
+    {
+      "path": "Upstream/Reference/world.cpp",
+      "sha256": "bbc4ea5db2cd850bce62e69cd09874099c50464b7167d835e31ec74a29e1b9ca"
+    },
+    {
+      "path": "Upstream/Reference/include/CReference.h",
+      "sha256": "273d547ea49cce740653573dd1e3cec2826f1ffb434d69495e587894cae31c35"
+    },
+    {
+      "path": "Tools/TORCSReferenceSupport/ReferenceWorld.swift",
+      "sha256": "bacde87d8d4f7f11610db2309d7bec0b9c4787c79f482233fb8a0ea29af5ce05"
+    },
+    {
+      "path": "Scripts/verify-provenance.py",
+      "sha256": "98656a25028ad1c9f1dd2e58c720d74fe49256c7dd05d81edcb6dacad90322be"
+    },
+    {
+      "path": "Upstream/Reference/graphics/camera-road-fixed.inc",
+      "sha256": "4eec2528e85a72f0a39a0298e3bca84a61f34e81aa3c9c143bdb2b5a3e2e5492"
+    },
+    {
+      "path": "Upstream/Reference/graphics/camera-road-zoom.inc",
+      "sha256": "22805de07ef3fa872b5aa82e913c242006cbed6df39139945448639e3f354abb"
+    },
+    {
+      "path": "Upstream/Reference/graphics/camera-road-presets.inc",
+      "sha256": "14b7498adffc112bfee47c88dc80decce0cbf47def1ee70c9baf9e7cc1295fbb"
+    }
+  ],
+  "evidenceSnapshot": [
+    {
+      "path": "Artifacts/trackside-debug-full.log",
+      "sha256": "fd570f0029443f6cedb6ce7c43ea095b2ceca6dd56119102dd4eca2c77bb7e87"
+    },
+    {
+      "path": "Artifacts/trackside-release.log",
+      "sha256": "2091fa25aab64a42ca555ed66b09cc97ae560266c67058553471c28829a4bc90"
+    },
+    {
+      "path": "Artifacts/trackside-asan.log",
+      "sha256": "2a012789366c0838040d1c908cfad2cb32a5e987e0b295c71c836ee09d76c084"
+    },
+    {
+      "path": "Artifacts/trackside-provenance.log",
+      "sha256": "feedc8cfe74346f27fbd0d605a7f0d30320b06a8fa44670633ec8d6a275ccbe0"
+    },
+    {
+      "path": "Artifacts/trackside-metal-smoke.log",
+      "sha256": "7c307493192b70189dfcb95937600d572fed01a81f577ac8302965950bc5ab5f"
+    },
+    {
+      "path": "Artifacts/trackside-validation.log",
+      "sha256": "8ea43335bee2253aaf43b53d6eb6c7d8d0e1c8fe27f0cfe5c46044102a60e8c4"
+    },
+    {
+      "path": "Artifacts/trackside-ui-check.json",
+      "sha256": "74de545999b008810214871beb39c758fb43c8312f5ca3f86c629d8f0abd332a"
+    },
+    {
+      "path": "Artifacts/trackside-preview-first/report.json",
+      "sha256": "2c96ca6c489e3a6ca96efc97ede809c542e1f1cbb6bcdfeba52c48fba0bbaddb"
+    },
+    {
+      "path": "Artifacts/trackside-preview-second/report.json",
+      "sha256": "de89bbb4953e90140c00721cbc2f17b8d14521a4ce8a85489b667aab71d7529c"
+    },
+    {
+      "path": "Artifacts/trackside-validation/report.json",
+      "sha256": "ec48cf3ab109a18db2157b4dcf7e905c8e7147bf51945220fed2eada18e2dcd2"
+    }
+  ],
+  "performanceScope": "No new performance claim. Existing diagnostic timings retained; scene passes/textures unchanged. No full gameplay FPS or Instruments measurement.",
+  "remaining": [
+    "F10 fly camera and automatic TV camera scheduling",
+    "User camera zoom and saved per-screen preferences",
+    "Broader graphics and shadow coverage",
+    "Complete race modes, native robots, audio and replay",
+    "Physical five-lap and controller validation, distribution acceptance"
+  ]
+}

@@ -1,0 +1,138 @@
+{
+  "absoluteTolerance": 1e-05,
+  "archiveSHA256": "f9c69e86d290295467451b01d7838d85005ba613644a6fe8a3f85a7c6a03cd4c",
+  "excluded": [
+    "Chassis force/motion integration",
+    "Whole-vehicle/race parity",
+    "Pit-time reconfiguration",
+    "Portable simulation random streams and replay",
+    "Control validation/driver input scheduling",
+    "Content-wide compatibility",
+    "Gameplay",
+    "Cross-platform bit identity"
+  ],
+  "fixtureSHA256": {
+    "155-DTM.xml": "7b069b816636ed85ace6b440d87aa400c3e54716170766df3e7a7483475f52bb",
+    "Track-4WD-GrB.xml": "b08bc4a12ccfeff49ce1d608583a858cec69985d94aa057640d231016fed37eb",
+    "aalborg.xml": "bfd4bfc66977a515e1d5bafb37e1698adaa9b05808d4da003f94d98a570a7b57",
+    "objects.xml": "446e70833abb16942559315db5c4d224bd5a2a2da72b526e5d097c52fb2f0b37",
+    "surfaces.xml": "9e0c5fb78cd7d9fd635beed670750f69c851ab14a83e275fab2973330797bbb9"
+  },
+  "nonfinitePolicy": "Every compared runtime scalar must be finite; singular configurations are rejected before dynamics.",
+  "observations": {
+    "addressSanitizer": [
+      {
+        "cases": 11,
+        "check": "TRANSMISSION_CONFIG",
+        "fields": 1276,
+        "maxAbsolute": 0.0
+      },
+      {
+        "blended": 11492,
+        "check": "DRIVEN_GEAR_SEQUENCE",
+        "freeAxleUpdates": 8000,
+        "layouts": 4,
+        "maxAbsolute": 0.0,
+        "powertrainFields": 1696000,
+        "randomDraws": 16000,
+        "ticks": 16000,
+        "wheelFields": 3072000,
+        "wheelTicks": 64000
+      },
+      {
+        "check": "GEARBOX_SEQUENCE",
+        "delayedRequests": 3681,
+        "fields": 607500,
+        "maxAbsolute": 0.0,
+        "shifts": 474,
+        "throttleLimits": 771,
+        "ticks": 13500
+      }
+    ],
+    "debug": [
+      {
+        "cases": 11,
+        "check": "TRANSMISSION_CONFIG",
+        "fields": 1276,
+        "maxAbsolute": 0.0
+      },
+      {
+        "blended": 11492,
+        "check": "DRIVEN_GEAR_SEQUENCE",
+        "freeAxleUpdates": 8000,
+        "layouts": 4,
+        "maxAbsolute": 0.0,
+        "powertrainFields": 1696000,
+        "randomDraws": 16000,
+        "ticks": 16000,
+        "wheelFields": 3072000,
+        "wheelTicks": 64000
+      },
+      {
+        "check": "GEARBOX_SEQUENCE",
+        "delayedRequests": 3681,
+        "fields": 607500,
+        "maxAbsolute": 0.0,
+        "shifts": 474,
+        "throttleLimits": 771,
+        "ticks": 13500
+      }
+    ],
+    "release": [
+      {
+        "cases": 11,
+        "check": "TRANSMISSION_CONFIG",
+        "fields": 1276,
+        "maxAbsolute": 0.0
+      },
+      {
+        "blended": 11492,
+        "check": "DRIVEN_GEAR_SEQUENCE",
+        "freeAxleUpdates": 8000,
+        "layouts": 4,
+        "maxAbsolute": 0.0,
+        "powertrainFields": 1696000,
+        "randomDraws": 16000,
+        "ticks": 16000,
+        "wheelFields": 3072000,
+        "wheelTicks": 64000
+      },
+      {
+        "check": "GEARBOX_SEQUENCE",
+        "delayedRequests": 3681,
+        "fields": 607500,
+        "maxAbsolute": 0.0,
+        "shifts": 474,
+        "throttleLimits": 771,
+        "ticks": 13500
+      }
+    ]
+  },
+  "randomInput": "One original-platform uniform sample per tick is supplied externally to native engine; original transmission resets to that seed before engine RPM. No portable PRNG or global-stream parity claim.",
+  "referenceOverrides": "Nine setup fixtures and three driven layout fixtures configure transmission alone before dynamics begin; original engine and running gear remain configured from 155-DTM. These authored cases intentionally bypass category restrictions.",
+  "relativeTolerance": 1e-06,
+  "schema": 1,
+  "scope": "Fresh transmission configuration, gearbox/clutch scheduling, RWD/FWD/AWD routing and independently evolving driven engine/fuel/transmission/four-wheel state with externally prescribed chassis movement",
+  "sourceSHA256": {
+    "Package.swift": "88262940476314f5392581880757c11689f2f36bfbd155cbdbdd6cb223d5dd23",
+    "Packages/TORCSSimulation/Differential.swift": "ed233cdaba98b9d7e8f79b72e7f080bde7eb052f65da6f5abdacd9d9d6426ed5",
+    "Packages/TORCSSimulation/Engine.swift": "9da1c85776cbefd783aaef7c0c84796c6511a35868e62e67bf278e00728519a6",
+    "Packages/TORCSSimulation/RunningGearConfiguration.swift": "e0414426d0ef6581e5f363c41b3d432ea9253292867742fa4c24f8bcb3cfd143",
+    "Packages/TORCSSimulation/RunningGearState.swift": "5eb5ea50252344c1a72ccd1de061dc85b0e5c7a07d15d2f25f5482c830d9f75f",
+    "Packages/TORCSSimulation/Transmission.swift": "8a61b59455b9c94170d6bdbc6cb49e934556e4dfe1afb91ea7c97f73b46d8e4a",
+    "Tests/UnitTests/EngineTests.swift": "e8d00cf2700306175a2ef5c3ca34bd5261bdc79c3e5ac31f21ab25b985511b56",
+    "Tests/UnitTests/RunningGearIntegrationTests.swift": "3b3a837a9c5521c4e4d7b33c38eb4848675df1935be1a7b94b16d489304f92fe",
+    "Tests/UnitTests/TransmissionTests.swift": "603b526feb498c27b1fd75d41075d6591f8733d8a7788cd20e19813c13d542d2",
+    "Tools/TORCSReferenceSupport/ReferenceWorld.swift": "00a15391aea88fae4a8c750d3363473d71e13069bd8461463eab25addad4053e",
+    "Upstream/Reference/axle.cpp": "8a93b97dd8ad6aa6126bf0c622fdf0cb7468c37a439c413b61eb503a1dae009d",
+    "Upstream/Reference/car.cpp": "dcdf23c12c6a8207baa6d00cb4def869dd903ae48797ad201419b34484e7c966",
+    "Upstream/Reference/differential.cpp": "aa8ef862e3f2e5df5fdbf84c23f38c6bf8f045a26ac144c26b76d60cab69262d",
+    "Upstream/Reference/engine.cpp": "5908f58ae310926bdb6b766b6a061ecab3ea7178ef4bfbbc2aa520ba59ffbd55",
+    "Upstream/Reference/include/CReference.h": "54e6415f0b493990282b473cfa9280aa85deaa2a04d29922ff3b0f1506a4029b",
+    "Upstream/Reference/transmission.cpp": "8598ffc4323a95e14aba789ebe45c13760dabdf47c1aced559936d80c253a610",
+    "Upstream/Reference/wheel.cpp": "7228fe05860615082f075cd2970c4bcdf48a242623a609427da34227b15125ec",
+    "Upstream/Reference/world.cpp": "bdda7f4882b3d91a33208c4d0070acc2cf7a65fe5ffe520ed305f02fbb2aac09"
+  },
+  "toolchain": "Swift 6.3.3 / Xcode 26.6 / Apple Silicon",
+  "upstream": "TORCS 1.3.9"
+}

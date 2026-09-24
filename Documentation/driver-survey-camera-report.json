@@ -1,0 +1,1179 @@
+{
+  "schema": 1,
+  "date": "2026-09-23",
+  "increment": "Original driver, circuit-center and five panoramic cameras",
+  "previousGoalTurn": "progress",
+  "goalComplete": false,
+  "host": {
+    "machine": "Apple M2, 8 GiB",
+    "os": "macOS 26.2",
+    "swift": "6.3.3",
+    "xcode": "26.6",
+    "deploymentTarget": "macOS 14+"
+  },
+  "reference": {
+    "release": "TORCS 1.3.9",
+    "archiveSHA256": "f9c69e86d290295467451b01d7838d85005ba613644a6fe8a3f85a7c6a03cd4c",
+    "sourceEntries": 165,
+    "contentEntries": 46,
+    "newOriginalSources": 0,
+    "newOriginalArtwork": 0,
+    "newVerbatimExcerpts": 5,
+    "surveyPresets": 6,
+    "surveyUpdates": 3600,
+    "surveyPoseAndWorldMaximumAbsoluteError": 0,
+    "driverUpdates": 1200,
+    "driverMaximumPositionErrorMeters": 3.8146973e-06,
+    "projectionAspects": [
+      1,
+      1.5,
+      2.1
+    ],
+    "scope": "Default unzoomed original factories and updates; world arithmetic and flags. Zoom methods use capture stubs and are not exercised. No original GL pixel comparison."
+  },
+  "tests": {
+    "selected": 30,
+    "configurations": [
+      "debug",
+      "release",
+      "Address Sanitizer"
+    ],
+    "failures": 0,
+    "inventory": 197,
+    "fullSuiteRerun": false,
+    "driverVisibility": "First named DRIVER subtree; nested meshes, duplicate names, GPU on/off and triangle counts",
+    "panoramaBackground": "GPU sky suppression",
+    "pinnedCarRasterRepeatsPerConfiguration": 360
+  },
+  "packaged": {
+    "path": "build/TORCSSurveyPreview.app",
+    "session": "Artifacts/driving-track-shadow-session",
+    "adHocSignatureVerified": true,
+    "interactiveAcceptancePerformed": false,
+    "cameraCount": 27,
+    "pngsPerFreshRun": 35,
+    "freshProcessesWithEqualPNGHashes": 2,
+    "priorPNGHashesUnchanged": 28,
+    "metalAPIAndGPUValidationFaultsReported": 0,
+    "metalSmokeRGBChecksum": 1103027,
+    "newRenderPasses": 0,
+    "newTextures": 0
+  },
+  "runs": {
+    "survey-preview-first": {
+      "cameraCount": 27,
+      "carEnvironmentAvailable": true,
+      "carTrackShadowAvailable": true,
+      "changedFilteringChannels": 314029,
+      "changedReflectionChannels": 279356,
+      "changedShadowChannels": 102783,
+      "changedTrackProjectionChannels": 0,
+      "height": 640,
+      "imagesRGBA_SHA256": {
+        "bonnet": "d538714b034b4294b41a3f5f556a2b9eca71f7c36094a3e8c2815f005e8f7b07",
+        "chase": "50e60674bc1bd20e78e5ffee1d2aee04a6f3100abccd2c9c5f25cd1afae4640f",
+        "circuit-center": "f4cee4be4368043d4c0eac78333c6073184c838cd0fe797f338ef91ad6c9661e",
+        "classic-no-shadow": "f0bcf3747374d6e352a82d50b585bfe7a878b383b79d3f3d2f5ba317993e50a5",
+        "classic-shadow": "50e60674bc1bd20e78e5ffee1d2aee04a6f3100abccd2c9c5f25cd1afae4640f",
+        "classic-shadow-no-reflections": "97e2500f55d37fdec97254b859b911faa61164313279bd6a8484f2050fc386a0",
+        "classic-shadow-no-track-projection": "50e60674bc1bd20e78e5ffee1d2aee04a6f3100abccd2c9c5f25cd1afae4640f",
+        "driver": "71e27b82d77344c5dd460c29ab5d984508b660009c2fae3416382b1ceb5a2f55",
+        "enhanced-shadow": "b2088d1098f2b095b1a89ae35846f9cac4650a06bb4eb85a5fcf237a7ffa2d8d",
+        "far-chase": "52154b650581aa7c0f538394c376048890eac0751aeeae235316d071eaab5a6b",
+        "low-chase": "f8a22f590c0ccf697625a3a0b4687a4a69b2eb93cb3d0620e2593af9d4c2e32f",
+        "near-chase": "069a5eabde6af7816f9781773a6d39d0ad4e35ae6dbe06f1312a556c12e34bd9",
+        "overhead-1": "e4dae31c5565a93f901fc0d02e55aae2e33b57e65f4d9fef10411aed911d16fe",
+        "overhead-2": "4e9fb017f09e6d33ffccc04079f1b80f4d2b4256b3906ab7fc137729bbab3d0e",
+        "overhead-3": "d1e08e5b7ad6c758018c3ff6dff2222c9d5b174f2bc355e2f33398d13372db22",
+        "overhead-4": "3de5f4232859a05c29f494040021259108cfeadc3cd678119745744e37f66f96",
+        "panorama-1": "ab489255bff6f2ee05f57c8c83e5c2727f6c8f1312b459bc04a68e9a8bfd8a46",
+        "panorama-2": "bb2f346c143030c6bb91a188aa0611537462458be02799a73d749586aeccaea1",
+        "panorama-3": "9e4d95ed9fd96e47b77a5f680c08be366273abac49a1a973845a2c65b8c8be00",
+        "panorama-4": "115f89d1edb37b5c2daf82f80923f9300711598e04e4daa82e0c6ba37158bdb9",
+        "panorama-5": "d052e2f3bbdff0442a7ef25ef6636b2ba1fde09d60a4649c5c8667f5f025ebc2",
+        "previous-placeholder-lighting": "6deebc20a6a8025663a11161a4de44df9c5476993286ab8367a451564ed71acb",
+        "reverse": "07bd964c7a658d1bbbd621dadc972f34e5834e585f2f107eac8d890fcbda521a",
+        "road": "2685cf08e42a7567a51fda6d16648874b9b7b5b6a829522fb14919108ab6f699",
+        "side-1": "2f900df6dd3cc4d9c2bc10fa9cdbfe08d3e87cc0a40a15a74c368861bd485c1c",
+        "side-2": "d6033914fec9fd9d4c3958b5f2e620f5966041a1cfd968186029232206029eb3",
+        "side-3": "249b07fc640b0a18b00d24f5a96435d5742c98626713240b322923f6eea9176b",
+        "side-4": "7dde07147742051b255cd4e30db3dc48b70e95c1959723e71662aa4b4147674e",
+        "side-5": "b2ee8d4bd197e4d8e7b08f74152b2cb30e81d4ec26cf02c612337b0766ee5f72",
+        "side-6": "88beeaebb3bd3a02c6f44002dae18ffc187a9c004c540e2d501909f219e27e21",
+        "side-7": "235342169742b0125a4568e0af09b083c9342410c168e395982e9bf1eb2d07da",
+        "side-8": "8eb8ba838f5f93c838cc25b01080008b48e342c04162d0a400d3daab32e541d8",
+        "track-chase": "f51ba3bd7455386e93a4ddc92fb80879be03de9e5e521f9561c37c9c58fa9e99"
+      },
+      "modes": [
+        {
+          "gpuMedianMS": 0.636416720226407,
+          "gpuP95MS": 0.6766249425709248,
+          "mode": "classic-no-shadow",
+          "offscreenWallMedianMS": 4.289083415642381,
+          "samples": 60
+        },
+        {
+          "gpuMedianMS": 0.6348749157041311,
+          "gpuP95MS": 0.6654583849012852,
+          "mode": "classic-shadow",
+          "offscreenWallMedianMS": 4.276333376765251,
+          "samples": 60
+        },
+        {
+          "gpuMedianMS": 0.6796249654144049,
+          "gpuP95MS": 0.7238332182168961,
+          "mode": "enhanced-shadow",
+          "offscreenWallMedianMS": 4.345749970525503,
+          "samples": 60
+        },
+        {
+          "gpuMedianMS": 0.6104165222495794,
+          "gpuP95MS": 0.668166670948267,
+          "mode": "previous-placeholder-lighting",
+          "offscreenWallMedianMS": 4.2194584384560585,
+          "samples": 60
+        },
+        {
+          "gpuMedianMS": 0.6237500347197056,
+          "gpuP95MS": 0.7027501706033945,
+          "mode": "classic-shadow-no-reflections",
+          "offscreenWallMedianMS": 4.257250111550093,
+          "samples": 60
+        },
+        {
+          "gpuMedianMS": 0.6360416300594807,
+          "gpuP95MS": 0.6792501080781221,
+          "mode": "classic-shadow-no-track-projection",
+          "offscreenWallMedianMS": 4.269124940037727,
+          "samples": 60
+        }
+      ],
+      "note": "Offscreen stationary single-car scene. Per-command GPU timing, not gameplay FPS or multi-car performance. Classic filtering remains default.",
+      "rasterRepeat": [
+        {
+          "camera": "chase",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "near-chase",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "far-chase",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "low-chase",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "bonnet",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "road",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "track-chase",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "reverse",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-1",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-2",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-3",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-4",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-5",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-6",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-7",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-8",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "overhead-1",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "overhead-2",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "overhead-3",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "overhead-4",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "driver",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "circuit-center",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "panorama-1",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "panorama-2",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "panorama-3",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "panorama-4",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "panorama-5",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        }
+      ],
+      "rasterRepeatPassed": true,
+      "schema": 4,
+      "shadowTriangles": 4,
+      "shadowVertices": 6,
+      "trackShadowWitness": {
+        "changedChannels": 247172,
+        "distanceFromStart": 408.6999816894531,
+        "imagesRGBA_SHA256": {
+          "projection-witness-disabled": "c952ae68eef6daa347c624b0970eb3e4efd0701e86e3cbe2f020cd49086016f5",
+          "projection-witness-enabled": "a946b7ca8c6c695f6cdb5509f3b72605d50c73240fd79ceb34673a50af698871"
+        },
+        "note": "Native vehicle settled at a sampled shaded road location; isolated projection on/off render, not a completed driving lap.",
+        "roadSamples": 1492,
+        "sampledBrightness": 154
+      },
+      "uniqueSceneGPUTextures": 32,
+      "width": 960
+    },
+    "survey-preview-second": {
+      "cameraCount": 27,
+      "carEnvironmentAvailable": true,
+      "carTrackShadowAvailable": true,
+      "changedFilteringChannels": 314029,
+      "changedReflectionChannels": 279356,
+      "changedShadowChannels": 102783,
+      "changedTrackProjectionChannels": 0,
+      "height": 640,
+      "imagesRGBA_SHA256": {
+        "bonnet": "d538714b034b4294b41a3f5f556a2b9eca71f7c36094a3e8c2815f005e8f7b07",
+        "chase": "50e60674bc1bd20e78e5ffee1d2aee04a6f3100abccd2c9c5f25cd1afae4640f",
+        "circuit-center": "f4cee4be4368043d4c0eac78333c6073184c838cd0fe797f338ef91ad6c9661e",
+        "classic-no-shadow": "f0bcf3747374d6e352a82d50b585bfe7a878b383b79d3f3d2f5ba317993e50a5",
+        "classic-shadow": "50e60674bc1bd20e78e5ffee1d2aee04a6f3100abccd2c9c5f25cd1afae4640f",
+        "classic-shadow-no-reflections": "97e2500f55d37fdec97254b859b911faa61164313279bd6a8484f2050fc386a0",
+        "classic-shadow-no-track-projection": "50e60674bc1bd20e78e5ffee1d2aee04a6f3100abccd2c9c5f25cd1afae4640f",
+        "driver": "71e27b82d77344c5dd460c29ab5d984508b660009c2fae3416382b1ceb5a2f55",
+        "enhanced-shadow": "b2088d1098f2b095b1a89ae35846f9cac4650a06bb4eb85a5fcf237a7ffa2d8d",
+        "far-chase": "52154b650581aa7c0f538394c376048890eac0751aeeae235316d071eaab5a6b",
+        "low-chase": "f8a22f590c0ccf697625a3a0b4687a4a69b2eb93cb3d0620e2593af9d4c2e32f",
+        "near-chase": "069a5eabde6af7816f9781773a6d39d0ad4e35ae6dbe06f1312a556c12e34bd9",
+        "overhead-1": "e4dae31c5565a93f901fc0d02e55aae2e33b57e65f4d9fef10411aed911d16fe",
+        "overhead-2": "4e9fb017f09e6d33ffccc04079f1b80f4d2b4256b3906ab7fc137729bbab3d0e",
+        "overhead-3": "d1e08e5b7ad6c758018c3ff6dff2222c9d5b174f2bc355e2f33398d13372db22",
+        "overhead-4": "3de5f4232859a05c29f494040021259108cfeadc3cd678119745744e37f66f96",
+        "panorama-1": "ab489255bff6f2ee05f57c8c83e5c2727f6c8f1312b459bc04a68e9a8bfd8a46",
+        "panorama-2": "bb2f346c143030c6bb91a188aa0611537462458be02799a73d749586aeccaea1",
+        "panorama-3": "9e4d95ed9fd96e47b77a5f680c08be366273abac49a1a973845a2c65b8c8be00",
+        "panorama-4": "115f89d1edb37b5c2daf82f80923f9300711598e04e4daa82e0c6ba37158bdb9",
+        "panorama-5": "d052e2f3bbdff0442a7ef25ef6636b2ba1fde09d60a4649c5c8667f5f025ebc2",
+        "previous-placeholder-lighting": "6deebc20a6a8025663a11161a4de44df9c5476993286ab8367a451564ed71acb",
+        "reverse": "07bd964c7a658d1bbbd621dadc972f34e5834e585f2f107eac8d890fcbda521a",
+        "road": "2685cf08e42a7567a51fda6d16648874b9b7b5b6a829522fb14919108ab6f699",
+        "side-1": "2f900df6dd3cc4d9c2bc10fa9cdbfe08d3e87cc0a40a15a74c368861bd485c1c",
+        "side-2": "d6033914fec9fd9d4c3958b5f2e620f5966041a1cfd968186029232206029eb3",
+        "side-3": "249b07fc640b0a18b00d24f5a96435d5742c98626713240b322923f6eea9176b",
+        "side-4": "7dde07147742051b255cd4e30db3dc48b70e95c1959723e71662aa4b4147674e",
+        "side-5": "b2ee8d4bd197e4d8e7b08f74152b2cb30e81d4ec26cf02c612337b0766ee5f72",
+        "side-6": "88beeaebb3bd3a02c6f44002dae18ffc187a9c004c540e2d501909f219e27e21",
+        "side-7": "235342169742b0125a4568e0af09b083c9342410c168e395982e9bf1eb2d07da",
+        "side-8": "8eb8ba838f5f93c838cc25b01080008b48e342c04162d0a400d3daab32e541d8",
+        "track-chase": "f51ba3bd7455386e93a4ddc92fb80879be03de9e5e521f9561c37c9c58fa9e99"
+      },
+      "modes": [
+        {
+          "gpuMedianMS": 0.6373331416398287,
+          "gpuP95MS": 0.6699583027511835,
+          "mode": "classic-no-shadow",
+          "offscreenWallMedianMS": 4.259375156834722,
+          "samples": 60
+        },
+        {
+          "gpuMedianMS": 0.6365000735968351,
+          "gpuP95MS": 0.6990833207964897,
+          "mode": "classic-shadow",
+          "offscreenWallMedianMS": 4.321416607126594,
+          "samples": 60
+        },
+        {
+          "gpuMedianMS": 0.6751248147338629,
+          "gpuP95MS": 0.7127500139176846,
+          "mode": "enhanced-shadow",
+          "offscreenWallMedianMS": 4.3322499841451645,
+          "samples": 60
+        },
+        {
+          "gpuMedianMS": 0.6062083411961794,
+          "gpuP95MS": 0.6391250062733889,
+          "mode": "previous-placeholder-lighting",
+          "offscreenWallMedianMS": 4.225624958053231,
+          "samples": 60
+        },
+        {
+          "gpuMedianMS": 0.6237500347197056,
+          "gpuP95MS": 0.7222502026706934,
+          "mode": "classic-shadow-no-reflections",
+          "offscreenWallMedianMS": 4.315625177696347,
+          "samples": 60
+        },
+        {
+          "gpuMedianMS": 0.634083291515708,
+          "gpuP95MS": 0.6763748824596405,
+          "mode": "classic-shadow-no-track-projection",
+          "offscreenWallMedianMS": 4.281749948859215,
+          "samples": 60
+        }
+      ],
+      "note": "Offscreen stationary single-car scene. Per-command GPU timing, not gameplay FPS or multi-car performance. Classic filtering remains default.",
+      "rasterRepeat": [
+        {
+          "camera": "chase",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "near-chase",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "far-chase",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "low-chase",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "bonnet",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "road",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "track-chase",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "reverse",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-1",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-2",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-3",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-4",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-5",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-6",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-7",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-8",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "overhead-1",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "overhead-2",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "overhead-3",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "overhead-4",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "driver",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "circuit-center",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "panorama-1",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "panorama-2",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "panorama-3",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "panorama-4",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "panorama-5",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        }
+      ],
+      "rasterRepeatPassed": true,
+      "schema": 4,
+      "shadowTriangles": 4,
+      "shadowVertices": 6,
+      "trackShadowWitness": {
+        "changedChannels": 247172,
+        "distanceFromStart": 408.6999816894531,
+        "imagesRGBA_SHA256": {
+          "projection-witness-disabled": "c952ae68eef6daa347c624b0970eb3e4efd0701e86e3cbe2f020cd49086016f5",
+          "projection-witness-enabled": "a946b7ca8c6c695f6cdb5509f3b72605d50c73240fd79ceb34673a50af698871"
+        },
+        "note": "Native vehicle settled at a sampled shaded road location; isolated projection on/off render, not a completed driving lap.",
+        "roadSamples": 1492,
+        "sampledBrightness": 154
+      },
+      "uniqueSceneGPUTextures": 32,
+      "width": 960
+    },
+    "survey-validation": {
+      "cameraCount": 27,
+      "carEnvironmentAvailable": true,
+      "carTrackShadowAvailable": true,
+      "changedFilteringChannels": 314029,
+      "changedReflectionChannels": 279356,
+      "changedShadowChannels": 102783,
+      "changedTrackProjectionChannels": 0,
+      "height": 640,
+      "imagesRGBA_SHA256": {
+        "bonnet": "d538714b034b4294b41a3f5f556a2b9eca71f7c36094a3e8c2815f005e8f7b07",
+        "chase": "50e60674bc1bd20e78e5ffee1d2aee04a6f3100abccd2c9c5f25cd1afae4640f",
+        "circuit-center": "f4cee4be4368043d4c0eac78333c6073184c838cd0fe797f338ef91ad6c9661e",
+        "classic-no-shadow": "f0bcf3747374d6e352a82d50b585bfe7a878b383b79d3f3d2f5ba317993e50a5",
+        "classic-shadow": "50e60674bc1bd20e78e5ffee1d2aee04a6f3100abccd2c9c5f25cd1afae4640f",
+        "classic-shadow-no-reflections": "97e2500f55d37fdec97254b859b911faa61164313279bd6a8484f2050fc386a0",
+        "classic-shadow-no-track-projection": "50e60674bc1bd20e78e5ffee1d2aee04a6f3100abccd2c9c5f25cd1afae4640f",
+        "driver": "71e27b82d77344c5dd460c29ab5d984508b660009c2fae3416382b1ceb5a2f55",
+        "enhanced-shadow": "b2088d1098f2b095b1a89ae35846f9cac4650a06bb4eb85a5fcf237a7ffa2d8d",
+        "far-chase": "52154b650581aa7c0f538394c376048890eac0751aeeae235316d071eaab5a6b",
+        "low-chase": "f8a22f590c0ccf697625a3a0b4687a4a69b2eb93cb3d0620e2593af9d4c2e32f",
+        "near-chase": "069a5eabde6af7816f9781773a6d39d0ad4e35ae6dbe06f1312a556c12e34bd9",
+        "overhead-1": "e4dae31c5565a93f901fc0d02e55aae2e33b57e65f4d9fef10411aed911d16fe",
+        "overhead-2": "4e9fb017f09e6d33ffccc04079f1b80f4d2b4256b3906ab7fc137729bbab3d0e",
+        "overhead-3": "d1e08e5b7ad6c758018c3ff6dff2222c9d5b174f2bc355e2f33398d13372db22",
+        "overhead-4": "3de5f4232859a05c29f494040021259108cfeadc3cd678119745744e37f66f96",
+        "panorama-1": "ab489255bff6f2ee05f57c8c83e5c2727f6c8f1312b459bc04a68e9a8bfd8a46",
+        "panorama-2": "bb2f346c143030c6bb91a188aa0611537462458be02799a73d749586aeccaea1",
+        "panorama-3": "9e4d95ed9fd96e47b77a5f680c08be366273abac49a1a973845a2c65b8c8be00",
+        "panorama-4": "115f89d1edb37b5c2daf82f80923f9300711598e04e4daa82e0c6ba37158bdb9",
+        "panorama-5": "d052e2f3bbdff0442a7ef25ef6636b2ba1fde09d60a4649c5c8667f5f025ebc2",
+        "previous-placeholder-lighting": "6deebc20a6a8025663a11161a4de44df9c5476993286ab8367a451564ed71acb",
+        "reverse": "07bd964c7a658d1bbbd621dadc972f34e5834e585f2f107eac8d890fcbda521a",
+        "road": "2685cf08e42a7567a51fda6d16648874b9b7b5b6a829522fb14919108ab6f699",
+        "side-1": "2f900df6dd3cc4d9c2bc10fa9cdbfe08d3e87cc0a40a15a74c368861bd485c1c",
+        "side-2": "d6033914fec9fd9d4c3958b5f2e620f5966041a1cfd968186029232206029eb3",
+        "side-3": "249b07fc640b0a18b00d24f5a96435d5742c98626713240b322923f6eea9176b",
+        "side-4": "7dde07147742051b255cd4e30db3dc48b70e95c1959723e71662aa4b4147674e",
+        "side-5": "b2ee8d4bd197e4d8e7b08f74152b2cb30e81d4ec26cf02c612337b0766ee5f72",
+        "side-6": "88beeaebb3bd3a02c6f44002dae18ffc187a9c004c540e2d501909f219e27e21",
+        "side-7": "235342169742b0125a4568e0af09b083c9342410c168e395982e9bf1eb2d07da",
+        "side-8": "8eb8ba838f5f93c838cc25b01080008b48e342c04162d0a400d3daab32e541d8",
+        "track-chase": "f51ba3bd7455386e93a4ddc92fb80879be03de9e5e521f9561c37c9c58fa9e99"
+      },
+      "modes": [
+        {
+          "gpuMedianMS": 2.388250082731247,
+          "gpuP95MS": 2.731791464611888,
+          "mode": "classic-no-shadow",
+          "offscreenWallMedianMS": 59.64754172600806,
+          "samples": 60
+        },
+        {
+          "gpuMedianMS": 2.3993749637156725,
+          "gpuP95MS": 2.680625068023801,
+          "mode": "classic-shadow",
+          "offscreenWallMedianMS": 59.39666670747101,
+          "samples": 60
+        },
+        {
+          "gpuMedianMS": 2.4377084337174892,
+          "gpuP95MS": 3.1203748658299446,
+          "mode": "enhanced-shadow",
+          "offscreenWallMedianMS": 59.381125029176474,
+          "samples": 60
+        },
+        {
+          "gpuMedianMS": 2.191333333030343,
+          "gpuP95MS": 2.4140833411365747,
+          "mode": "previous-placeholder-lighting",
+          "offscreenWallMedianMS": 58.62704152241349,
+          "samples": 60
+        },
+        {
+          "gpuMedianMS": 2.3467084392905235,
+          "gpuP95MS": 2.727208426222205,
+          "mode": "classic-shadow-no-reflections",
+          "offscreenWallMedianMS": 59.18258335441351,
+          "samples": 60
+        },
+        {
+          "gpuMedianMS": 2.397499978542328,
+          "gpuP95MS": 2.9243750032037497,
+          "mode": "classic-shadow-no-track-projection",
+          "offscreenWallMedianMS": 59.59116667509079,
+          "samples": 60
+        }
+      ],
+      "note": "Offscreen stationary single-car scene. Per-command GPU timing, not gameplay FPS or multi-car performance. Classic filtering remains default.",
+      "rasterRepeat": [
+        {
+          "camera": "chase",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "near-chase",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "far-chase",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "low-chase",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "bonnet",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "road",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "track-chase",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "reverse",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-1",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-2",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-3",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-4",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-5",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-6",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-7",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-8",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "overhead-1",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "overhead-2",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "overhead-3",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "overhead-4",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "driver",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "circuit-center",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "panorama-1",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "panorama-2",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "panorama-3",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "panorama-4",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "panorama-5",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        }
+      ],
+      "rasterRepeatPassed": true,
+      "schema": 4,
+      "shadowTriangles": 4,
+      "shadowVertices": 6,
+      "trackShadowWitness": {
+        "changedChannels": 247172,
+        "distanceFromStart": 408.6999816894531,
+        "imagesRGBA_SHA256": {
+          "projection-witness-disabled": "c952ae68eef6daa347c624b0970eb3e4efd0701e86e3cbe2f020cd49086016f5",
+          "projection-witness-enabled": "a946b7ca8c6c695f6cdb5509f3b72605d50c73240fd79ceb34673a50af698871"
+        },
+        "note": "Native vehicle settled at a sampled shaded road location; isolated projection on/off render, not a completed driving lap.",
+        "roadSamples": 1492,
+        "sampledBrightness": 154
+      },
+      "uniqueSceneGPUTextures": 32,
+      "width": 960
+    }
+  },
+  "pngSHA256": {
+    "survey-preview-first": {
+      "projection-witness-disabled.png": "37d6508651ad3beead819a62c96e504359d04fab3041ff6652f4cca807fcd1f1",
+      "projection-witness-enabled.png": "3db639fa4fdd01620f3f44e0bbd00b912c95dc59e18d00a6f22f1802a2ac7d47",
+      "overhead-3.png": "17d78263100223c992d4edbc4aad2bfa46cb53ba701341264cd155fb2c14473b",
+      "side-4.png": "1727ba2ef135c96f2bdcfc136a25a915152eb888b3efa87248e5aa54d3ab6c68",
+      "road.png": "0587f014a3a9a7e60cd0e574a67bd0dd8580aa4ba12e16eec200dd32b7c4c955",
+      "side-5.png": "0bb74ce44fefec2e505b8c308c1705c4d6ccda631232de98326f30d816fb2727",
+      "previous-placeholder-lighting.png": "5c843964fd3b23482ddb039a453e7613d524e94aacdddbbe0f1d90fd502e33db",
+      "overhead-2.png": "b40e3c6aeed3cf2f8ab5fc0a36ae1e606834d95fa9456c95dcfe5cb0fef79434",
+      "side-7.png": "7b2cfdbeb5648ded0dc988e6ae5a444626fd2084c2b06f4eb7ffc6d4ec3d0e7a",
+      "side-6.png": "7ac95d9c199e4ff6aee1c364a2ae112ba5cf47b6a136a63fe96dd0fbf3401ce3",
+      "classic-shadow.png": "3f2a6867db04c573c54e1c10495c8c8fcfc716892a8af1d634a5edc271a5b9e2",
+      "overhead-1.png": "988675aa220ad588737bfda24bab026f6ddc27fa366bea1c935418232c64a5f2",
+      "circuit-center.png": "2fde92d838b5c9c022e3fd2e039de50c1939a37345525cf5b06e153d2e7e8385",
+      "side-2.png": "bb559c2c1a83e4a7351e36b63e1204ae489b1478d9e25c4d81255b253aa3c6cd",
+      "side-3.png": "111f8d7ca0d19deda5a3ff8a7a0366696b1bd9ac068398fb0b9391da07ccd841",
+      "classic-shadow-no-reflections.png": "4ac94234438df1c0ae174e806a92f452c1fa046b3e4dfde1cb64d529cd024c99",
+      "overhead-4.png": "c3b0c50ed10b41063a96081e761cbc864526c0d713b798247b1ce1a66102c10e",
+      "chase.png": "3f2a6867db04c573c54e1c10495c8c8fcfc716892a8af1d634a5edc271a5b9e2",
+      "side-1.png": "17ad812dfb4af3a04fbb1e9823ff03094849be5f8f659e6062d04f4f67aaa10e",
+      "driver.png": "58d289a6ec44c8882685367e82ed4fc6ed2315d037f71856c04eeded3dbd03a5",
+      "panorama-2.png": "cac49b622df7b0f4c397ac0080cfe920586739356813b5bb1a30003388181632",
+      "track-chase.png": "a64f0b6520788920b41b20373c6d7cbc550053df263a1f160eb8827d0473c1e8",
+      "panorama-3.png": "244f5c3db08553c2bc92872bdaf1476b4ac9211d9dd444663246f64f97ab38d9",
+      "panorama-1.png": "9a0b3f2c39c21e3c36e986444fe5f13ac422379c1ef8f6c07a38dca56d17a2f0",
+      "bonnet.png": "124bee631f5a618f17a5315fb6c97034d75572c074244c657fd389fe532d1479",
+      "classic-no-shadow.png": "45611c2fa30ad5416e11226f8cdf80ed2577439cef1a935e69e629b969c56655",
+      "panorama-4.png": "f99139919dd8ca99616be3384d1ef81a4cfbd11a5958c9a2eafa05acedd4bd72",
+      "classic-shadow-no-track-projection.png": "3f2a6867db04c573c54e1c10495c8c8fcfc716892a8af1d634a5edc271a5b9e2",
+      "panorama-5.png": "296af151a771d63a9eb4d5f179dbe7f8a4d27bb1c7e2554dc9f52a3f4f40fc4a",
+      "far-chase.png": "146f33901ddabad0f611b592a75c698e35110d7f595f6402f80117add5fae75e",
+      "reverse.png": "60b00e041856d1b7a760acab6e6c8418ece68dbe22a0cfc783520927bdeca49c",
+      "near-chase.png": "503ec6535ae39db1d206783cf314ada32bab77d6453bd7372ab9fc53daed683c",
+      "side-8.png": "66403c20f11826c9ed332f0fb3e39dc3b25148ab6d9d24a02e954d5578bb863f",
+      "enhanced-shadow.png": "a9d648eeb52066bba1e72825ce867172143bb4fd7e696f9175fa5336f005de7c",
+      "low-chase.png": "6cce95b79841a5853205ad90611d4ae20e4aa77d1679980514290de3458c28af"
+    },
+    "survey-preview-second": {
+      "projection-witness-disabled.png": "37d6508651ad3beead819a62c96e504359d04fab3041ff6652f4cca807fcd1f1",
+      "projection-witness-enabled.png": "3db639fa4fdd01620f3f44e0bbd00b912c95dc59e18d00a6f22f1802a2ac7d47",
+      "overhead-3.png": "17d78263100223c992d4edbc4aad2bfa46cb53ba701341264cd155fb2c14473b",
+      "side-4.png": "1727ba2ef135c96f2bdcfc136a25a915152eb888b3efa87248e5aa54d3ab6c68",
+      "road.png": "0587f014a3a9a7e60cd0e574a67bd0dd8580aa4ba12e16eec200dd32b7c4c955",
+      "side-5.png": "0bb74ce44fefec2e505b8c308c1705c4d6ccda631232de98326f30d816fb2727",
+      "previous-placeholder-lighting.png": "5c843964fd3b23482ddb039a453e7613d524e94aacdddbbe0f1d90fd502e33db",
+      "overhead-2.png": "b40e3c6aeed3cf2f8ab5fc0a36ae1e606834d95fa9456c95dcfe5cb0fef79434",
+      "side-7.png": "7b2cfdbeb5648ded0dc988e6ae5a444626fd2084c2b06f4eb7ffc6d4ec3d0e7a",
+      "side-6.png": "7ac95d9c199e4ff6aee1c364a2ae112ba5cf47b6a136a63fe96dd0fbf3401ce3",
+      "classic-shadow.png": "3f2a6867db04c573c54e1c10495c8c8fcfc716892a8af1d634a5edc271a5b9e2",
+      "overhead-1.png": "988675aa220ad588737bfda24bab026f6ddc27fa366bea1c935418232c64a5f2",
+      "circuit-center.png": "2fde92d838b5c9c022e3fd2e039de50c1939a37345525cf5b06e153d2e7e8385",
+      "side-2.png": "bb559c2c1a83e4a7351e36b63e1204ae489b1478d9e25c4d81255b253aa3c6cd",
+      "side-3.png": "111f8d7ca0d19deda5a3ff8a7a0366696b1bd9ac068398fb0b9391da07ccd841",
+      "classic-shadow-no-reflections.png": "4ac94234438df1c0ae174e806a92f452c1fa046b3e4dfde1cb64d529cd024c99",
+      "overhead-4.png": "c3b0c50ed10b41063a96081e761cbc864526c0d713b798247b1ce1a66102c10e",
+      "chase.png": "3f2a6867db04c573c54e1c10495c8c8fcfc716892a8af1d634a5edc271a5b9e2",
+      "side-1.png": "17ad812dfb4af3a04fbb1e9823ff03094849be5f8f659e6062d04f4f67aaa10e",
+      "driver.png": "58d289a6ec44c8882685367e82ed4fc6ed2315d037f71856c04eeded3dbd03a5",
+      "panorama-2.png": "cac49b622df7b0f4c397ac0080cfe920586739356813b5bb1a30003388181632",
+      "track-chase.png": "a64f0b6520788920b41b20373c6d7cbc550053df263a1f160eb8827d0473c1e8",
+      "panorama-3.png": "244f5c3db08553c2bc92872bdaf1476b4ac9211d9dd444663246f64f97ab38d9",
+      "panorama-1.png": "9a0b3f2c39c21e3c36e986444fe5f13ac422379c1ef8f6c07a38dca56d17a2f0",
+      "bonnet.png": "124bee631f5a618f17a5315fb6c97034d75572c074244c657fd389fe532d1479",
+      "classic-no-shadow.png": "45611c2fa30ad5416e11226f8cdf80ed2577439cef1a935e69e629b969c56655",
+      "panorama-4.png": "f99139919dd8ca99616be3384d1ef81a4cfbd11a5958c9a2eafa05acedd4bd72",
+      "classic-shadow-no-track-projection.png": "3f2a6867db04c573c54e1c10495c8c8fcfc716892a8af1d634a5edc271a5b9e2",
+      "panorama-5.png": "296af151a771d63a9eb4d5f179dbe7f8a4d27bb1c7e2554dc9f52a3f4f40fc4a",
+      "far-chase.png": "146f33901ddabad0f611b592a75c698e35110d7f595f6402f80117add5fae75e",
+      "reverse.png": "60b00e041856d1b7a760acab6e6c8418ece68dbe22a0cfc783520927bdeca49c",
+      "near-chase.png": "503ec6535ae39db1d206783cf314ada32bab77d6453bd7372ab9fc53daed683c",
+      "side-8.png": "66403c20f11826c9ed332f0fb3e39dc3b25148ab6d9d24a02e954d5578bb863f",
+      "enhanced-shadow.png": "a9d648eeb52066bba1e72825ce867172143bb4fd7e696f9175fa5336f005de7c",
+      "low-chase.png": "6cce95b79841a5853205ad90611d4ae20e4aa77d1679980514290de3458c28af"
+    },
+    "survey-validation": {
+      "projection-witness-disabled.png": "37d6508651ad3beead819a62c96e504359d04fab3041ff6652f4cca807fcd1f1",
+      "projection-witness-enabled.png": "3db639fa4fdd01620f3f44e0bbd00b912c95dc59e18d00a6f22f1802a2ac7d47",
+      "overhead-3.png": "17d78263100223c992d4edbc4aad2bfa46cb53ba701341264cd155fb2c14473b",
+      "side-4.png": "1727ba2ef135c96f2bdcfc136a25a915152eb888b3efa87248e5aa54d3ab6c68",
+      "road.png": "0587f014a3a9a7e60cd0e574a67bd0dd8580aa4ba12e16eec200dd32b7c4c955",
+      "side-5.png": "0bb74ce44fefec2e505b8c308c1705c4d6ccda631232de98326f30d816fb2727",
+      "previous-placeholder-lighting.png": "5c843964fd3b23482ddb039a453e7613d524e94aacdddbbe0f1d90fd502e33db",
+      "overhead-2.png": "b40e3c6aeed3cf2f8ab5fc0a36ae1e606834d95fa9456c95dcfe5cb0fef79434",
+      "side-7.png": "7b2cfdbeb5648ded0dc988e6ae5a444626fd2084c2b06f4eb7ffc6d4ec3d0e7a",
+      "side-6.png": "7ac95d9c199e4ff6aee1c364a2ae112ba5cf47b6a136a63fe96dd0fbf3401ce3",
+      "classic-shadow.png": "3f2a6867db04c573c54e1c10495c8c8fcfc716892a8af1d634a5edc271a5b9e2",
+      "overhead-1.png": "988675aa220ad588737bfda24bab026f6ddc27fa366bea1c935418232c64a5f2",
+      "circuit-center.png": "2fde92d838b5c9c022e3fd2e039de50c1939a37345525cf5b06e153d2e7e8385",
+      "side-2.png": "bb559c2c1a83e4a7351e36b63e1204ae489b1478d9e25c4d81255b253aa3c6cd",
+      "side-3.png": "111f8d7ca0d19deda5a3ff8a7a0366696b1bd9ac068398fb0b9391da07ccd841",
+      "classic-shadow-no-reflections.png": "4ac94234438df1c0ae174e806a92f452c1fa046b3e4dfde1cb64d529cd024c99",
+      "overhead-4.png": "c3b0c50ed10b41063a96081e761cbc864526c0d713b798247b1ce1a66102c10e",
+      "chase.png": "3f2a6867db04c573c54e1c10495c8c8fcfc716892a8af1d634a5edc271a5b9e2",
+      "side-1.png": "17ad812dfb4af3a04fbb1e9823ff03094849be5f8f659e6062d04f4f67aaa10e",
+      "driver.png": "58d289a6ec44c8882685367e82ed4fc6ed2315d037f71856c04eeded3dbd03a5",
+      "panorama-2.png": "cac49b622df7b0f4c397ac0080cfe920586739356813b5bb1a30003388181632",
+      "track-chase.png": "a64f0b6520788920b41b20373c6d7cbc550053df263a1f160eb8827d0473c1e8",
+      "panorama-3.png": "244f5c3db08553c2bc92872bdaf1476b4ac9211d9dd444663246f64f97ab38d9",
+      "panorama-1.png": "9a0b3f2c39c21e3c36e986444fe5f13ac422379c1ef8f6c07a38dca56d17a2f0",
+      "bonnet.png": "124bee631f5a618f17a5315fb6c97034d75572c074244c657fd389fe532d1479",
+      "classic-no-shadow.png": "45611c2fa30ad5416e11226f8cdf80ed2577439cef1a935e69e629b969c56655",
+      "panorama-4.png": "f99139919dd8ca99616be3384d1ef81a4cfbd11a5958c9a2eafa05acedd4bd72",
+      "classic-shadow-no-track-projection.png": "3f2a6867db04c573c54e1c10495c8c8fcfc716892a8af1d634a5edc271a5b9e2",
+      "panorama-5.png": "296af151a771d63a9eb4d5f179dbe7f8a4d27bb1c7e2554dc9f52a3f4f40fc4a",
+      "far-chase.png": "146f33901ddabad0f611b592a75c698e35110d7f595f6402f80117add5fae75e",
+      "reverse.png": "60b00e041856d1b7a760acab6e6c8418ece68dbe22a0cfc783520927bdeca49c",
+      "near-chase.png": "503ec6535ae39db1d206783cf314ada32bab77d6453bd7372ab9fc53daed683c",
+      "side-8.png": "66403c20f11826c9ed332f0fb3e39dc3b25148ab6d9d24a02e954d5578bb863f",
+      "enhanced-shadow.png": "a9d648eeb52066bba1e72825ce867172143bb4fd7e696f9175fa5336f005de7c",
+      "low-chase.png": "6cce95b79841a5853205ad90611d4ae20e4aa77d1679980514290de3458c28af"
+    }
+  },
+  "performanceScope": "960x640 stationary single-car chase, 60 interleaved measured samples after 10 warmups; not gameplay FPS or per-camera/multi-car cost. Metal-instrumented timings excluded.",
+  "sourceSnapshot": [
+    {
+      "path": "App/DrivingSession.swift",
+      "sha256": "2e8851fd73d118a2ee2819b5039e380499c625f558d475488c9d28c985bf607d"
+    },
+    {
+      "path": "App/DrivingVisualSmoke.swift",
+      "sha256": "436aaf3a9a90053d847957fc2ab9eeb79edf88c73d1948460f6539c8739cc069"
+    },
+    {
+      "path": "Documentation/DRIVER_SURVEY_CAMERAS.md",
+      "sha256": "6c70341690cbaa1ba0aec3f21d78d8c9ae79c14cb572d2307d400207fafdd20a"
+    },
+    {
+      "path": "Documentation/PORT_STATUS.md",
+      "sha256": "49f947e504549d1587a463374a8d1477fff60803bf1fc657c3212aabfb380343"
+    },
+    {
+      "path": "Documentation/UPSTREAM.md",
+      "sha256": "1f05a1dab9c8c51b42a47d255dd3a4e60c4362aa8948529c0d64b3d94ef69a55"
+    },
+    {
+      "path": "Package.swift",
+      "sha256": "7e519ec6d0a9e65dee2cfa59bfd10736d019c66a62f8bdd2dab2db60f616e24f"
+    },
+    {
+      "path": "Packages/TORCSMetal/CameraWorld.swift",
+      "sha256": "21ca73fc5d96e50dcb4f35d35a47945597ea566e4eade47a14effa9dc13d0010"
+    },
+    {
+      "path": "Packages/TORCSMetal/DrivingCamera.swift",
+      "sha256": "09b1b7bd65ed95368b748ad03cf0b3651a1f3ab2aeb8f63ea96c09ccecd7fb76"
+    },
+    {
+      "path": "Packages/TORCSMetal/Scene.metal",
+      "sha256": "789a7405fe46d6e1d5a9c59d77566678f485f40e0d8eee1ab81938937c953b01"
+    },
+    {
+      "path": "Packages/TORCSMetal/SceneGeometry.swift",
+      "sha256": "19d328a5eb3e75daef696301e59968641145f3c57e07f306048c424b37412731"
+    },
+    {
+      "path": "Packages/TORCSMetal/SceneRenderer.swift",
+      "sha256": "d26a00b87f6ff1d4bf6f98e66e63162a36005762f0f3ba7bbaf6623d41593538"
+    },
+    {
+      "path": "Packages/TORCSMetal/VehiclePresentation.swift",
+      "sha256": "44fcea5456c83b26965f47b9364996b7c3efcaac3b866a70e0a71e4e141d74a3"
+    },
+    {
+      "path": "Packages/TORCSRaceEngine/DrivingContent.swift",
+      "sha256": "5ae848524fe1a36b796ee0851ce1a0a9981a1281885e454eb9c5a5d1b74dab0c"
+    },
+    {
+      "path": "README.md",
+      "sha256": "8754fafa2644eb430050d1de6f5bcc78c6ac74ed7a7f2631588c2488591e5adc"
+    },
+    {
+      "path": "Resources/asset-manifest.json",
+      "sha256": "b341d477b01d90fdd55984a3c5b3c8ede25674614a1c9915fa7657e3670d03d3"
+    },
+    {
+      "path": "Scripts/verify-provenance.py",
+      "sha256": "a7636414cbc4274f735b60faedd983b74b0970575fa181b2a2fa50d52c517461"
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES.md",
+      "sha256": "738e37c05f2cb820c88d3eda770ec0133f1f01fd837c61258af82e284f280425"
+    },
+    {
+      "path": "Tests/UnitTests/ExteriorCameraTests.swift",
+      "sha256": "b53f61dc081d0d18a767c38cc1daeee4676a632317183e966e8effd7fa6ce662"
+    },
+    {
+      "path": "Tests/UnitTests/SurveyCameraTests.swift",
+      "sha256": "d5ded868553d181d83edf8f56f8ede2c4ff20640dc4cf26ea9862bdff2af04fd"
+    },
+    {
+      "path": "Upstream/Reference/graphics-instrumentation.cpp",
+      "sha256": "6c49d48cc969b459afbabd449029a0cfd86a8ab32b4d759eb794b3d4834514ba"
+    },
+    {
+      "path": "Upstream/Reference/graphics/camera-driver-preset.inc",
+      "sha256": "29f5752705b670060832fbfccfa3b6c5c4ab320eb61aa8cb4c9b1d56b16b017f"
+    },
+    {
+      "path": "Upstream/Reference/graphics/camera-driver.inc",
+      "sha256": "dff33d74ff9e213daaad9671a8ce7296a515c33ea7da1d09f5ff6d2e277b2f38"
+    },
+    {
+      "path": "Upstream/Reference/graphics/camera-survey-presets.inc",
+      "sha256": "3f303a2ab3179041529477f3c700f6aa9854d39dab184d2e2843b97cb85bf2a5"
+    },
+    {
+      "path": "Upstream/Reference/graphics/camera-survey.inc",
+      "sha256": "25699e76fd157f71790f03bccbb1cea0f13217d9e35b082d81db1ad0e0fed897"
+    },
+    {
+      "path": "Upstream/Reference/graphics/camera-world.inc",
+      "sha256": "84998f4f643effada03b4376fe976988274a72daad39eec5c98ebc3154e09592"
+    },
+    {
+      "path": "Upstream/Reference/include/CReference.h",
+      "sha256": "8615fb928e113779f35db06fe3945c015c2b31e88751f595aec2f48f19c9f57d"
+    },
+    {
+      "path": "Upstream/source-manifest.json",
+      "sha256": "15511e46a757470670d12e3315353de71549d573e1b79b1e466e9ebf3dab7288"
+    }
+  ],
+  "evidenceSnapshot": [
+    {
+      "path": "Artifacts/survey-debug-final.log",
+      "sha256": "a650693949e6c41db9e941453052b5ec6224fb0cd03b61808299f09bea0b600e"
+    },
+    {
+      "path": "Artifacts/survey-release.log",
+      "sha256": "9e215e8b811c24b101f9cc6409c3fe29a84b6134bd02eafbff69230d3aad9b45"
+    },
+    {
+      "path": "Artifacts/survey-asan.log",
+      "sha256": "b28694c81326dba3d09d91c249c0fe85ab84a80eced46725d16a5c1307f361da"
+    },
+    {
+      "path": "Artifacts/survey-test-inventory.log",
+      "sha256": "a15b32ed4865476e6439e3e69d1986ea10a06c45096b81ffdc7fd1f426b570c3"
+    },
+    {
+      "path": "Artifacts/survey-provenance.log",
+      "sha256": "c519f07f142c06383cb5f55ce76e85113a48c74bbf332393aaadeebe91238366"
+    },
+    {
+      "path": "Artifacts/survey-metal-smoke.log",
+      "sha256": "7c307493192b70189dfcb95937600d572fed01a81f577ac8302965950bc5ab5f"
+    },
+    {
+      "path": "Artifacts/survey-preview-first.log",
+      "sha256": "f5b3f6c555f76763e56a535f2fa81b52f07f4fbbe02e586254d2cce91db67a86"
+    },
+    {
+      "path": "Artifacts/survey-preview-second.log",
+      "sha256": "136daf415a5e8a831e3e17f17abbc437654a52bcdd16819e265fba6ce6ee296f"
+    },
+    {
+      "path": "Artifacts/survey-validation.log",
+      "sha256": "f38a5f5f0924f4d2a0ed25ee34c921c4ef81c03316c46e89a23d68095bfad029"
+    },
+    {
+      "path": "Artifacts/survey-preview-first/report.json",
+      "sha256": "cafb6c5f7984b333256232add4d3e373e0bc8a7a48e2579870d64ffd215ae741"
+    },
+    {
+      "path": "Artifacts/survey-preview-second/report.json",
+      "sha256": "7adbfa3b7bdd30b5515bef2b733a76a6bc59ae7049c98600a3fdcf938978858c"
+    },
+    {
+      "path": "Artifacts/survey-validation/report.json",
+      "sha256": "b3acebf84703f9f8a1d4215e4388b4cdfe36af883a1989048889d5c2e50f6ec9"
+    },
+    {
+      "path": "build/TORCSSurveyPreview.app/Contents/MacOS/TORCSMac",
+      "sha256": "560e173d18a3d64fdfe3f6a3e4ca6c2e5ad1a039cacafd519a555cd1143346c5"
+    },
+    {
+      "path": "build/TORCSSurveyPreview.app/Contents/Info.plist",
+      "sha256": "97a924cfa46e26240e1aed7027fd14a765d5bc97c96d61e04627692f628d6b80"
+    },
+    {
+      "path": "build/TORCSSurveyPreview.app/Contents/Resources/TORCSMac_TORCSMetal.bundle/Scene.metal",
+      "sha256": "789a7405fe46d6e1d5a9c59d77566678f485f40e0d8eee1ab81938937c953b01"
+    },
+    {
+      "path": "build/TORCSSurveyPreview.app/Contents/Resources/THIRD_PARTY_NOTICES.md",
+      "sha256": "738e37c05f2cb820c88d3eda770ec0133f1f01fd837c61258af82e284f280425"
+    }
+  ],
+  "remaining": [
+    "rear-view mirror composition",
+    "trackside camera metadata and road/fly/TV cameras",
+    "camera zoom and saved preferences",
+    "optional measured edge smoothing",
+    "scene-wide dynamic shadows and other graphics effects",
+    "broader content and GPU coverage",
+    "complete race lifecycle and native robots",
+    "audio and deterministic replay",
+    "controller hardware validation after visual priorities",
+    "distribution and shared texture attribution"
+  ]
+}

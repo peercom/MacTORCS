@@ -1,0 +1,84 @@
+{
+  "upstream": "TORCS 1.3.9",
+  "scope": "Read-only syntax inventory of two candidate runtime meshes; no asset content imported and no rendering or compiler parity claimed. Directory Free Art notices identified; per-file licensing/dependency review remains open.",
+  "meshes": [
+    {
+      "source": "data/cars/models/155-DTM/155-DTM.acc",
+      "sha256": "e769d952b5ffe6d34ab8337c716a579d4b76dd11f455017a5625dbd82e05db80",
+      "bytes": 685979,
+      "header": "AC3Db",
+      "objects": {
+        "world": 1,
+        "poly": 18
+      },
+      "declaredVertices": 4032,
+      "declaredSurfaces": 352,
+      "declaredReferences": 6402,
+      "surfaceFlags": {
+        "0x14": 352
+      },
+      "textureRecords": [
+        "texture \"155-DTM.rgb\" base",
+        "texture \"155-DTM.rgb\" shad",
+        "texture \"155-DTM.rgb\" skids",
+        "texture \"155-DTM.rgb\" tiled",
+        "texture \"driver.rgb\" base",
+        "texture \"driver.rgb\" shad",
+        "texture \"driver.rgb\" skids",
+        "texture \"driver.rgb\" tiled"
+      ]
+    },
+    {
+      "source": "data/tracks/aalborg/aalborg.acc",
+      "sha256": "2d4c3e3d57beb0bd355a9203d367bc02f98d93068d95dc4d4676ff388edef5ad",
+      "bytes": 1686408,
+      "header": "AC3Db",
+      "objects": {
+        "world": 1,
+        "group": 163,
+        "poly": 1315
+      },
+      "declaredVertices": 13577,
+      "declaredSurfaces": 1556,
+      "declaredReferences": 15417,
+      "surfaceFlags": {
+        "0x34": 826,
+        "0x14": 730
+      },
+      "textureRecords": [
+        "texture \"allborg-trees_n.rgb\"",
+        "texture \"allborg-trees_n.rgb\" base",
+        "texture \"barr1.rgb\" base",
+        "texture \"concrete.rgb\"",
+        "texture \"concrete2.rgb\" base",
+        "texture \"grass-aa.rgb\" base",
+        "texture \"poutre4.rgb\" base",
+        "texture \"pylon1.rgb\"",
+        "texture \"pylon2.rgb\"",
+        "texture \"pylon3.rgb\"",
+        "texture \"raceline.png\" skids",
+        "texture \"shadow2.rgb\" tiled",
+        "texture \"spectator.rgb\" base",
+        "texture \"tarmac-wall-1-g2.rgb\" base",
+        "texture \"tarmac-wall-2-g2.rgb\" base",
+        "texture \"torcs1.rgb\" base",
+        "texture \"tr-asphalt-2-aa-r_n.rgb\" base",
+        "texture \"tr-asphalt-aa-bw1_n.rgb\" base",
+        "texture \"tr-asphalt-aa-bw2-e_n.rgb\" base",
+        "texture \"tr-asphalt-aa-bw2-s_n.rgb\" base",
+        "texture \"tr-asphalt-aa-bw2_n.rgb\" base",
+        "texture \"tr-asphalt-aa-l_n.rgb\" base",
+        "texture \"tr-asphalt-aa-pe-bw1_n.rgb\" base",
+        "texture \"tr-asphalt-aa-pt-bw1_n.rgb\" base",
+        "texture \"tr-asphalt-aa-ro-bw1_n.rgb\" base",
+        "texture \"tr-asphalt-to-g-aa-l_n.rgb\" base",
+        "texture \"tr-barrier-aa-1.rgb\" base",
+        "texture \"tr-curb-bw-aa-r.rgb\" base",
+        "texture \"tr-g-to-asphalt-aa-l_n.rgb\" base",
+        "texture \"tr-grass-aa-l_n.rgb\" base",
+        "texture empty_texture_no_mapping shad",
+        "texture empty_texture_no_mapping skids"
+      ]
+    }
+  ]
+}

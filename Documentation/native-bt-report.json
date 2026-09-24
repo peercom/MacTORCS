@@ -1,0 +1,113 @@
+{
+  "date": "2026-09-24",
+  "evidence": {
+    "bt-native-asan-tests.log": "d6e3898318b58d6417d7485e119122b6135887ddefd058b876c603e8550b773b",
+    "bt-native-cli-build.log": "b90d1cbc7e4cd368e389fe4f68d20904c64a805143f542cd754fc0bec561e573",
+    "bt-native-cli-verification.json": "bce4bdacd0954bad1f8f4cf2f6f4f28d76b91ea582eb7112a69fa6f6b266b831",
+    "bt-native-full-tests.log": "ee18d4d985644c56f95d1c6d2fad040192666e6c9c3964571fd6282378848600",
+    "bt-native-pit-tests.log": "bddafa8cc90d0ba5d8447716f691f8e9f41da006f4472afe4eaba6aec76758de",
+    "bt-native-provenance.log": "7afd9018e488fb36b235e2f4693c3bba97eea66019545ffa1d9cf211b8d646ed",
+    "bt-native-ten-laps-repeat.json": "70058d8de23f1d799eeaaf3d370d69d014cf96dbc0041240dcaff44e505e4034",
+    "bt-native-ten-laps.json": "70058d8de23f1d799eeaaf3d370d69d014cf96dbc0041240dcaff44e505e4034",
+    "bt-reference-ten-laps.json": "6e5ad14a21acaf75ff99c4b399f21f549d05fbded05429ff350fe72d61088295"
+  },
+  "limits": [
+    "Only one car; opponent classification, passing, avoidance and team policy remain unported.",
+    "Original grid placement, robot timeout, penalties and complete race lifecycle remain open.",
+    "Headless native runtime; interactive driving-window opponent/race selection and standings are not wired.",
+    "Captured-input commands match; independent native trajectories differ from reference.",
+    "Debug/release trajectories differ; determinism is verified within the same build only.",
+    "All measured ten-lap laps are invalid under lap validity rules; no clean-lap acceptance claimed.",
+    "Runtime uses BT-0 default setup; per-track setup and karma-path discovery and legacy module compatibility remain open."
+  ],
+  "priority": "Gameplay; foliage and new graphical work deferred",
+  "schema": 1,
+  "scope": "Native BT solo policy, native single-car race integration and XML-only CLI; no interactive AI or opponent racing yet",
+  "sources": {
+    "Package.swift": "1324e70dca025d74faa7c6ee0376ed02435b6c7a046fa881d8d0e305cd6272ad",
+    "Packages/TORCSRaceEngine/BTSoloRuntime.swift": "0caf623168f8ff7dd77b1add674ab748c05b4c8717402d5907c8b17d05847290",
+    "Packages/TORCSRobots/BTLearning.swift": "f6e7cd8df0c25b3a997134bfed7841b4a48dc200e1f0abd663d1389f4ff6ede4",
+    "Packages/TORCSRobots/BTPit.swift": "095fbca5863c6cea682f6cf559a4a6f9ccccb5193385b51103c00ce75cc12252",
+    "Packages/TORCSRobots/BTSoloDriver.swift": "2d12f0d663e2dc29f2666cea059d7b153ee2f5305941e70e9c55c432d6bb0bee",
+    "Packages/TORCSRobots/BTStrategy.swift": "cad6c844637349dba5d9fb536e65042efb45b1322fc542a9b8fba67424083d3e",
+    "Packages/TORCSSimulation/MultiVehicleSimulation.swift": "f214b425099aff0d2f4f3695805263d7b7123cdc8518d4f6ca888186158adc43",
+    "Tests/UnitTests/BTSoloDriverTests.swift": "6442dd53bc636d4749b139b1c90150f519197dcb1a9ca6775b32c0359e98b5e7",
+    "Tools/TORCSReferenceSupport/ReferenceWorld.swift": "145963ee2d20afe319633ef126eb5cb5dee68f85b63126db473ce2f3025a78e8",
+    "Tools/torcs-sim/NativeBTRace.swift": "32aba0e9d96963a0e0afc1824262f1a655986f45fb90a558ca66ad9ea231a141",
+    "Tools/torcs-sim/main.swift": "6ae0f5a7402edb449bbd0164ee70a39db89b0432f3b86b429c1d7f5b899bb105",
+    "Upstream/Reference/include/CReference.h": "586fee3cd03df620d1f03ac7d54986f1c96d250f09d38bb37306e68df9de33f0",
+    "Upstream/Reference/world.cpp": "39be7e5667c763708b42d3dcf09bf8570ae461e9fa1ec156902661299cfdaf68"
+  },
+  "validation": {
+    "addressSanitizer": {
+      "failures": 0,
+      "seconds": 139.398,
+      "tests": 5
+    },
+    "cli": {
+      "callbacks": 40307,
+      "completed": true,
+      "executableSHA256": "47e3d95581f1f5c34af96cfc57c2da0684234ef7fd56fa92a013bdae261cbd1f",
+      "invalidCases": 2,
+      "partialTicks": 3,
+      "repeatExact": true,
+      "ticks": 422550,
+      "time": 843.0999999938871
+    },
+    "nativeDebugASanLap": {
+      "repeatedFinalStateExact": true,
+      "ticks": 44617,
+      "time": 87.2339999999781,
+      "valid": false
+    },
+    "nativeReleaseForcedPit": {
+      "finished": true,
+      "laps": 5,
+      "pitCallbacks": 2,
+      "ticks": 240464,
+      "time": 478.9280000015587
+    },
+    "nativeReleaseLap": {
+      "repeatedFinalStateExact": true,
+      "ticks": 44612,
+      "time": 87.22399999997812,
+      "valid": false
+    },
+    "nativeTenLapRepeat": {
+      "calls": 40307,
+      "pitCalls": 0,
+      "reportsExact": true,
+      "ticks": 422550,
+      "time": 843.0999999938871,
+      "validLaps": 0
+    },
+    "pinnedFilesVerified": 229,
+    "referenceLapCallbacks": {
+      "callbacks": 4211,
+      "controls": 21055,
+      "learningMaximumAbsoluteError": 0,
+      "maximumAbsoluteError": 0,
+      "ticks": 44694
+    },
+    "referencePitCallbacks": {
+      "callbacks": 13418,
+      "drivingMaximumAbsoluteError": 0,
+      "fuelAndRepairExact": true,
+      "laps": 3,
+      "pitCallbacks": 2,
+      "ticks": 156766
+    },
+    "referenceTenLap": {
+      "calls": 40288,
+      "pitCalls": 0,
+      "ticks": 422342,
+      "time": 842.6839999938969,
+      "validLaps": 0
+    },
+    "releaseSuite": {
+      "failures": 0,
+      "seconds": 171.141,
+      "tests": 287
+    }
+  }
+}

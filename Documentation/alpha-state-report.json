@@ -1,0 +1,289 @@
+{
+  "schema": 1,
+  "date": "2026-09-23",
+  "status": "Implemented; broader traffic raster regression unresolved",
+  "goalComplete": false,
+  "incrementAccepted": false,
+  "tests": {
+    "fullDebugBeforeFinalEffectOptimization": 270,
+    "finalAffectedRelease": 43,
+    "finalAffectedAddressSanitizer": 43,
+    "newTests": 8,
+    "selectedRasterRepeatsPerRun": 720,
+    "selectedRasterChangedChannels": 0,
+    "toleranceChanged": false
+  },
+  "implementation": {
+    "independentEnableThresholdInheritance": true,
+    "perViewReset": true,
+    "hiddenMeshesDoNotApply": true,
+    "generatedBrakesInherit": true,
+    "legacyCacheFormatUnchanged": true,
+    "uploadedMipAlphaBounds": true,
+    "allActiveTextureBindingsCovered": true,
+    "zeroThresholdEffectsElideDiscard": true,
+    "positiveThresholdEffectsRetainDiscard": true,
+    "newRenderPasses": 0,
+    "newTextures": 0,
+    "newPipelineVariantsPerSampleCount": 2
+  },
+  "validation": {
+    "firstAlphaPackageLightProcesses": 4,
+    "firstAlphaPackageLightImagesPerProcess": 24,
+    "firstAlphaPackageLightImagesExact": true,
+    "firstAlphaPackageMetalValidation": true,
+    "firstAlphaPackageFlyAndTVPassed": true,
+    "finalPackageTrafficPassed": false,
+    "finalPackageFullCapturesAndTimingCompleted": false,
+    "finalPackageBuildAndSmokePassed": true
+  },
+  "regression": {
+    "firstPackage": "Immediate traffic repeat: eight changed channels, maximum byte delta two",
+    "effectPackage": "Exact cross-run traffic comparison fails at frame 450, classic mode, shadows disabled; one blue channel differs 60 versus 59 at pixel (107,592) on a wheel",
+    "freshPriorOrderTrafficPassed": true,
+    "priorOrderTrafficRepeatPairs": 80,
+    "rootCauseEstablished": false,
+    "next": "Isolate required wheel cutout discard at the frozen failing pose while preserving blend/depth semantics and existing tolerances"
+  },
+  "package": {
+    "investigativePath": "build/TORCSAlphaEffectPreview.app",
+    "binarySHA256": "9392186fd59ac8b07a1c3d9e73bacbe24f88c5bdde47475b4717bde976a5c0de",
+    "latestValidated": "build/TORCSOrderPreview.app",
+    "adHocSignatureVerified": true,
+    "noDirectCPlusPlusOrExpatDependency": true,
+    "artworkBundled": false
+  },
+  "provenance": {
+    "pinnedSourceLicenseEntries": 183,
+    "pinnedContentEntries": 46,
+    "totalArchiveVerified": 229,
+    "newExactExcerpts": 8
+  },
+  "vegetation": {
+    "implemented": false,
+    "placements": 169,
+    "families": {
+      "tree-aa1": 81,
+      "tree-aa2": 79,
+      "tree-aa3": 9
+    },
+    "offlineGeometryValidated": true,
+    "plan": "Documentation/VEGETATION.md"
+  },
+  "preservationAudit": [
+    {
+      "path": "build/TORCSOrderPreview.app/Contents/MacOS/TORCSMac",
+      "baselineSHA256": "36e40369ec24b7e8b71551a349ba6b82ee4b18c77c8f1d89e87c5502591f6b74",
+      "currentSHA256": "36e40369ec24b7e8b71551a349ba6b82ee4b18c77c8f1d89e87c5502591f6b74",
+      "unchanged": true
+    },
+    {
+      "path": "build/TORCSLightPreview.app/Contents/MacOS/TORCSMac",
+      "baselineSHA256": "90fbc86e1a479b37d5cc3c7a8dc23d4c3148e2d69af5498bc12b2275bbae181f",
+      "currentSHA256": "90fbc86e1a479b37d5cc3c7a8dc23d4c3148e2d69af5498bc12b2275bbae181f",
+      "unchanged": true
+    },
+    {
+      "path": "/Users/holgervonameln/Library/Application Support/TORCSMac/cameras.json",
+      "baselineSHA256": "7493b4ac79f8bc9058190ea5218c47ddf3f67552d8f6d3ed39da49ab40374dda",
+      "currentSHA256": "7493b4ac79f8bc9058190ea5218c47ddf3f67552d8f6d3ed39da49ab40374dda",
+      "unchanged": true
+    }
+  ],
+  "sourceSnapshot": [
+    {
+      "path": "Packages/TORCSAssets/ACScene.swift",
+      "sha256": "742e4ae8fa07d63417ac248d26934ecc592dea4d9dbe9fd8bda9c8f98f03b91e"
+    },
+    {
+      "path": "Packages/TORCSAssets/ACParser.swift",
+      "sha256": "e1c058547ec64af6b9f9b94b97a9442270c342359463044628847b5b24103844"
+    },
+    {
+      "path": "Packages/TORCSAssets/ACMeshCache.swift",
+      "sha256": "a38f8ed5354ed80628b14836ecc83cfa78d3008be8d8e1887deb139d2a326668"
+    },
+    {
+      "path": "Packages/TORCSAssets/BrakeGeometry.swift",
+      "sha256": "4680a4559d02c14d14ca4e7e2acfebd527b6b431c08efcb6e962d6069f355ae1"
+    },
+    {
+      "path": "Packages/TORCSMetal/SceneAlphaState.swift",
+      "sha256": "8dbe24212bac78d45958ce191086735efcb720c21ef4e4bea17890d920f09d50"
+    },
+    {
+      "path": "Packages/TORCSMetal/SceneRenderer.swift",
+      "sha256": "a4885ef5c6fe60160cd7a90eb2b4d133063e3cf2656c0a0ac3e2084993909168"
+    },
+    {
+      "path": "Packages/TORCSMetal/CarLightRenderState.swift",
+      "sha256": "01b1f74667729b565ace77f963fc74bd667ba09eb19b1cfc45454681b095f24a"
+    },
+    {
+      "path": "Packages/TORCSMetal/Scene.metal",
+      "sha256": "03e148745c5ff4aa0cd87463dc0ef1633663475272afe68cbce46ec13583376b"
+    },
+    {
+      "path": "Tests/UnitTests/SceneAlphaStateTests.swift",
+      "sha256": "f9eabee39d241047bde739a5a5f8e3990d07b319e395f9b6efb541a7dad4e6d8"
+    },
+    {
+      "path": "Tests/UnitTests/ACSceneTests.swift",
+      "sha256": "4e4ed3dc622ca481fbc0f1092aa0763254023c8dd259391405edec1173a458eb"
+    },
+    {
+      "path": "Upstream/Reference/alpha-state-instrumentation.cpp",
+      "sha256": "9c5c7d802b9b5a60d5a7818d4cd6d097634cf051fef012c9c1cdca4e4fd13ad4"
+    },
+    {
+      "path": "Package.swift",
+      "sha256": "96c34058db96fa7f80837b8201f984201bb9396b4e5a1794aaf816cc7feecc3b"
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES.md",
+      "sha256": "d678dfed8de13937b1efa38658a00906dad2672302e8bcf83452e40f9a450ab5"
+    }
+  ],
+  "evidenceSnapshot": [
+    {
+      "path": "Artifacts/alpha-state-full-debug-verified.log",
+      "sha256": "ab396e59b87e7419e6d674b4fa8e6b861d057880b04821a220f1301238bba0ee"
+    },
+    {
+      "path": "Artifacts/alpha-effect-release-verified.log",
+      "sha256": "8f01c6b1cac67c42b20995bbc16a8037e65d608142aa2b801b532bab44e6f18a"
+    },
+    {
+      "path": "Artifacts/alpha-effect-asan.log",
+      "sha256": "22c128702ef171ee51f75f7294a158d31941ce0898fcbd00a521c02675d91a31"
+    },
+    {
+      "path": "Artifacts/alpha-state-provenance-final.log",
+      "sha256": "7afd9018e488fb36b235e2f4693c3bba97eea66019545ffa1d9cf211b8d646ed"
+    },
+    {
+      "path": "Artifacts/alpha-state-archive.log",
+      "sha256": "3b1a7ed3b76efce2ba79ac7ef6f1e3052ca52b7541e01698ba621f16a7887706"
+    },
+    {
+      "path": "Artifacts/alpha-state-full-debug.log",
+      "sha256": "45aed42d8fb94f0d945df3a37137c39fd122f37574c691726ab63ca2a8bb8994"
+    },
+    {
+      "path": "Artifacts/alpha-state-asan.log",
+      "sha256": "1e580b70049c30a0aba7e82f8a15c1f6c1764e7caa748cd082383604cecd70d2"
+    },
+    {
+      "path": "Artifacts/alpha-state-full-debug-final.log",
+      "sha256": "80e030cc5c7b00b92955156f1f72cc6658f57244fd1c3626f350841c7d18eedd"
+    },
+    {
+      "path": "Artifacts/alpha-effect-release.log",
+      "sha256": "49e66129b404b5ae78f74d6764a9a28802b84ddd479c5480c6d8f68be78634e0"
+    },
+    {
+      "path": "Artifacts/alpha-traffic.log",
+      "sha256": "67bbc878bb567264bcaab2cff41cf7e85f6bc4ccab77067ae01d1a1bb5b3b782"
+    },
+    {
+      "path": "Artifacts/alpha-effect-traffic.log",
+      "sha256": "ebeb3ad7022f801f33430ec94e2093b0057247bdbd5ab6c8976bc7a63b38eda2"
+    },
+    {
+      "path": "Artifacts/alpha-state-capture-jobs.log",
+      "sha256": "130ca29def98830c1547e12b115bc8adf67e73faf8ad2f9ff86c55f4a5ce9ba2"
+    },
+    {
+      "path": "Artifacts/alpha-effect-capture-jobs.log",
+      "sha256": "83ec93ed0bcb5ba3441f86c09e34d10706be5855cfa1ef537dd2c4ad677ab6e0"
+    },
+    {
+      "path": "Artifacts/alpha-effect-prior-traffic.log",
+      "sha256": "ee9bcfe291332f0480b6f09fc9954dec301eca73cefea661b1b4ad8030b6b16a"
+    },
+    {
+      "path": "Artifacts/alpha-effect-prior-traffic/report.json",
+      "sha256": "af53ee7657800eef056bae7e015abf2fed4bdbfea96de8386ad0ab40159e1d3e"
+    },
+    {
+      "path": "Artifacts/alpha-effect-signature.log",
+      "sha256": "fcc7f195a9b3bf1447c825085108a724dfd1098ea7ee07a5a5b88ad954551ce3"
+    },
+    {
+      "path": "Artifacts/alpha-effect-runtime-libraries.log",
+      "sha256": "a0477e8fd15abf9e9465586e5cea41659b19e796b3601c760c31dbe80ae92ce3"
+    },
+    {
+      "path": "Artifacts/alpha-effect-smoke.log",
+      "sha256": "7c307493192b70189dfcb95937600d572fed01a81f577ac8302965950bc5ab5f"
+    },
+    {
+      "path": "Artifacts/alpha-effect-package.log",
+      "sha256": "24af8650a0c96990e218cc77eb8384fc595408f537bda148d3336f3b0e1a12bd"
+    },
+    {
+      "path": "Artifacts/vegetation-placement-inspection.json",
+      "sha256": "5160e56f9b2e0756f96a40f4e3e408bf5964d39ee30190f34ced951c3ae78df8"
+    },
+    {
+      "path": "Artifacts/vegetation-candidate-validation.json",
+      "sha256": "b24d78d92deb0e7f211734c5fa4e9dc040c1edc0a1c3ea31f5dd4c242a0f0582"
+    },
+    {
+      "path": "Artifacts/alpha-preview-first.log",
+      "sha256": "badab4c736ca6b291e19811c393fb6f2baa85b57bd800e118f954db92bed8210"
+    },
+    {
+      "path": "Artifacts/alpha-preview-first/report.json",
+      "sha256": "9756113dfa1390fc5f0bf689f6ecaa96c3530ef0786c1d61c6b9c011cfb3fb69"
+    },
+    {
+      "path": "Artifacts/alpha-preview-second.log",
+      "sha256": "badab4c736ca6b291e19811c393fb6f2baa85b57bd800e118f954db92bed8210"
+    },
+    {
+      "path": "Artifacts/alpha-preview-second/report.json",
+      "sha256": "9756113dfa1390fc5f0bf689f6ecaa96c3530ef0786c1d61c6b9c011cfb3fb69"
+    },
+    {
+      "path": "Artifacts/alpha-preview-validation.log",
+      "sha256": "51d515c864e203cfa42e862a28f3f777fef3a11ba1a5187cbc0057e93c221f8d"
+    },
+    {
+      "path": "Artifacts/alpha-preview-validation/report.json",
+      "sha256": "9756113dfa1390fc5f0bf689f6ecaa96c3530ef0786c1d61c6b9c011cfb3fb69"
+    },
+    {
+      "path": "Artifacts/alpha-benchmark.log",
+      "sha256": "badab4c736ca6b291e19811c393fb6f2baa85b57bd800e118f954db92bed8210"
+    },
+    {
+      "path": "Artifacts/alpha-benchmark/report.json",
+      "sha256": "3756be56ff5fd87403798b6213c608a4a3a37547a11713e7fe447ee55083638d"
+    },
+    {
+      "path": "Artifacts/alpha-prior-benchmark.log",
+      "sha256": "6efc86b2084fa877ad3f88081526bb5228e1878fc121e9e792ceea7c65c45b63"
+    },
+    {
+      "path": "Artifacts/alpha-prior-benchmark/report.json",
+      "sha256": "fff11c25184736d552d2d1523e218f3dbe291d6b6aa717a77fb9268a3beef7f6"
+    },
+    {
+      "path": "Artifacts/alpha-fly.log",
+      "sha256": "121da35d55765d5743a4409a45c5bc1bad76f4e98c4166031a8f37b0767ab157"
+    },
+    {
+      "path": "Artifacts/alpha-fly/report.json",
+      "sha256": "58c2678a3838862634bfff8922bddfb8a1fec6063c21737c84d4b4e72f90c5f0"
+    },
+    {
+      "path": "Artifacts/alpha-tv.log",
+      "sha256": "d73e2acce0b98acba2bf2bc034e717a4bb22cc051aae98fed0d9ef6ddb478a57"
+    },
+    {
+      "path": "Artifacts/alpha-tv/report.json",
+      "sha256": "3fe84d33bee3e0769b005621adb1b4f6bd7c41c3d077233e75796006e407320d"
+    }
+  ]
+}

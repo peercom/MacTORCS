@@ -1,0 +1,2036 @@
+{
+  "schema": 1,
+  "date": "2026-09-23",
+  "increment": "Original car reflection and environment-shading maps",
+  "goalComplete": false,
+  "host": {
+    "machine": "Apple M2, 8 GiB",
+    "os": "macOS 26.2",
+    "target": "macOS 14+",
+    "swift": "6.3.3",
+    "xcode": "26.6"
+  },
+  "reference": {
+    "release": "TORCS 1.3.9",
+    "archiveSHA256": "f9c69e86d290295467451b01d7838d85005ba613644a6fe8a3f85a7c6a03cd4c",
+    "pinnedSources": 165,
+    "pinnedContent": 46,
+    "archiveFilesVerified": 211,
+    "transformCases": 6000,
+    "maximumCoefficientDifference": 0.0
+  },
+  "tests": {
+    "selected": 21,
+    "configurations": [
+      "debug",
+      "release",
+      "address-sanitizer"
+    ],
+    "fullSuiteRun": false,
+    "inventory": 188,
+    "rasterRepeatCameras": 4,
+    "rasterReflectionModes": 2,
+    "rasterRepeats": 240,
+    "maximumChangedChannels": 0
+  },
+  "packagedRuns": {
+    "reflection-preview-first": {
+      "cameraCount": 20,
+      "carEnvironmentAvailable": true,
+      "changedFilteringChannels": 314029,
+      "changedReflectionChannels": 279356,
+      "changedShadowChannels": 102783,
+      "height": 640,
+      "imagesRGBA_SHA256": {
+        "bonnet": "d538714b034b4294b41a3f5f556a2b9eca71f7c36094a3e8c2815f005e8f7b07",
+        "chase": "50e60674bc1bd20e78e5ffee1d2aee04a6f3100abccd2c9c5f25cd1afae4640f",
+        "classic-no-shadow": "f0bcf3747374d6e352a82d50b585bfe7a878b383b79d3f3d2f5ba317993e50a5",
+        "classic-shadow": "50e60674bc1bd20e78e5ffee1d2aee04a6f3100abccd2c9c5f25cd1afae4640f",
+        "classic-shadow-no-reflections": "97e2500f55d37fdec97254b859b911faa61164313279bd6a8484f2050fc386a0",
+        "enhanced-shadow": "b2088d1098f2b095b1a89ae35846f9cac4650a06bb4eb85a5fcf237a7ffa2d8d",
+        "far-chase": "52154b650581aa7c0f538394c376048890eac0751aeeae235316d071eaab5a6b",
+        "low-chase": "f8a22f590c0ccf697625a3a0b4687a4a69b2eb93cb3d0620e2593af9d4c2e32f",
+        "near-chase": "069a5eabde6af7816f9781773a6d39d0ad4e35ae6dbe06f1312a556c12e34bd9",
+        "overhead-1": "e4dae31c5565a93f901fc0d02e55aae2e33b57e65f4d9fef10411aed911d16fe",
+        "overhead-2": "4e9fb017f09e6d33ffccc04079f1b80f4d2b4256b3906ab7fc137729bbab3d0e",
+        "overhead-3": "d1e08e5b7ad6c758018c3ff6dff2222c9d5b174f2bc355e2f33398d13372db22",
+        "overhead-4": "3de5f4232859a05c29f494040021259108cfeadc3cd678119745744e37f66f96",
+        "previous-placeholder-lighting": "6deebc20a6a8025663a11161a4de44df9c5476993286ab8367a451564ed71acb",
+        "reverse": "07bd964c7a658d1bbbd621dadc972f34e5834e585f2f107eac8d890fcbda521a",
+        "road": "2685cf08e42a7567a51fda6d16648874b9b7b5b6a829522fb14919108ab6f699",
+        "side-1": "2f900df6dd3cc4d9c2bc10fa9cdbfe08d3e87cc0a40a15a74c368861bd485c1c",
+        "side-2": "d6033914fec9fd9d4c3958b5f2e620f5966041a1cfd968186029232206029eb3",
+        "side-3": "249b07fc640b0a18b00d24f5a96435d5742c98626713240b322923f6eea9176b",
+        "side-4": "7dde07147742051b255cd4e30db3dc48b70e95c1959723e71662aa4b4147674e",
+        "side-5": "b2ee8d4bd197e4d8e7b08f74152b2cb30e81d4ec26cf02c612337b0766ee5f72",
+        "side-6": "88beeaebb3bd3a02c6f44002dae18ffc187a9c004c540e2d501909f219e27e21",
+        "side-7": "235342169742b0125a4568e0af09b083c9342410c168e395982e9bf1eb2d07da",
+        "side-8": "8eb8ba838f5f93c838cc25b01080008b48e342c04162d0a400d3daab32e541d8",
+        "track-chase": "f51ba3bd7455386e93a4ddc92fb80879be03de9e5e521f9561c37c9c58fa9e99"
+      },
+      "modes": [
+        {
+          "gpuMedianMS": 0.6279167719185352,
+          "gpuP95MS": 2.7475415263324976,
+          "mode": "classic-no-shadow",
+          "offscreenWallMedianMS": 4.365375032648444,
+          "samples": 60
+        },
+        {
+          "gpuMedianMS": 0.6425417959690094,
+          "gpuP95MS": 2.721874974668026,
+          "mode": "classic-shadow",
+          "offscreenWallMedianMS": 4.513541702181101,
+          "samples": 60
+        },
+        {
+          "gpuMedianMS": 0.6740416865795851,
+          "gpuP95MS": 2.7839166577905416,
+          "mode": "enhanced-shadow",
+          "offscreenWallMedianMS": 4.492041654884815,
+          "samples": 60
+        },
+        {
+          "gpuMedianMS": 0.6170000415295362,
+          "gpuP95MS": 2.732750028371811,
+          "mode": "previous-placeholder-lighting",
+          "offscreenWallMedianMS": 4.37829177826643,
+          "samples": 60
+        },
+        {
+          "gpuMedianMS": 0.6180834025144577,
+          "gpuP95MS": 2.6551249902695417,
+          "mode": "classic-shadow-no-reflections",
+          "offscreenWallMedianMS": 4.37349989078939,
+          "samples": 60
+        }
+      ],
+      "note": "Offscreen stationary single-car scene. Per-command GPU timing, not gameplay FPS or multi-car performance. Classic filtering remains default.",
+      "rasterRepeat": [
+        {
+          "camera": "chase",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "near-chase",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "far-chase",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "low-chase",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "bonnet",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "road",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "track-chase",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "reverse",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-1",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-2",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-3",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-4",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-5",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-6",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-7",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-8",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "overhead-1",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "overhead-2",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "overhead-3",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "overhead-4",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        }
+      ],
+      "rasterRepeatPassed": true,
+      "schema": 3,
+      "shadowTriangles": 4,
+      "shadowVertices": 6,
+      "width": 960
+    },
+    "reflection-preview-second": {
+      "cameraCount": 20,
+      "carEnvironmentAvailable": true,
+      "changedFilteringChannels": 314029,
+      "changedReflectionChannels": 279356,
+      "changedShadowChannels": 102783,
+      "height": 640,
+      "imagesRGBA_SHA256": {
+        "bonnet": "d538714b034b4294b41a3f5f556a2b9eca71f7c36094a3e8c2815f005e8f7b07",
+        "chase": "50e60674bc1bd20e78e5ffee1d2aee04a6f3100abccd2c9c5f25cd1afae4640f",
+        "classic-no-shadow": "f0bcf3747374d6e352a82d50b585bfe7a878b383b79d3f3d2f5ba317993e50a5",
+        "classic-shadow": "50e60674bc1bd20e78e5ffee1d2aee04a6f3100abccd2c9c5f25cd1afae4640f",
+        "classic-shadow-no-reflections": "97e2500f55d37fdec97254b859b911faa61164313279bd6a8484f2050fc386a0",
+        "enhanced-shadow": "b2088d1098f2b095b1a89ae35846f9cac4650a06bb4eb85a5fcf237a7ffa2d8d",
+        "far-chase": "52154b650581aa7c0f538394c376048890eac0751aeeae235316d071eaab5a6b",
+        "low-chase": "f8a22f590c0ccf697625a3a0b4687a4a69b2eb93cb3d0620e2593af9d4c2e32f",
+        "near-chase": "069a5eabde6af7816f9781773a6d39d0ad4e35ae6dbe06f1312a556c12e34bd9",
+        "overhead-1": "e4dae31c5565a93f901fc0d02e55aae2e33b57e65f4d9fef10411aed911d16fe",
+        "overhead-2": "4e9fb017f09e6d33ffccc04079f1b80f4d2b4256b3906ab7fc137729bbab3d0e",
+        "overhead-3": "d1e08e5b7ad6c758018c3ff6dff2222c9d5b174f2bc355e2f33398d13372db22",
+        "overhead-4": "3de5f4232859a05c29f494040021259108cfeadc3cd678119745744e37f66f96",
+        "previous-placeholder-lighting": "6deebc20a6a8025663a11161a4de44df9c5476993286ab8367a451564ed71acb",
+        "reverse": "07bd964c7a658d1bbbd621dadc972f34e5834e585f2f107eac8d890fcbda521a",
+        "road": "2685cf08e42a7567a51fda6d16648874b9b7b5b6a829522fb14919108ab6f699",
+        "side-1": "2f900df6dd3cc4d9c2bc10fa9cdbfe08d3e87cc0a40a15a74c368861bd485c1c",
+        "side-2": "d6033914fec9fd9d4c3958b5f2e620f5966041a1cfd968186029232206029eb3",
+        "side-3": "249b07fc640b0a18b00d24f5a96435d5742c98626713240b322923f6eea9176b",
+        "side-4": "7dde07147742051b255cd4e30db3dc48b70e95c1959723e71662aa4b4147674e",
+        "side-5": "b2ee8d4bd197e4d8e7b08f74152b2cb30e81d4ec26cf02c612337b0766ee5f72",
+        "side-6": "88beeaebb3bd3a02c6f44002dae18ffc187a9c004c540e2d501909f219e27e21",
+        "side-7": "235342169742b0125a4568e0af09b083c9342410c168e395982e9bf1eb2d07da",
+        "side-8": "8eb8ba838f5f93c838cc25b01080008b48e342c04162d0a400d3daab32e541d8",
+        "track-chase": "f51ba3bd7455386e93a4ddc92fb80879be03de9e5e521f9561c37c9c58fa9e99"
+      },
+      "modes": [
+        {
+          "gpuMedianMS": 0.6262082606554031,
+          "gpuP95MS": 2.719208365306258,
+          "mode": "classic-no-shadow",
+          "offscreenWallMedianMS": 4.2033749632537365,
+          "samples": 60
+        },
+        {
+          "gpuMedianMS": 0.6319999229162931,
+          "gpuP95MS": 2.45274999178946,
+          "mode": "classic-shadow",
+          "offscreenWallMedianMS": 4.209541715681553,
+          "samples": 60
+        },
+        {
+          "gpuMedianMS": 0.6674584001302719,
+          "gpuP95MS": 1.4325000811368227,
+          "mode": "enhanced-shadow",
+          "offscreenWallMedianMS": 4.245749907568097,
+          "samples": 60
+        },
+        {
+          "gpuMedianMS": 0.6047498900443316,
+          "gpuP95MS": 2.7375416830182076,
+          "mode": "previous-placeholder-lighting",
+          "offscreenWallMedianMS": 4.121624864637852,
+          "samples": 60
+        },
+        {
+          "gpuMedianMS": 0.6151250563561916,
+          "gpuP95MS": 2.056750003248453,
+          "mode": "classic-shadow-no-reflections",
+          "offscreenWallMedianMS": 4.207166843116283,
+          "samples": 60
+        }
+      ],
+      "note": "Offscreen stationary single-car scene. Per-command GPU timing, not gameplay FPS or multi-car performance. Classic filtering remains default.",
+      "rasterRepeat": [
+        {
+          "camera": "chase",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "near-chase",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "far-chase",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "low-chase",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "bonnet",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "road",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "track-chase",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "reverse",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-1",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-2",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-3",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-4",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-5",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-6",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-7",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-8",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "overhead-1",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "overhead-2",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "overhead-3",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "overhead-4",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        }
+      ],
+      "rasterRepeatPassed": true,
+      "schema": 3,
+      "shadowTriangles": 4,
+      "shadowVertices": 6,
+      "width": 960
+    },
+    "reflection-preview-validation": {
+      "cameraCount": 20,
+      "carEnvironmentAvailable": true,
+      "changedFilteringChannels": 314029,
+      "changedReflectionChannels": 279356,
+      "changedShadowChannels": 102783,
+      "height": 640,
+      "imagesRGBA_SHA256": {
+        "bonnet": "d538714b034b4294b41a3f5f556a2b9eca71f7c36094a3e8c2815f005e8f7b07",
+        "chase": "50e60674bc1bd20e78e5ffee1d2aee04a6f3100abccd2c9c5f25cd1afae4640f",
+        "classic-no-shadow": "f0bcf3747374d6e352a82d50b585bfe7a878b383b79d3f3d2f5ba317993e50a5",
+        "classic-shadow": "50e60674bc1bd20e78e5ffee1d2aee04a6f3100abccd2c9c5f25cd1afae4640f",
+        "classic-shadow-no-reflections": "97e2500f55d37fdec97254b859b911faa61164313279bd6a8484f2050fc386a0",
+        "enhanced-shadow": "b2088d1098f2b095b1a89ae35846f9cac4650a06bb4eb85a5fcf237a7ffa2d8d",
+        "far-chase": "52154b650581aa7c0f538394c376048890eac0751aeeae235316d071eaab5a6b",
+        "low-chase": "f8a22f590c0ccf697625a3a0b4687a4a69b2eb93cb3d0620e2593af9d4c2e32f",
+        "near-chase": "069a5eabde6af7816f9781773a6d39d0ad4e35ae6dbe06f1312a556c12e34bd9",
+        "overhead-1": "e4dae31c5565a93f901fc0d02e55aae2e33b57e65f4d9fef10411aed911d16fe",
+        "overhead-2": "4e9fb017f09e6d33ffccc04079f1b80f4d2b4256b3906ab7fc137729bbab3d0e",
+        "overhead-3": "d1e08e5b7ad6c758018c3ff6dff2222c9d5b174f2bc355e2f33398d13372db22",
+        "overhead-4": "3de5f4232859a05c29f494040021259108cfeadc3cd678119745744e37f66f96",
+        "previous-placeholder-lighting": "6deebc20a6a8025663a11161a4de44df9c5476993286ab8367a451564ed71acb",
+        "reverse": "07bd964c7a658d1bbbd621dadc972f34e5834e585f2f107eac8d890fcbda521a",
+        "road": "2685cf08e42a7567a51fda6d16648874b9b7b5b6a829522fb14919108ab6f699",
+        "side-1": "2f900df6dd3cc4d9c2bc10fa9cdbfe08d3e87cc0a40a15a74c368861bd485c1c",
+        "side-2": "d6033914fec9fd9d4c3958b5f2e620f5966041a1cfd968186029232206029eb3",
+        "side-3": "249b07fc640b0a18b00d24f5a96435d5742c98626713240b322923f6eea9176b",
+        "side-4": "7dde07147742051b255cd4e30db3dc48b70e95c1959723e71662aa4b4147674e",
+        "side-5": "b2ee8d4bd197e4d8e7b08f74152b2cb30e81d4ec26cf02c612337b0766ee5f72",
+        "side-6": "88beeaebb3bd3a02c6f44002dae18ffc187a9c004c540e2d501909f219e27e21",
+        "side-7": "235342169742b0125a4568e0af09b083c9342410c168e395982e9bf1eb2d07da",
+        "side-8": "8eb8ba838f5f93c838cc25b01080008b48e342c04162d0a400d3daab32e541d8",
+        "track-chase": "f51ba3bd7455386e93a4ddc92fb80879be03de9e5e521f9561c37c9c58fa9e99"
+      },
+      "modes": [
+        {
+          "gpuMedianMS": 2.2358333226293325,
+          "gpuP95MS": 3.317750059068203,
+          "mode": "classic-no-shadow",
+          "offscreenWallMedianMS": 60.05933345295489,
+          "samples": 60
+        },
+        {
+          "gpuMedianMS": 2.2597501520067453,
+          "gpuP95MS": 4.047250142320991,
+          "mode": "classic-shadow",
+          "offscreenWallMedianMS": 60.24637492373586,
+          "samples": 60
+        },
+        {
+          "gpuMedianMS": 2.2632500622421503,
+          "gpuP95MS": 4.025791538879275,
+          "mode": "enhanced-shadow",
+          "offscreenWallMedianMS": 59.55366650596261,
+          "samples": 60
+        },
+        {
+          "gpuMedianMS": 2.0845001563429832,
+          "gpuP95MS": 3.7628752179443836,
+          "mode": "previous-placeholder-lighting",
+          "offscreenWallMedianMS": 59.73558337427676,
+          "samples": 60
+        },
+        {
+          "gpuMedianMS": 2.2090000566095114,
+          "gpuP95MS": 3.9599998854100704,
+          "mode": "classic-shadow-no-reflections",
+          "offscreenWallMedianMS": 59.99795813113451,
+          "samples": 60
+        }
+      ],
+      "note": "Offscreen stationary single-car scene. Per-command GPU timing, not gameplay FPS or multi-car performance. Classic filtering remains default.",
+      "rasterRepeat": [
+        {
+          "camera": "chase",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "near-chase",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "far-chase",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "low-chase",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "bonnet",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "road",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "track-chase",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "reverse",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-1",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-2",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-3",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-4",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-5",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-6",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-7",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-8",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "overhead-1",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "overhead-2",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "overhead-3",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "overhead-4",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        }
+      ],
+      "rasterRepeatPassed": true,
+      "schema": 3,
+      "shadowTriangles": 4,
+      "shadowVertices": 6,
+      "width": 960
+    },
+    "reflection-legacy-session": {
+      "cameraCount": 20,
+      "carEnvironmentAvailable": false,
+      "changedFilteringChannels": 317106,
+      "changedReflectionChannels": 0,
+      "changedShadowChannels": 102783,
+      "height": 640,
+      "imagesRGBA_SHA256": {
+        "bonnet": "5f1ff6576b6a64d3ef28ab2780250bcafdf5b44e5fb1265f5a856aa981fec69f",
+        "chase": "97e2500f55d37fdec97254b859b911faa61164313279bd6a8484f2050fc386a0",
+        "classic-no-shadow": "c208ac52c584a9580ef8aa5335f3e91e60f89425515d30a0582af14aa7ee209b",
+        "classic-shadow": "97e2500f55d37fdec97254b859b911faa61164313279bd6a8484f2050fc386a0",
+        "classic-shadow-no-reflections": "97e2500f55d37fdec97254b859b911faa61164313279bd6a8484f2050fc386a0",
+        "enhanced-shadow": "e2e3f978269a16e4acd17b987198b6393522090d72d7065b3eb1b552606ba66b",
+        "far-chase": "d5d62b1d8b99a100e44a9f060a78c3f151b51a8ac94a0194f2e6a388531d3e99",
+        "low-chase": "00e8867a5aa6f8cb1f18c870b00f3075732524d9a7da4af92b949184545e6b45",
+        "near-chase": "2ee54e12d3d6d783c003d4158152c3775046dcbf075225ac588c3e62c93bb9ce",
+        "overhead-1": "977c3cb012bccb159ae4afb3b3ebd5e3de0ebe5ac7256aa9b209cbab64c93956",
+        "overhead-2": "0fa7a300ce3e21a76c7f710194a4a73a3b7a99aa26ff891ef022c1ee79704ce4",
+        "overhead-3": "237d8da3ee3c7344c2aa136437b93766bb4108d10048185830fea5cc7aa227b2",
+        "overhead-4": "67b4955f0181686ba60b2c43edf54490fe0cc2fc44558face83d499ace79def3",
+        "previous-placeholder-lighting": "6deebc20a6a8025663a11161a4de44df9c5476993286ab8367a451564ed71acb",
+        "reverse": "92cb5f5b26096db8d5f3e63365754bf8023cd1a7c8d139938fb0c408f8dca5df",
+        "road": "2685cf08e42a7567a51fda6d16648874b9b7b5b6a829522fb14919108ab6f699",
+        "side-1": "2f900df6dd3cc4d9c2bc10fa9cdbfe08d3e87cc0a40a15a74c368861bd485c1c",
+        "side-2": "17a45a9c9964056a355852bc7a139ca939e46b1b972c6826fe7e7e57268fe86e",
+        "side-3": "6b4e9316a7f63b41e9cc842fdf32a7649c538d59128b0951a26944e877a5858b",
+        "side-4": "bd3152292780ce1cf5b79375978e4bdaf3ddd1ea402b9b03387da6cc9442f514",
+        "side-5": "b2ee8d4bd197e4d8e7b08f74152b2cb30e81d4ec26cf02c612337b0766ee5f72",
+        "side-6": "4a7a391bdc410a7e3960c94cd258a7a3bb9cd46e1fa0f005c96bc2e6d47ac88c",
+        "side-7": "ea60d2461eb9be7f3f0e7e9b8b3875bd595e4afac1e9da040b4f4e31799b3c92",
+        "side-8": "e5c641cc8e2bc17dd91497adafe13498be2e26ea6d09161244cccdd5e7341c7b",
+        "track-chase": "ebcaf81386308a0490ec8b0764fbd7115fd4d41603e189241df66a144325661e"
+      },
+      "modes": [
+        {
+          "gpuMedianMS": 0.6170000415295362,
+          "gpuP95MS": 1.3718749396502972,
+          "mode": "classic-no-shadow",
+          "offscreenWallMedianMS": 4.181999946013093,
+          "samples": 60
+        },
+        {
+          "gpuMedianMS": 0.6192498840391636,
+          "gpuP95MS": 2.779875183477998,
+          "mode": "classic-shadow",
+          "offscreenWallMedianMS": 4.163666628301144,
+          "samples": 60
+        },
+        {
+          "gpuMedianMS": 0.6542499177157879,
+          "gpuP95MS": 1.7166666220873594,
+          "mode": "enhanced-shadow",
+          "offscreenWallMedianMS": 4.185166675597429,
+          "samples": 60
+        },
+        {
+          "gpuMedianMS": 0.6040832959115505,
+          "gpuP95MS": 2.7506251353770494,
+          "mode": "previous-placeholder-lighting",
+          "offscreenWallMedianMS": 4.115750081837177,
+          "samples": 60
+        },
+        {
+          "gpuMedianMS": 0.6171250715851784,
+          "gpuP95MS": 1.3962916564196348,
+          "mode": "classic-shadow-no-reflections",
+          "offscreenWallMedianMS": 4.1860416531562805,
+          "samples": 60
+        }
+      ],
+      "note": "Offscreen stationary single-car scene. Per-command GPU timing, not gameplay FPS or multi-car performance. Classic filtering remains default.",
+      "rasterRepeat": [
+        {
+          "camera": "chase",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "near-chase",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "far-chase",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "low-chase",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "bonnet",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "road",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "track-chase",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "reverse",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-1",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-2",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-3",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-4",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-5",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-6",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-7",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "side-8",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "overhead-1",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "overhead-2",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "overhead-3",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        },
+        {
+          "camera": "overhead-4",
+          "changedChannels": 0,
+          "maximumChannelDelta": 0,
+          "sameSubmittedCommands": true
+        }
+      ],
+      "rasterRepeatPassed": true,
+      "schema": 3,
+      "shadowTriangles": 4,
+      "shadowVertices": 6,
+      "width": 960
+    }
+  },
+  "freshProcessImagesIdentical": true,
+  "legacySessionImagesMatchPriorPreview": true,
+  "metalAPIAndShaderValidation": {
+    "passed": true,
+    "reportedFaults": 0,
+    "timingsExcluded": true
+  },
+  "performance": {
+    "addedDrawCalls": 0,
+    "addedRenderPasses": 0,
+    "runs": [
+      {
+        "run": "reflection-preview-first",
+        "gpuReflectionsMS": 0.6425417959690094,
+        "gpuNoReflectionsMS": 0.6180834025144577,
+        "addedMS": 0.024458393454551697,
+        "addedPercent": 3.957134806573226,
+        "enhancedGPU_MS": 0.6740416865795851
+      },
+      {
+        "run": "reflection-preview-second",
+        "gpuReflectionsMS": 0.6319999229162931,
+        "gpuNoReflectionsMS": 0.6151250563561916,
+        "addedMS": 0.01687486656010151,
+        "addedPercent": 2.743322904136436,
+        "enhancedGPU_MS": 0.6674584001302719
+      }
+    ],
+    "scope": "Stationary offscreen single-car scene at 960x640; 60 interleaved samples per mode after 10 warmups; noisy p95; not gameplay FPS"
+  },
+  "localOnlyTextures": [
+    {
+      "source": "/Users/holgervonameln/Downloads/torcs-1.3.9/data/data/textures/env.png",
+      "sourceSHA256": "20c629ed9e7973a16958231f77c39f3b6587b5425cf32add2f47d749164b9124",
+      "cache": {
+        "path": "Artifacts/driving-reflection-session/reflection.torcstex",
+        "sha256": "2f9216b5cdaaa7d0c0f63ab600fba87a961067d84b927d81dd42e317112fcdea"
+      },
+      "redistributable": false,
+      "reason": "Per-file artwork attribution unresolved; local user installation only"
+    },
+    {
+      "source": "/Users/holgervonameln/Downloads/torcs-1.3.9/data/data/textures/envshadow.png",
+      "sourceSHA256": "319888c211b2558b8d4f56a42e9e2e024b9bfb3d14497c3d7a92d1ba329a8852",
+      "cache": {
+        "path": "Artifacts/driving-reflection-session/environment-shade.torcstex",
+        "sha256": "fecc70c04771499f7a6f110fdc087bee89adee527c7bbeec3daf5d5127752485"
+      },
+      "redistributable": false,
+      "reason": "Per-file artwork attribution unresolved; local user installation only"
+    }
+  ],
+  "preparedSession": {
+    "path": "Artifacts/driving-reflection-session/driving.json",
+    "sha256": "fee1c446d10cde8378537afd33509821a906e2b83f703b092d29bf30e1e6b364"
+  },
+  "preview": [
+    {
+      "path": "build/TORCSReflectionPreview.app/Contents/Info.plist",
+      "sha256": "20c6f27f3d275905dd6745902b8034a38b2a0ead7e92a0e934d1cce9184995bd"
+    },
+    {
+      "path": "build/TORCSReflectionPreview.app/Contents/MacOS/TORCSMac",
+      "sha256": "28b44a8ba3cb7c378ea8598810dee66bfc6e83813f8bcee60a5d06f23a14a935"
+    },
+    {
+      "path": "build/TORCSReflectionPreview.app/Contents/Resources/LICENSE",
+      "sha256": "b3797fb454a78efad64f26457ab27e629ce5fb409fd21d09d632b4d96bad8009"
+    },
+    {
+      "path": "build/TORCSReflectionPreview.app/Contents/Resources/THIRD_PARTY_NOTICES.md",
+      "sha256": "6a098ec1bd3a1330a57d22dbbf1eba01b261cd9dee71c3f815a3c170e5e10f1d"
+    },
+    {
+      "path": "build/TORCSReflectionPreview.app/Contents/Resources/TORCSMac_TORCSMetal.bundle/Scene.metal",
+      "sha256": "ab0177853eaa872973c19db0e9b8aa8d6f2d64961d17b8c22b8760e9c25df992"
+    },
+    {
+      "path": "build/TORCSReflectionPreview.app/Contents/_CodeSignature/CodeResources",
+      "sha256": "c0942725a297566935743f0544bdaaffaf29190f30705663a93a6202d736b276"
+    }
+  ],
+  "sourceSnapshot": [
+    {
+      "path": "App/DrivingControlsEditor.swift",
+      "sha256": "f41047a73648325057b991134e00320f6d363c1d440016a0554fda40fa04f65b"
+    },
+    {
+      "path": "App/DrivingSession.swift",
+      "sha256": "55e7f1c63a225dbf4fa2e35cd6795b0b22614c5c0215d4c5d62408a762d8529e"
+    },
+    {
+      "path": "App/DrivingVisualSmoke.swift",
+      "sha256": "a367199c37609f61a729484187c8ef0af7654a4f61c2cd7e094ffc5a6377063c"
+    },
+    {
+      "path": "App/SceneInspector.swift",
+      "sha256": "c308965a91bcad7494962bdfa61b1237796a74d509bb4c62ba4f5ec17afc8606"
+    },
+    {
+      "path": "App/TORCSMacApp.swift",
+      "sha256": "8780342ad384d861328750b4cc15b7b6ee23c82aad181cec3cc8a0e703a77e9e"
+    },
+    {
+      "path": "App/VehicleSceneSmoke.swift",
+      "sha256": "2bddc62c1aba28b028a2925174463e480d8613056603f1f4d15f467f7b1c7c41"
+    },
+    {
+      "path": "Packages/TORCSAssets/ACMeshCache.swift",
+      "sha256": "0788faa0f81fd8b2d4f41b278056664d962ce62aea4940c48aa4a73b05b04b8a"
+    },
+    {
+      "path": "Packages/TORCSAssets/ACParser.swift",
+      "sha256": "49548367c179f180e4a9e87bfab286538d8d7f188962bd1f5d331373a4d22fb8"
+    },
+    {
+      "path": "Packages/TORCSAssets/ACScene.swift",
+      "sha256": "fa8a40ecc9f53f48f81eead047e317aa2f6cdfbbbedf82b7860bbe1421447cb8"
+    },
+    {
+      "path": "Packages/TORCSAssets/CompiledScene.swift",
+      "sha256": "ed5ed6b63c94fef71ba1ee70206c8e26308a5168223c3c78692050ac63d81c23"
+    },
+    {
+      "path": "Packages/TORCSAssets/PNGTextureImage.swift",
+      "sha256": "55182b7614f1ff592a70d8294b51ed878f00816f99b7d40501eb5ab43638d136"
+    },
+    {
+      "path": "Packages/TORCSAssets/TextureCache.swift",
+      "sha256": "7e393c6b66e44ac17b4917e135b999b2d5ab254be5269dc5d4d7cfdbd3811734"
+    },
+    {
+      "path": "Packages/TORCSAssets/TextureImage.swift",
+      "sha256": "4bb2b2cfecba4cf856338bd1d58b5c2f33dcbf2170ac50116e29d846f1b50537"
+    },
+    {
+      "path": "Packages/TORCSConfiguration/ParameterMerge.swift",
+      "sha256": "309fbc9b2f8f53ad60b1c243a9783ae4e09b360c39a8348a9fe03bd472c5566a"
+    },
+    {
+      "path": "Packages/TORCSConfiguration/Parameters.swift",
+      "sha256": "57c0b897863c665529ecc372f16fe85053bb49b18fe58991ffe6cdc3fe3d9efd"
+    },
+    {
+      "path": "Packages/TORCSConfiguration/Units.swift",
+      "sha256": "1ffd7895e0db85bd97d9986411b9d359b32455a6de1a3a350b1efef957b9fc31"
+    },
+    {
+      "path": "Packages/TORCSCore/ConfigurationStore.swift",
+      "sha256": "70a3458249b2bedaf40c3b4ff37e4ace06a8b0f1c14daf09fa3d8cc8260784d6"
+    },
+    {
+      "path": "Packages/TORCSCore/FixedStepClock.swift",
+      "sha256": "78871e6eaff047f1bb91d4832b76962c3bb479a853778dc84c49b63213242344"
+    },
+    {
+      "path": "Packages/TORCSInput/AxisCalibration.swift",
+      "sha256": "c609f8740bbec78d30673389693317f816c1c1d6c30d53143c04126d154c8eb1"
+    },
+    {
+      "path": "Packages/TORCSInput/DrivingInput.swift",
+      "sha256": "1c8db32fac9f1a3aef53a1ea3458212ce098f1e990fa990efe79f2684c061683"
+    },
+    {
+      "path": "Packages/TORCSInput/GameControllerSource.swift",
+      "sha256": "d9b2aff9976e6e234d003b3b24a5bf5b837d743228d80f2cf0d77dc3009c9530"
+    },
+    {
+      "path": "Packages/TORCSInput/InputConfiguration.swift",
+      "sha256": "b52bf68232f02b3bae994fdc967b7a0553fb57b8099a434b785da55e049202e1"
+    },
+    {
+      "path": "Packages/TORCSMath/Coordinates.swift",
+      "sha256": "b8893446df7ffa823fc44f68226888550d554b1420480fda8e87467a3df93bc2"
+    },
+    {
+      "path": "Packages/TORCSMetal/BenchRenderer.swift",
+      "sha256": "7c59ec7c066062d33c11f2fdf1554cfb10bb55a504008f6844cd83edc6bb2153"
+    },
+    {
+      "path": "Packages/TORCSMetal/CarReflection.swift",
+      "sha256": "29a56f6542d440a9bd4f5cfcbd0fe3e27a0f6f9463003cf92df1197336f13701"
+    },
+    {
+      "path": "Packages/TORCSMetal/CarShadow.swift",
+      "sha256": "06613d1ae80f5fbd41db284647d7ea777d60fd4dea9e415f27693cc90168875b"
+    },
+    {
+      "path": "Packages/TORCSMetal/DrivingCamera.swift",
+      "sha256": "cb75a255be8ecfd208931f00654f0c943c4dacc57b854dcd8bc0c10cb4a4ff14"
+    },
+    {
+      "path": "Packages/TORCSMetal/MetalTextureUpload.swift",
+      "sha256": "fdb725b48ad1dee36a34ec12d3cd1bcfd632b46bd7754427fafa75efeb108109"
+    },
+    {
+      "path": "Packages/TORCSMetal/Scene.metal",
+      "sha256": "ab0177853eaa872973c19db0e9b8aa8d6f2d64961d17b8c22b8760e9c25df992"
+    },
+    {
+      "path": "Packages/TORCSMetal/SceneGeometry.swift",
+      "sha256": "5e16f820f2afcd58b028f7780a8ea8725110630eb0cbb0de1813d01239f45ec9"
+    },
+    {
+      "path": "Packages/TORCSMetal/SceneRenderer.swift",
+      "sha256": "358b9a59125438626a62a536b82e1785d49f5934b9baa6fe9d571a5dac1d6d1c"
+    },
+    {
+      "path": "Packages/TORCSMetal/TrackBackground.swift",
+      "sha256": "16488f80367dbbf747dbdfbd6fc8f8a594a79d568137d0f847064188f3b09172"
+    },
+    {
+      "path": "Packages/TORCSMetal/VehiclePresentation.swift",
+      "sha256": "7b2173e5247f48ab362cf4db154d5565c3f5b860a4c7ef3f6bf47c41d66c78ca"
+    },
+    {
+      "path": "Packages/TORCSRaceEngine/DrivingContent.swift",
+      "sha256": "a21d2e14f0f216fcd40ad245192679c1548344088cd4cd7a1201cd84b12f2120"
+    },
+    {
+      "path": "Packages/TORCSRaceEngine/DrivingRuntime.swift",
+      "sha256": "58e6aa243cb2f10db1005e8b1c1f47a7997839b7ecbcf33ff861fadc5b8b95e0"
+    },
+    {
+      "path": "Packages/TORCSRaceEngine/DrivingTelemetry.swift",
+      "sha256": "40be6575a0531a73218b97ef4cb997600d1b5f00c597aea4e4042e93d234c4f6"
+    },
+    {
+      "path": "Packages/TORCSRaceEngine/RaceLapTiming.swift",
+      "sha256": "d0ad7c90d67abb322a9df27f4c04b7be62c4d6c6bdb4e9b86620851fbf6e58e7"
+    },
+    {
+      "path": "Packages/TORCSRaceEngine/RacePitController.swift",
+      "sha256": "f6589c9af75455924d2089f6e9a1af7131ce349c65130703ecf0f4df2285f949"
+    },
+    {
+      "path": "Packages/TORCSRaceEngine/RacePitSimulation.swift",
+      "sha256": "0110f88ac340054911c28107ad33a6ec84551c06659dc68c7d3079023628e938"
+    },
+    {
+      "path": "Packages/TORCSSimulation/Aerodynamics.swift",
+      "sha256": "0cf70a24bcb7dff251cda08c46c23763a0c2e0459cd4132fee4607ccf89c557a"
+    },
+    {
+      "path": "Packages/TORCSSimulation/Axle.swift",
+      "sha256": "c5bebecf6e014668ba30fe29851342c856d62093e6f5847775f0d599bdbd69b1"
+    },
+    {
+      "path": "Packages/TORCSSimulation/Brakes.swift",
+      "sha256": "d81a6cab599167a3df720440c460ebfec98e4a97e7b3822bb6694fbda733a36e"
+    },
+    {
+      "path": "Packages/TORCSSimulation/Chassis.swift",
+      "sha256": "6d2243fad02223dea0db4353d5dea5dcacdb0456eec5a4130cf50100d9b5b1ca"
+    },
+    {
+      "path": "Packages/TORCSSimulation/CollisionAffineTransform.swift",
+      "sha256": "906b82707e89e651ae3d271d195d96c05db145d86d9fab1e363af2a95ca8ef99"
+    },
+    {
+      "path": "Packages/TORCSSimulation/ComplexCollision.swift",
+      "sha256": "d8b43ddd1a56842051c160b2fde14552fc6961a545b9daa96fe0bf8620c4a293"
+    },
+    {
+      "path": "Packages/TORCSSimulation/ComponentBench.swift",
+      "sha256": "d9c67a4cf92f6047346a91b2841184df5cb6c2bd859f0d633754cdec5f9d6393"
+    },
+    {
+      "path": "Packages/TORCSSimulation/ConvexCollision.swift",
+      "sha256": "0fa6a729ee38b10cbb7b32b5baf3e687fcbb995647711f13c1cdcbd21dfe34bc"
+    },
+    {
+      "path": "Packages/TORCSSimulation/Differential.swift",
+      "sha256": "58cc647f1b48d33b6978d9f596e361342edbb0f92136176c01f4a1fe2575f7f1"
+    },
+    {
+      "path": "Packages/TORCSSimulation/DriverCommand.swift",
+      "sha256": "42ef101da62089ac6e661df6ca7b6bd6743bd1033de758b980d26d9d93e8725e"
+    },
+    {
+      "path": "Packages/TORCSSimulation/Engine.swift",
+      "sha256": "fba365b7de9a19260df6c37f601ef5b1ef07edca6a5b3269fe0653a7ea39a5f9"
+    },
+    {
+      "path": "Packages/TORCSSimulation/EnvironmentCollision.swift",
+      "sha256": "4a9bca7f35715677038fc3d8086a72148517c081ad9d3f5c5626e374579ce01a"
+    },
+    {
+      "path": "Packages/TORCSSimulation/MultiVehicleSimulation.swift",
+      "sha256": "936c7c88d8290a7b189f412ff2d7b6835e77efa5cb90fd545c033610ec57710f"
+    },
+    {
+      "path": "Packages/TORCSSimulation/ObjectCollision.swift",
+      "sha256": "157d9708a573d1f6b01fd4ba945bd5a383efe00439ed3e35b7341d30d517eac2"
+    },
+    {
+      "path": "Packages/TORCSSimulation/PitReconfiguration.swift",
+      "sha256": "2fb939b8418533d340be26004e5b78ce702a8d6839114c36f428371693780d84"
+    },
+    {
+      "path": "Packages/TORCSSimulation/PitSetup.swift",
+      "sha256": "76046757511bf19621d968c503455737fc867bc62d9c5b6c7d53e00f1231880d"
+    },
+    {
+      "path": "Packages/TORCSSimulation/RunningGearConfiguration.swift",
+      "sha256": "5e2e7b93d8b0d06c3c2557b0639de86d4b97cf56f900e7075ea2cfcdbaca2169"
+    },
+    {
+      "path": "Packages/TORCSSimulation/RunningGearState.swift",
+      "sha256": "bc025856b7e29396974a11385177f9b37543c13e173b91909a6acb28a67cbffa"
+    },
+    {
+      "path": "Packages/TORCSSimulation/SingleVehicleSimulation.swift",
+      "sha256": "e50f7f6fffdbc495f2124696fa496b2596ed9815c5b9cc4f5ff11f98485c9171"
+    },
+    {
+      "path": "Packages/TORCSSimulation/Steering.swift",
+      "sha256": "d51ba86a8ca758572455d7fd40d9061de8ea8f8d85dc161da499a1d6e4f22e33"
+    },
+    {
+      "path": "Packages/TORCSSimulation/Suspension.swift",
+      "sha256": "f3297660f059a1bd332ed2a76aff6d1207cdd401161d665f8be1e8ba0b111116"
+    },
+    {
+      "path": "Packages/TORCSSimulation/TireThermal.swift",
+      "sha256": "8a633a65d651f75cd1d57605563baa04afaa8c93b1a5c79a51b3163b04af400f"
+    },
+    {
+      "path": "Packages/TORCSSimulation/TrackWallCollision.swift",
+      "sha256": "d7243df88753ee8a93765c6bbde2598a872670359aa9d9a5acdef5bddf872294"
+    },
+    {
+      "path": "Packages/TORCSSimulation/Transmission.swift",
+      "sha256": "7176edae4415add6aa5b72da052d43f4cf380436fce3d38ca9c85b4d92b8d830"
+    },
+    {
+      "path": "Packages/TORCSSimulation/VehicleDynamics.swift",
+      "sha256": "ebd6b8dc9d4cceb7d8818287beb664a89c19861b05a2255de83499f9b59a17d3"
+    },
+    {
+      "path": "Packages/TORCSSimulation/VehicleMassProperties.swift",
+      "sha256": "bf9d7f13a90014f25aeeed4f98dd8865d9f0e715997660596d4545a09b91ead3"
+    },
+    {
+      "path": "Packages/TORCSSimulation/VehicleRemoval.swift",
+      "sha256": "0bc62415d30c33a92be24cfd417ab0d44f65013b5cb78f0125a6ce615eebe194"
+    },
+    {
+      "path": "Packages/TORCSSimulation/VehicleVisualSnapshot.swift",
+      "sha256": "f3f48d87720e4e40eac515a795893e0d24432d3666188c8c37a4e5e13c9765d8"
+    },
+    {
+      "path": "Packages/TORCSSimulation/WheelForce.swift",
+      "sha256": "f9ac9807d0c88566405e7d322c52196199c18dd0e23bd822b57beec9f4b3eb38"
+    },
+    {
+      "path": "Packages/TORCSSimulation/WheelKinematics.swift",
+      "sha256": "de0d71ee9557072805ee295c1995506d3bfdc6bba2593c52866beb9bb8c072ba"
+    },
+    {
+      "path": "Packages/TORCSSimulation/WheelRide.swift",
+      "sha256": "9b37444bba3c0ef0817b727ad9a6c74a1bd9ef5863fda2bca50c6f17e55f7658"
+    },
+    {
+      "path": "Packages/TORCSSimulation/WheelRotation.swift",
+      "sha256": "aba02fbdccac7a373d0cb9fb9c66395cb9995a6d8c55f27240f443ee6755e145"
+    },
+    {
+      "path": "Packages/TORCSTelemetry/ComponentScenario.swift",
+      "sha256": "77a71bf6033eeb5be978c3dccc908af1e2508ed5e71360139b361805a45b1709"
+    },
+    {
+      "path": "Packages/TORCSTelemetry/StreamingTelemetryDiff.swift",
+      "sha256": "816d1501d902627ab951914a801c74cad6dc49da20bcd7427b934ad0c0c7b06b"
+    },
+    {
+      "path": "Packages/TORCSTelemetry/Telemetry.swift",
+      "sha256": "c7ae3d6f73ccc1a7cc03bedd510f9f0f457e9a0a5494d89f9996af77e065093e"
+    },
+    {
+      "path": "Packages/TORCSTelemetry/TelemetryReader.swift",
+      "sha256": "86d7b01fb222576845df1d7d4c3e283a3da1e2b0bf948ff4f49c8e79b65190c5"
+    },
+    {
+      "path": "Packages/TORCSTelemetry/VehicleTelemetry.swift",
+      "sha256": "848aeced5a2edd51d6c156a160a57a9068e1f21cfe685d5e3825938934e54f47"
+    },
+    {
+      "path": "Packages/TORCSTrack/TrackBuilder.swift",
+      "sha256": "f86b8926ca1aae6f4362352f2b824b2dc4cfbd44a1fb60ad6a40616df924f4af"
+    },
+    {
+      "path": "Packages/TORCSTrack/TrackGeometry.swift",
+      "sha256": "cd4d01d0947728a0fdff75d35c8c523f4752a7270f1ef86d279c58bf18159ea7"
+    },
+    {
+      "path": "Packages/TORCSTrack/TrackGraphics.swift",
+      "sha256": "788bf4f7bd456dd9d1ff4b25b92cd4a11b96c51e0e2e90d723254378ee05963d"
+    },
+    {
+      "path": "Packages/TORCSTrack/TrackInfrastructure.swift",
+      "sha256": "918f19b5828cf834faeecbf763cbe1a56cdadf25bce96d04f975ad0e49612931"
+    },
+    {
+      "path": "Packages/TORCSTrack/TrackQueries.swift",
+      "sha256": "26f843adb80188ace94c844f7cce2c533b92be1b81ef9c2b2e3204dbe931856b"
+    },
+    {
+      "path": "Tests/UnitTests/ACMeshCacheTests.swift",
+      "sha256": "69ad657867cab63c46ea94f770fde8c23a981c3a78a0f3082d98bdcb00f2e39f"
+    },
+    {
+      "path": "Tests/UnitTests/ACSceneTests.swift",
+      "sha256": "d6d1549d140e2f0a0f0a5ee4d7a1b07f2f2ed36a185e4242ec04fd9ae0e7fb3e"
+    },
+    {
+      "path": "Tests/UnitTests/AerodynamicsTests.swift",
+      "sha256": "d6ebfdff964c9e90eb836167e05a01e8b2c425625acd028e076d3bf2a0c24454"
+    },
+    {
+      "path": "Tests/UnitTests/AxleKinematicsTests.swift",
+      "sha256": "0f2cc0419a44c839e55dd17e434d7752e9ad56af26a43b9ee6aaf660472da41e"
+    },
+    {
+      "path": "Tests/UnitTests/CarReflectionTests.swift",
+      "sha256": "2664cbe38369902c873980f2d897888bd14edc8edd8a718db020e4c4a214e011"
+    },
+    {
+      "path": "Tests/UnitTests/ChassisTests.swift",
+      "sha256": "b64abf8cfe4e9826cb276173e50579dd18082199779f1bdbabab1bcd525f0e28"
+    },
+    {
+      "path": "Tests/UnitTests/ComplexCollisionTests.swift",
+      "sha256": "1521b4fbbc383acc3b6a0d55c58b892068c84c5c1453002be431bd9362cdbe7f"
+    },
+    {
+      "path": "Tests/UnitTests/ConvexCollisionTests.swift",
+      "sha256": "af0ffa407eb18f3df18f40f031d0b1bf9be4e30c7adbd5bafc4491090210137a"
+    },
+    {
+      "path": "Tests/UnitTests/CoreTests.swift",
+      "sha256": "0fcab047d5bd816e34cc1fe3914ca259e3f9b203bff2b2a635e39c319b0772bf"
+    },
+    {
+      "path": "Tests/UnitTests/DifferentialTests.swift",
+      "sha256": "06d2e3a096b1d1cb6d756dd66b15beeb1bf0a7d263c4bd2e13fb77cc7b5538ad"
+    },
+    {
+      "path": "Tests/UnitTests/DriverControlTests.swift",
+      "sha256": "34b6ae1c66c68c14043b1015dccfb5aeeda0a4b2b87501d7586d79482692c9c6"
+    },
+    {
+      "path": "Tests/UnitTests/DrivingInputTests.swift",
+      "sha256": "68f3e8bf12b27caef9549f9c12c9f31ce23ed6efa97c54fb211ea86b9d953693"
+    },
+    {
+      "path": "Tests/UnitTests/DrivingRuntimeTests.swift",
+      "sha256": "2f331ee98d2565a70585b2db4920d53b12cba164c0ad10f6df497400a84096e7"
+    },
+    {
+      "path": "Tests/UnitTests/DrivingVisualTests.swift",
+      "sha256": "7b21156bb573ec6ca71031461ec4fd2df9286cedd6cec91db1b612d38b50a5b4"
+    },
+    {
+      "path": "Tests/UnitTests/EngineTests.swift",
+      "sha256": "e8d00cf2700306175a2ef5c3ca34bd5261bdc79c3e5ac31f21ab25b985511b56"
+    },
+    {
+      "path": "Tests/UnitTests/EnvironmentCollisionTests.swift",
+      "sha256": "bcf7156066544fcf8ccd71620931cc4c9fc0f858811001668a2fc8d2e5e7acc6"
+    },
+    {
+      "path": "Tests/UnitTests/ExteriorCameraTests.swift",
+      "sha256": "34737b911790c3ec381e61b88ba4c45f661c30901867aed859a9165c4de8fd91"
+    },
+    {
+      "path": "Tests/UnitTests/FixedPairDispatchTests.swift",
+      "sha256": "a6448e73f99c3383ba62fc067ece900a6413053dac52cabf1de6d49f17dc9cdd"
+    },
+    {
+      "path": "Tests/UnitTests/FullReferenceTests.swift",
+      "sha256": "07b57847801d7297c4b2a7b578f939d1e342ec6ae9446f465c68c52505371384"
+    },
+    {
+      "path": "Tests/UnitTests/FullSingleCarTests.swift",
+      "sha256": "2e9a0e93e82e64b39fc2ae7297e6b1979968e3dcb953d206e1690bd81b1ba0f0"
+    },
+    {
+      "path": "Tests/UnitTests/MixedCollisionTests.swift",
+      "sha256": "0cc016cfb255434654114db8b53567f8d89c7fb2c53a147372b4195f60db4eab"
+    },
+    {
+      "path": "Tests/UnitTests/MultiVehicleTests.swift",
+      "sha256": "a8689754b784442fb54708f10f88352c24c17682c98827899267b7ef9787f9a0"
+    },
+    {
+      "path": "Tests/UnitTests/ObjectCollisionTests.swift",
+      "sha256": "68ef7ca79b3df7ecbe5a36cd172492d4a39eb44b9265bfdd08a6860563681588"
+    },
+    {
+      "path": "Tests/UnitTests/PNGTextureTests.swift",
+      "sha256": "7e034ad5db507e67d9cddb6f37437c55f765a432337c3d33ce387861e0f7b6b3"
+    },
+    {
+      "path": "Tests/UnitTests/ParameterMergeTests.swift",
+      "sha256": "b01c014a6ff6aff233c7de45c54d9e1aa3521c01ccb162780d7bf062539b48fc"
+    },
+    {
+      "path": "Tests/UnitTests/ParameterTests.swift",
+      "sha256": "93e88cc2f4242300352bffae0b73d9c4d04c70a3ddd6b62af60c19d8ab8f93a5"
+    },
+    {
+      "path": "Tests/UnitTests/PitServiceTests.swift",
+      "sha256": "6761059b0df6e8c3f97d6214f08e199271cce7f54e73ee725e0aece7774dd8ae"
+    },
+    {
+      "path": "Tests/UnitTests/PitSetupTests.swift",
+      "sha256": "1bd0c2fd495d937aea5e8e0cef2b3f976ed7850d3029f96909569fa77cd4b82a"
+    },
+    {
+      "path": "Tests/UnitTests/RaceLapTimingTests.swift",
+      "sha256": "1e84bbc1f788db534ded957e603702dfb5f845d9d696709c7a21f75352f10f5e"
+    },
+    {
+      "path": "Tests/UnitTests/RacePitRuntimeTests.swift",
+      "sha256": "653d9d1f8da20bc7c0579645f1adf32ec9bb0bcd656d792f6112dd993ea5d071"
+    },
+    {
+      "path": "Tests/UnitTests/RacePitTests.swift",
+      "sha256": "29e687bee8b33f92fcfcbe5ac11b7da015cffb5c04026c2f26d17e63787d24f6"
+    },
+    {
+      "path": "Tests/UnitTests/RasterRepeatTests.swift",
+      "sha256": "72dfa401636ee6135560b3012075d3c0de222d71e81bac0a6c1555802a818b03"
+    },
+    {
+      "path": "Tests/UnitTests/RobotReferenceTests.swift",
+      "sha256": "1009ced6f1a0ea92bb67915aa4016233c6b186868aa61597a1963d9114b3c216"
+    },
+    {
+      "path": "Tests/UnitTests/RunningGearIntegrationTests.swift",
+      "sha256": "3b3a837a9c5521c4e4d7b33c38eb4848675df1935be1a7b94b16d489304f92fe"
+    },
+    {
+      "path": "Tests/UnitTests/RunningGearTests.swift",
+      "sha256": "b999db57532ed8c6df31180b4a927162db9ccc368b51bbe93a94cca14b87f841"
+    },
+    {
+      "path": "Tests/UnitTests/SceneRenderingTests.swift",
+      "sha256": "f27e2e329a2d1fe989103d62f517e19813eacf35c718f06959f0cffb83e20742"
+    },
+    {
+      "path": "Tests/UnitTests/SingleVehicleRuntimeTests.swift",
+      "sha256": "a8659d7f5794006bcd754be93e369e83195a4bee04bd9e1501b0184de633f19a"
+    },
+    {
+      "path": "Tests/UnitTests/StreamingTelemetryTests.swift",
+      "sha256": "8a08971affa1fcb778a23fae6003dac17d8fe999c0b9cd0de7d519b31d3c57c6"
+    },
+    {
+      "path": "Tests/UnitTests/TelemetryTests.swift",
+      "sha256": "9c97535e94f6beb915366caba7abf0d7505bbd12321730a33179c39657d3a74c"
+    },
+    {
+      "path": "Tests/UnitTests/TextureCacheTests.swift",
+      "sha256": "f6308d91c674f1396206e127f08ef32e985baa1f2b2b00e2e1dbe2aa27919103"
+    },
+    {
+      "path": "Tests/UnitTests/TextureImageTests.swift",
+      "sha256": "40d6a6939a7f1f49d2076fb5d1ab2b2b88e08cc3b16e422e2065ffb9835ee5e0"
+    },
+    {
+      "path": "Tests/UnitTests/TrackEnvironmentTests.swift",
+      "sha256": "c9578b0f2d953971f75386a652b91fcac72ce9c4be147b862762fcb6be21f0bb"
+    },
+    {
+      "path": "Tests/UnitTests/TrackGeometryTests.swift",
+      "sha256": "c3d463859754308ab5ec8d54589b0d2aff09a0933f853f1d54cbe9df9474e0e0"
+    },
+    {
+      "path": "Tests/UnitTests/TrackWallCollisionTests.swift",
+      "sha256": "03b2c4398d0c941e2efabcb777c797a246b705ea7f4d17950ceca3beeb4f22b6"
+    },
+    {
+      "path": "Tests/UnitTests/TransmissionTests.swift",
+      "sha256": "603b526feb498c27b1fd75d41075d6591f8733d8a7788cd20e19813c13d542d2"
+    },
+    {
+      "path": "Tests/UnitTests/VehicleDynamicsTests.swift",
+      "sha256": "adb9396023c727280fc8ec0162bf23a83fbe7c097e47aaba38b64b417020366d"
+    },
+    {
+      "path": "Tests/UnitTests/VehicleLifecycleTests.swift",
+      "sha256": "5d8451784f60dc44d3118aef45f1a7af1ddf577151c70b2927350cf39220ef9d"
+    },
+    {
+      "path": "Tests/UnitTests/VehicleMassTests.swift",
+      "sha256": "281ce45e1074815999bac48d0434612df7491ccb4f48633f1e5d5ce56520d5e2"
+    },
+    {
+      "path": "Tests/UnitTests/VehiclePresentationTests.swift",
+      "sha256": "174b706673815e9b505097c4e04e22db3fc10b2768777783fd32579df1b8e437"
+    },
+    {
+      "path": "Tests/UnitTests/VehicleRemovalTests.swift",
+      "sha256": "789c582a9c3b5e8cba10eec87a4259a6f143ac64aed7a3382e3bceb0155052f9"
+    },
+    {
+      "path": "Tests/UnitTests/WheelForceTests.swift",
+      "sha256": "f1ab1507f12c9e2fee49248c39a93c67b9e8642f9d6d4758b282db3b87679a22"
+    },
+    {
+      "path": "Tests/UnitTests/WheelRideTests.swift",
+      "sha256": "ef17ed26f6602a84acc69165d7bb6b1ccc3c0c6810df5422de44a8adc9fbc3d5"
+    },
+    {
+      "path": "Tests/UnitTests/WheelThermalRotationTests.swift",
+      "sha256": "efb0ab45e31394d47c3bd83cf444b27b02455fc59846c4c867ea07fd7a71162c"
+    },
+    {
+      "path": "Scripts/build-app.sh",
+      "sha256": "75515f1fd8e61f7c15cb56b75bdefdcaf80d43293388d0ff7c3f2556f1be28d5"
+    },
+    {
+      "path": "Scripts/notarize.sh",
+      "sha256": "f36c2de9befa208c9e80b01bd389b0292c7302c61ce29ca2ec9120aeaccb7d2b"
+    },
+    {
+      "path": "Scripts/prepare-driving-session.py",
+      "sha256": "73118aa3320fc55063241504ed22ea52c03157a1f757868836341965894ffa74"
+    },
+    {
+      "path": "Scripts/verify-assets.py",
+      "sha256": "e492e7201f93867ff25bc45328b7a036e8189735b49c0836875aa7c036b2e010"
+    },
+    {
+      "path": "Scripts/verify-car-collision.sh",
+      "sha256": "ecea67eedca4c013b5872944b66a7570d602088d057b835039f486fcd9a8c4ad"
+    },
+    {
+      "path": "Scripts/verify-provenance.py",
+      "sha256": "5608c0dc23ed4b06b2e64c69c6d5a52e2a8880b01903829fdcc442c25eab11f4"
+    },
+    {
+      "path": "Scripts/verify-reference-world.py",
+      "sha256": "0b8bdae4828fc554c0406a9574357880f675ed362257ac3723470b2fdfd71e4a"
+    },
+    {
+      "path": "Scripts/verify-scenes.py",
+      "sha256": "4cabe3b65c853af50bca249b068b983838b3160ddbeb6e5230fea92fc465ec7a"
+    },
+    {
+      "path": "Scripts/verify-single-car.sh",
+      "sha256": "5d53f5d393024107381da224bf944ee18e072cde46b43d55a4a608b8dd219b1c"
+    },
+    {
+      "path": "Scripts/verify-streaming-telemetry.py",
+      "sha256": "02bc8d684d88cb250ffe8aea5afde67684554e6a99478b965f8ed7776e6d5d9e"
+    },
+    {
+      "path": "Scripts/verify-textures.py",
+      "sha256": "8fb5b72554b7aa0a57a3532e859442bc68a4dbfaf7080a195a1c8ecbc3753ae6"
+    },
+    {
+      "path": "Scripts/verify-upstream-archive.py",
+      "sha256": "a90a39bb0dd83b4161f249978ea3faeade2f2ab387769a8945598f063d11605b"
+    },
+    {
+      "path": "Scripts/verify-vehicle-scene.py",
+      "sha256": "4317b96aace4ef692ccef559e56ca3391e30b6cb57e829dbdc475a591f0e9ded"
+    },
+    {
+      "path": "Scripts/verify.sh",
+      "sha256": "47b0f5e6fca5fa3c80d31f5c8b97f6a906487c4a94c5d2ee47103ad37710cf11"
+    },
+    {
+      "path": "Package.swift",
+      "sha256": "7e519ec6d0a9e65dee2cfa59bfd10736d019c66a62f8bdd2dab2db60f616e24f"
+    },
+    {
+      "path": "Upstream/Reference/graphics-instrumentation.cpp",
+      "sha256": "7dc69332dbd92597fd7a675cc4b05b75e788a2217b7f8850f6be78f3e8725383"
+    },
+    {
+      "path": "Upstream/Reference/include/CReference.h",
+      "sha256": "45a8b07843e76ff453e246dee078c50620b711eada439ac3013c8c54c3b37edd"
+    },
+    {
+      "path": "Upstream/Reference/graphics/reflection-matrices.inc",
+      "sha256": "9679afc414c96812f4a83e55b273a4c6f6862c6f8c24b128dba8f3de727f5a75"
+    },
+    {
+      "path": "Upstream/source-manifest.json",
+      "sha256": "15511e46a757470670d12e3315353de71549d573e1b79b1e466e9ebf3dab7288"
+    },
+    {
+      "path": "Resources/asset-manifest.json",
+      "sha256": "b341d477b01d90fdd55984a3c5b3c8ede25674614a1c9915fa7657e3670d03d3"
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES.md",
+      "sha256": "6a098ec1bd3a1330a57d22dbbf1eba01b261cd9dee71c3f815a3c170e5e10f1d"
+    },
+    {
+      "path": "Documentation/CAR_REFLECTIONS.md",
+      "sha256": "5216db777d88074f09f251c49be1c5e704dccd2a6eef770758c1380076edb7ea"
+    },
+    {
+      "path": "Documentation/PORT_STATUS.md",
+      "sha256": "477542ebd1b3e8ae4eb3c8cc24e9f238c575ea4d8a56288423a2b7022c99c7e7"
+    },
+    {
+      "path": "Documentation/UPSTREAM.md",
+      "sha256": "ac8d2436c254adbaa3e6a3c7ff1e8ab48cb80ee0440b6c184f5164b7d48aa1f3"
+    },
+    {
+      "path": "Documentation/ASSET_LICENSES.md",
+      "sha256": "a454721474e0fbb60c61fae8716ff495676a9959ccae4114f51c37d9d8105dea"
+    },
+    {
+      "path": "README.md",
+      "sha256": "5961149643cf88485c60f21e70ca0a2ec738b6ebd00e0dc43ac4bc494e1b62d5"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "Artifacts/reflection-preview-first/bonnet.png",
+      "sha256": "124bee631f5a618f17a5315fb6c97034d75572c074244c657fd389fe532d1479"
+    },
+    {
+      "path": "Artifacts/reflection-preview-first/chase.png",
+      "sha256": "3f2a6867db04c573c54e1c10495c8c8fcfc716892a8af1d634a5edc271a5b9e2"
+    },
+    {
+      "path": "Artifacts/reflection-preview-first/classic-no-shadow.png",
+      "sha256": "45611c2fa30ad5416e11226f8cdf80ed2577439cef1a935e69e629b969c56655"
+    },
+    {
+      "path": "Artifacts/reflection-preview-first/classic-shadow-no-reflections.png",
+      "sha256": "4ac94234438df1c0ae174e806a92f452c1fa046b3e4dfde1cb64d529cd024c99"
+    },
+    {
+      "path": "Artifacts/reflection-preview-first/classic-shadow.png",
+      "sha256": "3f2a6867db04c573c54e1c10495c8c8fcfc716892a8af1d634a5edc271a5b9e2"
+    },
+    {
+      "path": "Artifacts/reflection-preview-first/enhanced-shadow.png",
+      "sha256": "a9d648eeb52066bba1e72825ce867172143bb4fd7e696f9175fa5336f005de7c"
+    },
+    {
+      "path": "Artifacts/reflection-preview-first/far-chase.png",
+      "sha256": "146f33901ddabad0f611b592a75c698e35110d7f595f6402f80117add5fae75e"
+    },
+    {
+      "path": "Artifacts/reflection-preview-first/low-chase.png",
+      "sha256": "6cce95b79841a5853205ad90611d4ae20e4aa77d1679980514290de3458c28af"
+    },
+    {
+      "path": "Artifacts/reflection-preview-first/near-chase.png",
+      "sha256": "503ec6535ae39db1d206783cf314ada32bab77d6453bd7372ab9fc53daed683c"
+    },
+    {
+      "path": "Artifacts/reflection-preview-first/overhead-1.png",
+      "sha256": "988675aa220ad588737bfda24bab026f6ddc27fa366bea1c935418232c64a5f2"
+    },
+    {
+      "path": "Artifacts/reflection-preview-first/overhead-2.png",
+      "sha256": "b40e3c6aeed3cf2f8ab5fc0a36ae1e606834d95fa9456c95dcfe5cb0fef79434"
+    },
+    {
+      "path": "Artifacts/reflection-preview-first/overhead-3.png",
+      "sha256": "17d78263100223c992d4edbc4aad2bfa46cb53ba701341264cd155fb2c14473b"
+    },
+    {
+      "path": "Artifacts/reflection-preview-first/overhead-4.png",
+      "sha256": "c3b0c50ed10b41063a96081e761cbc864526c0d713b798247b1ce1a66102c10e"
+    },
+    {
+      "path": "Artifacts/reflection-preview-first/previous-placeholder-lighting.png",
+      "sha256": "5c843964fd3b23482ddb039a453e7613d524e94aacdddbbe0f1d90fd502e33db"
+    },
+    {
+      "path": "Artifacts/reflection-preview-first/report.json",
+      "sha256": "b1a620d637b2e1c579a12cd01438db631f027844fff4a2d898f96fb131501052"
+    },
+    {
+      "path": "Artifacts/reflection-preview-first/reverse.png",
+      "sha256": "60b00e041856d1b7a760acab6e6c8418ece68dbe22a0cfc783520927bdeca49c"
+    },
+    {
+      "path": "Artifacts/reflection-preview-first/road.png",
+      "sha256": "0587f014a3a9a7e60cd0e574a67bd0dd8580aa4ba12e16eec200dd32b7c4c955"
+    },
+    {
+      "path": "Artifacts/reflection-preview-first/side-1.png",
+      "sha256": "17ad812dfb4af3a04fbb1e9823ff03094849be5f8f659e6062d04f4f67aaa10e"
+    },
+    {
+      "path": "Artifacts/reflection-preview-first/side-2.png",
+      "sha256": "bb559c2c1a83e4a7351e36b63e1204ae489b1478d9e25c4d81255b253aa3c6cd"
+    },
+    {
+      "path": "Artifacts/reflection-preview-first/side-3.png",
+      "sha256": "111f8d7ca0d19deda5a3ff8a7a0366696b1bd9ac068398fb0b9391da07ccd841"
+    },
+    {
+      "path": "Artifacts/reflection-preview-first/side-4.png",
+      "sha256": "1727ba2ef135c96f2bdcfc136a25a915152eb888b3efa87248e5aa54d3ab6c68"
+    },
+    {
+      "path": "Artifacts/reflection-preview-first/side-5.png",
+      "sha256": "0bb74ce44fefec2e505b8c308c1705c4d6ccda631232de98326f30d816fb2727"
+    },
+    {
+      "path": "Artifacts/reflection-preview-first/side-6.png",
+      "sha256": "7ac95d9c199e4ff6aee1c364a2ae112ba5cf47b6a136a63fe96dd0fbf3401ce3"
+    },
+    {
+      "path": "Artifacts/reflection-preview-first/side-7.png",
+      "sha256": "7b2cfdbeb5648ded0dc988e6ae5a444626fd2084c2b06f4eb7ffc6d4ec3d0e7a"
+    },
+    {
+      "path": "Artifacts/reflection-preview-first/side-8.png",
+      "sha256": "66403c20f11826c9ed332f0fb3e39dc3b25148ab6d9d24a02e954d5578bb863f"
+    },
+    {
+      "path": "Artifacts/reflection-preview-first/track-chase.png",
+      "sha256": "a64f0b6520788920b41b20373c6d7cbc550053df263a1f160eb8827d0473c1e8"
+    },
+    {
+      "path": "Artifacts/reflection-preview-second/bonnet.png",
+      "sha256": "124bee631f5a618f17a5315fb6c97034d75572c074244c657fd389fe532d1479"
+    },
+    {
+      "path": "Artifacts/reflection-preview-second/chase.png",
+      "sha256": "3f2a6867db04c573c54e1c10495c8c8fcfc716892a8af1d634a5edc271a5b9e2"
+    },
+    {
+      "path": "Artifacts/reflection-preview-second/classic-no-shadow.png",
+      "sha256": "45611c2fa30ad5416e11226f8cdf80ed2577439cef1a935e69e629b969c56655"
+    },
+    {
+      "path": "Artifacts/reflection-preview-second/classic-shadow-no-reflections.png",
+      "sha256": "4ac94234438df1c0ae174e806a92f452c1fa046b3e4dfde1cb64d529cd024c99"
+    },
+    {
+      "path": "Artifacts/reflection-preview-second/classic-shadow.png",
+      "sha256": "3f2a6867db04c573c54e1c10495c8c8fcfc716892a8af1d634a5edc271a5b9e2"
+    },
+    {
+      "path": "Artifacts/reflection-preview-second/enhanced-shadow.png",
+      "sha256": "a9d648eeb52066bba1e72825ce867172143bb4fd7e696f9175fa5336f005de7c"
+    },
+    {
+      "path": "Artifacts/reflection-preview-second/far-chase.png",
+      "sha256": "146f33901ddabad0f611b592a75c698e35110d7f595f6402f80117add5fae75e"
+    },
+    {
+      "path": "Artifacts/reflection-preview-second/low-chase.png",
+      "sha256": "6cce95b79841a5853205ad90611d4ae20e4aa77d1679980514290de3458c28af"
+    },
+    {
+      "path": "Artifacts/reflection-preview-second/near-chase.png",
+      "sha256": "503ec6535ae39db1d206783cf314ada32bab77d6453bd7372ab9fc53daed683c"
+    },
+    {
+      "path": "Artifacts/reflection-preview-second/overhead-1.png",
+      "sha256": "988675aa220ad588737bfda24bab026f6ddc27fa366bea1c935418232c64a5f2"
+    },
+    {
+      "path": "Artifacts/reflection-preview-second/overhead-2.png",
+      "sha256": "b40e3c6aeed3cf2f8ab5fc0a36ae1e606834d95fa9456c95dcfe5cb0fef79434"
+    },
+    {
+      "path": "Artifacts/reflection-preview-second/overhead-3.png",
+      "sha256": "17d78263100223c992d4edbc4aad2bfa46cb53ba701341264cd155fb2c14473b"
+    },
+    {
+      "path": "Artifacts/reflection-preview-second/overhead-4.png",
+      "sha256": "c3b0c50ed10b41063a96081e761cbc864526c0d713b798247b1ce1a66102c10e"
+    },
+    {
+      "path": "Artifacts/reflection-preview-second/previous-placeholder-lighting.png",
+      "sha256": "5c843964fd3b23482ddb039a453e7613d524e94aacdddbbe0f1d90fd502e33db"
+    },
+    {
+      "path": "Artifacts/reflection-preview-second/report.json",
+      "sha256": "105ae71803bce8f5f449a0932ac62a3d64d7191c934e88c84bda8924bf60969a"
+    },
+    {
+      "path": "Artifacts/reflection-preview-second/reverse.png",
+      "sha256": "60b00e041856d1b7a760acab6e6c8418ece68dbe22a0cfc783520927bdeca49c"
+    },
+    {
+      "path": "Artifacts/reflection-preview-second/road.png",
+      "sha256": "0587f014a3a9a7e60cd0e574a67bd0dd8580aa4ba12e16eec200dd32b7c4c955"
+    },
+    {
+      "path": "Artifacts/reflection-preview-second/side-1.png",
+      "sha256": "17ad812dfb4af3a04fbb1e9823ff03094849be5f8f659e6062d04f4f67aaa10e"
+    },
+    {
+      "path": "Artifacts/reflection-preview-second/side-2.png",
+      "sha256": "bb559c2c1a83e4a7351e36b63e1204ae489b1478d9e25c4d81255b253aa3c6cd"
+    },
+    {
+      "path": "Artifacts/reflection-preview-second/side-3.png",
+      "sha256": "111f8d7ca0d19deda5a3ff8a7a0366696b1bd9ac068398fb0b9391da07ccd841"
+    },
+    {
+      "path": "Artifacts/reflection-preview-second/side-4.png",
+      "sha256": "1727ba2ef135c96f2bdcfc136a25a915152eb888b3efa87248e5aa54d3ab6c68"
+    },
+    {
+      "path": "Artifacts/reflection-preview-second/side-5.png",
+      "sha256": "0bb74ce44fefec2e505b8c308c1705c4d6ccda631232de98326f30d816fb2727"
+    },
+    {
+      "path": "Artifacts/reflection-preview-second/side-6.png",
+      "sha256": "7ac95d9c199e4ff6aee1c364a2ae112ba5cf47b6a136a63fe96dd0fbf3401ce3"
+    },
+    {
+      "path": "Artifacts/reflection-preview-second/side-7.png",
+      "sha256": "7b2cfdbeb5648ded0dc988e6ae5a444626fd2084c2b06f4eb7ffc6d4ec3d0e7a"
+    },
+    {
+      "path": "Artifacts/reflection-preview-second/side-8.png",
+      "sha256": "66403c20f11826c9ed332f0fb3e39dc3b25148ab6d9d24a02e954d5578bb863f"
+    },
+    {
+      "path": "Artifacts/reflection-preview-second/track-chase.png",
+      "sha256": "a64f0b6520788920b41b20373c6d7cbc550053df263a1f160eb8827d0473c1e8"
+    },
+    {
+      "path": "Artifacts/reflection-preview-validation/bonnet.png",
+      "sha256": "124bee631f5a618f17a5315fb6c97034d75572c074244c657fd389fe532d1479"
+    },
+    {
+      "path": "Artifacts/reflection-preview-validation/chase.png",
+      "sha256": "3f2a6867db04c573c54e1c10495c8c8fcfc716892a8af1d634a5edc271a5b9e2"
+    },
+    {
+      "path": "Artifacts/reflection-preview-validation/classic-no-shadow.png",
+      "sha256": "45611c2fa30ad5416e11226f8cdf80ed2577439cef1a935e69e629b969c56655"
+    },
+    {
+      "path": "Artifacts/reflection-preview-validation/classic-shadow-no-reflections.png",
+      "sha256": "4ac94234438df1c0ae174e806a92f452c1fa046b3e4dfde1cb64d529cd024c99"
+    },
+    {
+      "path": "Artifacts/reflection-preview-validation/classic-shadow.png",
+      "sha256": "3f2a6867db04c573c54e1c10495c8c8fcfc716892a8af1d634a5edc271a5b9e2"
+    },
+    {
+      "path": "Artifacts/reflection-preview-validation/enhanced-shadow.png",
+      "sha256": "a9d648eeb52066bba1e72825ce867172143bb4fd7e696f9175fa5336f005de7c"
+    },
+    {
+      "path": "Artifacts/reflection-preview-validation/far-chase.png",
+      "sha256": "146f33901ddabad0f611b592a75c698e35110d7f595f6402f80117add5fae75e"
+    },
+    {
+      "path": "Artifacts/reflection-preview-validation/low-chase.png",
+      "sha256": "6cce95b79841a5853205ad90611d4ae20e4aa77d1679980514290de3458c28af"
+    },
+    {
+      "path": "Artifacts/reflection-preview-validation/near-chase.png",
+      "sha256": "503ec6535ae39db1d206783cf314ada32bab77d6453bd7372ab9fc53daed683c"
+    },
+    {
+      "path": "Artifacts/reflection-preview-validation/overhead-1.png",
+      "sha256": "988675aa220ad588737bfda24bab026f6ddc27fa366bea1c935418232c64a5f2"
+    },
+    {
+      "path": "Artifacts/reflection-preview-validation/overhead-2.png",
+      "sha256": "b40e3c6aeed3cf2f8ab5fc0a36ae1e606834d95fa9456c95dcfe5cb0fef79434"
+    },
+    {
+      "path": "Artifacts/reflection-preview-validation/overhead-3.png",
+      "sha256": "17d78263100223c992d4edbc4aad2bfa46cb53ba701341264cd155fb2c14473b"
+    },
+    {
+      "path": "Artifacts/reflection-preview-validation/overhead-4.png",
+      "sha256": "c3b0c50ed10b41063a96081e761cbc864526c0d713b798247b1ce1a66102c10e"
+    },
+    {
+      "path": "Artifacts/reflection-preview-validation/previous-placeholder-lighting.png",
+      "sha256": "5c843964fd3b23482ddb039a453e7613d524e94aacdddbbe0f1d90fd502e33db"
+    },
+    {
+      "path": "Artifacts/reflection-preview-validation/report.json",
+      "sha256": "b5f5490c6467998acf5d32f150aa43c2aee212ec006ef22d6528fcf6d46e4b5c"
+    },
+    {
+      "path": "Artifacts/reflection-preview-validation/reverse.png",
+      "sha256": "60b00e041856d1b7a760acab6e6c8418ece68dbe22a0cfc783520927bdeca49c"
+    },
+    {
+      "path": "Artifacts/reflection-preview-validation/road.png",
+      "sha256": "0587f014a3a9a7e60cd0e574a67bd0dd8580aa4ba12e16eec200dd32b7c4c955"
+    },
+    {
+      "path": "Artifacts/reflection-preview-validation/side-1.png",
+      "sha256": "17ad812dfb4af3a04fbb1e9823ff03094849be5f8f659e6062d04f4f67aaa10e"
+    },
+    {
+      "path": "Artifacts/reflection-preview-validation/side-2.png",
+      "sha256": "bb559c2c1a83e4a7351e36b63e1204ae489b1478d9e25c4d81255b253aa3c6cd"
+    },
+    {
+      "path": "Artifacts/reflection-preview-validation/side-3.png",
+      "sha256": "111f8d7ca0d19deda5a3ff8a7a0366696b1bd9ac068398fb0b9391da07ccd841"
+    },
+    {
+      "path": "Artifacts/reflection-preview-validation/side-4.png",
+      "sha256": "1727ba2ef135c96f2bdcfc136a25a915152eb888b3efa87248e5aa54d3ab6c68"
+    },
+    {
+      "path": "Artifacts/reflection-preview-validation/side-5.png",
+      "sha256": "0bb74ce44fefec2e505b8c308c1705c4d6ccda631232de98326f30d816fb2727"
+    },
+    {
+      "path": "Artifacts/reflection-preview-validation/side-6.png",
+      "sha256": "7ac95d9c199e4ff6aee1c364a2ae112ba5cf47b6a136a63fe96dd0fbf3401ce3"
+    },
+    {
+      "path": "Artifacts/reflection-preview-validation/side-7.png",
+      "sha256": "7b2cfdbeb5648ded0dc988e6ae5a444626fd2084c2b06f4eb7ffc6d4ec3d0e7a"
+    },
+    {
+      "path": "Artifacts/reflection-preview-validation/side-8.png",
+      "sha256": "66403c20f11826c9ed332f0fb3e39dc3b25148ab6d9d24a02e954d5578bb863f"
+    },
+    {
+      "path": "Artifacts/reflection-preview-validation/track-chase.png",
+      "sha256": "a64f0b6520788920b41b20373c6d7cbc550053df263a1f160eb8827d0473c1e8"
+    },
+    {
+      "path": "Artifacts/reflection-legacy-session/bonnet.png",
+      "sha256": "0d8c17ddfe290283c7f1cc9632d0a98aa6ac9473349b896826b387d3d2967d82"
+    },
+    {
+      "path": "Artifacts/reflection-legacy-session/chase.png",
+      "sha256": "4ac94234438df1c0ae174e806a92f452c1fa046b3e4dfde1cb64d529cd024c99"
+    },
+    {
+      "path": "Artifacts/reflection-legacy-session/classic-no-shadow.png",
+      "sha256": "1ea025b8ec13ba369d2a405bc86c7628561943628ff2e9e3d14da599b7814f97"
+    },
+    {
+      "path": "Artifacts/reflection-legacy-session/classic-shadow-no-reflections.png",
+      "sha256": "4ac94234438df1c0ae174e806a92f452c1fa046b3e4dfde1cb64d529cd024c99"
+    },
+    {
+      "path": "Artifacts/reflection-legacy-session/classic-shadow.png",
+      "sha256": "4ac94234438df1c0ae174e806a92f452c1fa046b3e4dfde1cb64d529cd024c99"
+    },
+    {
+      "path": "Artifacts/reflection-legacy-session/enhanced-shadow.png",
+      "sha256": "d025e135fe34adb5dfb82b1cc1477b13fadda1ea5a8ded2c291335d1283af93e"
+    },
+    {
+      "path": "Artifacts/reflection-legacy-session/far-chase.png",
+      "sha256": "d1dcf5009010fb8ca956541bc780579b22d8f4c396c7954c5f66b43f1db46ed4"
+    },
+    {
+      "path": "Artifacts/reflection-legacy-session/low-chase.png",
+      "sha256": "580930847ea6f8d31568b36fa77d9a9301c13ba036bea1633fecaa3c8876da07"
+    },
+    {
+      "path": "Artifacts/reflection-legacy-session/near-chase.png",
+      "sha256": "0f8d967640a535de3b84a33fc599e4f2e0e3f46011ce646d9c1df2ca2b317f6b"
+    },
+    {
+      "path": "Artifacts/reflection-legacy-session/overhead-1.png",
+      "sha256": "ae8e14b674e230b1b41a5b859f0efdb568f00c30bbd2caa7496a2f3b77321a78"
+    },
+    {
+      "path": "Artifacts/reflection-legacy-session/overhead-2.png",
+      "sha256": "781df6d87b7bee532d37812b41fd1157a66294653755e8685cb0f4ef41a4a1be"
+    },
+    {
+      "path": "Artifacts/reflection-legacy-session/overhead-3.png",
+      "sha256": "05f09755d86963565469b8738faf6c576b6ecbb1d4b4b5705d2bfb294bdcf414"
+    },
+    {
+      "path": "Artifacts/reflection-legacy-session/overhead-4.png",
+      "sha256": "cd1e45cb3dbfc126b765973aeadf3eebbf7681ee3a30226291f760a010f6eb51"
+    },
+    {
+      "path": "Artifacts/reflection-legacy-session/previous-placeholder-lighting.png",
+      "sha256": "5c843964fd3b23482ddb039a453e7613d524e94aacdddbbe0f1d90fd502e33db"
+    },
+    {
+      "path": "Artifacts/reflection-legacy-session/report.json",
+      "sha256": "4bd147a88ef7654f4200cb63244cdec60a3a024cf2f5a192f06aac3d47a8078b"
+    },
+    {
+      "path": "Artifacts/reflection-legacy-session/reverse.png",
+      "sha256": "d291baa54cea823a6dd4c3fda66a987fde7b52408c7b7312ecf66daa177c29b2"
+    },
+    {
+      "path": "Artifacts/reflection-legacy-session/road.png",
+      "sha256": "0587f014a3a9a7e60cd0e574a67bd0dd8580aa4ba12e16eec200dd32b7c4c955"
+    },
+    {
+      "path": "Artifacts/reflection-legacy-session/side-1.png",
+      "sha256": "17ad812dfb4af3a04fbb1e9823ff03094849be5f8f659e6062d04f4f67aaa10e"
+    },
+    {
+      "path": "Artifacts/reflection-legacy-session/side-2.png",
+      "sha256": "ab49a1ccf72cdbfaf2022faef8c6c00751b979a9f90ee432bf331f8b30ee29a9"
+    },
+    {
+      "path": "Artifacts/reflection-legacy-session/side-3.png",
+      "sha256": "7b1489129832748d58f7ac72433b805cdbdb9f876c9ce66455efb6fd63a228e5"
+    },
+    {
+      "path": "Artifacts/reflection-legacy-session/side-4.png",
+      "sha256": "6984c56de52ee440d8ff3a2a42a9dabe315af72d50161db23534f93dcef5b40c"
+    },
+    {
+      "path": "Artifacts/reflection-legacy-session/side-5.png",
+      "sha256": "0bb74ce44fefec2e505b8c308c1705c4d6ccda631232de98326f30d816fb2727"
+    },
+    {
+      "path": "Artifacts/reflection-legacy-session/side-6.png",
+      "sha256": "96cca4720a44a71d872663648cc2021a0ce01d411166357a1575a0a18b160a9f"
+    },
+    {
+      "path": "Artifacts/reflection-legacy-session/side-7.png",
+      "sha256": "004d68ea577bd9308e5c0fce781285db6711c28452a9b92b34417972e14faff4"
+    },
+    {
+      "path": "Artifacts/reflection-legacy-session/side-8.png",
+      "sha256": "a1bff2d70fbca1b3ac0b185491e4699dcb8c96c70e6c3d0fbffd79a233c863d0"
+    },
+    {
+      "path": "Artifacts/reflection-legacy-session/track-chase.png",
+      "sha256": "da1832de0441ba145e88cd33b1f7223f49cbaef80c3181311275d9a9e0f5ed53"
+    },
+    {
+      "path": "Artifacts/reflection-debug-final.log",
+      "sha256": "9f521e2cef511d640e727d5b53d8fc898096e0b8735efc46b7ff5685dafb7777"
+    },
+    {
+      "path": "Artifacts/reflection-release.log",
+      "sha256": "c7755f98a2a5abf682901d59c96a65e2282e4e23d1e81e81fba5af832ac55594"
+    },
+    {
+      "path": "Artifacts/reflection-asan.log",
+      "sha256": "985326e0c09849c41f6095df721a153b5b70fe699cdef7aa0229c1b76397e5f6"
+    },
+    {
+      "path": "Artifacts/reflection-provenance.log",
+      "sha256": "369452182ffd97cc92e7bdc9944d2871783e6697316e9e42e50208cf2045ebbb"
+    },
+    {
+      "path": "Artifacts/reflection-archive.log",
+      "sha256": "fb80398b8a5eeaff582a9a6f78548f820aec4c724edbb5b40d62abe0ab68e4ee"
+    },
+    {
+      "path": "Artifacts/reflection-prepare.log",
+      "sha256": "35217013628f052b07fc4d41332bcd45a3a853fbc727863c0e2b48758b87ac06"
+    },
+    {
+      "path": "Artifacts/reflection-preview-first.log",
+      "sha256": "70195b351d8ecca9b8e612741def3b21dfbb5299b98e550bb69682d7afd7422e"
+    },
+    {
+      "path": "Artifacts/reflection-preview-second.log",
+      "sha256": "0c2ede7365637a03b337490de420241c6e7087ebb1d83db2ae677110203c2e60"
+    },
+    {
+      "path": "Artifacts/reflection-validation.log",
+      "sha256": "614d30c068a39a8be704af08b5868f314390967a57d8b18efa99afd88784ff60"
+    },
+    {
+      "path": "Artifacts/reflection-legacy-session.log",
+      "sha256": "72b7018187abe92b3346ef6f133c8fc36f9c86ebda03730ce5475c5a39eacba4"
+    },
+    {
+      "path": "Artifacts/reflection-metal-smoke.log",
+      "sha256": "7c307493192b70189dfcb95937600d572fed01a81f577ac8302965950bc5ab5f"
+    },
+    {
+      "path": "Artifacts/reflection-test-inventory.txt",
+      "sha256": "4ffed824a68f774e751b1faebfeb8e39c1cc20daf860e59f66a887897698ae72"
+    }
+  ],
+  "limitations": [
+    "Track shadow2.rgb projection onto indexed car bodies pending; raw loader bounds and detailed-wheel initialization order require coverage",
+    "No original GL pixel-parity claim",
+    "No new interactive driving acceptance run",
+    "Only selected car/track on M2 tested",
+    "Other camera families, mirrors, dynamic scene shadows, effects and full race goal remain open",
+    "Unknown shared image terms prohibit redistribution; not bundled"
+  ]
+}

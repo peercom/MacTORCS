@@ -1,0 +1,502 @@
+{
+  "schema": 1,
+  "date": "2026-09-23",
+  "increment": "Original scene anchors, whole-car ordering, driver traversal and depth state",
+  "goalComplete": false,
+  "tests": {
+    "fullDebug": 263,
+    "selectedDebug": 34,
+    "selectedRelease": 34,
+    "selectedASan": 34,
+    "failures": 0,
+    "newTests": 6,
+    "anchors": 8,
+    "nestedTraversalCases": 256,
+    "sequentialCarViewUpdates": 840,
+    "carCounts": [
+      1,
+      2,
+      3,
+      8,
+      17,
+      64,
+      128
+    ],
+    "selectedModelFiles": 6,
+    "selectedModelNodes": 3044,
+    "selectedModelDrawableLeaves": 1353,
+    "originalQueuesExact": true,
+    "originalDepthDispatchCases": 16,
+    "gpuQualityModes": 2,
+    "gpuOrderingRepeatPairs": 18
+  },
+  "implementation": {
+    "opaqueTraversalThenDeferredInsertionOrder": true,
+    "carDistance": "Squared horizontal X/Y distance",
+    "carPartsGrouped": true,
+    "driverWrapper": "First named DRIVER subtree appended after former siblings",
+    "equalDistanceSort": "Original positive comparator via host qsort_b, checked against host qsort; not portable tie-order guarantee",
+    "mirrorSortBeforeMain": true,
+    "mirrorHiddenIndices": "Original publication indices",
+    "meshDepthComparison": "lessEqual",
+    "translucentMeshDepthWrites": true,
+    "shadowAndLightDepthWrites": false,
+    "newRenderPasses": 0,
+    "newTextures": 0
+  },
+  "captures": {
+    "releaseLightProcesses": 4,
+    "releaseLightImagesPerProcess": 24,
+    "releaseLightImagesAndRecordsExact": true,
+    "metalValidation": true,
+    "brakingChangedChannels": 50903,
+    "releasedChangedChannels": 0,
+    "regressions": [
+      {
+        "previous": "light-preview-first",
+        "current": "order-preview-first",
+        "images": 24,
+        "changedImages": 24,
+        "recordsExact": [
+          "records"
+        ],
+        "repeatPairs": 24
+      },
+      {
+        "previous": "light-fly",
+        "current": "order-fly",
+        "images": 24,
+        "changedImages": 24,
+        "recordsExact": [
+          "views",
+          "pausedZooms"
+        ],
+        "repeatPairs": 24
+      },
+      {
+        "previous": "light-tv",
+        "current": "order-tv",
+        "images": 24,
+        "changedImages": 22,
+        "recordsExact": [
+          "views",
+          "pausedZooms"
+        ],
+        "repeatPairs": 24
+      },
+      {
+        "previous": "light-traffic",
+        "current": "order-traffic",
+        "images": 80,
+        "changedImages": 80,
+        "recordsExact": [
+          "views",
+          "switches"
+        ],
+        "repeatPairs": 80
+      }
+    ],
+    "originalGLPixelParityClaimed": false
+  },
+  "performance": {
+    "scope": "Stationary 960x640 chase rendering comparison, old/new preview sequentially; separately measured release planner publication plus two freshly sorted views. Not full-race FPS.",
+    "previous": [
+      {
+        "gpuMedianMS": 0.6375000812113285,
+        "gpuP95MS": 0.969958258792758,
+        "lights": false,
+        "offscreenWallMedianMS": 4.55045816488564,
+        "quality": false,
+        "samples": 60
+      },
+      {
+        "gpuMedianMS": 0.6442083977162838,
+        "gpuP95MS": 1.3389582745730877,
+        "lights": true,
+        "offscreenWallMedianMS": 4.504708340391517,
+        "quality": false,
+        "samples": 60
+      },
+      {
+        "gpuMedianMS": 0.7769998628646135,
+        "gpuP95MS": 1.9860416650772095,
+        "lights": false,
+        "offscreenWallMedianMS": 4.57820831798017,
+        "quality": true,
+        "samples": 60
+      },
+      {
+        "gpuMedianMS": 0.786749878898263,
+        "gpuP95MS": 1.920041861012578,
+        "lights": true,
+        "offscreenWallMedianMS": 4.6061251778155565,
+        "quality": true,
+        "samples": 60
+      }
+    ],
+    "current": [
+      {
+        "gpuMedianMS": 0.6384998559951782,
+        "gpuP95MS": 1.9956249743700027,
+        "lights": false,
+        "offscreenWallMedianMS": 3.9941666182130575,
+        "quality": false,
+        "samples": 60
+      },
+      {
+        "gpuMedianMS": 0.6372500211000443,
+        "gpuP95MS": 1.4264166820794344,
+        "lights": true,
+        "offscreenWallMedianMS": 4.029375035315752,
+        "quality": false,
+        "samples": 60
+      },
+      {
+        "gpuMedianMS": 0.7779581937938929,
+        "gpuP95MS": 1.6196249052882195,
+        "lights": false,
+        "offscreenWallMedianMS": 4.044291563332081,
+        "quality": true,
+        "samples": 60
+      },
+      {
+        "gpuMedianMS": 0.7783332839608192,
+        "gpuP95MS": 2.318666549399495,
+        "lights": true,
+        "offscreenWallMedianMS": 4.066291730850935,
+        "quality": true,
+        "samples": 60
+      }
+    ],
+    "planner": {
+      "checksum": 2131200,
+      "modes": [
+        {
+          "cars": 1,
+          "instances": 18,
+          "medianMicroseconds": 2.916669473052025,
+          "p95Microseconds": 3.041699528694153,
+          "samples": 1000,
+          "viewsPerPublication": 2
+        },
+        {
+          "cars": 3,
+          "instances": 52,
+          "medianMicroseconds": 7.083406671881676,
+          "p95Microseconds": 7.375143468379974,
+          "samples": 1000,
+          "viewsPerPublication": 2
+        },
+        {
+          "cars": 16,
+          "instances": 273,
+          "medianMicroseconds": 32.00001083314419,
+          "p95Microseconds": 40.999846532940865,
+          "samples": 1000,
+          "viewsPerPublication": 2
+        },
+        {
+          "cars": 32,
+          "instances": 545,
+          "medianMicroseconds": 66.79166108369827,
+          "p95Microseconds": 75.66669955849648,
+          "samples": 1000,
+          "viewsPerPublication": 2
+        }
+      ],
+      "scope": "Release compiled native planner, publish validation and fresh mirror/main car sorting each iteration, 17 instances per car plus land. No GPU, geometry loading or physics. 1000 samples after 200 warmups; synthetic placements and moving camera."
+    }
+  },
+  "provenance": {
+    "verifiedPinnedEntries": 226,
+    "sourceAndLicenseEntries": 180,
+    "contentEntries": 46,
+    "newPinnedSourceFiles": 3,
+    "newExcerpts": 14,
+    "newArtwork": 0,
+    "archiveSHA256": "f9c69e86d290295467451b01d7838d85005ba613644a6fe8a3f85a7c6a03cd4c",
+    "ssgDepthMaskAuditFiles": 93
+  },
+  "packaged": {
+    "path": "build/TORCSOrderPreview.app",
+    "binarySHA256": "36e40369ec24b7e8b71551a349ba6b82ee4b18c77c8f1d89e87c5502591f6b74",
+    "signature": "ad hoc verified",
+    "artworkBundled": false,
+    "noDirectCPlusPlusOrExpatDependency": true
+  },
+  "preservedPreviewBinaries": {
+    "build/TORCSLightPreview.app/Contents/MacOS/TORCSMac": "90fbc86e1a479b37d5cc3c7a8dc23d4c3148e2d69af5498bc12b2275bbae181f",
+    "build/TORCSBrakePreview.app/Contents/MacOS/TORCSMac": "2cf7fd17b97d151ce5ebab5f851beab4cbbee7eb04e3ba825aace178b1d052ac"
+  },
+  "preferenceAudit": [
+    {
+      "path": "/Users/holgervonameln/Library/Application Support/TORCSMac/cameras.json",
+      "baselineSHA256": "b62c5a2a334ac0748b201b64b9dbe3ade377d796a596fcba7bd38833a4c084e8",
+      "currentSHA256": "7493b4ac79f8bc9058190ea5218c47ddf3f67552d8f6d3ed39da49ab40374dda",
+      "matchesBaseline": false,
+      "modifiedUnix": 1790185614.8988907,
+      "scope": "Observed preferences only; not restored or modified. The observed modification time is 20:46:54, before this depth-validation pass began. Cause of the earlier change is not determined."
+    }
+  ],
+  "sourceSnapshot": [
+    {
+      "path": "Packages/TORCSMetal/SceneDrawOrder.swift",
+      "sha256": "38555271ecca76672d620892acdc719bf55d3f3e1b454494a950c7658a58a6a0"
+    },
+    {
+      "path": "Packages/TORCSMetal/SceneRenderer.swift",
+      "sha256": "45dd5e14598e17cd557cf633d2a6f29bbc0db2a8b7bc9178bbb730f6e3b8e709"
+    },
+    {
+      "path": "Packages/TORCSMetal/SceneGeometry.swift",
+      "sha256": "ca751f52f69a3d5948d721c6fc097e5664bae65b27b752b96badffc83ccaecc4"
+    },
+    {
+      "path": "Packages/TORCSMetal/VehiclePresentation.swift",
+      "sha256": "18c0c5d4228a03d4b71264fbe4e95538cf2ddcbc6c5c6b727eedeaee7038a8e1"
+    },
+    {
+      "path": "Packages/TORCSMetal/CarLightRenderState.swift",
+      "sha256": "f6730c2f18b10fdd0b3ad92622f1e10daf0da8bc48fb7794af07fc89b1b04196"
+    },
+    {
+      "path": "Packages/TORCSMetal/Scene.metal",
+      "sha256": "d5364d021eca43f21c431a3088abf3212eb851bb2107bffaac5fcea1909daa30"
+    },
+    {
+      "path": "Tests/UnitTests/SceneDrawOrderTests.swift",
+      "sha256": "378afa1bd432bd83ae49e6cc7d6037993f02e4cf6e7c4610b057bcc94f8cff80"
+    },
+    {
+      "path": "Tests/UnitTests/SurveyCameraTests.swift",
+      "sha256": "50785c0f4fbb3170e0ef5039f0be669ead3c699766dbc3649e7d3fc9ee77b44f"
+    },
+    {
+      "path": "Upstream/Reference/draw-order-instrumentation.cpp",
+      "sha256": "949b60662eaa36aff0b0422c3b88110cd811cede49073c86fa06dcd467e6844b"
+    },
+    {
+      "path": "Upstream/Reference/include/CReference.h",
+      "sha256": "f1f9205fec72f0bd394285808df4e6b86eed3ae3d24eeb11fd57f75acbecf0b8"
+    },
+    {
+      "path": "Upstream/source-manifest.json",
+      "sha256": "f328d8cb70343638234ff8fa5d154cf73e31e895329b9ec54fb822150b2f7690"
+    },
+    {
+      "path": "Scripts/verify-provenance.py",
+      "sha256": "c7cff5034202932a5fed6f790be2cc10cb4a2dae02b096a7d40ab2f1a9309948"
+    },
+    {
+      "path": "Package.swift",
+      "sha256": "1dbd03f270e326d8cea826e489d14cf24c51142bcc66f328ac4a66b9291dd8cb"
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES.md",
+      "sha256": "19e62778ed871dc13a71461d6e179a0e6294ca38220ad88d9d576aae47fadbd8"
+    },
+    {
+      "path": "App/BrakeVisualSmoke.swift",
+      "sha256": "0485be2627125622bf3e798a8ceef0aa8f6254348fc5c6d859de23541a9f8ba8"
+    },
+    {
+      "path": "App/CameraZoomSmoke.swift",
+      "sha256": "86f8dafaf3a2aa201a6aa774b17101b417780cfc4ad2d33028128411a251f1ea"
+    },
+    {
+      "path": "App/CarLightVisualSmoke.swift",
+      "sha256": "d145330daf97622ac3854b9f0734a0f49c8100bde9e3d925ad14128692931900"
+    },
+    {
+      "path": "App/CarTrackShadowSmoke.swift",
+      "sha256": "32d3e4b3fa4215b758e4a9b4e639754ae03f265a5ed2d845f2b43c04a96bffb4"
+    },
+    {
+      "path": "App/DrivingControlsEditor.swift",
+      "sha256": "f41047a73648325057b991134e00320f6d363c1d440016a0554fda40fa04f65b"
+    },
+    {
+      "path": "App/DrivingSession.swift",
+      "sha256": "347435b9cd07959b316c923df4ba351133619b08a0983e8013411c4795cf2af5"
+    },
+    {
+      "path": "App/DrivingVisualSmoke.swift",
+      "sha256": "5446ac91b60bc74afdaa80d164c49c219259780f310b522902828f019bfb6e46"
+    },
+    {
+      "path": "App/EdgeSmoothingSmoke.swift",
+      "sha256": "92fc1005dd49795da1738299d236a316c222bdbe94f12c9b54ee0e971cfecc6c"
+    },
+    {
+      "path": "App/FlyVisualSmoke.swift",
+      "sha256": "1996c6928f2ef5b806aab665665b2ccb7288bfc50f41c04a3a48ff70bbd57644"
+    },
+    {
+      "path": "App/MirrorSmoke.swift",
+      "sha256": "9091f5e2e4c184d48d0a3eb8093b38df60b2af9d23c007e76df9e0e0b85775dc"
+    },
+    {
+      "path": "App/SceneInspector.swift",
+      "sha256": "c308965a91bcad7494962bdfa61b1237796a74d509bb4c62ba4f5ec17afc8606"
+    },
+    {
+      "path": "App/TORCSMacApp.swift",
+      "sha256": "fb35c67ac33ccdf9f1068c2961707b9700b409cafcd357269a25ec0121d5a2fc"
+    },
+    {
+      "path": "App/TVVisualSmoke.swift",
+      "sha256": "5a45985b6b89c4b85798100235e0a0b7540ad488474db95da72cddaaf2be5c92"
+    },
+    {
+      "path": "App/TracksideSmoke.swift",
+      "sha256": "e45efa16387fe6a28980c25a6f65ebecaf5f02cc9e75d4c3a822f64a7e7e4c1d"
+    },
+    {
+      "path": "App/TrafficVisualSmoke.swift",
+      "sha256": "948db1affd992948956867d0afbb369d2086d2e5c178f9f6f7537c30baeb0b2e"
+    },
+    {
+      "path": "App/VehicleSceneSmoke.swift",
+      "sha256": "477d3d52fd32b5407721f3dc7ddb76ece04ec661fe5f762aa973922a9df8bbfe"
+    }
+  ],
+  "evidenceSnapshot": [
+    {
+      "path": "Artifacts/draw-order-depth-full-debug.log",
+      "sha256": "011469fa1d7e3a63746d9d7103485bb0ece575a9ef37d1334a0042d55fd7811b"
+    },
+    {
+      "path": "Artifacts/draw-order-depth-selected.log",
+      "sha256": "c1faad6df396b0d455ec95ba4f3a76e2108756bcdddf1aacf9f37a25115c0843"
+    },
+    {
+      "path": "Artifacts/draw-order-depth-release.log",
+      "sha256": "9699a4c41b768dcf72f8e884490b922caed299ea686158968f950b9eb2380fe6"
+    },
+    {
+      "path": "Artifacts/draw-order-depth-asan.log",
+      "sha256": "65308db109401404dcbd83b71d638a7e8f3dfd6a177b495987a5f5046c746f18"
+    },
+    {
+      "path": "Artifacts/draw-order-depth-provenance.log",
+      "sha256": "89cca18f20d073bcab74a052614ff596635f516ce6cc203448ea33cbc41ed218"
+    },
+    {
+      "path": "Artifacts/draw-order-depth-archive.log",
+      "sha256": "fcc98ec9beaa5e0cb947cd0c62c7d749793e0d4fc903b2d058ac58f9894489df"
+    },
+    {
+      "path": "Artifacts/draw-order-depth-source-audit.json",
+      "sha256": "85d52db815c3940d7d32a491e9c31ed25c06c58dfc7c63003f22a20f03343efc"
+    },
+    {
+      "path": "Artifacts/draw-order-preserved.json",
+      "sha256": "a0e1eca750c7ec43a87828f1705fcd6633fba29f45c79b8126e6788fbb8af81c"
+    },
+    {
+      "path": "Artifacts/draw-order-planner-benchmark.json",
+      "sha256": "7bb876f663f5f773e6a063aa868b4ce8d3e5f1ef738628d5cb7380f3ea4d0e1d"
+    },
+    {
+      "path": "Artifacts/draw-order-bench-command.json",
+      "sha256": "1e3bcaf0053d7bb81aae1487d55dadb5ba16b508a3062633f5f369d398cfb1bd"
+    },
+    {
+      "path": "Artifacts/DrawOrderBench.swift",
+      "sha256": "91363b54cbe028ff84f50604cab2e82a5534e976398fc6dab083e83512874835"
+    },
+    {
+      "path": "Artifacts/draw-order-package.log",
+      "sha256": "e49a32710853b827d468b8dd7b8e5a3cdedfe448c22993b83b6cad4a6e15f035"
+    },
+    {
+      "path": "Artifacts/draw-order-runtime-libraries.log",
+      "sha256": "14e3958840943d38329c2fc6c7065711f37260d0227a44d600dc100adb074ce4"
+    },
+    {
+      "path": "Artifacts/draw-order-signature.log",
+      "sha256": "41aa5c8265d94f709f75e77c2b9efd801568981f9c7f1197b679a328de3236fb"
+    },
+    {
+      "path": "Artifacts/draw-order-smoke.log",
+      "sha256": "7c307493192b70189dfcb95937600d572fed01a81f577ac8302965950bc5ab5f"
+    },
+    {
+      "path": "Artifacts/draw-order-performance-processes.txt",
+      "sha256": "3da94ad232ebbc4ae5275c29518ea4242e2066163beafe744ffa4e8362c05b99"
+    },
+    {
+      "path": "Artifacts/order-preview-first.log",
+      "sha256": "6efc86b2084fa877ad3f88081526bb5228e1878fc121e9e792ceea7c65c45b63"
+    },
+    {
+      "path": "Artifacts/order-preview-first/report.json",
+      "sha256": "813465c54664d15cce75880f30fe55c2c12b52f8a38e039cb07a7cdd1a6e9490"
+    },
+    {
+      "path": "Artifacts/order-preview-second.log",
+      "sha256": "6efc86b2084fa877ad3f88081526bb5228e1878fc121e9e792ceea7c65c45b63"
+    },
+    {
+      "path": "Artifacts/order-preview-second/report.json",
+      "sha256": "813465c54664d15cce75880f30fe55c2c12b52f8a38e039cb07a7cdd1a6e9490"
+    },
+    {
+      "path": "Artifacts/order-preview-validation.log",
+      "sha256": "734247d30751d5e60e135342dce42f0ac72a9e1359760aff84aec0b6dba37465"
+    },
+    {
+      "path": "Artifacts/order-preview-validation/report.json",
+      "sha256": "813465c54664d15cce75880f30fe55c2c12b52f8a38e039cb07a7cdd1a6e9490"
+    },
+    {
+      "path": "Artifacts/order-fly.log",
+      "sha256": "121da35d55765d5743a4409a45c5bc1bad76f4e98c4166031a8f37b0767ab157"
+    },
+    {
+      "path": "Artifacts/order-fly/report.json",
+      "sha256": "59ca8d01875f019c0ac9f9112b5842b162ef5eb9a73f9a09342ec91e5384e673"
+    },
+    {
+      "path": "Artifacts/order-tv.log",
+      "sha256": "d73e2acce0b98acba2bf2bc034e717a4bb22cc051aae98fed0d9ef6ddb478a57"
+    },
+    {
+      "path": "Artifacts/order-tv/report.json",
+      "sha256": "84f47c907bf9fbb5331d0067f9551c6bfd0919d737ff1fc60ed025ab1aa333fa"
+    },
+    {
+      "path": "Artifacts/order-traffic.log",
+      "sha256": "ee9bcfe291332f0480b6f09fc9954dec301eca73cefea661b1b4ad8030b6b16a"
+    },
+    {
+      "path": "Artifacts/order-traffic/report.json",
+      "sha256": "af53ee7657800eef056bae7e015abf2fed4bdbfea96de8386ad0ab40159e1d3e"
+    },
+    {
+      "path": "Artifacts/order-prior-benchmark.log",
+      "sha256": "6efc86b2084fa877ad3f88081526bb5228e1878fc121e9e792ceea7c65c45b63"
+    },
+    {
+      "path": "Artifacts/order-prior-benchmark/report.json",
+      "sha256": "c52963b0a767a82a6bfc26332fc6f77e4273d55a007e0c5d80b94a5676bb3823"
+    },
+    {
+      "path": "Artifacts/order-benchmark.log",
+      "sha256": "6efc86b2084fa877ad3f88081526bb5228e1878fc121e9e792ceea7c65c45b63"
+    },
+    {
+      "path": "Artifacts/order-benchmark/report.json",
+      "sha256": "6b68b0ea38e99df2ee7b0ab63b57bc5e153fef4b0d68815f4e7dcc7b3f5d4870"
+    }
+  ],
+  "remaining": [
+    "Inherited alpha-test thresholds and other legacy effect state",
+    "Full original frustum/LOD/callback behavior and additional effects",
+    "Multi-car Fly height and interactive race presentation",
+    "GUI camera acceptance, full-race profiling and additional GPUs/content",
+    "Native race lifecycle, AI, audio and replay",
+    "Controllers/HID remain behind visual priorities",
+    "Shared artwork attribution and signed/notarized distribution"
+  ]
+}

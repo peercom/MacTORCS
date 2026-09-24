@@ -1,0 +1,202 @@
+{
+  "absoluteTolerance": 1e-05,
+  "archiveSHA256": "f9c69e86d290295467451b01d7838d85005ba613644a6fe8a3f85a7c6a03cd4c",
+  "excluded": [
+    "Complete wheel XML configuration",
+    "Chassis/wheel kinematics",
+    "Driven drivetrain/differentials",
+    "Whole-vehicle/race parity",
+    "Gameplay",
+    "Performance or long-race stability",
+    "Cross-platform bit identity"
+  ],
+  "fixtureSHA256": "bfd4bfc66977a515e1d5bafb37e1698adaa9b05808d4da003f94d98a570a7b57",
+  "nonfinitePolicy": "Three sideways-slip singularities classified separately; not included in finite zero-error observations",
+  "observations": {
+    "addressSanitizer": [
+      {
+        "brakeTicks": 2800,
+        "check": "WHEEL_COUPLED",
+        "maxAbsolute": 0.0,
+        "ticks": 6000
+      },
+      {
+        "blended": 6960,
+        "check": "WHEEL_FORCE",
+        "extended": 2800,
+        "maxAbsolute": 0.0,
+        "roles": 5,
+        "samples": 8400,
+        "zeroLoad": 3500
+      },
+      {
+        "blended": 3278,
+        "check": "WHEEL_FORCE_SEQUENTIAL",
+        "maxAbsolute": 0.0,
+        "ticks": 10000
+      },
+      {
+        "check": "WHEEL_FORCE_SINGULAR",
+        "classifications": "matched",
+        "samples": 3
+      },
+      {
+        "check": "WHEEL_ROTATION_LOCK",
+        "maxAbsolute": 0,
+        "samples": 30
+      },
+      {
+        "check": "WHEEL_ROTATION_SEQUENTIAL",
+        "maxAbsolute": 0.0,
+        "ticks": 20000,
+        "wraps": 1304
+      },
+      {
+        "check": "TIRE_THERMAL_SEQUENTIAL",
+        "maxAbsolute": 0.0,
+        "resets": 1,
+        "ticks": 20000
+      },
+      {
+        "check": "TIRE_THERMAL",
+        "grainingDecreased": 64,
+        "grainingIncreased": 94,
+        "maxAbsolute": 0.0,
+        "samples": 3600,
+        "worn": 150
+      }
+    ],
+    "debug": [
+      {
+        "brakeTicks": 2800,
+        "check": "WHEEL_COUPLED",
+        "maxAbsolute": 0.0,
+        "ticks": 6000
+      },
+      {
+        "blended": 6960,
+        "check": "WHEEL_FORCE",
+        "extended": 2800,
+        "maxAbsolute": 0.0,
+        "roles": 5,
+        "samples": 8400,
+        "zeroLoad": 3500
+      },
+      {
+        "blended": 3278,
+        "check": "WHEEL_FORCE_SEQUENTIAL",
+        "maxAbsolute": 0.0,
+        "ticks": 10000
+      },
+      {
+        "check": "WHEEL_FORCE_SINGULAR",
+        "classifications": "matched",
+        "samples": 3
+      },
+      {
+        "check": "WHEEL_ROTATION_LOCK",
+        "maxAbsolute": 0,
+        "samples": 30
+      },
+      {
+        "check": "WHEEL_ROTATION_SEQUENTIAL",
+        "maxAbsolute": 0.0,
+        "ticks": 20000,
+        "wraps": 1304
+      },
+      {
+        "check": "TIRE_THERMAL_SEQUENTIAL",
+        "maxAbsolute": 0.0,
+        "resets": 1,
+        "ticks": 20000
+      },
+      {
+        "check": "TIRE_THERMAL",
+        "grainingDecreased": 64,
+        "grainingIncreased": 94,
+        "maxAbsolute": 0.0,
+        "samples": 3600,
+        "worn": 150
+      }
+    ],
+    "release": [
+      {
+        "brakeTicks": 2800,
+        "check": "WHEEL_COUPLED",
+        "maxAbsolute": 0.0,
+        "ticks": 6000
+      },
+      {
+        "blended": 6960,
+        "check": "WHEEL_FORCE",
+        "extended": 2800,
+        "maxAbsolute": 0.0,
+        "roles": 5,
+        "samples": 8400,
+        "zeroLoad": 3500
+      },
+      {
+        "blended": 3278,
+        "check": "WHEEL_FORCE_SEQUENTIAL",
+        "maxAbsolute": 0.0,
+        "ticks": 10000
+      },
+      {
+        "check": "WHEEL_FORCE_SINGULAR",
+        "classifications": "matched",
+        "samples": 3
+      },
+      {
+        "check": "WHEEL_ROTATION_LOCK",
+        "maxAbsolute": 0,
+        "samples": 30
+      },
+      {
+        "check": "WHEEL_ROTATION_SEQUENTIAL",
+        "maxAbsolute": 0.0,
+        "ticks": 20000,
+        "wraps": 1304
+      },
+      {
+        "check": "TIRE_THERMAL_SEQUENTIAL",
+        "maxAbsolute": 0.0,
+        "resets": 1,
+        "ticks": 20000
+      },
+      {
+        "check": "TIRE_THERMAL",
+        "grainingDecreased": 64,
+        "grainingIncreased": 94,
+        "maxAbsolute": 0.0,
+        "samples": 3600,
+        "worn": 150
+      }
+    ]
+  },
+  "relativeTolerance": 1e-06,
+  "schema": 1,
+  "scope": "Native wheel force, thermal/wear/grip, free-wheel/rotation and coupled wheel stages versus unchanged original functions; externally supplied position, body velocity and axle loading",
+  "sourceSHA256": {
+    "Packages/TORCSSimulation/Brakes.swift": "d81a6cab599167a3df720440c460ebfec98e4a97e7b3822bb6694fbda733a36e",
+    "Packages/TORCSSimulation/Suspension.swift": "f3297660f059a1bd332ed2a76aff6d1207cdd401161d665f8be1e8ba0b111116",
+    "Packages/TORCSSimulation/TireThermal.swift": "f9d0dbec89574ff730fd7b96da4a48a67744a45efed20ba2a8fe508072022afb",
+    "Packages/TORCSSimulation/WheelForce.swift": "f49070d82d33d70f0e1e451d47cfc9d835ca8cc58cb82e9ef742525e5b589a2f",
+    "Packages/TORCSSimulation/WheelRide.swift": "9b37444bba3c0ef0817b727ad9a6c74a1bd9ef5863fda2bca50c6f17e55f7658",
+    "Packages/TORCSSimulation/WheelRotation.swift": "aba02fbdccac7a373d0cb9fb9c66395cb9995a6d8c55f27240f443ee6755e145",
+    "Packages/TORCSTrack/TrackBuilder.swift": "f86b8926ca1aae6f4362352f2b824b2dc4cfbd44a1fb60ad6a40616df924f4af",
+    "Packages/TORCSTrack/TrackQueries.swift": "26f843adb80188ace94c844f7cce2c533b92be1b81ef9c2b2e3204dbe931856b",
+    "Tests/UnitTests/WheelForceTests.swift": "f1ab1507f12c9e2fee49248c39a93c67b9e8642f9d6d4758b282db3b87679a22",
+    "Tests/UnitTests/WheelThermalRotationTests.swift": "efb0ab45e31394d47c3bd83cf444b27b02455fc59846c4c867ea07fd7a71162c",
+    "Tools/TORCSReferenceSupport/ReferenceWorld.swift": "7c41154b2ac93944bf2c0c587bebd09d69f20e588ebfa6f0a3343ad0f8d3b038",
+    "Upstream/Reference/bridge.cpp": "e9059cc7e9653cc6da091c81c363e9ed85377757cfe28081f80252dd2f4851d2",
+    "Upstream/Reference/include/CReference.h": "f54c23fb520c64a0134b4a03d52816e2c78854da01cbfda108a1b1db5178926b",
+    "Upstream/Reference/private/robottools.h": "fd70461fadd6a39a0735ca44a0bbd832f627522234e84f6a9f250833bfe3388d",
+    "Upstream/Reference/susp.cpp": "05a6075c968089fb61b34a9b40f6cc0ba3c7456ad3943ff446c5d39aefb625e8",
+    "Upstream/Reference/wheel.cpp": "7228fe05860615082f075cd2970c4bcdf48a242623a609427da34227b15125ec",
+    "Upstream/Reference/world.cpp": "85f9c47c39d29e846fb7d6c072650dc80d25c33cf5956bc5f925afb0c06253d5"
+  },
+  "toolchain": "Swift 6.3.3 / Xcode 26.6 / Apple Silicon",
+  "upstream": "TORCS 1.3.9",
+  "wearAbsoluteTolerance": 1e-12,
+  "wearRelativeTolerance": 1e-10
+}

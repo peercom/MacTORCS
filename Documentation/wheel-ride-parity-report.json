@@ -1,0 +1,77 @@
+{
+  "absoluteTolerance": 1e-05,
+  "archiveSHA256": "f9c69e86d290295467451b01d7838d85005ba613644a6fe8a3f85a7c6a03cd4c",
+  "excluded": [
+    "Complete wheel configuration",
+    "Wheel/chassis kinematics",
+    "Unsprung/tire force integration",
+    "Tire temperature/wear dynamics",
+    "Native whole-vehicle parity",
+    "Gameplay"
+  ],
+  "fixtureSHA256": "bfd4bfc66977a515e1d5bafb37e1698adaa9b05808d4da003f94d98a570a7b57",
+  "observations": {
+    "addressSanitizer": [
+      {
+        "airborne": 2952,
+        "check": "WHEEL_RIDE",
+        "compressed": 990,
+        "extended": 660,
+        "grounded": 1008,
+        "maxAbsolute": 0.0,
+        "samples": 3960
+      },
+      {
+        "check": "WHEEL_RIDE_SEQUENTIAL",
+        "maxAbsolute": 0.0,
+        "ticks": 5000
+      }
+    ],
+    "debug": [
+      {
+        "airborne": 2952,
+        "check": "WHEEL_RIDE",
+        "compressed": 990,
+        "extended": 660,
+        "grounded": 1008,
+        "maxAbsolute": 0.0,
+        "samples": 3960
+      },
+      {
+        "check": "WHEEL_RIDE_SEQUENTIAL",
+        "maxAbsolute": 0.0,
+        "ticks": 5000
+      }
+    ],
+    "release": [
+      {
+        "airborne": 2952,
+        "check": "WHEEL_RIDE",
+        "compressed": 990,
+        "extended": 660,
+        "grounded": 1008,
+        "maxAbsolute": 0.0,
+        "samples": 3960
+      },
+      {
+        "check": "WHEEL_RIDE_SEQUENTIAL",
+        "maxAbsolute": 0.0,
+        "ticks": 5000
+      }
+    ]
+  },
+  "relativeTolerance": 1e-06,
+  "schema": 1,
+  "scope": "Native geometry, wheel ride/suspension check-in and brake update versus original SimWheelUpdateRide; forced input positions, not full tire/car dynamics",
+  "sourceSHA256": {
+    "Packages/TORCSSimulation/Brakes.swift": "d81a6cab599167a3df720440c460ebfec98e4a97e7b3822bb6694fbda733a36e",
+    "Packages/TORCSSimulation/Suspension.swift": "f3297660f059a1bd332ed2a76aff6d1207cdd401161d665f8be1e8ba0b111116",
+    "Packages/TORCSSimulation/WheelRide.swift": "9b37444bba3c0ef0817b727ad9a6c74a1bd9ef5863fda2bca50c6f17e55f7658",
+    "Packages/TORCSTrack/TrackBuilder.swift": "f86b8926ca1aae6f4362352f2b824b2dc4cfbd44a1fb60ad6a40616df924f4af",
+    "Packages/TORCSTrack/TrackQueries.swift": "26f843adb80188ace94c844f7cce2c533b92be1b81ef9c2b2e3204dbe931856b",
+    "Tests/UnitTests/WheelRideTests.swift": "ef17ed26f6602a84acc69165d7bb6b1ccc3c0c6810df5422de44a8adc9fbc3d5",
+    "Upstream/Reference/world.cpp": "85f9c47c39d29e846fb7d6c072650dc80d25c33cf5956bc5f925afb0c06253d5"
+  },
+  "toolchain": "Swift 6.3.3 / Xcode 26.6 / Apple Silicon",
+  "upstream": "TORCS 1.3.9"
+}

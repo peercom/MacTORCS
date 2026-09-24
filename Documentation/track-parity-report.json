@@ -1,0 +1,455 @@
+{
+  "absoluteTolerance": 1e-05,
+  "archiveSHA256": "f9c69e86d290295467451b01d7838d85005ba613644a6fe8a3f85a7c6a03cd4c",
+  "excluded": [
+    "Pit occupancy, driver assignment, service and speed-limit enforcement",
+    "Collision force integration",
+    "Cameras/scenery metadata",
+    "Track versions 0\u20133",
+    "Mesh/textures and gameplay",
+    "Cross-build/cross-platform bit identity"
+  ],
+  "fixtureSHA256": "bfd4bfc66977a515e1d5bafb37e1698adaa9b05808d4da003f94d98a570a7b57",
+  "observations": {
+    "addressSanitizer": [
+      {
+        "check": "TRACK_GLOBAL",
+        "maxAbsolute": 0.0,
+        "samples": 70119
+      },
+      {
+        "check": "TRACK_LOCAL",
+        "maxAbsolute": 0.0,
+        "samples": 50535,
+        "segments": 1123
+      },
+      {
+        "check": "TRACK_PITS",
+        "maxAbsolute": 0.0,
+        "queries": 0,
+        "stalls": 0
+      },
+      {
+        "check": "TRACK_BUILD",
+        "fields": 11088,
+        "maxAbsolute": 0.0,
+        "segments": 197
+      },
+      {
+        "check": "TRACK_SYNTHETIC",
+        "maxAbsolute": 0.0,
+        "samples": 3152
+      },
+      {
+        "check": "TRACK_PITS",
+        "maxAbsolute": 0.0,
+        "queries": 5936,
+        "stalls": 16
+      },
+      {
+        "check": "TRACK_BUILD",
+        "fields": 66292,
+        "maxAbsolute": 0.0,
+        "segments": 1123
+      },
+      {
+        "check": "TRACK_PITS",
+        "maxAbsolute": 0.0,
+        "queries": 209,
+        "stalls": 11
+      },
+      {
+        "check": "TRACK_BUILD",
+        "fields": 5414,
+        "maxAbsolute": 0.0,
+        "segments": 95
+      },
+      {
+        "check": "TRACK_PITS",
+        "maxAbsolute": 0.0,
+        "queries": 0,
+        "stalls": 0
+      },
+      {
+        "check": "TRACK_BUILD",
+        "fields": 5344,
+        "maxAbsolute": 0.0,
+        "segments": 95
+      },
+      {
+        "check": "TRACK_PITS",
+        "maxAbsolute": 0.0,
+        "queries": 228,
+        "stalls": 12
+      },
+      {
+        "check": "TRACK_BUILD",
+        "fields": 5420,
+        "maxAbsolute": 0.0,
+        "segments": 95
+      },
+      {
+        "check": "TRACK_PITS",
+        "maxAbsolute": 0.0,
+        "queries": 0,
+        "stalls": 0
+      },
+      {
+        "check": "TRACK_BUILD",
+        "fields": 5344,
+        "maxAbsolute": 0.0,
+        "segments": 95
+      },
+      {
+        "check": "TRACK_PITS",
+        "maxAbsolute": 0.0,
+        "queries": 209,
+        "stalls": 11
+      },
+      {
+        "check": "TRACK_BUILD",
+        "fields": 5414,
+        "maxAbsolute": 0.0,
+        "segments": 95
+      },
+      {
+        "check": "TRACK_PITS",
+        "maxAbsolute": 0.0,
+        "queries": 0,
+        "stalls": 0
+      },
+      {
+        "check": "TRACK_BUILD",
+        "fields": 5344,
+        "maxAbsolute": 0.0,
+        "segments": 95
+      },
+      {
+        "check": "TRACK_PITS",
+        "maxAbsolute": 0.0,
+        "queries": 228,
+        "stalls": 12
+      },
+      {
+        "check": "TRACK_BUILD",
+        "fields": 5420,
+        "maxAbsolute": 0.0,
+        "segments": 95
+      },
+      {
+        "check": "TRACK_PITS",
+        "maxAbsolute": 0.0,
+        "queries": 0,
+        "stalls": 0
+      },
+      {
+        "check": "TRACK_BUILD",
+        "fields": 5344,
+        "maxAbsolute": 0.0,
+        "segments": 95
+      },
+      {
+        "cases": 8,
+        "check": "TRACK_INFRASTRUCTURE"
+      }
+    ],
+    "debug": [
+      {
+        "check": "TRACK_GLOBAL",
+        "maxAbsolute": 0.0,
+        "samples": 70119
+      },
+      {
+        "check": "TRACK_LOCAL",
+        "maxAbsolute": 0.0,
+        "samples": 50535,
+        "segments": 1123
+      },
+      {
+        "check": "TRACK_PITS",
+        "maxAbsolute": 0.0,
+        "queries": 0,
+        "stalls": 0
+      },
+      {
+        "check": "TRACK_BUILD",
+        "fields": 11088,
+        "maxAbsolute": 0.0,
+        "segments": 197
+      },
+      {
+        "check": "TRACK_SYNTHETIC",
+        "maxAbsolute": 0.0,
+        "samples": 3152
+      },
+      {
+        "check": "TRACK_PITS",
+        "maxAbsolute": 0.0,
+        "queries": 5936,
+        "stalls": 16
+      },
+      {
+        "check": "TRACK_BUILD",
+        "fields": 66292,
+        "maxAbsolute": 0.0,
+        "segments": 1123
+      },
+      {
+        "check": "TRACK_PITS",
+        "maxAbsolute": 0.0,
+        "queries": 209,
+        "stalls": 11
+      },
+      {
+        "check": "TRACK_BUILD",
+        "fields": 5414,
+        "maxAbsolute": 0.0,
+        "segments": 95
+      },
+      {
+        "check": "TRACK_PITS",
+        "maxAbsolute": 0.0,
+        "queries": 0,
+        "stalls": 0
+      },
+      {
+        "check": "TRACK_BUILD",
+        "fields": 5344,
+        "maxAbsolute": 0.0,
+        "segments": 95
+      },
+      {
+        "check": "TRACK_PITS",
+        "maxAbsolute": 0.0,
+        "queries": 228,
+        "stalls": 12
+      },
+      {
+        "check": "TRACK_BUILD",
+        "fields": 5420,
+        "maxAbsolute": 0.0,
+        "segments": 95
+      },
+      {
+        "check": "TRACK_PITS",
+        "maxAbsolute": 0.0,
+        "queries": 0,
+        "stalls": 0
+      },
+      {
+        "check": "TRACK_BUILD",
+        "fields": 5344,
+        "maxAbsolute": 0.0,
+        "segments": 95
+      },
+      {
+        "check": "TRACK_PITS",
+        "maxAbsolute": 0.0,
+        "queries": 209,
+        "stalls": 11
+      },
+      {
+        "check": "TRACK_BUILD",
+        "fields": 5414,
+        "maxAbsolute": 0.0,
+        "segments": 95
+      },
+      {
+        "check": "TRACK_PITS",
+        "maxAbsolute": 0.0,
+        "queries": 0,
+        "stalls": 0
+      },
+      {
+        "check": "TRACK_BUILD",
+        "fields": 5344,
+        "maxAbsolute": 0.0,
+        "segments": 95
+      },
+      {
+        "check": "TRACK_PITS",
+        "maxAbsolute": 0.0,
+        "queries": 228,
+        "stalls": 12
+      },
+      {
+        "check": "TRACK_BUILD",
+        "fields": 5420,
+        "maxAbsolute": 0.0,
+        "segments": 95
+      },
+      {
+        "check": "TRACK_PITS",
+        "maxAbsolute": 0.0,
+        "queries": 0,
+        "stalls": 0
+      },
+      {
+        "check": "TRACK_BUILD",
+        "fields": 5344,
+        "maxAbsolute": 0.0,
+        "segments": 95
+      },
+      {
+        "cases": 8,
+        "check": "TRACK_INFRASTRUCTURE"
+      }
+    ],
+    "release": [
+      {
+        "check": "TRACK_GLOBAL",
+        "maxAbsolute": 0.0,
+        "samples": 70119
+      },
+      {
+        "check": "TRACK_LOCAL",
+        "maxAbsolute": 0.0,
+        "samples": 50535,
+        "segments": 1123
+      },
+      {
+        "check": "TRACK_PITS",
+        "maxAbsolute": 0.0,
+        "queries": 0,
+        "stalls": 0
+      },
+      {
+        "check": "TRACK_BUILD",
+        "fields": 11088,
+        "maxAbsolute": 0.0,
+        "segments": 197
+      },
+      {
+        "check": "TRACK_SYNTHETIC",
+        "maxAbsolute": 0.0,
+        "samples": 3152
+      },
+      {
+        "check": "TRACK_PITS",
+        "maxAbsolute": 0.0,
+        "queries": 5936,
+        "stalls": 16
+      },
+      {
+        "check": "TRACK_BUILD",
+        "fields": 66292,
+        "maxAbsolute": 0.0,
+        "segments": 1123
+      },
+      {
+        "check": "TRACK_PITS",
+        "maxAbsolute": 0.0,
+        "queries": 209,
+        "stalls": 11
+      },
+      {
+        "check": "TRACK_BUILD",
+        "fields": 5414,
+        "maxAbsolute": 0.0,
+        "segments": 95
+      },
+      {
+        "check": "TRACK_PITS",
+        "maxAbsolute": 0.0,
+        "queries": 0,
+        "stalls": 0
+      },
+      {
+        "check": "TRACK_BUILD",
+        "fields": 5344,
+        "maxAbsolute": 0.0,
+        "segments": 95
+      },
+      {
+        "check": "TRACK_PITS",
+        "maxAbsolute": 0.0,
+        "queries": 228,
+        "stalls": 12
+      },
+      {
+        "check": "TRACK_BUILD",
+        "fields": 5420,
+        "maxAbsolute": 0.0,
+        "segments": 95
+      },
+      {
+        "check": "TRACK_PITS",
+        "maxAbsolute": 0.0,
+        "queries": 0,
+        "stalls": 0
+      },
+      {
+        "check": "TRACK_BUILD",
+        "fields": 5344,
+        "maxAbsolute": 0.0,
+        "segments": 95
+      },
+      {
+        "check": "TRACK_PITS",
+        "maxAbsolute": 0.0,
+        "queries": 209,
+        "stalls": 11
+      },
+      {
+        "check": "TRACK_BUILD",
+        "fields": 5414,
+        "maxAbsolute": 0.0,
+        "segments": 95
+      },
+      {
+        "check": "TRACK_PITS",
+        "maxAbsolute": 0.0,
+        "queries": 0,
+        "stalls": 0
+      },
+      {
+        "check": "TRACK_BUILD",
+        "fields": 5344,
+        "maxAbsolute": 0.0,
+        "segments": 95
+      },
+      {
+        "check": "TRACK_PITS",
+        "maxAbsolute": 0.0,
+        "queries": 228,
+        "stalls": 12
+      },
+      {
+        "check": "TRACK_BUILD",
+        "fields": 5420,
+        "maxAbsolute": 0.0,
+        "segments": 95
+      },
+      {
+        "check": "TRACK_PITS",
+        "maxAbsolute": 0.0,
+        "queries": 0,
+        "stalls": 0
+      },
+      {
+        "check": "TRACK_BUILD",
+        "fields": 5344,
+        "maxAbsolute": 0.0,
+        "segments": 95
+      },
+      {
+        "cases": 8,
+        "check": "TRACK_INFRASTRUCTURE"
+      }
+    ]
+  },
+  "relativeTolerance": 1e-06,
+  "schema": 1,
+  "scope": "Version-4 road, border, side, barrier and static-pit construction and geometry queries; no native whole-vehicle parity",
+  "sourceSHA256": {
+    "Packages/TORCSTrack/TrackBuilder.swift": "f86b8926ca1aae6f4362352f2b824b2dc4cfbd44a1fb60ad6a40616df924f4af",
+    "Packages/TORCSTrack/TrackGeometry.swift": "cd4d01d0947728a0fdff75d35c8c523f4752a7270f1ef86d279c58bf18159ea7",
+    "Packages/TORCSTrack/TrackInfrastructure.swift": "918f19b5828cf834faeecbf763cbe1a56cdadf25bce96d04f975ad0e49612931",
+    "Packages/TORCSTrack/TrackQueries.swift": "26f843adb80188ace94c844f7cce2c533b92be1b81ef9c2b2e3204dbe931856b",
+    "Tests/UnitTests/TrackGeometryTests.swift": "122e1f287877100906d929ab5251fe9bcfa121da503d9c174877a12a9906c163",
+    "Tools/TORCSReferenceSupport/ReferenceWorld.swift": "929ccb9f986328eabddcd8f4f76ad7ee1e37ed93ac2c828daa81c07301fdf4c6",
+    "Upstream/Reference/world.cpp": "2e8cfd4c2fa5867428b2f56560fc943b402611c2250e22da79d7ea933596e22b"
+  },
+  "toolchain": "Swift 6.3.3 / Xcode 26.6 / Apple Silicon",
+  "upstream": "TORCS 1.3.9"
+}

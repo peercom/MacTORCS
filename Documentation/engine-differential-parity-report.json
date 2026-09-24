@@ -1,0 +1,180 @@
+{
+  "absoluteTolerance": 1e-05,
+  "additionalChecks": [
+    "No-match torque retention at/above the last curve endpoint below/equal to limiter",
+    "Native rejection of empty/non-increasing torque curves"
+  ],
+  "archiveSHA256": "f9c69e86d290295467451b01d7838d85005ba613644a6fe8a3f85a7c6a03cd4c",
+  "excluded": [
+    "Gearbox/clutch shift scheduling",
+    "RWD/FWD/AWD drivetrain routing",
+    "Connection to four-wheel runtime",
+    "Pit-time reconfiguration",
+    "Simulation-owned random streams and replay",
+    "Chassis force/motion integration",
+    "Driven whole-vehicle/race parity",
+    "Gameplay",
+    "Cross-platform bit identity"
+  ],
+  "fixtureSHA256": {
+    "155-DTM.xml": "7b069b816636ed85ace6b440d87aa400c3e54716170766df3e7a7483475f52bb",
+    "Track-4WD-GrB.xml": "b08bc4a12ccfeff49ce1d608583a858cec69985d94aa057640d231016fed37eb"
+  },
+  "nonfinitePolicy": "Original duplicated final torque-curve segment retains NaN slope/intercept. Twenty setup values classified separately; all runtime comparisons require finite values.",
+  "observations": {
+    "addressSanitizer": [
+      {
+        "check": "DIFFERENTIAL_SWEEP",
+        "maxAbsolute": 0.0,
+        "randomDraws": 2352,
+        "samples": 9408
+      },
+      {
+        "cases": 16,
+        "check": "DIFFERENTIAL_CONFIG",
+        "fields": 160,
+        "maxAbsolute": 0.0
+      },
+      {
+        "check": "DIFFERENTIAL_SEQUENCE",
+        "maxAbsolute": 0.0,
+        "modes": 5,
+        "ticks": 15000
+      },
+      {
+        "cases": 10,
+        "check": "ENGINE_CONFIG",
+        "fields": 315,
+        "maxAbsolute": 0.0,
+        "terminalNaNs": 20
+      },
+      {
+        "axleCorrections": 4861,
+        "check": "ENGINE_SEQUENCE",
+        "maxAbsolute": 0.0,
+        "ticks": 20000
+      },
+      {
+        "axleCorrections": 34,
+        "check": "ENGINE_RPM",
+        "maxAbsolute": 0.0,
+        "randomDraws": 324,
+        "samples": 648
+      },
+      {
+        "check": "ENGINE_TORQUE",
+        "maxAbsolute": 0.0,
+        "samples": 7008
+      }
+    ],
+    "debug": [
+      {
+        "check": "DIFFERENTIAL_SWEEP",
+        "maxAbsolute": 0.0,
+        "randomDraws": 2352,
+        "samples": 9408
+      },
+      {
+        "cases": 16,
+        "check": "DIFFERENTIAL_CONFIG",
+        "fields": 160,
+        "maxAbsolute": 0.0
+      },
+      {
+        "check": "DIFFERENTIAL_SEQUENCE",
+        "maxAbsolute": 0.0,
+        "modes": 5,
+        "ticks": 15000
+      },
+      {
+        "cases": 10,
+        "check": "ENGINE_CONFIG",
+        "fields": 315,
+        "maxAbsolute": 0.0,
+        "terminalNaNs": 20
+      },
+      {
+        "axleCorrections": 4861,
+        "check": "ENGINE_SEQUENCE",
+        "maxAbsolute": 0.0,
+        "ticks": 20000
+      },
+      {
+        "axleCorrections": 34,
+        "check": "ENGINE_RPM",
+        "maxAbsolute": 0.0,
+        "randomDraws": 324,
+        "samples": 648
+      },
+      {
+        "check": "ENGINE_TORQUE",
+        "maxAbsolute": 0.0,
+        "samples": 7008
+      }
+    ],
+    "release": [
+      {
+        "check": "DIFFERENTIAL_SWEEP",
+        "maxAbsolute": 0.0,
+        "randomDraws": 2352,
+        "samples": 9408
+      },
+      {
+        "cases": 16,
+        "check": "DIFFERENTIAL_CONFIG",
+        "fields": 160,
+        "maxAbsolute": 0.0
+      },
+      {
+        "check": "DIFFERENTIAL_SEQUENCE",
+        "maxAbsolute": 0.0,
+        "modes": 5,
+        "ticks": 15000
+      },
+      {
+        "cases": 10,
+        "check": "ENGINE_CONFIG",
+        "fields": 315,
+        "maxAbsolute": 0.0,
+        "terminalNaNs": 20
+      },
+      {
+        "axleCorrections": 4861,
+        "check": "ENGINE_SEQUENCE",
+        "maxAbsolute": 0.0,
+        "ticks": 20000
+      },
+      {
+        "axleCorrections": 34,
+        "check": "ENGINE_RPM",
+        "maxAbsolute": 0.0,
+        "randomDraws": 324,
+        "samples": 648
+      },
+      {
+        "check": "ENGINE_TORQUE",
+        "maxAbsolute": 0.0,
+        "samples": 7008
+      }
+    ]
+  },
+  "randomInput": "Each test seed produces a shared external sample through unchanged original urandom; original engine resets to that seed before update. Native callback consumes the supplied value only on the matching fueled RPM path. No portable PRNG/global-stream parity claimed.",
+  "relativeTolerance": 1e-06,
+  "schema": 1,
+  "scope": "Fresh engine/differential configuration and original engine torque, fuel, RPM/clutch/exhaust plus all five differential update modes, with optional real engine reaction",
+  "sourceSHA256": {
+    "Package.swift": "88262940476314f5392581880757c11689f2f36bfbd155cbdbdd6cb223d5dd23",
+    "Packages/TORCSSimulation/Differential.swift": "ed233cdaba98b9d7e8f79b72e7f080bde7eb052f65da6f5abdacd9d9d6426ed5",
+    "Packages/TORCSSimulation/Engine.swift": "9da1c85776cbefd783aaef7c0c84796c6511a35868e62e67bf278e00728519a6",
+    "Tests/UnitTests/DifferentialTests.swift": "06d2e3a096b1d1cb6d756dd66b15beeb1bf0a7d263c4bd2e13fb77cc7b5538ad",
+    "Tests/UnitTests/EngineTests.swift": "e8d00cf2700306175a2ef5c3ca34bd5261bdc79c3e5ac31f21ab25b985511b56",
+    "Tools/TORCSReferenceSupport/ReferenceWorld.swift": "a8f13e74dc6d20800946cc694dfde51f57a0f5b9407f22f54a0bd02166f48b04",
+    "Upstream/Reference/differential.cpp": "aa8ef862e3f2e5df5fdbf84c23f38c6bf8f045a26ac144c26b76d60cab69262d",
+    "Upstream/Reference/engine.cpp": "5908f58ae310926bdb6b766b6a061ecab3ea7178ef4bfbbc2aa520ba59ffbd55",
+    "Upstream/Reference/include/CReference.h": "aca4753ad97f5f00113aebdfd1bf5b40a02902e0b6d9ae1eaa0fa152d8cc97ef",
+    "Upstream/Reference/private/sim.h": "308036d005d0236e67815732793117d7f6c28e6aa850bfa6634a372e1df4ac34",
+    "Upstream/Reference/world.cpp": "d7838d9440ddae486b12e6a219973353ceac7f8960b3363b43d28c5b77a5d3f9"
+  },
+  "toolchain": "Swift 6.3.3 / Xcode 26.6 / Apple Silicon",
+  "upstream": "TORCS 1.3.9"
+}

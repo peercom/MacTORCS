@@ -1,0 +1,77 @@
+{
+  "absoluteTolerance": 1e-05,
+  "fields": {
+    "brake.frontPressure": {
+      "failures": 0,
+      "maximumAbsolute": 0,
+      "maximumRelative": 0,
+      "rms": 0
+    },
+    "brake.rearPressure": {
+      "failures": 0,
+      "maximumAbsolute": 0,
+      "maximumRelative": 0,
+      "rms": 0
+    },
+    "brake.temperature": {
+      "failures": 0,
+      "maximumAbsolute": 0,
+      "maximumRelative": 0,
+      "rms": 0
+    },
+    "brake.torque": {
+      "failures": 0,
+      "maximumAbsolute": 0,
+      "maximumRelative": 0,
+      "rms": 0
+    },
+    "steering.angle": {
+      "failures": 0,
+      "maximumAbsolute": 0,
+      "maximumRelative": 0,
+      "rms": 0
+    },
+    "steering.left": {
+      "failures": 0,
+      "maximumAbsolute": 0,
+      "maximumRelative": 0,
+      "rms": 0
+    },
+    "steering.right": {
+      "failures": 0,
+      "maximumAbsolute": 0,
+      "maximumRelative": 0,
+      "rms": 0
+    },
+    "suspension.displacement": {
+      "failures": 0,
+      "maximumAbsolute": 0,
+      "maximumRelative": 0,
+      "rms": 0
+    },
+    "suspension.force": {
+      "failures": 0,
+      "maximumAbsolute": 0,
+      "maximumRelative": 0,
+      "rms": 0
+    },
+    "suspension.state": {
+      "failures": 0,
+      "maximumAbsolute": 0,
+      "maximumRelative": 0,
+      "rms": 0
+    }
+  },
+  "passed": true,
+  "records": 10000,
+  "relativeTolerance": 1e-06,
+  "environment": {
+    "swift": "6.3.3",
+    "xcode": "26.6 (17F113)",
+    "architecture": "Apple Silicon arm64",
+    "configuration": "release",
+    "scenario": "component-sweep-v1",
+    "reference_repeat_identical": true,
+    "native_repeat_identical": true
+  }
+}
