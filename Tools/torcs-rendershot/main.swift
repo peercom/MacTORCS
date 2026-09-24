@@ -59,6 +59,9 @@ struct Options {
     var motionBlur: Bool? = nil
     var compareMotionBlur = false
     var compareParticles = false
+    var compareSkid = false
+    /// Lay an S-shaped pair of skid marks on the ground before rendering.
+    var skid = false
     /// Frames of tyre smoke to emit at the rear wheels before rendering.
     var smokeFrames = 0
     var orbitSpeed: Float = 0
@@ -148,6 +151,8 @@ func parse() -> Options {
         case "--no-motion-blur": options.motionBlur = false
         case "--compare-motion-blur": options.compareMotionBlur = true
         case "--compare-particles": options.compareParticles = true
+        case "--compare-skid": options.compareSkid = true
+        case "--skid": options.skid = true
         case "--smoke": options.smokeFrames = Int(next()) ?? 45
         case "--orbit-speed": options.orbitSpeed = Float(next()) ?? 0
         case "--sustain": options.sustainSeconds = Double(next()) ?? 0
@@ -487,6 +492,23 @@ do {
         }
         print("particles: \(renderer.particles.count) live after \(options.smokeFrames) frames")
     }
+    if options.skid {
+        // Two rear tyres through an S, 12 m long, fading in and out.
+        let steps = 80
+        for step in 0 ..< steps {
+            let t = Float(step) / Float(steps - 1)
+            let x = -6 + t * 12, y = sin(t * .pi * 2) * 1.2
+            let heading = simd_normalize(SIMD3<Float>(1, cos(t * .pi * 2) * 1.2 * 2 * .pi / 12, 0))
+            let lateral = SIMD3(-heading.y, heading.x, 0)
+            let intensity = sin(t * .pi)
+            renderer.skidMarks.sources = [
+                SkidMarks.Source(key: 0, position: SIMD3(x, y, 0) - lateral * 0.75, lateral: lateral, width: 0.3, intensity: intensity),
+                SkidMarks.Source(key: 1, position: SIMD3(x, y, 0) + lateral * 0.75, lateral: lateral, width: 0.3, intensity: intensity * 0.8)]
+            renderer.skidMarks.advance()
+        }
+        print("skid marks: \(renderer.skidMarks.quadCount) quads")
+    }
+    if options.compareSkid { try compare("skid marks") { $0.skidMarks = $1 } }
     if options.compareParticles { try compare("particles") { $0.particles = $1 } }
     if options.compareMotionBlur { try compare("motion blur") { $0.motionBlur = $1 } }
     if options.compareReflections {

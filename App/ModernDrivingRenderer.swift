@@ -192,14 +192,36 @@ final class ModernDrivingRenderer {
         return sources
     }
 
+    /// Marks where a tyre skids hard enough. The threshold sits above the
+    /// smoke's: a tyre chirps before it leaves rubber.
+    static func skidSources(pose: VehiclePresentation, snapshot: VehicleVisualSnapshot, speed: Float) -> [SkidMarks.Source] {
+        guard abs(speed) > 1 else { return [] }
+        var sources: [SkidMarks.Source] = []
+        for i in 0 ..< 4 {
+            let wheel = snapshot.wheels[i]
+            guard wheel.skid > 0.3 else { continue }
+            let transform = pose.wheels[i].transform
+            let hub = transform[3]
+            let axle = SIMD3(transform[1].x, transform[1].y, transform[1].z)
+            let length = simd_length(axle)
+            guard length > 1e-5 else { continue }
+            sources.append(.init(key: i, position: SIMD3(hub.x, hub.y, hub.z - wheel.radius),
+                                 lateral: axle / length, width: wheel.width,
+                                 intensity: min((wheel.skid - 0.3) / 0.5, 1)))
+        }
+        return sources
+    }
+
     func draw(in view: MTKView, pose: VehiclePresentation, camera sceneCamera: SceneCamera,
               brakeCommand: Float = 0, lightCommand: UInt32 = 0,
               drawsDriver: Bool, drawsCar: Bool,
-              particleSources: [ParticleSystem.Source] = [], deltaTime: Float = 1 / 60) {
+              particleSources: [ParticleSystem.Source] = [], skidSources: [SkidMarks.Source] = [],
+              deltaTime: Float = 1 / 60) {
         do {
             renderer.particles.sources = particleSources
             renderer.particles.advance(by: deltaTime)
-
+            renderer.skidMarks.sources = skidSources
+            renderer.skidMarks.advance()
             // A car filling the near cascade would shadow the camera in cockpit
             // views, where the body is hidden but would still cast.
             let lightState = RenderInstance.lightState(brakeCommand: brakeCommand, lightCommand: lightCommand)

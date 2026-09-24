@@ -1192,9 +1192,46 @@ stationary car's rear wheels before rendering, and `--compare-particles`
 measures the pass. The app smoke checks that a settled session at rest on
 asphalt has nothing to emit.
 
-Not done: skid marks on the road, spray, and the exhaust. Skid marks are
-the same signal — the published skid — laid into a ring-buffer decal set,
-which is the next increment.
+Not done: spray and the exhaust. Skid marks, the same signal laid into a
+ring of decals, follow in the next section.
+
+## Skid marks
+
+`SkidMarks` keeps a ring of 4,096 quads on the road. Each skidding tyre
+extends its own strip by one quad whenever its contact patch has travelled a
+quarter of a metre since the last, a tyre that stops skidding ends its
+strip, and the oldest quads are overwritten when the ring is full, which is
+how marks eventually vanish. The quad spans the tread width across the axle
+direction taken from the wheel transform, and sits 1.5 cm above the contact
+point so it wins the depth test against the road it lies on; the app lays
+marks above a skid factor of 0.3, a little higher than the smoke's 0.2,
+because a tyre chirps before it leaves rubber.
+
+The draw is a multiplicative decal — destination × (1 − darkness) — with
+the depth attachment loaded read-only, so a mark under the car body is
+hidden by the body and a mark on the road only ever takes light away. The
+darkness is the tread's grooves as bands across the mark, broken up along
+its length at two scales. It runs before the reflection trace so a mark
+shows in the paint of a car standing on it, and the mirror renderer draws
+the same ring. The ring is copied whole into a triple-buffered vertex
+buffer only on frames that laid a quad; 72 quads measured **+0.04 ms** at
+1280×832, within the noise.
+
+`testStripsGrowWithTravelAndBreakWhenSkiddingStops` pins the geometry: a
+tyre creeping 5 cm a frame lays a quad every fifth frame, a frame without
+the source ends the strip, the quad spans the width and carries metres
+along it. `testPerTyreStripsAndRingWrap` checks two tyres are two strips
+and that the ring overwrites its oldest quads.
+`testMarkDarkensTheGroundAndHidesUnderTheBody` renders the car fixture from
+above: a mark on the ground beside it lowers the image sum and brightens no
+pixel; a mark under the body changes almost nothing. `--skid` on the render
+tool lays an S through the origin and `--compare-skid` measures it.
+
+The marks are geometry on the road, not paint in the road's texture: they
+do not affect the road's roughness, so a fresh mark is not glossier than
+the tarmac the way the racing line's rubber is. That would take a second
+decal target the road shader reads, and can wait until the marks are
+judged to need it.
 
 ## Licensing
 

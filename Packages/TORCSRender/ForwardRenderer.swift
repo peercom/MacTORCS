@@ -199,6 +199,10 @@ public final class ForwardRenderer {
     /// `advance` once per frame; the mirror renderer draws the same system.
     public var particles: ParticleSystem
     public let particleRenderer: ParticleRenderer
+    /// Rubber on the road, laid from the same skid signal; the mirror
+    /// renderer draws the same ring.
+    public var skidMarks: SkidMarks
+    public let skidMarkRenderer: SkidMarkRenderer
     /// Whether motion blur wrote the post-colour target this frame.
     private var postProduced = false
     /// Bound at the occlusion slot when the pass is off, so the shader never
@@ -344,6 +348,8 @@ public final class ForwardRenderer {
         motionBlur = try MotionBlurRenderer(device: device, library: library)
         particles = try ParticleSystem(device: device)
         particleRenderer = try ParticleRenderer(device: device, library: library)
+        skidMarks = try SkidMarks(device: device)
+        skidMarkRenderer = try SkidMarkRenderer(device: device, library: library)
         let neutral = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: OcclusionRenderer.format,
                                                                 width: 1, height: 1, mipmapped: false)
         neutral.usage = .shaderRead
@@ -822,6 +828,12 @@ public final class ForwardRenderer {
         }
         encoder.endEncoding()
 
+        // Skid marks darken the road before the reflections trace reads it,
+        // so a mark shows in the paint of a car standing on it.
+        if settings.skidMarks {
+            skidMarkRenderer.encode(into: commands, targets: targets, marks: skidMarks, frame: &frame)
+        }
+
         if settings.screenSpaceReflections != .off {
             reflections.encode(into: commands, targets: targets, projection: projection, view: camera.view(),
                                sunDirection: lighting.direction, roughnessCutoff: settings.reflectionRoughnessCutoff,
@@ -960,6 +972,7 @@ public final class ForwardRenderer {
         let targets = try mirror.renderer.targets(outputWidth: mirror.width, outputHeight: mirror.height)
         mirror.renderer.animationTime = animationTime
         mirror.renderer.particles = particles
+        mirror.renderer.skidMarks = skidMarks
         mirror.renderer.encodeFrame(into: commands, targets: targets, resources: mirror.resources,
                                     instances: mirror.instances, camera: mirror.camera, lighting: lighting,
                                     aspect: Float(mirror.width) / Float(max(mirror.height, 1)))

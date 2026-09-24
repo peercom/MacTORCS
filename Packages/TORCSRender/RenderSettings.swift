@@ -81,6 +81,8 @@ public struct RenderSettings: Sendable, Equatable {
     public var motionBlur: Bool
     /// Tyre smoke and dust billboards, drawn after the opaque scene.
     public var particles: Bool
+    /// Rubber laid on the road by skidding tyres, as a darkening decal.
+    public var skidMarks: Bool
 
     /// Render a depth-only pass before shading.
     ///
@@ -121,6 +123,7 @@ public struct RenderSettings: Sendable, Equatable {
             bloomThreshold = 1.0
             motionBlur = true
             particles = true
+            skidMarks = true
             depthPrepass = false
             mirrorScale = 0.5
             textureMemoryBudgetBytes = 1_500_000_000
@@ -141,6 +144,7 @@ public struct RenderSettings: Sendable, Equatable {
             bloomThreshold = 1.0
             motionBlur = true
             particles = true
+            skidMarks = true
             depthPrepass = false
             mirrorScale = 0.67
             textureMemoryBudgetBytes = 3_000_000_000
@@ -161,6 +165,7 @@ public struct RenderSettings: Sendable, Equatable {
             bloomThreshold = 1.0
             motionBlur = true
             particles = true
+            skidMarks = true
             depthPrepass = false
             mirrorScale = 1
             textureMemoryBudgetBytes = 6_000_000_000

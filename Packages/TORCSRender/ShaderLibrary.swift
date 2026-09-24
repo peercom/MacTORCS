@@ -32,7 +32,7 @@ public enum RenderError: Error, CustomStringConvertible {
 public struct ShaderLibrary {
     /// Dependency order: shared decoding, the BRDF that uses it, tonemapping,
     /// then the passes that draw on all three.
-    public static let sourceOrder = ["Common", "BRDF", "Post", "Atmosphere", "Shadow", "Forward", "Sky", "Occlusion", "Reflections", "MotionBlur", "Bloom", "Particles", "Resolve"]
+    public static let sourceOrder = ["Common", "BRDF", "Post", "Atmosphere", "Shadow", "Forward", "Sky", "Occlusion", "Reflections", "MotionBlur", "Bloom", "Particles", "SkidMarks", "Resolve"]
 
     /// Drops `#include "local.metal"` while preserving `#include <system>`.
     static func strippingLocalIncludes(_ source: String) -> String {
