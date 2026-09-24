@@ -22,6 +22,7 @@ let package = Package(
         .target(name: "TORCSInput", dependencies: ["TORCSCore", "TORCSSimulation"], path: "Packages/TORCSInput"),
         .target(name: "TORCSRaceEngine", dependencies: ["TORCSRobots", "TORCSCore", "TORCSTelemetry", "TORCSSimulation", "TORCSTrack", "TORCSConfiguration", "TORCSAssets"], path: "Packages/TORCSRaceEngine"),
         .target(name: "TORCSTelemetry", dependencies: ["TORCSSimulation", "TORCSTrack"], path: "Packages/TORCSTelemetry"),
+        .target(name: "TORCSRender", dependencies: ["TORCSCore", "TORCSMath", "TORCSAssets", "TORCSTrack", "TORCSSimulation", "TORCSRaceEngine"], path: "Packages/TORCSRender", resources: [.copy("Shaders")]),
         .target(name: "TORCSMetal", dependencies: ["TORCSCore", "TORCSSimulation", "TORCSAssets", "TORCSTrack", "TORCSRaceEngine"], path: "Packages/TORCSMetal", resources: [.copy("Scene.metal")]),
         .target(name: "PNGReference", path: "Upstream/PNGReference", exclude: ["LICENSE"], publicHeadersPath: "include", cSettings: [.define("PNG_ARM_NEON_OPT", to: "0"), .unsafeFlags(["-ffp-contract=off"])], linkerSettings: [.linkedLibrary("z")]),
         .target(name: "CReference", dependencies: ["PNGReference"], path: "Upstream/Reference",
@@ -39,7 +40,7 @@ let package = Package(
         .executableTarget(name: "TORCSAssetCompiler", dependencies: ["TORCSAssets"], path: "Tools/torcs-assetc"),
         .executableTarget(name: "TORCSDiff", dependencies: ["TORCSTelemetry"], path: "Tools/torcs-diff"),
         .executableTarget(name: "TORCSMac", dependencies: ["TORCSCore", "TORCSSimulation", "TORCSMetal", "TORCSConfiguration", "TORCSTrack", "TORCSAssets", "TORCSRaceEngine", "TORCSTelemetry", "TORCSInput"], path: "App"),
-        .testTarget(name: "UnitTests", dependencies: ["TORCSRobots", "TORCSCore", "TORCSMath", "TORCSConfiguration", "TORCSSimulation", "TORCSTelemetry", "CReference", "TORCSReferenceSupport", "TORCSTrack", "TORCSRaceEngine", "TORCSAssets", "TORCSMetal", "TORCSInput"], path: "Tests/UnitTests", resources: [.copy("Fixtures")]),
+        .testTarget(name: "UnitTests", dependencies: ["TORCSRobots", "TORCSCore", "TORCSMath", "TORCSConfiguration", "TORCSSimulation", "TORCSTelemetry", "CReference", "TORCSReferenceSupport", "TORCSTrack", "TORCSRaceEngine", "TORCSAssets", "TORCSMetal", "TORCSRender", "TORCSInput"], path: "Tests/UnitTests", resources: [.copy("Fixtures")]),
         .testTarget(name: "PhysicsGoldenTests", dependencies: ["TORCSSimulation", "TORCSTelemetry", "CReference"], path: "Tests/PhysicsGoldenTests", resources: [.copy("Fixtures")])
     ], cxxLanguageStandard: .cxx17
 )
