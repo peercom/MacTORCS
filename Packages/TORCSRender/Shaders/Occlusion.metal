@@ -207,19 +207,25 @@ fragment float4 occlusionFragment(FullscreenVarying in [[stage_in]],
                                   constant OcclusionUniforms &u [[buffer(0)]],
                                   constant uint &features [[buffer(1)]]) {
     constexpr sampler pointSampler(coord::normalized, address::clamp_to_edge, filter::nearest);
-    float deviceDepth = depth.sample(pointSampler, in.uv);
+    // The centre pixel snapped to a depth texel too. At half resolution this
+    // pixel's centre lies between depth texels; reconstructing the position at
+    // the un-snapped coordinate with a neighbour's depth put it off the
+    // surface by half a texel of slope, alternating by row, and the whole road
+    // striped. At full resolution the two coincide and it never showed.
+    float2 uv = texelCentre(in.uv, u);
+    float deviceDepth = depth.sample(pointSampler, uv);
     // Sky: the reversed clear value. Nothing to occlude.
     if (deviceDepth <= 0.0f) { return float4(1.0f, 1.0f, 0.0f, 1.0f); }
 
-    float3 position = viewPosition(in.uv, deviceDepth, u);
+    float3 position = viewPosition(uv, deviceDepth, u);
     float noise = gradientNoise(floor(in.position.xy), u.parameters.w);
     float ambient = 1.0f, sun = 1.0f;
-    float3 normal = reconstructNormal(depth, pointSampler, in.uv, position, u);
+    float3 normal = reconstructNormal(depth, pointSampler, uv, position, u);
     if (features & 1u) {
-        ambient = groundTruthOcclusion(depth, pointSampler, in.uv, position, normal, noise, u);
+        ambient = groundTruthOcclusion(depth, pointSampler, uv, position, normal, noise, u);
     }
     if (features & 2u) {
-        sun = contactShadow(depth, pointSampler, in.uv, position, normal, noise, u);
+        sun = contactShadow(depth, pointSampler, uv, position, normal, noise, u);
     }
     return float4(ambient, sun, 0.0f, 1.0f);
 }

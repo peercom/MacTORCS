@@ -18,6 +18,10 @@ public struct RenderSettings: Sendable, Equatable {
         case high
     }
 
+    public enum UpscalingMode: String, Sendable, CaseIterable {
+        case temporal, spatial
+    }
+
     public enum Quality: Int, Sendable, Comparable, CaseIterable {
         case off = 0, half = 1, full = 2
         public static func < (a: Quality, b: Quality) -> Bool { a.rawValue < b.rawValue }
@@ -41,6 +45,12 @@ public struct RenderSettings: Sendable, Equatable {
     /// shader is carrying real work. At that point it becomes the largest lever
     /// available, which is why it is built rather than deferred.
     public var temporalUpscaling: Bool
+    /// Which MetalFX scaler `temporalUpscaling` engages. The temporal scaler
+    /// reconstructs from history and needs jitter and motion vectors; the
+    /// spatial one is a single-frame sharpening upsample at a fraction of the
+    /// cost, for when the frame must be cheaper and the history is not worth
+    /// its price.
+    public var upscalingMode: UpscalingMode
     public var dynamicResolution: Bool
 
     public var shadowCascades: Int
@@ -89,6 +99,7 @@ public struct RenderSettings: Sendable, Equatable {
         case .m2Air:
             renderScale = 0.5
             temporalUpscaling = false
+            upscalingMode = .temporal
             dynamicResolution = true
             shadowCascades = 4
             shadowResolution = 2048
@@ -107,6 +118,7 @@ public struct RenderSettings: Sendable, Equatable {
         case .balanced:
             renderScale = 0.67
             temporalUpscaling = false
+            upscalingMode = .temporal
             dynamicResolution = true
             shadowCascades = 4
             shadowResolution = 2048
@@ -125,6 +137,7 @@ public struct RenderSettings: Sendable, Equatable {
         case .high:
             renderScale = 1
             temporalUpscaling = false
+            upscalingMode = .temporal
             dynamicResolution = false
             shadowCascades = 4
             shadowResolution = 4096

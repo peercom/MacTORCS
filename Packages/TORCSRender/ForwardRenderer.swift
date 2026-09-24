@@ -187,6 +187,7 @@ public final class ForwardRenderer {
     /// because screen-space occlusion required one.
     public private(set) var lastFrameUsedDepthPrepass = false
     private var upscaler: TemporalUpscaler?
+    private var spatialUpscaler: SpatialUpscaler?
     /// Whether the upscaler actually wrote its output this frame. The fallback
     /// on upscaler failure cannot be expressed by which textures exist — the
     /// output texture is still allocated — so the tonemap source is chosen from
@@ -394,15 +395,17 @@ public final class ForwardRenderer {
         let renderWidth = upscaling ? render.width : outputWidth
         let renderHeight = upscaling ? render.height : outputHeight
         let reflections = settings.screenSpaceReflections != .off
+        let postEarly = upscaling && settings.upscalingMode == .spatial
         if let existing = cachedTargets, existing.matches(renderWidth: renderWidth, renderHeight: renderHeight,
                                                     outputWidth: outputWidth, outputHeight: outputHeight,
                                                     upscaling: upscaling, reflections: reflections,
-                                                    motionBlur: settings.motionBlur) {
+                                                    motionBlur: settings.motionBlur, postAtRenderResolution: postEarly) {
             return existing
         }
         let fresh = try FrameTargets(device: device, renderWidth: renderWidth, renderHeight: renderHeight,
                                      outputWidth: outputWidth, outputHeight: outputHeight, upscaling: upscaling,
-                                     reflections: reflections, motionBlur: settings.motionBlur)
+                                     reflections: reflections, motionBlur: settings.motionBlur,
+                                     postAtRenderResolution: postEarly)
         cachedTargets = fresh
         // Resolution changes invalidate the accumulated history.
         upscaler = nil
@@ -468,7 +471,8 @@ public final class ForwardRenderer {
     public func encodeFrame(into commands: MTLCommandBuffer, targets: FrameTargets,
                             resources: [SceneResources], instances: [RenderInstance],
                             camera: RenderCamera, lighting: SunLighting, aspect: Float) {
-        currentJitter = settings.temporalUpscaling ? jitterSequence.next() : SIMD2(0, 0)
+        currentJitter = settings.temporalUpscaling && settings.upscalingMode == .temporal
+            ? jitterSequence.next() : SIMD2(0, 0)
         upscaleProduced = false
         postProduced = false
         atmosphere.update(into: commands, lighting: lighting, cameraAltitude: camera.eye.z)
@@ -480,7 +484,28 @@ public final class ForwardRenderer {
         encode(into: commands, targets: targets, resources: resources, instances: instances,
                camera: camera, lighting: lighting, cascades: cascades, aspect: aspect)
 
-        if settings.temporalUpscaling {
+        if settings.temporalUpscaling && settings.upscalingMode == .spatial {
+            // Blur before the scaler: a quarter of the pixels, and the scaler
+            // keeps no history the blur could corrupt.
+            if settings.motionBlur, targets.postAtRenderResolution, targets.velocity != nil, targets.postColour != nil {
+                postProduced = motionBlur.encode(into: commands, targets: targets, source: targets.colour) != nil
+            }
+            do {
+                if spatialUpscaler?.matches(renderWidth: targets.renderWidth, renderHeight: targets.renderHeight,
+                                            outputWidth: targets.outputWidth, outputHeight: targets.outputHeight) != true {
+                    spatialUpscaler = try SpatialUpscaler(device: device,
+                                                          renderWidth: targets.renderWidth, renderHeight: targets.renderHeight,
+                                                          outputWidth: targets.outputWidth, outputHeight: targets.outputHeight)
+                    upscalerBuildCount += 1
+                }
+                try spatialUpscaler?.encode(into: commands, targets: targets,
+                                            source: postProduced ? targets.postColour! : targets.colour)
+                upscaleProduced = spatialUpscaler != nil
+            } catch {
+                spatialUpscaler = nil
+                lastUpscalerError = String(describing: error)
+            }
+        } else if settings.temporalUpscaling {
             do {
                 if upscaler == nil || upscaler?.matches(renderWidth: targets.renderWidth,
                                                         renderHeight: targets.renderHeight,
@@ -506,10 +531,10 @@ public final class ForwardRenderer {
 
         // Motion blur after the upscaler and before bloom: the glow should
         // streak with the object, and the tonemapper should see the blur.
-        if settings.motionBlur, targets.velocity != nil, targets.postColour != nil {
+        if settings.motionBlur, !targets.postAtRenderResolution, targets.velocity != nil, targets.postColour != nil {
             let source = upscaleProduced ? (targets.upscaled ?? targets.colour) : targets.colour
             postProduced = motionBlur.encode(into: commands, targets: targets, source: source) != nil
-        } else {
+        } else if !settings.motionBlur {
             motionBlur.discard()
         }
 
@@ -815,8 +840,11 @@ public final class ForwardRenderer {
     /// The texture the resolve should tonemap: the upscaler's output when it
     /// ran this frame, otherwise the render-resolution scene colour.
     public func tonemapSource(_ targets: FrameTargets) -> MTLTexture {
+        // A post target at render resolution has already been scaled.
+        if postProduced, !targets.postAtRenderResolution, let post = targets.postColour { return post }
+        if upscaleProduced, let upscaled = targets.upscaled { return upscaled }
         if postProduced, let post = targets.postColour { return post }
-        return upscaleProduced ? (targets.upscaled ?? targets.colour) : targets.colour
+        return targets.colour
     }
 
     /// Tonemaps HDR scene colour into a display-format target.

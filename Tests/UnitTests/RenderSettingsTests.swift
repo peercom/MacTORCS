@@ -2,6 +2,8 @@
 import XCTest
 import simd
 import TORCSRender
+import TORCSAssets
+import Metal
 
 final class RenderSettingsTests: XCTestCase {
     let retina = (width: 2560, height: 1664)
@@ -194,6 +196,33 @@ final class TemporalUpscalingTests: XCTestCase {
         XCTAssertEqual(RenderCamera.mipBias(renderWidth: 1280, outputWidth: 2560), -1, accuracy: 1e-5)
         XCTAssertEqual(RenderCamera.mipBias(renderWidth: 2560, outputWidth: 2560), 0, accuracy: 1e-5)
         XCTAssertEqual(RenderCamera.mipBias(renderWidth: 0, outputWidth: 2560), 0)
+    }
+
+    /// The spatial scaler needs neither jitter nor motion vectors, so a frame
+    /// through it must have zero jitter and still produce output at the
+    /// output size — and be repeatable, having no history.
+    func testSpatialModeRendersWithoutJitterAndRepeats() throws {
+        guard MTLCreateSystemDefaultDevice() != nil else { throw XCTSkip("Metal device unavailable") }
+        var settings = RenderSettings()
+        settings.temporalUpscaling = true
+        settings.upscalingMode = .spatial
+        settings.renderScale = 0.5
+        settings.bloom = false
+        let renderer = try ForwardRenderer(settings: settings)
+        let url = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+            .appendingPathComponent("Fixtures/Artwork/155-DTM/155-DTM.acc")
+        let scene = try SceneResources(device: renderer.device,
+                                       scene: RenderScene(ACScene.parse(Data(contentsOf: url), car: true)))
+        let camera = RenderCamera(eye: SIMD3(6, -5, 2), target: SIMD3(0, 0, 0.5))
+        let a = try renderer.render(scene: scene, camera: camera, lighting: SunLighting(), width: 256, height: 160)
+        let b = try renderer.render(scene: scene, camera: camera, lighting: SunLighting(), width: 256, height: 160)
+        XCTAssertEqual(a.count, 256 * 160 * 4)
+        XCTAssertEqual(a, b, "no history, so identical")
+        XCTAssertEqual(renderer.currentJitter, SIMD2(0, 0), "spatial scaling must not jitter the projection")
+        XCTAssertNil(renderer.lastUpscalerError)
+        let targets = try renderer.targets(outputWidth: 256, outputHeight: 160)
+        XCTAssertEqual(targets.renderWidth, 128)
+        XCTAssertNotNil(targets.upscaled)
     }
 
     /// Off by default because it measured as a net loss: the renderer is

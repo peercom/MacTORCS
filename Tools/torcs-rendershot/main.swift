@@ -49,6 +49,9 @@ struct Options {
     var motionBlur: Bool? = nil
     var compareMotionBlur = false
     var orbitSpeed: Float = 0
+    var sustainSeconds: Double = 0
+    var upscalingMode: RenderSettings.UpscalingMode? = nil
+    var renderScale: Float? = nil
     var aoRadius: Float? = nil
     var aoPower: Float? = nil
     var upscale: Bool? = nil
@@ -119,6 +122,9 @@ func parse() -> Options {
         case "--no-motion-blur": options.motionBlur = false
         case "--compare-motion-blur": options.compareMotionBlur = true
         case "--orbit-speed": options.orbitSpeed = Float(next()) ?? 0
+        case "--sustain": options.sustainSeconds = Double(next()) ?? 0
+        case "--upscale-mode": options.upscalingMode = RenderSettings.UpscalingMode(rawValue: next())
+        case "--render-scale": options.renderScale = Float(next())
         case "--ao-radius": options.aoRadius = Float(next())
         case "--ao-power": options.aoPower = Float(next())
         case "--frames": options.frames = Int(next()) ?? options.frames
@@ -268,6 +274,8 @@ do {
     var settings = RenderSettings(preset: options.preset)
     settings.depthPrepass = options.depthPrepass
     if let upscale = options.upscale { settings.temporalUpscaling = upscale }
+    if let mode = options.upscalingMode { settings.upscalingMode = mode }
+    if let scale = options.renderScale { settings.renderScale = scale }
     if let bloom = options.bloom { settings.bloom = bloom }
     if let strength = options.bloomStrength { settings.bloomStrength = strength }
     if let threshold = options.bloomThreshold { settings.bloomThreshold = threshold }
@@ -379,6 +387,39 @@ do {
         print("  upscaled    \(report(true))\(renderer.lastUpscalerError.map { "  error: " + $0 } ?? "")")
         let off = samples[false]!.sorted()[samples[false]!.count / 2], on = samples[true]!.sorted()[samples[true]!.count / 2]
         print(String(format: "  delta       %+.3f ms (%+.1f%%)", on - off, (on - off) / off * 100))
+        exit(0)
+    }
+    if options.sustainSeconds > 0 {
+        // The fanless Air's steady state is the real target, and every short
+        // measurement in this project has been taken on a chip somewhere on
+        // its way down from a cold start. Render continuously and report the
+        // median GPU time per fifteen-second window, orbiting so the frame
+        // is not a cached best case.
+        let start = Date()
+        var window: [Double] = [], windows: [(Double, Double, Double)] = []
+        var windowStart = start, frame = 0
+        print("sustained run, \(options.width)x\(options.height), \(Int(options.sustainSeconds)) s")
+        while Date().timeIntervalSince(start) < options.sustainSeconds {
+            let frameCamera = RenderCamera(framing: scene.minimum, scene.maximum,
+                                           azimuth: (options.azimuth + 0.5 * Float(frame)) * radians,
+                                           elevation: options.elevation * radians)
+            _ = try renderer.render(scene: resources, camera: frameCamera, lighting: lighting,
+                                    width: options.width, height: options.height)
+            window.append(renderer.lastGPUTime * 1000)
+            frame += 1
+            if Date().timeIntervalSince(windowStart) >= 15 {
+                let sorted = window.sorted()
+                let median = sorted[sorted.count / 2], p95 = sorted[min(sorted.count - 1, Int(Double(sorted.count) * 0.95))]
+                windows.append((Date().timeIntervalSince(start), median, p95))
+                print(String(format: "  t=%4.0f s  median %6.3f ms  p95 %6.3f ms  (%d frames)",
+                             Date().timeIntervalSince(start), median, p95, sorted.count))
+                window.removeAll(); windowStart = Date()
+            }
+        }
+        if let first = windows.first, let last = windows.last {
+            print(String(format: "  first window %.3f ms, last window %.3f ms: %+.1f%%",
+                         first.1, last.1, (last.1 - first.1) / first.1 * 100))
+        }
         exit(0)
     }
     if options.compareMotionBlur { try compare("motion blur") { $0.motionBlur = $1 } }
@@ -546,7 +587,7 @@ do {
       occlusion     ao \(["off","half","full"][settings.ambientOcclusion.rawValue]), contact \(settings.contactShadows ? "on" : "off")\(renderer.occlusion.result.map { ", \($0.width)x\($0.height)" } ?? "")
       motion blur   \(settings.motionBlur ? "on" : "off")\(renderer.motionBlur.result != nil ? ", applied" : "")
       reflections   \(["off","half","full"][settings.screenSpaceReflections.rawValue])\(renderer.reflections.result.map { ", \($0.width)x\($0.height)" } ?? "")
-      upscaling     \(settings.temporalUpscaling ? "on, render \(settings.renderSize(output: (options.width, options.height)).width)x\(settings.renderSize(output: (options.width, options.height)).height)" : "off")
+      upscaling     \(settings.temporalUpscaling ? "\(settings.upscalingMode.rawValue), render \(settings.renderSize(output: (options.width, options.height)).width)x\(settings.renderSize(output: (options.width, options.height)).height)" : "off")
       textures      \(textures.count) uploaded, \(String(format: "%.1f", Double(textures.uploadedBytes) / 1_048_576)) MiB
       textured      \(resources.texturedBatches) of \(resources.batchCount) batches
       missing       \(textures.missing.count)\(textures.missing.isEmpty ? "" : ": " + textures.missing.sorted().prefix(6).joined(separator: ", "))

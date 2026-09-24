@@ -792,6 +792,66 @@ whose cost is not negligible there; it goes on the Phase 8 list next to
 the upscaler question, since at half render resolution it would cost a
 quarter.
 
+## Sustained: the number every earlier measurement stood in for
+
+Every timing in this document was taken on a fanless chip somewhere on its
+way down from a cold start, and several were visibly throttled. The plan's
+§9.4 asked for the steady state; `torcs-rendershot --sustain S` now renders
+continuously for S seconds, orbiting so no frame is a cached best case, and
+reports the median per fifteen-second window.
+
+Default preset, generated Aalborg, 2560x1664:
+
+| Window | Median | p95 |
+|---|---|---|
+| 0–15 s | 6.63 ms | 13.7 ms |
+| 60 s | 6.68 ms | 13.6 ms |
+| 120 s | 6.61 ms | 7.8 ms |
+| 180 s | 6.60 ms | 7.9 ms |
+| 210 s | 7.41 ms | 9.2 ms |
+| 225 s | 8.32 ms | 10.0 ms |
+
+Flat at 6.6 ms for three and a half minutes, then +26 % as the chip
+throttles; a twenty-minute race will go further. 1280x832 sits flat at
+2.6 ms for the whole run. Both are GPU time in a tool loop with no physics
+and no presentation; the app adds both.
+
+### The spatial scaler
+
+The temporal scaler lost twice, so `MTLFXSpatialScaler` — a single-frame
+sharpening upsample with no jitter, no history and no motion vectors — is
+the fallback, selectable with `upscalingMode`. Block-interleaved against
+native in the default configuration, motion blur moved ahead of it so the
+blur costs a quarter:
+
+| Render scale | Native | Spatial | Delta |
+|---|---|---|---|
+| 0.5 (1280x832) | 6.13 ms | 4.56 ms | −1.57 ms |
+| 0.67 (1715x1115) | 6.11 ms | 5.53 ms | −0.58 ms |
+| 0.75 (1920x1248) | 6.11 ms | 6.08 ms | −0.03 ms |
+
+A 1280x832 render is 2.6 ms and comes back as 4.6 through the scaler, so
+the scaler and the output-resolution passes behind it cost about two
+milliseconds, and that fixed cost is why 0.75 saves nothing. At 0.5 the
+saving is real and the kerb edges are visibly softer. Native stays the
+default; the spatial scaler is the thermal valve, and the right shape for
+it is dynamic resolution stepping down through the ladder as the sustained
+GPU time rises, which the controller already models and presentation does
+not yet drive.
+
+### A half-resolution fault found by the comparison
+
+The 0.75 crops carried dark bands across the road that native did not, and
+the raw occlusion map showed why: alternating-row stripes over the whole
+surface. At half resolution the occlusion pixel's centre lies between depth
+texels; reconstructing its position at the un-snapped coordinate with a
+neighbour's depth put it off the surface by half a texel of slope,
+alternating by row. R8 had snapped the *samples* and not the centre — at
+full resolution the two coincide, so it never showed there, and the default
+preset's half-resolution occlusion had been faintly banded all along. The
+reflection trace at half resolution had the same origin error. Both snap
+now.
+
 ## Licensing
 
 No third-party artwork is imported by this work. New render source is

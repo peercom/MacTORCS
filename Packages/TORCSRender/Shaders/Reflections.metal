@@ -61,13 +61,17 @@ fragment float4 reflectionFragment(FullscreenVarying in [[stage_in]],
     constexpr sampler pointSampler(coord::normalized, address::clamp_to_edge, filter::nearest);
     constexpr sampler linearSampler(coord::normalized, address::clamp_to_edge, filter::linear);
 
-    float deviceDepth = depth.sample(pointSampler, in.uv);
+    // Snapped to a depth texel: at half resolution the pixel centre lies
+    // between texels, and a position reconstructed there with a neighbour's
+    // depth starts the ray off the surface (see Occlusion.metal).
+    float2 uv0 = (floor(in.uv * u.depthSize.xy) + 0.5f) * u.depthSize.zw;
+    float deviceDepth = depth.sample(pointSampler, uv0);
     if (deviceDepth <= 0.0f) { return float4(0.0f); }
-    float4 s = surface.sample(pointSampler, in.uv);
+    float4 s = surface.sample(pointSampler, uv0);
     float roughness = s.z, weight = s.w;
     if (weight <= 1e-3f || roughness > u.parameters.z) { return float4(0.0f); }
 
-    float3 position = reflectionViewPosition(in.uv, deviceDepth, u);
+    float3 position = reflectionViewPosition(uv0, deviceDepth, u);
     float3 normal = normalize((u.view * float4(decodeReflectionNormal(s.xy), 0.0f)).xyz);
     float3 view = normalize(-position);
     float3 direction = reflect(-view, normal);
