@@ -182,6 +182,8 @@ public final class ForwardRenderer {
     /// the same window.
     let readOnlyDepthState: MTLDepthStencilState
     let resolve: MTLRenderPipelineState
+    /// Draws a rendered mirror view into a rectangle of a display target.
+    let mirrorComposite: MTLRenderPipelineState
     let sky: MTLRenderPipelineState
     let depthState: MTLDepthStencilState
     /// Sky writes no depth and ignores it: it is drawn first and everything
@@ -355,6 +357,13 @@ public final class ForwardRenderer {
         resolveDescriptor.colorAttachments[0].pixelFormat = FrameTargets.displayFormat
         resolve = try device.makeRenderPipelineState(descriptor: resolveDescriptor)
 
+        let mirrorDescriptor = MTLRenderPipelineDescriptor()
+        mirrorDescriptor.label = "mirrorComposite"
+        mirrorDescriptor.vertexFunction = library.makeFunction(name: "mirrorVertex")
+        mirrorDescriptor.fragmentFunction = library.makeFunction(name: "mirrorFragment")
+        mirrorDescriptor.colorAttachments[0].pixelFormat = FrameTargets.displayFormat
+        mirrorComposite = try device.makeRenderPipelineState(descriptor: mirrorDescriptor)
+
         let depth = MTLDepthStencilDescriptor()
         // Reversed depth: near is 1, far is 0.
         depth.depthCompareFunction = .greater
@@ -477,11 +486,12 @@ public final class ForwardRenderer {
 
     public func render(resources: [SceneResources], instances: [RenderInstance],
                        camera: RenderCamera, lighting: SunLighting,
-                       width: Int, height: Int) throws -> [UInt8] {
+                       width: Int, height: Int, mirror: MirrorRequest? = nil) throws -> [UInt8] {
         let targets = try targets(outputWidth: width, outputHeight: height)
         guard let commands = queue.makeCommandBuffer() else {
             throw RenderError.unavailable("Could not create a command buffer")
         }
+        let mirrorView = try mirror.map { try encodeMirrorView(into: commands, $0, lighting: lighting) }
         // A verification render is one frame from a cold state, so the
         // per-frame noise rotation starts over: two calls with the same inputs
         // produce the same pixels, which the repeat-render discipline needs.
@@ -492,6 +502,9 @@ public final class ForwardRenderer {
                     camera: camera, lighting: lighting, aspect: Float(width) / Float(max(height, 1)))
         encodeResolve(into: commands, source: tonemapSource(targets), destination: targets.display,
                       lighting: lighting)
+        if let mirror, let mirrorView {
+            encodeMirrorComposite(into: commands, mirror: mirrorView, destination: targets.display, rect: mirror.rect)
+        }
         commands.commit()
         commands.waitUntilCompleted()
         if let error = commands.error { throw RenderError.unavailable("GPU error: \(error)") }
@@ -596,6 +609,15 @@ public final class ForwardRenderer {
         previousViewProjection = camera.viewProjection(aspect: aspect)
         previousInstanceTransforms = Dictionary(instances.map { ($0.resource, $0.transform) },
                                                 uniquingKeysWith: { first, _ in first })
+    }
+
+    /// Forgets the previous frame's transforms, so the next frame has zero
+    /// motion: for a camera cut, or a diagnostic that renders unrelated
+    /// views in sequence and must not blur one against the last.
+    public func resetHistory() {
+        previousViewProjection = nil
+        previousInstanceTransforms = [:]
+        upscaler?.needsReset = true
     }
 
     public private(set) var lastUpscalerError: String?
@@ -897,6 +919,68 @@ public final class ForwardRenderer {
         if upscaleProduced, let upscaled = targets.upscaled { return upscaled }
         if postProduced, let post = targets.postColour { return post }
         return targets.colour
+    }
+
+    /// A rear-view mirror to render alongside a frame: its own renderer (a
+    /// lighter preset, its own targets), the same resources, the instances it
+    /// shows, a backward camera, and the pixel rectangle of the display it
+    /// lands in, top-down.
+    public struct MirrorRequest {
+        public var renderer: ForwardRenderer
+        public var resources: [SceneResources]
+        public var instances: [RenderInstance]
+        public var camera: RenderCamera
+        public var width: Int, height: Int
+        public var rect: (x: Int, y: Int, width: Int, height: Int)
+        public init(renderer: ForwardRenderer, resources: [SceneResources], instances: [RenderInstance],
+                    camera: RenderCamera, width: Int, height: Int, rect: (x: Int, y: Int, width: Int, height: Int)) {
+            self.renderer = renderer; self.resources = resources; self.instances = instances
+            self.camera = camera; self.width = width; self.height = height; self.rect = rect
+        }
+    }
+
+    /// Renders the mirror's view with its own renderer into that renderer's
+    /// display target and returns the target. Encoded before the main frame
+    /// so the two share one command buffer.
+    public func encodeMirrorView(into commands: MTLCommandBuffer, _ mirror: MirrorRequest,
+                                 lighting: SunLighting) throws -> MTLTexture {
+        let targets = try mirror.renderer.targets(outputWidth: mirror.width, outputHeight: mirror.height)
+        mirror.renderer.animationTime = animationTime
+        mirror.renderer.encodeFrame(into: commands, targets: targets, resources: mirror.resources,
+                                    instances: mirror.instances, camera: mirror.camera, lighting: lighting,
+                                    aspect: Float(mirror.width) / Float(max(mirror.height, 1)))
+        mirror.renderer.encodeResolve(into: commands, source: mirror.renderer.tonemapSource(targets),
+                                      destination: targets.display, lighting: lighting)
+        return targets.display
+    }
+
+    /// The quad for a pixel rectangle, in normalized device coordinates:
+    /// x, y of the lower-left corner, then width and height.
+    public static func mirrorQuad(rect: (x: Int, y: Int, width: Int, height: Int),
+                                  displayWidth: Int, displayHeight: Int) -> SIMD4<Float> {
+        let w = Float(max(displayWidth, 1)), h = Float(max(displayHeight, 1))
+        let x = Float(rect.x) / w * 2 - 1
+        // Top-down pixels to y-up device coordinates.
+        let y = 1 - Float(rect.y + rect.height) / h * 2
+        return SIMD4(x, y, Float(rect.width) / w * 2, Float(rect.height) / h * 2)
+    }
+
+    /// Composites a rendered mirror onto a display target, which keeps its
+    /// contents elsewhere.
+    public func encodeMirrorComposite(into commands: MTLCommandBuffer, mirror: MTLTexture,
+                                      destination: MTLTexture, rect: (x: Int, y: Int, width: Int, height: Int)) {
+        let pass = MTLRenderPassDescriptor()
+        pass.colorAttachments[0].texture = destination
+        pass.colorAttachments[0].loadAction = .load
+        pass.colorAttachments[0].storeAction = .store
+        guard let encoder = commands.makeRenderCommandEncoder(descriptor: pass) else { return }
+        encoder.label = "Mirror composite"
+        encoder.setRenderPipelineState(mirrorComposite)
+        var quad = Self.mirrorQuad(rect: rect, displayWidth: destination.width, displayHeight: destination.height)
+        encoder.setVertexBytes(&quad, length: MemoryLayout<SIMD4<Float>>.stride, index: 0)
+        encoder.setFragmentTexture(mirror, index: 0)
+        encoder.drawPrimitives(type: .triangleStrip, vertexStart: 0, vertexCount: 4)
+        encoder.endEncoding()
     }
 
     /// Tonemaps HDR scene colour into a display-format target.

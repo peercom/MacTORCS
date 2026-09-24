@@ -52,6 +52,9 @@ import TORCSTrackMesh
             }
             guard let sceneCamera = camera else { continue }
 
+            // Each preset is an unrelated view; without this the frame blurs
+            // against the previous preset's camera.
+            renderer.resetHistory()
             let instances = resources.staticInstances() + ModernDrivingRenderer.vehicleInstances(
                 pose, drawsDriver: preset.drawsDriver, drawsCar: preset.drawsCar, castsShadow: preset.drawsCar)
             let pixels = try renderer.render(resources: resources.resources, instances: instances,
@@ -62,6 +65,40 @@ import TORCSTrackMesh
             report.append(["camera": "\(preset)", "draws": renderer.lastDrawCount,
                            "triangles": renderer.lastTriangleCount,
                            "gpuMilliseconds": renderer.lastGPUTime * 1000])
+        }
+
+        // The rear-view mirror composited on the chase view: the mirror's
+        // own lighter renderer, the classic layout, the classic camera.
+        do {
+            var chaseRig = DrivingCameraRig()
+            var chase: SceneCamera?
+            for _ in 0 ..< 200 {
+                chase = try chaseRig.view(preset: .chase, body: body, bonnetPosition: content.bonnetPosition,
+                                          driverPosition: content.driverPosition, world: world,
+                                          roadCameraPosition: nil,
+                                          yaw: content.simulation.visualSnapshot.body.orientation.z,
+                                          trackHeading: heading) { try geometry.height(at: $0, startingAt: 0) }
+            }
+            if let chase {
+                let mirror = RearViewMirror(body: body, bonnetPosition: content.bonnetPosition, hiddenInstances: Set(1 ... 17))
+                let layout = MirrorLayout(width: width, height: height)
+                let mirrorRenderer = try ForwardRenderer(device: renderer.device, settings: ModernDrivingRenderer.mirrorSettings())
+                // An external view: the mirror hides the car.
+                let mirrorInstances = resources.staticInstances()
+                let request = ForwardRenderer.MirrorRequest(
+                    renderer: mirrorRenderer, resources: resources.resources, instances: mirrorInstances,
+                    camera: ModernDrivingRenderer.camera(from: try mirror.camera(width: layout.width, height: layout.height)),
+                    width: layout.width, height: layout.height,
+                    rect: (layout.x, layout.y, layout.width, layout.height))
+                let instances = resources.staticInstances() + ModernDrivingRenderer.vehicleInstances(
+                    pose, drawsDriver: true, drawsCar: true, castsShadow: true)
+                renderer.resetHistory()
+                let pixels = try renderer.render(resources: resources.resources, instances: instances,
+                                                 camera: ModernDrivingRenderer.camera(from: chase),
+                                                 lighting: lighting, width: width, height: height, mirror: request)
+                try SceneSmoke.writePNG(Data(pixels), width: width, height: height,
+                                        output: output.appendingPathComponent("mirror.png"))
+            }
         }
 
         // A fixed three-quarter view close to the car. The original presets are
@@ -75,6 +112,7 @@ import TORCSTrackMesh
                                       verticalFieldOfView: 38 * .pi / 180, near: 0.2, far: 4000)
         let diagnosticInstances = resources.staticInstances() + ModernDrivingRenderer.vehicleInstances(
             pose, drawsDriver: true, drawsCar: true, castsShadow: true)
+        renderer.resetHistory()
         let diagnosticPixels = try renderer.render(resources: resources.resources, instances: diagnosticInstances,
                                                    camera: diagnostic, lighting: lighting,
                                                    width: width, height: height)

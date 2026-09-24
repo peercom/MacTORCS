@@ -31,7 +31,7 @@ public extension ForwardRenderer {
     /// while the window is off-screen or mid-resize.
     @discardableResult
     func present(in view: MTKView, resources: [SceneResources], instances: [RenderInstance],
-                 camera: RenderCamera, lighting: SunLighting) throws -> Bool {
+                 camera: RenderCamera, lighting: SunLighting, mirror: MirrorRequest? = nil) throws -> Bool {
         guard let drawable = view.currentDrawable else { return false }
         let width = drawable.texture.width, height = drawable.texture.height
         guard width > 0, height > 0 else { return false }
@@ -49,12 +49,17 @@ public extension ForwardRenderer {
             throw RenderError.unavailable("Could not create a command buffer")
         }
         commands.label = "Driving frame"
+        // The mirror first: its own renderer and targets, one command buffer.
+        let mirrorView = try mirror.map { try encodeMirrorView(into: commands, $0, lighting: lighting) }
         encodeFrame(into: commands, targets: targets, resources: resources, instances: instances,
                     camera: camera, lighting: lighting, aspect: Float(width) / Float(height))
         // Tonemap straight into the drawable rather than into `targets.display`
         // and blitting: one less full-resolution write per frame.
         encodeResolve(into: commands, source: tonemapSource(targets), destination: drawable.texture,
                       lighting: lighting)
+        if let mirror, let mirrorView {
+            encodeMirrorComposite(into: commands, mirror: mirrorView, destination: drawable.texture, rect: mirror.rect)
+        }
 
         // GPU time is sampled on completion, which is one frame behind. That is
         // what dynamic resolution wants anyway: it reacts to measured cost, and

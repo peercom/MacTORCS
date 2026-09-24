@@ -34,4 +34,33 @@ fragment float4 resolveFragment(FullscreenVarying in [[stage_in]],
     return float4(ditherForDisplay(mapped, pixel), 1.0f);
 }
 
+
+/// The rear-view mirror: a quad at a pixel rectangle of the drawable,
+/// showing a separately rendered and tonemapped view looking backward,
+/// flipped left to right — a camera looking back puts the car's left on the
+/// image's right, and a mirror puts it back on the left.
+struct MirrorVarying {
+    float4 position [[position]];
+    float2 uv;
+};
+
+/// x, y, width, height of the quad in normalized device coordinates.
+vertex MirrorVarying mirrorVertex(uint id [[vertex_id]], constant float4 &rect [[buffer(0)]]) {
+    float2 corner = float2(id & 1u, (id >> 1) & 1u);   // 0,0  1,0  0,1  1,1
+    MirrorVarying out;
+    out.position = float4(rect.x + corner.x * rect.z, rect.y + corner.y * rect.w, 0.0f, 1.0f);
+    // Flipped horizontally; v runs top-down like the texture.
+    out.uv = float2(1.0f - corner.x, 1.0f - corner.y);
+    return out;
+}
+
+fragment float4 mirrorFragment(MirrorVarying in [[stage_in]], texture2d<float> mirror [[texture(0)]]) {
+    constexpr sampler linearSampler(coord::normalized, address::clamp_to_edge, filter::linear);
+    // The mirror texture is display-encoded sRGB; sampling decodes it to
+    // linear and the drawable re-encodes it once. A thin dark frame.
+    float2 edge = min(in.uv, 1.0f - in.uv);
+    float frame = min(edge.x * mirror.get_width(), edge.y * mirror.get_height()) < 2.0f ? 0.15f : 1.0f;
+    return float4(mirror.sample(linearSampler, in.uv).rgb * frame, 1.0f);
+}
+
 #endif

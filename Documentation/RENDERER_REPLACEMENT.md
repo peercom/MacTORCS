@@ -1003,6 +1003,37 @@ which is what a brake light does.
 The AC light sprites, their frusta and the fourteen-slot table stay with
 the classic path; the lens geometry is the light now.
 
+## The rear-view mirror
+
+The last thing the classic path could do that the new one could not. The
+classic mirror was a second camera at the bonnet looking backward, drawn
+into a viewport of the same frame with `MirrorLayout`'s translated
+rectangle. The new path keeps the camera and the layout — both are
+presentation logic, and `MirrorLayout` is now public for it — and renders
+the mirror through a **second `ForwardRenderer`** with a lighter preset: no
+screen-space passes, no post, two cascades, no upscaling. It shares the
+scene resources, which are device objects, but has its own targets and
+per-pass caches, so neither renderer's cached state thrashes on the
+other's size. Both views are encoded into one command buffer, the mirror
+first; a composite pass then draws the mirror's tonemapped display target
+into the layout's rectangle of the drawable, with a thin dark frame.
+
+The image is flipped left to right in the composite. A camera looking
+backward puts the car's left on the image's right; a mirror puts it back
+on the left. The classic path did not flip, which a driver would have
+noticed the first time something overtook.
+
+From a cockpit view the body stays in the mirror — the cage and the rear
+window are what a mirror there sees; from an external view the whole car
+is hidden, so the mirror shows the road behind rather than the cabin the
+first composite showed. The offscreen `render` takes the same request, so
+`testMirrorCompositesFlippedIntoItsRectangleOnly` can check that the
+composite changes nothing outside its rectangle and that the rectangle,
+read right to left, is the mirror view read left to right.
+
+With this the classic path has no feature the new one lacks. Retiring it
+is the next step of Phase 2, and it is now a deletion rather than a loss.
+
 ## Licensing
 
 No third-party artwork is imported by this work. New render source is

@@ -473,6 +473,7 @@ struct DrivingMetalView: NSViewRepresentable {
                 }
 
                 if let modern {
+                    modern.mirror=session.mirrors && preset.allowsMirror ? RearViewMirror(body:pose.body,bonnetPosition:content.bonnetPosition,hiddenInstances:preset.drawsCar ? Set(1...17):[]):nil
                     modern.draw(in:view,pose:pose,camera:sceneCamera,brakeCommand:frame.current.brakeCommand,lightCommand:frame.current.lightCommand,drawsDriver:preset.drawsDriver,drawsCar:preset.drawsCar)
                     if let error=modern.lastError { throw RendererError.unavailable(error) }
                     return

@@ -24,6 +24,48 @@ final class ModernDrivingRenderer {
     private let staticInstances: [RenderInstance]
     private let lighting: SunLighting
 
+    /// Set per frame by the session, as for the classic renderer; nil hides it.
+    var mirror: RearViewMirror?
+    /// A second, lighter renderer for the mirror: no screen-space passes, no
+    /// post, two cascades. Created on first use.
+    private var mirrorRenderer: ForwardRenderer?
+
+    static func mirrorSettings() -> RenderSettings {
+        var settings = RenderSettings()
+        settings.upscaling = false
+        settings.dynamicResolution = false
+        settings.screenSpaceReflections = .off
+        settings.ambientOcclusion = .off
+        settings.contactShadows = false
+        settings.bloom = false
+        settings.motionBlur = false
+        settings.depthPrepass = false
+        settings.shadowCascades = 2
+        return settings
+    }
+
+    /// The mirror's request for this frame, or nil when the mirror is off.
+    /// From a cockpit view the body stays — the cage and rear window are
+    /// what a mirror there sees; from an external view the whole car is
+    /// hidden, so the mirror shows the road behind rather than the cabin.
+    func mirrorRequest(pose: VehiclePresentation, drawableWidth: Int, drawableHeight: Int,
+                       lightState: SIMD4<Float>, drawsCar: Bool) throws -> ForwardRenderer.MirrorRequest? {
+        guard let mirror, drawableWidth >= 8, drawableHeight >= 48 else { return nil }
+        let layout = MirrorLayout(width: drawableWidth, height: drawableHeight)
+        let camera = try mirror.camera(width: layout.width, height: layout.height)
+        if mirrorRenderer == nil {
+            mirrorRenderer = try ForwardRenderer(device: renderer.device, settings: Self.mirrorSettings())
+        }
+        guard let mirrorRenderer else { return nil }
+        let instances = staticInstances + (drawsCar ? [] : Self.vehicleInstances(
+            pose, drawsDriver: false, drawsCar: true, castsShadow: true, lightState: lightState)
+            .filter { $0.resource == SessionRenderResources.bodyResource })
+        return ForwardRenderer.MirrorRequest(renderer: mirrorRenderer, resources: resources.resources,
+                                             instances: instances, camera: Self.camera(from: camera),
+                                             width: layout.width, height: layout.height,
+                                             rect: (layout.x, layout.y, layout.width, layout.height))
+    }
+
     private(set) var lastDrawCount = 0
     private(set) var lastTriangleCount = 0
     var lastError: String?
@@ -120,10 +162,15 @@ final class ModernDrivingRenderer {
         do {
             // A car filling the near cascade would shadow the camera in cockpit
             // views, where the body is hidden but would still cast.
+            let lightState = RenderInstance.lightState(brakeCommand: brakeCommand, lightCommand: lightCommand)
             let instances = staticInstances + Self.vehicleInstances(
-                pose, drawsDriver: drawsDriver, drawsCar: drawsCar, castsShadow: drawsCar, lightState: RenderInstance.lightState(brakeCommand: brakeCommand, lightCommand: lightCommand))
+                pose, drawsDriver: drawsDriver, drawsCar: drawsCar, castsShadow: drawsCar, lightState: lightState)
+            let drawableWidth = view.currentDrawable?.texture.width ?? 0
+            let drawableHeight = view.currentDrawable?.texture.height ?? 0
+            let mirror = try mirrorRequest(pose: pose, drawableWidth: drawableWidth, drawableHeight: drawableHeight,
+                                           lightState: lightState, drawsCar: drawsCar)
             try renderer.present(in: view, resources: resources.resources, instances: instances,
-                                 camera: Self.camera(from: sceneCamera), lighting: lighting)
+                                 camera: Self.camera(from: sceneCamera), lighting: lighting, mirror: mirror)
             lastDrawCount = renderer.lastDrawCount
             lastTriangleCount = renderer.lastTriangleCount
             lastError = nil

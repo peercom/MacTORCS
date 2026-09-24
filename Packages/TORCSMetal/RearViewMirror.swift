@@ -23,9 +23,10 @@ public struct RearViewMirror: Sendable {
 }
 
 /// Original integer pixel rectangles, converted from GL bottom-up to Metal top-down.
-struct MirrorLayout {
-    let width,height,x,y,sourceX,sourceY: Int
-    init(width w: Int,height h: Int) {
+/// Public so the modern path composites its mirror where the classic one did.
+public struct MirrorLayout: Sendable, Equatable {
+    public let width,height,x,y,sourceX,sourceY: Int
+    public init(width w: Int,height h: Int) {
         width=w/2;height=h/6;x=w/4;y=h-(5*h/6-h/10+height)
         sourceX=(w-width)/2;sourceY=h-((h-height)/2+height)
     }
