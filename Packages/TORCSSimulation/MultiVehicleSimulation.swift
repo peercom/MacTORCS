@@ -26,11 +26,33 @@ public struct MultiVehicleSimulation: Sendable {
     private var query = ConvexCollisionQuery()
     public init(definition: VehicleDynamicsDefinition,road: TrackRoad,carCount: Int,seed: UInt32 = 12345,startDistance: Float = 10,spacing: Float = 10,lateralPosition: Float? = nil) throws {
         guard (1...16).contains(carCount), spacing.isFinite, spacing>=5 else { throw TrackError.invalid("Invalid multi-car grid") }
+        try self.init(road:road,seed:seed,cars:(0..<carCount).map {
+            try initiallyPlacedVehicle(definition:definition,road:road,startDistance:startDistance+Float($0)*spacing,lateralPosition:lateralPosition)
+        })
+    }
+    /// A field placed by the original starting grid, one definition per car, so
+    /// cars may differ in mass, dimensions and every other configured value.
+    ///
+    /// A nonzero grid initial speed is rejected: the original writes the public
+    /// longitudinal speed before configuring the car, and no shipped race
+    /// configuration uses a rolling start, so it is not reproduced here.
+    public init(definitions: [VehicleDynamicsDefinition],road: TrackRoad,grid: [StartingGridSlot],seed: UInt32 = 12345) throws {
+        guard (1...16).contains(definitions.count),definitions.count==grid.count else {
+            throw TrackError.invalid("A field needs 1…16 cars and one grid slot per car")
+        }
+        guard grid.allSatisfy({ $0.speed==0 }) else { throw TrackError.invalid("Rolling grid starts are not implemented") }
+        try self.init(road:road,seed:seed,cars:zip(definitions,grid).map { try placedVehicle(definition:$0,slot:$1) })
+    }
+    private init(road: TrackRoad,seed: UInt32,cars: [VehicleDynamicsState]) throws {
+        let carCount = cars.count
         self.road = road; random = DarwinRandomStream(seed:seed)
         walls = try TrackWallCollision.polygons(track:road.geometry).map { try ComplexCollisionShape(primitives:$0) }
-        cars = try (0..<carCount).map { try initiallyPlacedVehicle(definition:definition,road:road,startDistance:startDistance+Float($0)*spacing,lateralPosition:lateralPosition) }
-        let dimensions = definition.chassis.runningGear.mass.dimensions
-        shapes = try (0..<carCount).map { _ in try ConvexShape(box:SIMD3(Double(dimensions.x),Double(dimensions.y),Double(dimensions.z))) }
+        self.cars = cars
+        // Each car carries its own box, so a mixed field collides correctly.
+        shapes = try cars.map {
+            let d = $0.definition.chassis.runningGear.mass.dimensions
+            return try ConvexShape(box:SIMD3(Double(d.x),Double(d.y),Double(d.z)))
+        }
         lifecycle = cars.map { $0.removalState() }
         collisionTransforms = Array(repeating:CollisionTransform(position:.zero,orientation:.zero),count:carCount)
         accumulated = Array(repeating:.zero,count:carCount)

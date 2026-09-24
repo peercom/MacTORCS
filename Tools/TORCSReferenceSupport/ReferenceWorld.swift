@@ -59,7 +59,7 @@ public final class ReferenceWorld {
             // Ten original BT driver indices exist; a field needs a starting grid.
             guard grid != nil || cars==1 else { throw TelemetryError.invalid("A BT field requires an original starting grid") }
             guard cars==1 || (1...10).contains(cars) else { throw TelemetryError.invalid("BT provides ten driver indices") }
-        } else if grid != nil { throw TelemetryError.invalid("Starting grids are only available to the BT race oracle") }
+        }
         let created: OpaquePointer?
         if let btDirectory {
             if let grid {
@@ -68,6 +68,11 @@ public final class ReferenceWorld {
             } else {
                 created=ref_world_bt_create(track.path,car.path,category.path,btDirectory.path,seed,Int32(laps))
             }
+        } else if let grid {
+            // Placement-only grid world: no driver is loaded, so the original
+            // grid can be compared for more cars than BT has driver indices.
+            var value=grid.reference
+            created=ref_world_grid_create(track.path,car.path,category.path,seed,Int32(cars),&value)
         } else {
             created=ref_world_create_lateral(track.path, car.path, category.path, seed, Int32(cars), startDistance, spacing,lateralPosition ?? .nan)
         }

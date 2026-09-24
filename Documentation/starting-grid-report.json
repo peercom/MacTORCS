@@ -1,0 +1,73 @@
+{
+ "date": "2026-09-25",
+ "evidence": {
+  "starting-grid-tests.log": "6c0a48848f8d94d53792dc38d1ddb7bc151a9c2695a227ed76f792221e0fe074"
+ },
+ "increment": "G2 native starting grid and heterogeneous field",
+ "limits": [
+  "A nonzero grid initial speed is rejected by MultiVehicleSimulation; the original writes the public longitudinal speed before configuring the car and no shipped race configuration uses a rolling start. Placement itself carries and matches the value.",
+  "Heterogeneous fields are verified natively only: the reference harness reads one car XML per world, so a mixed field has no original counterpart.",
+  "Field cap stays 16 cars, as in MultiVehicleSimulation and RaceOrder; StartingGrid.slots allows up to 64 so the cap lives in one place.",
+  "Aalborg / 155-DTM pinned fixtures only; the default pole side depends on each track's first turn.",
+  "A grid longer than the track is rejected with a diagnostic, where the original would walk off the front of its segment list.",
+  "This increment places and steps a field. Race progression, pit assignment, penalties and driver selection are later increments.",
+  "Contacts were measured for a tight two-row grid on the starting straight; broader contact orders and content remain uncovered."
+ ],
+ "measurements": {
+  "aalborgDefaultPoleSide": "right",
+  "aalborgTrackWidthMetres": 10.0,
+  "gridFieldCars": 4,
+  "gridFieldCleanMaxAbsolute": 0.0,
+  "gridFieldCleanTicks": 1200,
+  "gridFieldCleanValues": 681600,
+  "gridFieldContactMaxAbsolute": 0.0,
+  "gridFieldContactTicks": 1500,
+  "gridFieldContactValues": 852000,
+  "gridFieldDetectedPairTicks": 218,
+  "mixedFieldCars": 3,
+  "mixedFieldComparedValues": 255600,
+  "mixedFieldTicks": 600,
+  "newTests": 7,
+  "placementCarCounts": [
+   1,
+   2,
+   3,
+   5,
+   8,
+   16,
+   4,
+   9,
+   12,
+   6,
+   7,
+   10
+  ],
+  "placementComparedValues": 770,
+  "placementConfigurations": 15,
+  "placementMaxAbsolute": 0.0,
+  "placementRows": [
+   1,
+   2,
+   3,
+   4
+  ],
+  "releaseSuite": "399 tests, 0 failures, 162.210 s"
+ },
+ "priority": "Gameplay; foliage and new graphical work deferred",
+ "schema": 1,
+ "scope": "Semantic initStartingGrid port, original grid parameter reading, and one car definition per car in MultiVehicleSimulation, compared against the original routine and original simuv2",
+ "sources": {
+  "Packages/TORCSSimulation/MultiVehicleSimulation.swift": "391b05542dd088bf06bb078b5eba1cb4b073f9c2a4ce10f56e4bea2a47f17d7e",
+  "Packages/TORCSSimulation/SingleVehicleSimulation.swift": "d40bf6886cb8d73196799779186a14b28de2fa6cc63d389a33c69418bfc3d93d",
+  "Packages/TORCSTrack/StartingGrid.swift": "fea6225ca8ab62cb3a2ce1262b062c8c67f075e70ee87cdf6c53a914831e1eb5",
+  "Tests/UnitTests/StartingGridFieldTests.swift": "4f24f2415d63994955811269e81c51959818175ab3dd4085f133b8b52551b711",
+  "Tests/UnitTests/StartingGridTests.swift": "b8689d2fcb217a4699ad78d72ae21a7204d96530066cf57343c9372b08b3771a",
+  "Tools/TORCSReferenceSupport/ReferenceWorld.swift": "4eb2616789dab6008b4e27afa123aa9fcab35d7ad078730e8a2b18f041b463a4",
+  "Upstream/Reference/include/CReference.h": "301681100d384670d15674e5bcf1fb155ec2242fc903564e505159d84cb8e432",
+  "Upstream/Reference/world.cpp": "48e58d863b3fe15a146c2c27c78313bc1539653a3c629d66508a57c9e67b91ef"
+ },
+ "verification": {
+  "gating": "Release suite gated on the three-digit total line with no runtime-failure, Fatal, failed-case or signal markers",
+  "oracle": "ref_world_grid_create placement-only grid world, compared per car and per field"
+ }
+}

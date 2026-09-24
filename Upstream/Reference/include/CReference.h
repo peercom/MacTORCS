@@ -446,6 +446,10 @@ RefWorld *ref_world_bt_field_create(const char *track,const char *car,const char
                                    const char *directory,unsigned int seed,int laps,int cars,
                                    const RefStartingGrid *grid);
 int ref_world_grid_slot(RefWorld *world,int car,RefGridSlot *output);
+// Placement-only grid oracle: the original starting grid without loading any
+// driver, so a native field can be compared beyond the ten BT driver indices.
+RefWorld *ref_world_grid_create(const char *track,const char *car,const char *category,
+                               unsigned int seed,int cars,const RefStartingGrid *grid);
 // Per-car original rules, penalties and classification after ReManage/ReSortCars.
 typedef struct {
     double timeBehindLeader, timeBehindPrevious, timeBeforeNext;

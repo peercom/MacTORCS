@@ -58,6 +58,10 @@ It rejects schema, field and tick mismatches. Exit codes: 0 pass, 1 divergence,
 capture-size limit; see [telemetry comparison](Documentation/TELEMETRY_COMPARISON.md).
 Full race telemetry is not implemented.
 
+Native field placement now reproduces the original starting grid exactly, and the
+multi-car simulation accepts one car definition per car; see
+[starting grid](Documentation/STARTING_GRID.md).
+
 The reference CLI also runs a **multi-car original race**: 1-10 original BT
 drivers placed by the verbatim original starting grid and stepped through
 `ReOneStep`, `ReManage`, `ReRaceRules` and `ReSortCars`, with per-car callback,

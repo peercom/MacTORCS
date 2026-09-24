@@ -29,6 +29,12 @@ provided: `codeDefaults` (raceinit.cpp's own fallbacks — 2 rows, 10, 10, 5, 0,
 Placement is captured immediately after the routine, before any physics step:
 per-car main-track position, world position, height, yaw and initial speed.
 
+`ref_world_grid_create` builds a **placement-only** grid world: the original
+routine runs with no driver loaded, so a native field can be compared for up to
+16 cars rather than BT's ten driver indices, and the world can then be driven
+with scripted commands like any other reference world. The native comparison
+built on it is recorded in [starting grid](STARTING_GRID.md).
+
 Verified against independently recomputed upstream arithmetic
 
     startpos = length − (toStart + (i/rows)·columnDistance + (i%rows)·columnOffset)
@@ -112,9 +118,10 @@ alongside the retained single-car fields.
 
 - The oracle is Aalborg / 155-DTM / BT with pinned fixtures. It is not a general
   race-manager, content importer or robot module loader.
-- No native code is compared here yet. This increment pins the oracle's own
-  behaviour and repeatability; native grid placement, race runtime, penalties and
-  traffic AI are compared against it in the following increments.
+- This increment pins the oracle's own behaviour and repeatability and compares
+  no native code itself. Native grid placement is now compared against it in
+  [starting grid](STARTING_GRID.md); the race runtime, penalties and traffic AI
+  follow in later increments.
 - The recorded C++ debug/release trajectory sensitivity in
   [ROBOT_API.md](ROBOT_API.md) is unresolved and applies to field runs too. Do
   not compare captures taken from different build configurations.

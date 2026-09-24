@@ -49,6 +49,15 @@ public struct SingleVehicleSimulation: Sendable {
     }
 }
 
+/// A car placed on an original starting-grid slot, which already carries the
+/// original position, height and normalized yaw.
+func placedVehicle(definition: VehicleDynamicsDefinition,slot: StartingGridSlot) throws -> VehicleDynamicsState {
+    guard [slot.world.x,slot.world.y,slot.world.z,slot.yaw].allSatisfy(\.isFinite) else {
+        throw TrackError.invalid("Invalid grid slot placement")
+    }
+    let initial = ChassisDynamics(position:slot.world,orientation:SIMD3(0,0,slot.yaw))
+    return VehicleDynamicsState(definition:definition,chassis:.init(body:initial,world:initial,trackPosition:slot.position))
+}
 func initiallyPlacedVehicle(definition: VehicleDynamicsDefinition,road: TrackRoad,startDistance: Float,lateralPosition: Float? = nil) throws -> VehicleDynamicsState {
     guard lateralPosition.map({ $0.isFinite }) ?? true,startDistance.isFinite, startDistance >= 0, road.length > 0 else { throw TrackError.invalid("Invalid vehicle placement") }
     var distance = startDistance.truncatingRemainder(dividingBy:road.length), index = road.geometry.mainSegments[0]

@@ -44,7 +44,9 @@ This is not yet an integrated human-versus-AI race. Remaining gameplay work:
    See [native BT](NATIVE_BT.md): ten native laps repeat exactly and a five-lap
    forced-pit run completes with two services. All driving/pit commands match
    the captured-input reference cases; full physical trajectory parity is open.
-2. Implement original grid placement and connect multi-car simulation,
+2. Original grid placement is **done** and matches the original exactly, and the
+   multi-car simulation now takes one car definition per car; see
+   [starting grid](STARTING_GRID.md). Still to do: connect multi-car simulation,
    race progress, pit service and penalties to one authoritative race runtime.
 3. Expose opponent selection, live standings, finish handling and race results in
    the driving window; use actual cars in cameras, mirrors and collisions.

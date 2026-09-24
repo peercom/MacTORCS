@@ -161,6 +161,14 @@ RefWorld *ref_world_bt_field_create(const char *track,const char *car,const char
         !std::isfinite(grid->initialSpeed) || !std::isfinite(grid->initialHeight)) { lastError="Invalid starting grid";return nullptr; }
     return createWorld(track,car,category,seed,cars,0,10,NAN,directory,laps,grid);
 }
+RefWorld *ref_world_grid_create(const char *track,const char *car,const char *category,
+    unsigned int seed,int cars,const RefStartingGrid *grid) {
+    if (cars<1 || cars>16 || !grid) { lastError="Invalid grid configuration";return nullptr; }
+    if (grid->rows<1 || grid->poleSide<-1 || grid->poleSide>1 ||
+        !std::isfinite(grid->toStart) || !std::isfinite(grid->columnDistance) || !std::isfinite(grid->columnOffset) ||
+        !std::isfinite(grid->initialSpeed) || !std::isfinite(grid->initialHeight)) { lastError="Invalid starting grid";return nullptr; }
+    return createWorld(track,car,category,seed,cars,0,10,NAN,nullptr,0,grid);
+}
 RefWorld *ref_world_create(const char *trackPath, const char *carPath, const char *categoryPath,
                           unsigned int seed, int count, float startDistance, float spacing) {
     return ref_world_create_lateral(trackPath,carPath,categoryPath,seed,count,startDistance,spacing,NAN);
@@ -213,6 +221,11 @@ static RefWorld *createWorld(const char *trackPath,const char *carPath,const cha
         }
     }
     world->cars.resize(count); world->pointers.resize(count); world->assignedPits.resize(count);
+    // initStartingGrid reads the race-manager handle, so a placement-only world
+    // needs the same parameters a BT field creates below.
+    if (startingGrid && !robotDirectory) {
+        if (!initializeRaceParameters(world,1,startingGrid)) return fail("Could not create reference race parameters");
+    }
     if (robotDirectory) {
         // The original driver reads drivers/bt/<index>/default.xml per index.
         for (int i=0;i<count;++i) {
@@ -229,8 +242,6 @@ static RefWorld *createWorld(const char *trackPath,const char *carPath,const cha
         world->situation._totLaps=totalLaps;world->situation._raceType=RM_TYPE_RACE;
         world->btOriginals.resize(count);world->btStates.resize(count);world->btInputs.resize(count);
         world->btObservations.resize(count);world->btPitDecisions.resize(count);world->btInputValid.assign(count,1);
-        world->gridSlots.resize(count);
-        if (startingGrid) world->grid=*startingGrid;
         // Grid placement and initPits both read the race-manager parameters.
         if (!initializeRaceParameters(world,1,startingGrid)) return fail("Could not create reference race parameters");
     }
@@ -292,6 +303,7 @@ static RefWorld *createWorld(const char *trackPath,const char *carPath,const cha
         // per-car configuration callback. Value-initialized cars already carry
         // TR_LPOS_MAIN (zero), exactly as upstream's calloc'd car list does.
         world->info._reSimItf.config=SimConfig;
+        world->grid=*startingGrid;world->gridSlots.resize(count);
         ref_race_starting_grid_original(&world->info);
         for (int i = 0; i < count; ++i) {
             const auto &car = world->cars[i]; auto &slot = world->gridSlots[i];
