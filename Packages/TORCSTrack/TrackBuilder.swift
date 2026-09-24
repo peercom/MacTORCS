@@ -23,18 +23,31 @@ public struct TrackRoad: Sendable {
     public let cameras: [TrackRoadCamera]
     /// Original assignments are on main segments only; sides have no camera.
     public let cameraIndices: [Int?]
+    /// Content the loader accepted but had to interpret, such as a camera whose
+    /// segment reference does not resolve. Empty for well-formed tracks.
+    public let warnings: [String]
     public func camera(at segment: Int) -> TrackRoadCamera? {
         guard cameraIndices.indices.contains(segment), let index = cameraIndices[segment] else { return nil }
         return cameras[index]
     }
 }
-/// Version-4 road, barriers, static pits and trackside camera construction.
+/// Road, barriers, static pits and trackside camera construction.
+///
+/// Accepts version 4 directly and versions 0 through 3 by translating them to
+/// the version-4 shape first; see `TrackVersion3`. The original loader
+/// dispatches on the same boundary.
 public enum TrackBuilder {
     public static func buildRoad(parameters: ParameterDocument) throws -> TrackRoad {
-        guard parameters.section("Header")?.number("version", default: 0) == 4,
-              let main = parameters.section("Main Track"), let definitions = main.section("Track Segments"),
-              !definitions.sections.isEmpty else { throw TrackError.invalid("Expected a nonempty version-4 track") }
-        return try RoadBuilder(parameters: parameters, main: main).build(definitions.sections)
+        let version = parameters.section("Header")?.number("version", default: 0) ?? 0
+        guard version >= 0, version <= 4 else {
+            throw TrackError.invalid("Unsupported track version \(version); expected 0 through 4")
+        }
+        let document = version < 4 ? TrackVersion3.normalised(parameters) : parameters
+        guard let main = document.section("Main Track"), let definitions = main.section("Track Segments"),
+              !definitions.sections.isEmpty else {
+            throw TrackError.invalid("Expected a nonempty version-4 track")
+        }
+        return try RoadBuilder(parameters: document, main: main).build(definitions.sections)
     }
 }
 
@@ -241,7 +254,7 @@ private final class RoadBuilder {
             segments[index].endRight -= minimum; segments[index].endLeft -= minimum
             segments[index].center.x -= minimum.x; segments[index].center.y -= minimum.y
         }
-        return TrackRoad(geometry: try TrackGeometry(segments: segments), length: totalLength, width: width, bounds: maximum - minimum, pits: pits, cameras: cameras.cameras, cameraIndices: cameras.indices)
+        return TrackRoad(geometry: try TrackGeometry(segments: segments), length: totalLength, width: width, bounds: maximum - minimum, pits: pits, cameras: cameras.cameras, cameraIndices: cameras.indices, warnings: cameras.warnings)
     }
 }
 

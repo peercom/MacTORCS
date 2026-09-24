@@ -95,9 +95,36 @@ final class TracksideCameraTests: XCTestCase {
         }
         withExtendedLifetime(content){}
     }
-    func testInvalidCameraReferencesFailInsteadOfLoopingOrGuessing() throws {
-        for definitions in [camera("bad","missing","a","b"),camera("bad","a","missing","b"),camera("bad","a","a","missing"),"<section name=\"missing-fields\"/>"] {
-            XCTAssertThrowsError(try TrackBuilder.buildRoad(parameters:ParameterDocument.parse(xml(definitions))))
+    /// Unresolvable camera references resolve the way the original does, and
+    /// say so.
+    ///
+    /// This previously rejected them. That was stricter than upstream, and the
+    /// strictness cost real content: a-speedway ships
+    /// `fov start val="segment s2"`, where the value mistakenly includes the
+    /// word "segment" and matches nothing, which made an otherwise valid track
+    /// unloadable.
+    ///
+    /// The original resolves a camera's segment reference by reading that
+    /// segment's id with `GfParmGetNum`, which returns its default of 0 when
+    /// the name is absent, then scanning for the segment with that id. So an
+    /// unknown name selects the first segment. The port now does the same, but
+    /// records a warning, so the substitution is visible rather than silent —
+    /// which is the property the previous behaviour was protecting.
+    func testUnresolvableCameraReferencesResolveLikeTheOriginalAndWarn() throws {
+        for definitions in [camera("bad","missing","a","b"), camera("bad","a","missing","b"),
+                            camera("bad","a","a","missing"), "<section name=\"missing-fields\"/>"] {
+            let road = try TrackBuilder.buildRoad(parameters: ParameterDocument.parse(xml(definitions)))
+            XCTAssertFalse(road.warnings.isEmpty, "an unresolved reference must be reported")
+            XCTAssertTrue(road.warnings.contains { $0.contains("unknown") },
+                          "warning should name the unresolved reference: \(road.warnings)")
+            // It still produces a usable camera rather than a broken one.
+            XCTAssertEqual(road.cameras.count, 1)
         }
+    }
+
+    /// A well-formed track warns about nothing.
+    func testValidCameraReferencesProduceNoWarnings() throws {
+        let road = try TrackBuilder.buildRoad(parameters: ParameterDocument.parse(xml(camera("ok","a","a","b"))))
+        XCTAssertTrue(road.warnings.isEmpty, "unexpected warnings: \(road.warnings)")
     }
 }

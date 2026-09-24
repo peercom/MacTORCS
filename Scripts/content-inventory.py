@@ -105,7 +105,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('install', type=Path, help='path to a TORCS 1.3.9 tree')
     parser.add_argument('--json', type=Path, help='write the full inventory here')
-    parser.add_argument('--supported-versions', default='4',
+    parser.add_argument('--supported-versions', default='0,1,2,3,4',
                         help='comma-separated track XML versions the loader accepts')
     arguments = parser.parse_args()
     if not (arguments.install / 'data/cars/models').is_dir():

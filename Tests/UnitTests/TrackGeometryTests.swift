@@ -288,7 +288,9 @@ final class TrackGeometryTests: XCTestCase {
             Data("<params name='invalid'><section name='Header'><attnum name='version' val='\(header)'/></section><section name='Main Track'><attnum name='width' val='\(width)'/><section name='Track Segments'><section name='bad'>\(geometry)</section></section></section></params>".utf8)
         }
         let straight = "<attstr name='type' val='str'/><attnum name='lg' val='100'/>"
-        for data in [xml("3", "10", straight), xml("4", "0", straight),
+        // Version 3 is supported now, so it is no longer a malformed case;
+        // version 5 is outside the range the original loader dispatches on.
+        for data in [xml("5", "10", straight), xml("4", "0", straight),
                      xml("4", "10", "<attstr name='type' val='lft'/><attnum name='radius' val='0'/><attnum name='arc' val='1'/>"),
                      xml("4", "10", straight + "<attnum name='profil steps length' val='0.00000000000000000000000000000001'/>"),
                      xml("4", "10", straight + "<attnum name='profil steps' val='-1'/>")] {

@@ -18,6 +18,11 @@ public struct ParameterSection: Equatable, Sendable {
     public let name: String
     public let parameters: [String: Parameter]
     public let sections: [ParameterSection]
+    /// Public so a schema adapter can build an equivalent tree without going
+    /// back through XML. Parsing remains the only way to read a file.
+    public init(name: String, parameters: [String: Parameter] = [:], sections: [ParameterSection] = []) {
+        self.name = name; self.parameters = parameters; self.sections = sections
+    }
     public func section(_ path: String) -> ParameterSection? {
         let components = path.split(separator: "/").map(String.init)
         return components.reduce(Optional(self)) { parent, name in parent?.sections.first { $0.name == name } }
@@ -34,6 +39,7 @@ public struct ParameterSection: Equatable, Sendable {
 public struct ParameterDocument: Equatable, Sendable {
     public let name: String
     public let root: ParameterSection
+    public init(name: String, root: ParameterSection) { self.name = name; self.root = root }
     public func section(_ path: String) -> ParameterSection? { root.section(path) }
 
     /// Safe external entities are explicit in-memory entries, keyed by entity name.
@@ -126,7 +132,14 @@ public enum ParameterError: Error, CustomStringConvertible {
 }
 
 private final class ParameterParser: NSObject, XMLParserDelegate {
-    struct Builder { var name: String; var parameters: [String: Parameter] = [:]; var sections: [ParameterSection] = [] }
+    struct Builder {
+        var name: String
+        var parameters: [String: Parameter] = [:]
+        var sections: [ParameterSection] = []
+        /// Parameters repeated within this section. The first occurrence wins,
+        /// matching the original parser; retained so the fact is observable.
+        var duplicates: Set<String> = []
+    }
     var stack: [Builder] = []
     var elements: [String] = []
     var result: ParameterDocument?
@@ -155,8 +168,20 @@ private final class ParameterParser: NSObject, XMLParserDelegate {
             }
             stack.append(Builder(name: name))
         case "attnum", "attstr":
-            guard parent == "section" || parent == "params", let value = a["val"],
-                  stack[stack.count - 1].parameters[name] == nil else { fail(parser, "Invalid or duplicate parameter \(name)"); return }
+            guard parent == "section" || parent == "params", let value = a["val"] else {
+                fail(parser, "Invalid parameter \(name)"); return
+            }
+            // A repeated parameter is not an error upstream. GfParmReadFile
+            // appends to a hash bucket without checking for duplicates and
+            // resolves lookups from the head of that bucket, so the first
+            // occurrence in document order is the one that takes effect. Some
+            // shipped tracks rely on this: dirt-6 declares `profil` twice in
+            // two of its segments. Rejecting the file makes that content
+            // unloadable for no benefit.
+            guard stack[stack.count - 1].parameters[name] == nil else {
+                stack[stack.count - 1].duplicates.insert(name)
+                return
+            }
             if element == "attstr" {
                 stack[stack.count - 1].parameters[name] = .string(value, allowed: a["in"]?.components(separatedBy: ",").filter { !$0.isEmpty } ?? [])
             } else {

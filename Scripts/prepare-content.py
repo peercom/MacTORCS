@@ -17,7 +17,14 @@ import argparse, hashlib, json, re, shutil, subprocess, sys, tempfile
 
 ROOT = Path(__file__).resolve().parent.parent
 ASSETC = ROOT / '.build/release/torcs-assetc'
-SUPPORTED_TRACK_VERSIONS = {4}
+SUPPORTED_TRACK_VERSIONS = {0, 1, 2, 3, 4}
+
+# Version-3 tracks verified segment-for-segment against the original reader,
+# except this one. dirt-4 is the only version-3 track with a pit lane; its
+# "track side" type has no version-4 counterpart, and the resulting bounding
+# box difference translates the whole track by 705.5 m in Y. The shape is
+# right, but the baked mesh would sit away from the physics.
+KNOWN_BAD_TRACKS = {'dirt-4': 'version-3 pit lane translates the track 705.5 m in Y'}
 
 
 def attribute(text, name, kind='attstr'):
@@ -116,6 +123,9 @@ def main():
     if version not in SUPPORTED_TRACK_VERSIONS:
         raise SystemExit(f'{arguments.track} is track XML version {version}; '
                          f'the loader supports {sorted(SUPPORTED_TRACK_VERSIONS)}.')
+    if arguments.track in KNOWN_BAD_TRACKS and not arguments.allow_unlicensed:
+        raise SystemExit(f'{arguments.track}: {KNOWN_BAD_TRACKS[arguments.track]}. '
+                         'See Documentation/TRACK_VERSIONS.md.')
 
     shared = install / 'data/data/textures'
     destination.parent.mkdir(parents=True, exist_ok=True)
