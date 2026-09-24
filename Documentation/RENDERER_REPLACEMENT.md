@@ -20,9 +20,14 @@ stage, no per-vertex lighting result, and no clamped sRGB framebuffer to match.
 
 Retired with this replacement:
 
-- The graphics oracles in `Upstream/Reference`: `graphics-instrumentation.cpp`,
-  `draw-order-instrumentation.cpp`, `alpha-state-instrumentation.cpp`,
-  `carlight-instrumentation.cpp`, `height-instrumentation.cpp`.
+- The graphics oracles in `Upstream/Reference`: `draw-order-instrumentation.cpp`,
+  `alpha-state-instrumentation.cpp`, `carlight-instrumentation.cpp`,
+  `height-instrumentation.cpp`, and the rasterization oracles in
+  `graphics-instrumentation.cpp` (shadow vertices, background geometry and
+  camera, car reflections, track shadows, shadow scale order, mirror capture,
+  fly camera, shadow visibility). The camera, TV director, wheel and brake
+  geometry oracles in that file stay: they pin presentation logic that the new
+  path still runs unchanged.
 - The test files that consume them.
 
 Explicitly **kept**:
@@ -1033,6 +1038,42 @@ read right to left, is the mirror view read left to right.
 
 With this the classic path has no feature the new one lacks. Retiring it
 is the next step of Phase 2, and it is now a deletion rather than a loss.
+
+## Retiring the classic path
+
+Phase 2's last step, done once the new path had every feature the old one
+had. It is a deletion, and the decision record is what it deleted.
+
+`TORCSMetal` is gone: `SceneRenderer`, `Scene.metal`, the fixed-function
+emulation, blob and baked shadows, car reflections, billboard lights, the
+scene-height traversal and its draw-order and alpha-state bookkeeping. What
+was not rendering moved to a new `TORCSPresentation` package with no Metal
+dependency: the 31 camera presets, zoom, the fly camera and TV director, the
+mirror camera and layout, and `VehiclePresentation`. `SceneCamera` came out of
+the old scene geometry as its own type, and the fly camera now takes a height
+closure so it runs over the generated road rather than a scene graph.
+
+The app is modern-only. `--modern-driving-test` is the one diagnostic; the
+fourteen classic smoke modes and the bench renderer went with the path they
+exercised, and the scene inspector's orbit view was rewritten on
+`ForwardRenderer`. `DrivingSession` keeps a single toggle, the mirror.
+
+Eighteen test files went with it, all of them comparisons of the classic
+raster against upstream: car lights, reflections, track shadows, draw order,
+alpha state, scene height, edge smoothing, repeat rasters, vegetation fog.
+Five more lost their renderer-dependent cases and kept their camera and
+geometry assertions. Of the ~1,100 lines of graphics oracle, ~300 remain:
+every `ref_*` symbol was grepped for a surviving Swift caller before its body
+was removed, and the header lost exactly the prototypes whose bodies went.
+The pinned upstream sources under `Upstream/Reference/graphics/` and the
+provenance manifest are untouched; `verify-provenance.py` still checks the
+excerpts, including the ones nothing calls any more, because they are the
+record of what the port was compared against.
+
+The suite fell from 420 tests to 354, all passing; the app builds and the
+modern smoke still produces its 29 cameras and the mirror. Nothing that
+survives asserts anything about rasterization, which is the narrowing the top
+of this document announced.
 
 ## Licensing
 

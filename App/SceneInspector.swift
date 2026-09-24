@@ -3,7 +3,9 @@ import SwiftUI
 import MetalKit
 import Observation
 import TORCSAssets
-import TORCSMetal
+import TORCSPresentation
+import TORCSRender
+import TORCSRaceEngine
 import ImageIO
 import UniformTypeIdentifiers
 
@@ -40,7 +42,7 @@ struct SceneInspectorScreen: View {
             else { ContentUnavailableView("Open a compiled scene",systemImage:"cube",description:Text("Compile a model with torcs-assetc --scene, then open its output folder.")) }
             VStack(alignment:.leading,spacing:4) {
                 Text("Drag or arrows to orbit · Scroll or +/− to zoom · Double-click or R to frame")
-                Text("Inspection camera and lighting · Reflections and full scene effects are pending.")
+                Text("Physically based inspection with the sun overhead.")
                 if let message { Text(message).textSelection(.enabled) }
             }.font(.caption).frame(maxWidth:.infinity,alignment:.leading).padding()
         }.frame(minWidth:800,minHeight:600)
@@ -57,89 +59,75 @@ struct SceneInspectorScreen: View {
     }
 }
 @MainActor final class OrbitMetalView: MTKView {
-    var renderer: SceneRenderer?
+    var renderer: ForwardRenderer?
+    var resources: SceneResources?
+    var camera: SceneCamera?
+    var bounds3: (SIMD3<Float>, SIMD3<Float>) = (.zero, .zero)
+    var lighting = SunLighting()
     private var lastDragLocation: NSPoint?
     override var acceptsFirstResponder: Bool { true }
+    func frameModel() { camera = SceneCamera(framing: bounds3.0, bounds3.1) }
     override func mouseDown(with event: NSEvent) {
         window?.makeFirstResponder(self)
         lastDragLocation=event.locationInWindow
-        if event.clickCount==2,let renderer { renderer.camera=SceneCamera(geometry:renderer.geometry) }
+        if event.clickCount==2 { frameModel() }
     }
     override func mouseDragged(with event: NSEvent) {
-        guard let renderer,let previous=lastDragLocation else { return }
+        guard camera != nil,let previous=lastDragLocation else { return }
         let location=event.locationInWindow;lastDragLocation=location
-        renderer.camera.yaw -= Float(location.x-previous.x)*0.008
-        renderer.camera.pitch=max(-1.5,min(1.5,renderer.camera.pitch+Float(location.y-previous.y)*0.008))
+        camera!.yaw -= Float(location.x-previous.x)*0.008
+        camera!.pitch=max(-1.5,min(1.5,camera!.pitch+Float(location.y-previous.y)*0.008))
     }
     override func scrollWheel(with event: NSEvent) {
-        guard let renderer else { return }
-        renderer.camera.distance=max(0.1,min(100_000,renderer.camera.distance*exp(max(-30,min(30,Float(event.scrollingDeltaY)))*0.01)))
+        guard camera != nil else { return }
+        camera!.distance=max(0.1,min(100_000,camera!.distance*exp(max(-30,min(30,Float(event.scrollingDeltaY)))*0.01)))
     }
     override func keyDown(with event: NSEvent) {
-        guard let renderer else { return }
+        guard camera != nil else { return }
         switch event.charactersIgnoringModifiers {
-        case "\u{F702}": renderer.camera.yaw += 0.1
-        case "\u{F703}": renderer.camera.yaw -= 0.1
-        case "\u{F700}": renderer.camera.pitch=min(1.5,renderer.camera.pitch+0.1)
-        case "\u{F701}": renderer.camera.pitch=max(-1.5,renderer.camera.pitch-0.1)
-        case "r": renderer.camera=SceneCamera(geometry:renderer.geometry)
-        case "+","=": renderer.camera.distance=max(0.1,renderer.camera.distance*0.9)
-        case "-": renderer.camera.distance=min(100_000,renderer.camera.distance*1.1)
+        case "\u{F702}": camera!.yaw += 0.1
+        case "\u{F703}": camera!.yaw -= 0.1
+        case "\u{F700}": camera!.pitch=min(1.5,camera!.pitch+0.1)
+        case "\u{F701}": camera!.pitch=max(-1.5,camera!.pitch-0.1)
+        case "r": frameModel()
+        case "+","=": camera!.distance=max(0.1,camera!.distance*0.9)
+        case "-": camera!.distance=min(100_000,camera!.distance*1.1)
         default: super.keyDown(with:event)
         }
+    }
+}
+@MainActor final class OrbitCoordinator: NSObject, MTKViewDelegate {
+    func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {}
+    func draw(in view: MTKView) {
+        guard let view = view as? OrbitMetalView, let renderer = view.renderer, let resources = view.resources, let camera = view.camera else { return }
+        _ = try? renderer.present(in: view, resources: [resources], instances: [RenderInstance(resource: 0)],
+                                  camera: ModernDrivingRenderer.camera(from: camera), lighting: view.lighting)
     }
 }
 struct SceneMetalView: NSViewRepresentable {
     let scene: LoadedScene
     @Binding var message: String?
+    func makeCoordinator() -> OrbitCoordinator { OrbitCoordinator() }
     func makeNSView(context: Context) -> OrbitMetalView {
         let view=OrbitMetalView();view.preferredFramesPerSecond=60
         view.setAccessibilityElement(true);view.setAccessibilityRole(.image)
         view.setAccessibilityLabel("TORCS compiled scene")
         view.setAccessibilityHelp("Drag or use arrow keys to orbit. Scroll or press plus and minus to zoom. Press R to frame the model.")
         do {
-            let renderer=try SceneRenderer(scene:scene,view:view);view.renderer=renderer
-            let info="\(renderer.geometry.batches.count) batches · \(renderer.triangleCount) triangles\n"+renderer.warnings.joined(separator:"\n")
+            var settings = RenderSettings()
+            settings.motionBlur = false
+            let renderer = try ForwardRenderer(settings: settings)
+            renderer.configure(view)
+            let flattened = try RenderScene(scene.asset.scene)
+            let store = TextureStore(device: renderer.device, roots: [])
+            let resources = try SceneResources(device: renderer.device, scene: flattened, textures: store, compiled: scene.textures)
+            view.renderer = renderer; view.resources = resources
+            view.bounds3 = (flattened.minimum, flattened.maximum); view.frameModel()
+            view.delegate = context.coordinator
+            let info="\(flattened.batches.count) batches · \(flattened.triangleCount) triangles\n"+flattened.warnings.joined(separator:"\n")
             DispatchQueue.main.async { message=info }
         } catch { let info=String(describing:error);DispatchQueue.main.async { message=info } }
         return view
     }
     func updateNSView(_ view: OrbitMetalView,context: Context) {}
-}
-
-@MainActor enum SceneSmoke {
-    static func run(directory: URL,output: URL) throws {
-        let loaded=try CompiledScene.load(directory),renderer=try SceneRenderer(scene:loaded)
-        let width=960,height=640,data=try renderer.render(width:width,height:height)
-        let repeated=try renderer.render(width:width,height:height)
-        try verifyRasterRepeat(data,repeated)
-        let pixels=Array(data),background=[UInt8(41),56,74]
-        var coverage=0,checksum: UInt64=0
-        for i in stride(from:0,to:pixels.count,by:4) {
-            if (0..<3).contains(where:{ abs(Int(pixels[i+$0])-Int(background[$0]))>1 }) { coverage += 1 }
-            for c in 0..<3 { checksum += UInt64(pixels[i+c]) }
-        }
-        guard coverage>100 else { throw RendererError.unavailable("Scene rendered no measurable geometry") }
-        try writePNG(data,width:width,height:height,output:output)
-        print("SCENE_RENDER source=\(loaded.source) batches=\(renderer.geometry.batches.count) triangles=\(renderer.triangleCount) coveredPixels=\(coverage) rgbChecksum=\(checksum) repeat=1")
-        for warning in renderer.warnings { print("Scene limitation: \(warning)") }
-    }
-    /// Allow only sparse one-LSB GPU rounding; retain measured differences.
-    static func verifyRasterRepeat(_ a: Data,_ b: Data) throws {
-        guard a.count==b.count,!a.isEmpty else { throw RendererError.unavailable("Raster dimensions differ") }
-        let changes=zip(a,b).map { abs(Int($0)-Int($1)) }.filter { $0 != 0 }
-        let maximum=changes.max() ?? 0
-        print("Raster repeat: changedChannels=\(changes.count) maxChannelDelta=\(maximum)")
-        guard maximum<=1,changes.count<=a.count/10_000 else {
-            throw RendererError.unavailable("Repeated scene render differs: \(changes.count) channels, maximum \(maximum)")
-        }
-    }
-    static func writePNG(_ data: Data,width: Int,height: Int,output: URL) throws {
-        guard let provider=CGDataProvider(data:data as CFData),
-              let image=CGImage(width:width,height:height,bitsPerComponent:8,bitsPerPixel:32,bytesPerRow:width*4,space:CGColorSpaceCreateDeviceRGB(),bitmapInfo:CGBitmapInfo(rawValue:CGImageAlphaInfo.last.rawValue),provider:provider,decode:nil,shouldInterpolate:false,intent:.defaultIntent),
-              let dest=CGImageDestinationCreateWithURL(output as CFURL,UTType.png.identifier as CFString,1,nil) else { throw RendererError.unavailable("PNG export failed") }
-        CGImageDestinationAddImage(dest,image,nil)
-        guard CGImageDestinationFinalize(dest) else { throw RendererError.unavailable("PNG finalization failed") }
-    }
-
 }

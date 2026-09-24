@@ -5,7 +5,7 @@ import CReference
 import TORCSTrack
 import TORCSConfiguration
 import TORCSReferenceSupport
-@testable import TORCSMetal
+@testable import TORCSPresentation
 
 final class TracksideCameraTests: XCTestCase {
     func testF8F9FactoriesAndUpdatesAgainstOriginal() throws {

@@ -36,25 +36,6 @@ public struct VehiclePresentation: Sendable {
 }
 
 extension VehiclePresentation {
-    /// Body and four selected wheel meshes share immutable GPU resources.
-    public func instances(bodyResource: Int,wheelResources: [Int],reflection: CarReflection? = nil,drawDriver: Bool=true,brakeResources: [Int]?=nil,carIndex:Int=0) throws -> [SceneInstance] {
-        guard wheelResources.count==4 else { throw ACError.invalid("Four wheel speed resources required") }
-        guard brakeResources == nil || brakeResources?.count==12 else { throw ACError.invalid("Twelve hub/disc/caliper resources required") }
-        let car=SceneCarPlacement(index:carIndex,position:SIMD3(body[3].x,body[3].y,body[3].z))
-        var instances=[SceneInstance(resource:bodyResource,transform:body,reflection:reflection,hidesDriver:!drawDriver,car:car)]
-        for i in 0..<4 {
-            if let brakeResources {
-                for part in 0..<3 {
-                    instances.append(SceneInstance(resource:brakeResources[i*3+part],transform:wheels[i].brakeTransform,colorOverride:part==1 ? SIMD4(wheels[i].brakeColor,1):nil,car:car))
-                }
-            }
-            instances.append(SceneInstance(resource:wheelResources[wheels[i].level],transform:wheels[i].transform,reflection:reflection,car:car))
-        }
-        return instances
-    }
-}
-
-extension VehiclePresentation {
     private init(body: simd_float4x4,wheels: FourWheels<PresentedWheel>) { self.body=body;self.wheels=wheels }
     /// Presentation interpolation only: neither endpoint nor physics is mutated.
     /// Endpoint matrices remain exact; interior rotations follow the shortest arc.

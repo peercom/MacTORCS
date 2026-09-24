@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: GPL-2.0-only
 import Foundation
+import ImageIO
+import UniformTypeIdentifiers
 import simd
 import TORCSAssets
-import TORCSMetal
+import TORCSPresentation
 import TORCSRaceEngine
 import TORCSRender
 import TORCSTrackMesh
@@ -60,7 +62,7 @@ import TORCSTrackMesh
             let pixels = try renderer.render(resources: resources.resources, instances: instances,
                                              camera: ModernDrivingRenderer.camera(from: sceneCamera),
                                              lighting: lighting, width: width, height: height)
-            try SceneSmoke.writePNG(Data(pixels), width: width, height: height,
+            try writePNG(Data(pixels), width: width, height: height,
                                     output: output.appendingPathComponent("\(preset).png"))
             report.append(["camera": "\(preset)", "draws": renderer.lastDrawCount,
                            "triangles": renderer.lastTriangleCount,
@@ -96,7 +98,7 @@ import TORCSTrackMesh
                 let pixels = try renderer.render(resources: resources.resources, instances: instances,
                                                  camera: ModernDrivingRenderer.camera(from: chase),
                                                  lighting: lighting, width: width, height: height, mirror: request)
-                try SceneSmoke.writePNG(Data(pixels), width: width, height: height,
+                try writePNG(Data(pixels), width: width, height: height,
                                         output: output.appendingPathComponent("mirror.png"))
             }
         }
@@ -116,7 +118,7 @@ import TORCSTrackMesh
         let diagnosticPixels = try renderer.render(resources: resources.resources, instances: diagnosticInstances,
                                                    camera: diagnostic, lighting: lighting,
                                                    width: width, height: height)
-        try SceneSmoke.writePNG(Data(diagnosticPixels), width: width, height: height,
+        try writePNG(Data(diagnosticPixels), width: width, height: height,
                                 output: output.appendingPathComponent("diagnostic.png"))
 
         let summary: [String: Any] = [
@@ -131,4 +133,18 @@ import TORCSTrackMesh
             .write(to: output.appendingPathComponent("report.json"))
         print("modern driving smoke: \(report.count) cameras, \(resources.textures.count) textures, \(resources.textures.missing.count) missing")
     }
+}
+
+/// RGBA8 to PNG through ImageIO, for the diagnostic's images.
+@MainActor func writePNG(_ data: Data, width: Int, height: Int, output: URL) throws {
+    let space = CGColorSpace(name: CGColorSpace.sRGB)!
+    guard let provider = CGDataProvider(data: data as CFData),
+          let image = CGImage(width: width, height: height, bitsPerComponent: 8, bitsPerPixel: 32,
+                              bytesPerRow: width * 4, space: space,
+                              bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.noneSkipLast.rawValue),
+                              provider: provider, decode: nil, shouldInterpolate: false, intent: .defaultIntent),
+          let destination = CGImageDestinationCreateWithURL(output as CFURL, UTType.png.identifier as CFString, 1, nil)
+    else { throw RenderError.unavailable("Could not encode \(output.lastPathComponent)") }
+    CGImageDestinationAddImage(destination, image, nil)
+    guard CGImageDestinationFinalize(destination) else { throw RenderError.unavailable("Could not write \(output.path)") }
 }

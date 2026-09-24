@@ -6,13 +6,6 @@ extern "C" {
 // Test-only calls into original ReSortCars and ReOneStep (empty-car clock).
 int ref_race_order(const float *distances,const unsigned int *flags,int *order,int count);
 int ref_race_start_clock(int ticks,double *times,int *states);
-// Selected original SSG draw scheduling; storage/visibility adapters, no GL driver.
-int ref_draw_order(const int *parents,const int *flags,const int *visible,const int *driverNames,int count,int wrapDriver,int *output,int capacity);
-int ref_scene_anchor_order(int *output);
-// Original frame/mesh dispatch with no-op state/geometry adapters; 10 outputs.
-int ref_scene_depth_state(int initialWrite,int *output,int capacity);
-int ref_alpha_state(const int *care,const int *enabled,const float *clamps,int count,float *output);
-int ref_car_draw_order(const float *positions,const float *eye,int *order,int count,float *distances);
 float ref_human_axis(int role,float value,float minimum,float maximum,float minimumValue,float deadZone,float gain,float exponent,float speedSensitivity,float speed);
 
 typedef struct {
@@ -27,41 +20,18 @@ typedef struct { float front, rear; } RefBrakePressures;
 RefBrakePressures ref_brake_pressures(float command, float coefficient, float repartition, float clickValue, int maxClicks, int clicks);
 typedef struct { float angle, right, left; } RefSteeringResult;
 RefSteeringResult ref_steering(float previous, float command, float lock, float speed, float wheelbase, float track, float dt);
-// Test-only original PLIB scene-height query, one ordered AC graph per handle.
 typedef struct { int index;unsigned flags;int remainingLaps;float distanceFromStart,toMiddle;int pitRequested,collision; } RefTVCar;
 void *ref_tv_create(int count,const float *settings,float trackLength,float trackWidth);
 void ref_tv_destroy(void *handle);
 void ref_tv_step(void *handle,double time,int initialCar,const RefTVCar *cars,const int *otherScreens,int screenCount,double *state,int *selection,int *collisions,float *view);
-int ref_shadow_visibility(int carIndex,int currentIndex,int drawCurrent);
 void ref_camera_tv_zoom(float saved,const int *commands,int count,float *output);
-void ref_camera_fly_zoom(float saved,const int *commands,int count,float *output);
-void ref_camera_fly(void *scene,unsigned seed,const double *times,const float *positions,const int *indices,const int *selects,int count,float *output,double *storedTimes,int *draws,int *heightCalls);
-void *ref_scene_height_create(void);
-int ref_scene_height_add(void *handle,int parent,int kind,const float *matrix,int primitive,int cull,const float *vertices,int count);
-void ref_scene_height_query(void *handle,const float *xy,int count,float *heights,int *hits,int *triangles);
-void ref_scene_height_spheres(void *handle,float *output);
-int ref_scene_height_transform(void *handle,int node,const float *matrix);
-int ref_scene_height_select(void *handle,int node,unsigned mask);
-int ref_scene_height_driver_selector(void *handle,int parent,int child,int visible);
-void ref_scene_height_destroy(void *handle);
 void ref_ac_transform(const float *parent,const float *local,const float *point,float *matrix,float *world);
 typedef struct { float position[3],orientation[3],spin,radius,width,brakeTemperature; } RefVisualWheel;
 typedef struct { float matrix[16],wheelMatrix[4][16],brakeColor[4][3],brakeMatrix[4][16]; int level[4]; RefVisualWheel wheels[4]; unsigned int flags; } RefVehicleVisual;
 int ref_graphics_config_xml(const char *xml,float *output,int *type);
-void ref_background_camera(const float *input,float *output);
-int ref_background_geometry(int type,float *output,int capacity);
 void ref_camera_exterior(int kind,const float *samples,int count,float *output);
 void ref_camera_chase(const float *samples,int count,float distance,float height,float *output);
-void ref_camera_bonnet(const float *body,const float *position,float *output);
-void ref_shadow_vertices(float length,float width,const float *body,float *output);
 void ref_camera_behind(const float *samples, int count, float *output);
-typedef struct { int type;float position[3],size; } RefCarLightConfig;
-typedef struct { float vertices[12],uv[8],textureMatrix[16],finalTextureMatrix[16],color[4],offset[2];int count,primitive,randomDraws,depthMask[2],depthMaskCount,offsetEnabled,finalMatrixMode; } RefCarLightDraw;
-int ref_carlight_frustum(float nearValue,float farValue,float right,float top,const float *view,const float *position);
-void ref_carlight_random(unsigned seed,int count,unsigned *output);
-int ref_carlight_config_xml(const char *xml,RefCarLightConfig *output,int capacity);
-void ref_carlight_update(int type,float brake,unsigned lightCommand,int display,const float *position,float size,const float *body,int *state,float *world);
-void ref_carlight_draw(const float *position,float size,double factor,const float *view,unsigned randomValue,int on,RefCarLightDraw *output);
 void ref_brake_geometry(int wheel,float radius,float width,float *vertices,float *normals,float *colors,int *metadata);
 void ref_wheel_graphics(const float *body,const RefVisualWheel *wheels,RefVehicleVisual *output);
 float ref_unit_to_si(const char *unit, float value);
@@ -516,11 +486,8 @@ const unsigned char *ref_texture_sgi(const char *path, int maximum, int *count, 
 const unsigned char *ref_texture_mips(const unsigned char *pixels, int width, int height, int channels, int maximum, int mipmaps, int *count, int *levels);
 int ref_texture_mipmap_rule(const char *path, int requested);
 const char *ref_ac_load_json(const char *path,int car,int textureUnits);
-void ref_car_reflections(float distance, float yaw, int level, float *output);
 
-void ref_car_track_shadow(const float *track, const float *car, const float *position, float yaw, int level, int present, float *output);
 
-void ref_car_shadow_scale_order(const double *ratios, int detailed, float *output, int *loads);
 
 void ref_camera_zoom(int head,int identifier,float saved,const int *commands,const float *positions,int count,float *output);
 void ref_camera_trackside(const float *bounds,const float *position,const float *roadPosition,int zoom,float *output);
@@ -528,8 +495,6 @@ const char *ref_world_track_camera(RefWorld *world,int index,float *position);
 void ref_camera_survey(const float *bounds, const float *position, int kind, float *output);
 void ref_camera_driver(const float *body, const float *position, float *output);
 
-void ref_camera_mirror(const float *body,const float *position,int width,int height,float *output);
-void ref_camera_mirror_flags(int *output);
 
 #ifdef __cplusplus
 }

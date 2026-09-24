@@ -3,7 +3,8 @@ import SwiftUI
 import MetalKit
 import TORCSCore
 import TORCSSimulation
-import TORCSMetal
+import TORCSPresentation
+import TORCSRender
 import os
 
 @MainActor final class BenchSession {
@@ -56,99 +57,11 @@ import os
     @State private var drivingSession = DrivingSession()
     @Environment(\.openWindow) private var openWindow
     init() {
-        if CommandLine.arguments.contains("--metal-smoke-test") {
-            do {
-                let bench=BenchSession()
-                let renderer=try BenchRenderer(view:MTKView()) {
-                    (bench.previous,bench.current,Float(bench.clock.interpolation))
-                }
-                print("Metal offscreen smoke test passed, RGB checksum: \(try renderer.offscreenChecksum())")
-                exit(0)
-            } catch {
-                FileHandle.standardError.write(Data("Metal smoke test failed: \(error)\n".utf8));exit(1)
-            }
-        }
-        for flag in ["--car-light-visual-test","--car-light-benchmark"] {
-            if let index=CommandLine.arguments.firstIndex(of:flag) {
-                do {
-                    guard CommandLine.arguments.count==index+3 else { throw RendererError.unavailable("Usage: light diagnostic session-directory new-output-directory") }
-                    try CarLightVisualSmoke.run(session:URL(fileURLWithPath:CommandLine.arguments[index+1]),output:URL(fileURLWithPath:CommandLine.arguments[index+2]),measure:flag == "--car-light-benchmark");exit(0)
-                } catch { fputs("Car light diagnostic failed: \(error)\n",stderr);exit(1) }
-            }
-        }
-        for flag in ["--brake-visual-test","--brake-visual-benchmark"] {
-            if let index=CommandLine.arguments.firstIndex(of:flag) {
-                do {
-                    guard CommandLine.arguments.count==index+3 else { throw RendererError.unavailable("Usage: \(flag) session-directory new-output-directory") }
-                    try BrakeVisualSmoke.run(session:URL(fileURLWithPath:CommandLine.arguments[index+1]),output:URL(fileURLWithPath:CommandLine.arguments[index+2]),measure:flag == "--brake-visual-benchmark");exit(0)
-                } catch { FileHandle.standardError.write(Data("Brake visual test failed: \(error)\n".utf8));exit(1) }
-            }
-        }
-        for flag in ["--traffic-visual-test","--traffic-shadow-benchmark"] {
-            if let index=CommandLine.arguments.firstIndex(of:flag) {
-                do {
-                    guard CommandLine.arguments.count==index+3 else { throw RendererError.unavailable("Usage: \(flag) session-directory new-output-directory") }
-                    try TrafficVisualSmoke.run(session:URL(fileURLWithPath:CommandLine.arguments[index+1]),output:URL(fileURLWithPath:CommandLine.arguments[index+2]),measure:flag == "--traffic-shadow-benchmark");exit(0)
-                } catch { FileHandle.standardError.write(Data("Traffic visual test failed: \(error)\n".utf8));exit(1) }
-            }
-        }
-        for flag in ["--vegetation-visual-test","--vegetation-benchmark"] {
-            if let index=CommandLine.arguments.firstIndex(of:flag) {
-                do {
-                    guard CommandLine.arguments.count==index+3 else { throw RendererError.unavailable("Usage: \(flag) session-directory new-output-directory") }
-                    try VegetationVisualSmoke.run(session:URL(fileURLWithPath:CommandLine.arguments[index+1]),output:URL(fileURLWithPath:CommandLine.arguments[index+2]),measure:flag == "--vegetation-benchmark");exit(0)
-                } catch { FileHandle.standardError.write(Data("Vegetation visual test failed: \(error)\n".utf8));exit(1) }
-            }
-        }
-        if let index=CommandLine.arguments.firstIndex(of:"--tv-visual-test") {
-            do {
-                guard CommandLine.arguments.count==index+3 else { throw RendererError.unavailable("Usage: --tv-visual-test session-directory new-output-directory") }
-                try TVVisualSmoke.run(session:URL(fileURLWithPath:CommandLine.arguments[index+1]),output:URL(fileURLWithPath:CommandLine.arguments[index+2]));exit(0)
-            } catch { FileHandle.standardError.write(Data("TV visual test failed: \(error)\n".utf8));exit(1) }
-        }
-        if let index=CommandLine.arguments.firstIndex(of:"--fly-visual-test") {
-            do {
-                guard CommandLine.arguments.count==index+3 else { throw RendererError.unavailable("Usage: --fly-visual-test session-directory new-output-directory") }
-                try FlyVisualSmoke.run(session:URL(fileURLWithPath:CommandLine.arguments[index+1]),output:URL(fileURLWithPath:CommandLine.arguments[index+2]));exit(0)
-            } catch { FileHandle.standardError.write(Data("Fly visual test failed: \(error)\n".utf8));exit(1) }
-        }
         if let index=CommandLine.arguments.firstIndex(of:"--modern-driving-test") {
             do {
-                guard CommandLine.arguments.count==index+3 else { throw RendererError.unavailable("Usage: --modern-driving-test session-directory new-output-directory") }
+                guard CommandLine.arguments.count==index+3 else { throw RenderError.unavailable("Usage: --modern-driving-test session-directory new-output-directory") }
                 try ModernDrivingSmoke.run(session:URL(fileURLWithPath:CommandLine.arguments[index+1]),output:URL(fileURLWithPath:CommandLine.arguments[index+2]));exit(0)
             } catch { FileHandle.standardError.write(Data(String(describing:error).utf8));exit(1) }
-        }
-        if let index=CommandLine.arguments.firstIndex(of:"--driving-visual-test") {
-            do {
-                guard CommandLine.arguments.count==index+3 else { throw RendererError.unavailable("Usage: --driving-visual-test session-directory new-output-directory") }
-                try DrivingVisualSmoke.run(session:URL(fileURLWithPath:CommandLine.arguments[index+1]),output:URL(fileURLWithPath:CommandLine.arguments[index+2]));exit(0)
-            } catch { FileHandle.standardError.write(Data("Driving visual test failed: \(error)\n".utf8));exit(1) }
-        }
-        if let index=CommandLine.arguments.firstIndex(of:"--vehicle-scene-smoke-test") {
-            do {
-                guard CommandLine.arguments.count==index+4 else { throw RendererError.unavailable("Usage: --vehicle-scene-smoke-test scenes-directory fixtures-directory output.png") }
-                try VehicleSceneSmoke.run(scenes:URL(fileURLWithPath:CommandLine.arguments[index+1]),fixtures:URL(fileURLWithPath:CommandLine.arguments[index+2]),output:URL(fileURLWithPath:CommandLine.arguments[index+3]))
-                exit(0)
-            } catch { FileHandle.standardError.write(Data("Vehicle scene failed: \(error)\n".utf8));exit(1) }
-        }
-        if let index=CommandLine.arguments.firstIndex(of:"--scene-smoke-test") {
-            do {
-                guard CommandLine.arguments.count==index+3 else { throw RendererError.unavailable("Usage: --scene-smoke-test scene-directory output.png") }
-                try SceneSmoke.run(directory:URL(fileURLWithPath:CommandLine.arguments[index+1]),output:URL(fileURLWithPath:CommandLine.arguments[index+2]))
-                exit(0)
-            } catch { FileHandle.standardError.write(Data("Scene smoke failed: \(error)\n".utf8));exit(1) }
-        }
-        // Run file-based diagnostics before AppKit routes file arguments to its
-        // open-document lifecycle; that path need not create a WindowGroup view.
-        if let index=CommandLine.arguments.firstIndex(of:"--texture-smoke-test") {
-            do {
-                let files=CommandLine.arguments.dropFirst(index+1).map { URL(fileURLWithPath:$0) }
-                let bytes=try MetalTextureUpload.verifyCaches(files)
-                print("Metal texture upload passed, files: \(files.count), RGBA bytes: \(bytes)")
-                exit(0)
-            } catch {
-                FileHandle.standardError.write(Data("Texture smoke test failed: \(error)\n".utf8));exit(1)
-            }
         }
     }
     var body: some Scene {
@@ -210,9 +123,9 @@ struct BenchScreen: View {
             }.padding(24).frame(minWidth: 270, idealWidth: 300, maxWidth: 360)
             ZStack(alignment: .bottomLeading) {
                 MetalBench(session: session, rate: renderRate, error: $error)
-                    .accessibilityLabel("Animated suspension component inspection")
+                    .accessibilityLabel("Suspension bench input surface")
                 if let error { Text(error).padding().background(.regularMaterial).padding() }
-                else { Text("Forced suspension travel • interpolated immutable snapshots")
+                else { Text("Forced suspension travel • readouts at left; the animated view retired with the classic renderer")
                     .font(.caption).padding(10).background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 6)).padding() }
             }
         }
@@ -252,23 +165,16 @@ struct SettingsScreen: View {
     }
 }
 
+/// The suspension bench's input surface. Its animated component view went
+/// with the classic renderer; the physics readouts beside it are the bench.
 struct MetalBench: NSViewRepresentable {
     let session: BenchSession
     let rate: Int
     @Binding var error: String?
-    final class Coordinator { var renderer: BenchRenderer? }
-    func makeCoordinator() -> Coordinator { Coordinator() }
     func makeNSView(context: Context) -> InputMetalView {
         let view = InputMetalView(); view.session = session; view.preferredFramesPerSecond = rate
-        do {
-            context.coordinator.renderer = try BenchRenderer(view: view) {
-                (session.previous, session.current, Float(session.clock.interpolation))
-            }
-        } catch {
-            let message = "Metal initialization failed: \(error)"
-            DispatchQueue.main.async { self.error = message }
-            Logger(subsystem: "org.torcs.mac", category: "Renderer").error("\(message)")
-        }
+        view.clearColor = MTLClearColor(red: 0.16, green: 0.22, blue: 0.29, alpha: 1)
+        view.device = MTLCreateSystemDefaultDevice()
         return view
     }
     func updateNSView(_ view: InputMetalView, context: Context) { view.preferredFramesPerSecond = rate }

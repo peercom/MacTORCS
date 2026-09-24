@@ -6,7 +6,7 @@ import TORCSConfiguration
 import TORCSTrack
 import TORCSReferenceSupport
 @testable import TORCSSimulation
-@testable import TORCSMetal
+@testable import TORCSPresentation
 
 final class VehiclePresentationTests: XCTestCase {
     struct Metrics { var cases=0,scalars=0;var maximum: Float=0 }
@@ -98,24 +98,6 @@ final class VehiclePresentationTests: XCTestCase {
             XCTAssertEqual(simd_length(SIMD3(m.x,m.y,m.z)),simd_length(SIMD3(n.x,n.y,n.z)),accuracy:0.000001)
         } }
         for alpha: Float in [-1,2,.nan,.infinity] { XCTAssertThrowsError(try VehiclePresentation.interpolate(previous:a,current:b,alpha:alpha)) }
-        XCTAssertEqual(try mid.instances(bodyResource:0,wheelResources:[1,2,3,4]).count,5)
         print("VEHICLE_INTERPOLATION endpoints=2 wrap=1 scaleChecks=12 invalidAlpha=4")
     }
-    func testGPUInstancesUseResourceAndDynamicTransform() async throws {
-        try await MainActor.run {
-            let red=SceneRenderingTests.loaded([SceneRenderingTests.quad(color:[1,0,0,1])]),blue=SceneRenderingTests.loaded([SceneRenderingTests.quad(color:[0,0,1,1])])
-            let r=try SceneRenderer(scenes:[red,blue]);r.camera.target = .zero;r.camera.distance=3;r.camera.yaw = -.pi/2;r.camera.pitch = .pi/2-0.0001
-            var shifted=matrix_identity_float4x4;shifted[3].x=3
-            try r.setInstances([SceneInstance(resource:0,transform:shifted),SceneInstance(resource:1)])
-            XCTAssertEqual(SceneRenderingTests.pixel(Array(try r.render(width:64,height:64))),[0,0,255,255])
-            shifted[3]=SIMD4(0,0,0.2,1)
-            try r.setInstances([SceneInstance(resource:0,transform:shifted),SceneInstance(resource:1)])
-            XCTAssertEqual(SceneRenderingTests.pixel(Array(try r.render(width:64,height:64))),[255,0,0,255])
-            XCTAssertThrowsError(try r.setInstances([SceneInstance(resource:2)]));XCTAssertEqual(r.instances.count,2)
-            shifted[0] = .zero
-            XCTAssertThrowsError(try r.setInstances([SceneInstance(resource:0,transform:shifted)]));XCTAssertEqual(r.instances.count,2)
-            print("VEHICLE_GPU_INSTANCES resources=2 transformUpdates=2 invalidStatePreserved=2")
-        }
-    }
-
 }

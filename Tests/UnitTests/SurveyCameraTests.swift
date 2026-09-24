@@ -4,7 +4,7 @@ import simd
 import CReference
 import TORCSSimulation
 @testable import TORCSAssets
-@testable import TORCSMetal
+@testable import TORCSPresentation
 
 final class SurveyCameraTests:XCTestCase {
     func compare(_ camera:SceneCamera,_ reference:[Float],_ preset:DrivingCameraPreset) -> Float {
@@ -54,38 +54,4 @@ final class SurveyCameraTests:XCTestCase {
         var rig=DrivingCameraRig()
         XCTAssertThrowsError(try rig.view(preset:.driver,body:matrix_identity_float4x4,bonnetPosition:.zero,yaw:0,trackHeading:0){_ in 0})
         print("DRIVER_CAMERA updates=1200 maximum=\(maximum) worldUp=1 driverHidden=1 nearPointOne=1")
-    }
-    func testDriverSubtreeVisibilityOnGPU() async throws {
-        try await MainActor.run {
-            let base=SceneRenderingTests.loaded([SceneRenderingTests.quad(z:0.1,color:[1,0,0,1]),SceneRenderingTests.quad(color:[0,0,1,1])])
-            var driverRoot=base.asset.scene.nodes[0];driverRoot.parent=0;driverRoot.name="DRIVER"
-            var driverMesh=base.asset.scene.nodes[1];driverMesh.parent=1
-            let bodyMesh=base.asset.scene.nodes[2]
-            let scene=ACScene(nodes:[base.asset.scene.nodes[0],driverRoot,driverMesh,bodyMesh])
-            let loaded=LoadedScene(asset:ACCompiledAsset(scene:scene,sourceSHA256:"authored",cacheKey:"authored",options:.init(car:true)),textures:[:],source:"authored")
-            let r=try SceneRenderer(scene:loaded);r.camera=SceneCamera(eye:SIMD3(0,0,2),target:.zero,up:SIMD3(0,1,0))
-            // Original driver selector is appended after its former siblings.
-            XCTAssertEqual(r.geometries[0].batches.map(\.isDriver),[false,true])
-            XCTAssertEqual(SceneRenderingTests.pixel(Array(try r.render(width:64,height:64))),[255,0,0,255]);XCTAssertEqual(r.triangleCount,4)
-            try r.setInstances([SceneInstance(resource:0,hidesDriver:true)])
-            XCTAssertEqual(SceneRenderingTests.pixel(Array(try r.render(width:64,height:64))),[0,0,255,255]);XCTAssertEqual(r.triangleCount,2)
-            // Only the first matching named subtree is selected by original grcar.
-            var multiple=scene;multiple.nodes.append(driverRoot);var other=bodyMesh;other.parent=4;multiple.nodes.append(other)
-            XCTAssertEqual(try SceneGeometry(multiple).batches.map(\.isDriver),[true,false,false])
-            print("DRIVER_VISIBILITY gpuOnOff=1 firstNamedSubtree=1 triangleCounts=verified")
-        }
-    }
-    func testPanoramaBackgroundFlagOnGPU() async throws {
-        try await MainActor.run {
-            let r=try SceneRenderer(scene:SceneRenderingTests.loaded([SceneRenderingTests.quad()]))
-            let graphics=try TrackEnvironmentTests().configuration(["background color R":0.5,"background color G":0.5,"background color B":0.5])
-            let sky=try CarReflectionTests.texture("sky") { _,_ in [0,0,255,255] }
-            try r.setEnvironment(graphics,background:sky);try r.setInstances([])
-            r.camera=SceneCamera(eye:SIMD3(0,0,2),target:SIMD3(1,0,2))
-            XCTAssertEqual(SceneRenderingTests.pixel(Array(try r.render(width:64,height:64))),[0,0,255,255])
-            r.camera.drawsBackground=false
-            XCTAssertEqual(SceneRenderingTests.pixel(Array(try r.render(width:64,height:64))),[128,128,128,255])
-            print("PANORAMA_BACKGROUND gpuDrawFlag=verified")
-        }
-    }
-}
+    }}

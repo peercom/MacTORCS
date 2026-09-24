@@ -4,7 +4,7 @@ import CReference
 import TORCSRaceEngine
 import TORCSSimulation
 import TORCSTelemetry
-@testable import TORCSMetal
+@testable import TORCSPresentation
 
 final class TVDirectorTests: XCTestCase {
     private func reference(_ count: Int,_ settings: TVDirector.Settings) throws -> UnsafeMutableRawPointer {

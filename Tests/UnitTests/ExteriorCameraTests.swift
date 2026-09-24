@@ -2,7 +2,7 @@
 import XCTest
 import simd
 import CReference
-@testable import TORCSMetal
+@testable import TORCSPresentation
 
 final class ExteriorCameraTests:XCTestCase {
     let presets:[DrivingCameraPreset]=[.trackAligned,.reverse,.side1,.side2,.side3,.side4,.side5,.side6,.side7,.side8,.overhead1,.overhead2,.overhead3,.overhead4]

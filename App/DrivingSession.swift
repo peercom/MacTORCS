@@ -5,7 +5,8 @@ import Observation
 import TORCSSimulation
 import TORCSRaceEngine
 import TORCSTelemetry
-import TORCSMetal
+import TORCSPresentation
+import TORCSRender
 import TORCSInput
 import os
 
@@ -274,7 +275,6 @@ private actor DrivingWorker {
 struct DrivingScreen: View {
     let session: DrivingSession
     @AppStorage("renderRate") private var renderRate=60
-    @AppStorage("modernRenderer") private var modernRenderer=false
     @State private var showControls=false
     @State private var showSetup=false
     @State private var showResults=false
@@ -295,7 +295,7 @@ struct DrivingScreen: View {
                 Button("Open Session…") { session.choose() }.disabled(session.sessionBusy || session.captureBusy)
             }.padding()
             if let content=session.content {
-                DrivingMetalView(session:session,content:content,rate:renderRate,camera:session.cameraPreset,zoom:session.cameraZoom,shadows:session.shadows,mirrors:session.mirrors,enhancedFiltering:session.enhancedFiltering,smoothEdges:session.smoothEdges,enhancedVegetation:session.enhancedVegetation,modernRenderer:modernRenderer).id("\(session.generation)-\(modernRenderer)")
+                DrivingMetalView(session:session,content:content,rate:renderRate,camera:session.cameraPreset,zoom:session.cameraZoom,mirrors:session.mirrors).id("\(session.generation)")
                     .overlay {
                         if let frame=session.frame,!session.paused,frame.result==nil,frame.raceTime<0.8 {
                             Text(frame.phase == .prestart ? (frame.raceTime < -1 ? "Ready":"Set"):"Go!")
@@ -327,24 +327,8 @@ struct DrivingScreen: View {
             }.disabled(session.content==nil).padding(.horizontal).padding(.top,8)
             if let cameraMessage=session.cameraMessage { Text(cameraMessage).foregroundStyle(.orange).padding(.horizontal) }
             HStack {
-                Toggle("Modern renderer",isOn:$modernRenderer)
-                    .help("Physically based lighting, atmospheric sky, cascaded shadows and generated terrain. Reloads the scene when changed.")
-                Divider().frame(height:16)
-                // The remaining options belong to the classic path. Each one is
-                // either replaced by the modern path or not yet ported to it, so
-                // rather than silently doing nothing they are disabled.
-                Toggle("Car shadow",isOn:Binding(get:{session.shadows},set:{session.shadows=$0}))
-                    .disabled(session.content?.shadow==nil || modernRenderer)
-                    .help(modernRenderer ? "The modern renderer casts real shadows from every object.":"Original projected shadow under the car.")
                 Toggle("Rear-view mirror",isOn:Binding(get:{session.mirrors},set:{session.mirrors=$0}))
-                    .disabled(!session.cameraPreset.allowsMirror || modernRenderer).help("Available in Driver, Bonnet and Road views.")
-                Toggle("Smooth edges",isOn:Binding(get:{session.smoothEdges},set:{session.smoothEdges=$0}))
-                    .disabled(!session.supportsEdgeSmoothing || modernRenderer).help("Optional 4× multisample antialiasing for car and track geometry.")
-                Toggle("3D trees",isOn:Binding(get:{session.enhancedVegetation},set:{session.enhancedVegetation=$0}))
-                    .disabled(!session.vegetationAvailable || modernRenderer).help("Adds volume to supported nearby trees. Original trees remain in distant views.")
-                Toggle("Sharper road textures",isOn:Binding(get:{session.enhancedFiltering},set:{session.enhancedFiltering=$0}))
-                    .disabled(modernRenderer)
-                    .help("Optional 4× anisotropic texture filtering. Classic filtering is used when off.")
+                    .disabled(!session.cameraPreset.allowsMirror).help("Available in Driver, Bonnet and Road views.")
                 Spacer()
             }.padding(.horizontal).padding(.top,8)
             HStack(spacing:24) {
@@ -414,41 +398,28 @@ struct DrivingMetalView: NSViewRepresentable {
     // while simulation is paused and no new snapshot is published.
     let camera: DrivingCameraPreset
     let zoom:Float
-    let shadows,mirrors,enhancedFiltering,smoothEdges,enhancedVegetation: Bool
-    /// Selects the modern physically based path. Switching reconfigures the
-    /// view's pixel format and rebuilds every GPU resource, so the representable
-    /// is rebuilt through `session.generation` rather than switched in place.
-    let modernRenderer: Bool
+    let mirrors: Bool
     @MainActor final class Coordinator: NSObject,MTKViewDelegate {
         let session: DrivingSession
         let content: DrivingContent
-        var renderer: SceneRenderer?
         var modern: ModernDrivingRenderer?
         var cameraRig=DrivingCameraRig()
         var fly: DrivingFlyCamera?
         var television: TVPresentation?
-        var shadow: CarShadow?
-        var trackShadow: CarTrackShadowMapping?
         var world:CameraWorld?
         init(session: DrivingSession,content: DrivingContent) { self.session=session;self.content=content }
         func mtkView(_ view: MTKView,drawableSizeWillChange size: CGSize) {}
         func draw(in view: MTKView) {
-            guard renderer != nil || modern != nil, let frame=session.frame else { return }
+            guard let modern, let frame=session.frame else { return }
             do {
                 let a=try VehiclePresentation(frame.previous),b=try VehiclePresentation(frame.current)
                 let pose=try VehiclePresentation.interpolate(previous:a,current:b,alpha:frame.interpolation)
                 let preset=session.cameraPreset
-                renderer?.enhancedFiltering=session.enhancedFiltering
-                renderer?.smoothEdges=session.smoothEdges
-                renderer?.enhancedVegetation=session.enhancedVegetation
                 func ground(_ point: SIMD2<Float>) throws -> Float { try content.simulation.road.geometry.height(at:point,startingAt:frame.trackSegment) }
-                try renderer?.setShadow(session.shadows && preset.drawsCar ? shadow?.project(body:pose.body,groundHeight:ground) ?? []:[],normal:SIMD3(pose.body[2].x,pose.body[2].y,pose.body[2].z))
                 let p=pose.body[3]
                 let yaw=frame.previous.body.orientation.z
                 let delta=frame.current.body.orientation.z-yaw
                 let cameraYaw=yaw+atan2(sin(delta),cos(delta))*frame.interpolation
-                let reflection=try CarReflection(body:pose.body,yaw:cameraYaw,track:content.simulation.road.geometry,startingAt:frame.trackSegment,trackShadow:trackShadow)
-                try renderer?.setInstances([SceneInstance(resource:5,anchor:.land)]+(preset.drawsCar ? pose.instances(bodyResource:0,wheelResources:[1,2,3,4],reflection:reflection,drawDriver:preset.drawsDriver,brakeResources:content.brakeResources):[]))
                 // Original chase-camera relaxation runs once per graphics update.
                 // Read published yaw: projecting a pitched car's forward vector
                 // would reverse the camera when pitch passes 90 degrees.
@@ -457,35 +428,23 @@ struct DrivingMetalView: NSViewRepresentable {
                     let geometry=content.simulation.road.geometry
                     trackHeading=geometry.tangent(try geometry.globalToLocal(SIMD2(p.x,p.y),startingAt:frame.trackSegment))
                 } else { trackHeading=0 }
-                let heightShadow = session.shadows ? try shadow?.project(body:b.body,groundHeight:ground) ?? []:[]
-                let flyView=try fly?.draw(time:frame.raceTime,selected:preset == .fly,snapshot:frame.current,drawsCar:preset.drawsCar,drawsDriver:preset.drawsDriver,shadowVertices:heightShadow,zoom:session.cameraZoom,enhancedVegetation:session.enhancedVegetation)
+                let flyView=try fly?.draw(time:frame.raceTime,selected:preset == .fly,snapshot:frame.current,zoom:session.cameraZoom)
                 // Every preset resolves to a SceneCamera, so both renderers can
                 // be driven from one camera decision rather than two.
                 let sceneCamera: SceneCamera
                 if preset == .fly {
-                    guard let flyView else { throw RendererError.unavailable("Fly camera is not initialized") }
+                    guard let flyView else { throw RenderError.unavailable("Fly camera is not initialized") }
                     sceneCamera=flyView
                 } else if preset == .television {
-                    guard let world,let result=try television?.view(screen:0,time:frame.raceTime,frame:[frame.presentationCar],road:content.simulation.road,world:world,zoom:session.cameraZoom) else { throw RendererError.unavailable("TV director is not initialized") }
+                    guard let world,let result=try television?.view(screen:0,time:frame.raceTime,frame:[frame.presentationCar],road:content.simulation.road,world:world,zoom:session.cameraZoom) else { throw RenderError.unavailable("TV director is not initialized") }
                     sceneCamera=result.camera
                 } else {
                     sceneCamera=try cameraRig.view(preset:preset,body:pose.body,bonnetPosition:content.bonnetPosition,driverPosition:content.driverPosition,world:world,roadCameraPosition:content.simulation.road.camera(at:frame.trackSegment)?.position,zoomValue:session.cameraZoom,yaw:cameraYaw,trackHeading:trackHeading,groundHeight:ground)
                 }
 
-                if let modern {
-                    modern.mirror=session.mirrors && preset.allowsMirror ? RearViewMirror(body:pose.body,bonnetPosition:content.bonnetPosition,hiddenInstances:preset.drawsCar ? Set(1...17):[]):nil
-                    modern.draw(in:view,pose:pose,camera:sceneCamera,brakeCommand:frame.current.brakeCommand,lightCommand:frame.current.lightCommand,drawsDriver:preset.drawsDriver,drawsCar:preset.drawsCar)
-                    if let error=modern.lastError { throw RendererError.unavailable(error) }
-                    return
-                }
-                guard let renderer else { return }
-                renderer.camera=sceneCamera
-                renderer.mirror=session.mirrors && preset.allowsMirror ? RearViewMirror(body:pose.body,bonnetPosition:content.bonnetPosition,hiddenInstances:preset.drawsCar ? Set(1...17):[]):nil
-                renderer.lightView=ShadowView(currentCar:0,drawsCurrentCar:preset.drawsCar)
-                let lightInstances=content.lightTextures.isEmpty ? []:try CarLightInstance.instances(definitions:content.lights,body:pose.body,brakeCommand:frame.current.brakeCommand,lightCommand:frame.current.lightCommand,display:true)
-                try renderer.setCarLights(lightInstances.map { SceneCarLight(carIndex:0,light:$0) })
-                renderer.draw(in:view)
-                if let error=renderer.lastRenderError { throw RendererError.unavailable(error) }
+                modern.mirror=session.mirrors && preset.allowsMirror ? RearViewMirror(body:pose.body,bonnetPosition:content.bonnetPosition,hiddenInstances:preset.drawsCar ? Set(1...17):[]):nil
+                modern.draw(in:view,pose:pose,camera:sceneCamera,brakeCommand:frame.current.brakeCommand,lightCommand:frame.current.lightCommand,drawsDriver:preset.drawsDriver,drawsCar:preset.drawsCar)
+                if let error=modern.lastError { throw RenderError.unavailable(error) }
             } catch { session.message=String(describing:error);session.stop() }
         }
     }
@@ -497,26 +456,15 @@ struct DrivingMetalView: NSViewRepresentable {
         view.setAccessibilityHelp("Use configured keyboard or controller bindings to drive. Open Controls to change bindings. Driving pauses when the window loses focus.")
         do {
             context.coordinator.world=try CameraWorld(bounds:content.simulation.road.bounds)
-            if let track=content.trackLoaderBounds,let car=content.carShadowLoaderBounds {
-                context.coordinator.trackShadow=try CarTrackShadowMapping(trackBounds:track,carBounds:car)
-            }
-            if modernRenderer {
-                let modern=try ModernDrivingRenderer(content:content,materials:ModernDrivingRenderer.materialsDirectory(beside:session.contentDirectory))
-                modern.configure(view)
-                context.coordinator.modern=modern
-            } else {
-                context.coordinator.renderer=try SceneRenderer(scenes:content.renderScenes,view:view,vegetationResource:5);try context.coordinator.renderer?.setCarLightTextures(content.lightTextures);try context.coordinator.renderer?.setShadowTexture(content.shadow);try context.coordinator.renderer?.setEnvironment(content.graphics,background:content.background);try context.coordinator.renderer?.setCarEnvironment(reflection:content.reflection,shade:content.environmentShade,trackShadow:content.trackShadow)
-            }
-            // The car shadow projection is still needed by the fly camera's
-            // height query even when the modern path draws no projected blob.
-            context.coordinator.shadow=try CarShadow(dimensions:content.dimensions);view.delegate=context.coordinator
-            let treeCount=context.coordinator.renderer?.vegetationForest?.placements.count ?? 0
-            DispatchQueue.main.async { session.vegetationAvailable=treeCount>0 }
+            let modern=try ModernDrivingRenderer(content:content,materials:ModernDrivingRenderer.materialsDirectory(beside:session.contentDirectory))
+            modern.configure(view)
+            context.coordinator.modern=modern
+            view.delegate=context.coordinator
             context.coordinator.television=try TVPresentation(carCount:1,settings:TVDirector.Settings())
             try context.coordinator.television?.activate(screen:0,car:0)
-            let snapshot=content.simulation.visualSnapshot
-            let initialShadow=try context.coordinator.shadow!.project(body:VehiclePresentation.matrix(snapshot.body)) { try content.simulation.road.geometry.height(at:$0,startingAt:content.simulation.vehicle.chassis.trackPosition.segment) }
-            context.coordinator.fly=try DrivingFlyCamera(height:DrivingSceneHeight(scenes:content.scenes.map { $0.asset.scene },snapshot:snapshot,shadowVertices:initialShadow,brakeScenes:content.brakeScenes.map { $0.asset.scene },lights:content.lights),vegetation:context.coordinator.renderer?.vegetationForest)
+            let geometry=content.simulation.road.geometry
+            let startSegment=content.simulation.vehicle.chassis.trackPosition.segment
+            context.coordinator.fly=try DrivingFlyCamera(height:{ point in try geometry.height(at:point,startingAt:startSegment) })
         }
         catch { let message=String(describing:error);DispatchQueue.main.async { session.message=message;session.stop() } }
         return view

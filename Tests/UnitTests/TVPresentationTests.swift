@@ -5,7 +5,7 @@ import TORCSRaceEngine
 import TORCSSimulation
 import TORCSTrack
 import simd
-@testable import TORCSMetal
+@testable import TORCSPresentation
 
 final class TVPresentationTests: XCTestCase {
     func testNativeMultiCarFramesAndSharedScreensAgainstOriginal() throws {

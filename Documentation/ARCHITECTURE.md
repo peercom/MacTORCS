@@ -35,41 +35,14 @@ when they have implementation and tests. Open Package.swift in Xcode or use
 - TORCSAssets: bounded native AC/ACC parsing, scene/state hierarchy, strip-to-triangle
   conversion, SGI/PNG images, faithful CPU mipmaps, binary caches and ordered content
   lookup, plus original generated hub/disc/caliper geometry; torcs-assetc compiles without graphics. Content installation and complete scene rendering remain pending.
-- TORCSMetal: assembled track/car/wheel scenes from interpolated snapshots,
-  original non-spinning brake attachment and per-instance disc heat color,
-  31 original camera presets, track sky/light/fog, car reflections, projected car
-  shadows and baked track shading on cars; SceneShadow records share separately
-  loaded textures while retaining per-car geometry, normals and view visibility.
-  Mirrors exclude only the current car shadow. Validated texture-pyramid upload to
-  RGBA8 unorm, rear-view mirror, optional anisotropic filtering and 4× MSAA.
-  Trackside camera selection uses immutable track metadata and the published
-  vehicle segment. Original per-camera zoom arithmetic is applied to presentation
-  projection only; native preference IO runs on explicit UI actions, with cached
-  values passed to the renderer. Complete effects and scene-wide dynamic shadows
-  remain pending. The tested F10 motion kernel owns presentation-only RNG; its
-  immutable raw-AC scene-height query preserves original hierarchy/triangle rules.
-  A small mutable assembly shares these resources and preserves selector bounds
-  and previous-draw query ordering for the exposed Fly camera, including generated
-  brakes before wheel rotation. Other LODs/effects
-  remain outside the selected scene (FLY_CAMERA.md).
-  TVDirector/TVCamera now port original multi-car director priorities and selected
-  roadside projection. PresentationCollisionHistory provides immutable per-step
-  event history and shared screen acknowledgement cursors without clearing physics.
-  DrivingRuntime publishes RacePresentationCar after each physics step; TVPresentation
-  owns four retained directors and shared acknowledgements. The picker exposes TV
-  with original F11 zoom. CarLightInstance/Geometry/Drawing implement original
-  enablement, billboards and an isolated draw-scoped random stream; GPU submission
-  and selected brake-light texture loading are integrated (CAR_LIGHTS.md).
-  SceneDrawOrder preserves original anchor/deferred queues and whole-car ordering.
-  SceneAlphaState resolves independent enable/threshold inheritance per view;
-  conservative uploaded-texture alpha bounds avoid unnecessary fragment discard
-  while retaining cutoff behavior (ALPHA_STATE.md). VegetationForest recognizes
-  selected Aalborg tree pairs and builds shared procedural geometry;
-  VegetationRenderState instances near/middle meshes with independent per-view
-  detail selection. The original path remains selectable, and Fly adds canopy
-  height only when the enhancement is enabled (VEGETATION.md).
-  Single-car GUI and authored multi-car test order are
-  distinct from complete race standings (TV_DIRECTOR.md).
+- TORCSPresentation: camera and vehicle presentation logic with no renderer
+  dependency — 31 original camera presets, saved zoom, the fly camera and TV
+  director, the rear-view mirror camera and layout, and `VehiclePresentation`'s
+  original wheel placement/LOD rules and snapshot interpolation.
+- TORCSRender: the physically based, linear-HDR Metal path (`ForwardRenderer`):
+  cascaded shadows, atmosphere, occlusion, screen-space reflections, motion blur,
+  bloom, spatial upscaling with dynamic resolution, generated road/terrain/grass/
+  tree geometry and generated materials. See RENDERER_REPLACEMENT.md.
 - TORCSMac: SwiftUI/AppKit lifecycle, settings, menu, keyboard event collection.
 - CReference: original TORCS physics, track loader, parameter parser, SOLID and
   PLIB mathematics and original pit-management routines, linked only into tests
@@ -158,15 +131,15 @@ on that scheduler without making it a complete race engine.
 
 The scene inspector loads a bounded `scene.json` index and binary mesh/texture
 caches on a background task. `SceneGeometry` resolves hierarchy transforms;
-`SceneRenderer` prepares Metal resources once and draws from those resources.
+`ForwardRenderer` draws from `SessionRenderResources` prepared once per session.
 Inspector orbit state is independent from simulation. `torcs-assetc --scene`
 resolves explicit content roots and stages a complete new directory; it is not
 yet the user content installer or a redistributable content bundle.
 
 `VehicleVisualSnapshot` copies published body/wheel state at the simulation boundary.
 `VehiclePresentation` applies original wheel placement/LOD rules and interpolates
-transforms without mutating physics. `SceneRenderer` shares prepared mesh resources
-across validated instances and scopes texture bindings per resource. The assembled
+transforms without mutating physics. `ForwardRenderer` shares prepared mesh resources
+across instances and scopes texture bindings per resource. The assembled
 vehicle diagnostic connects these pieces to real native physics; a realtime driving
 session and original chase camera are integrated below. See VEHICLE_PRESENTATION.md.
 
@@ -183,21 +156,14 @@ on the worker, never in draw callbacks. A continuing clock callback ends a batch
 the terminal tick. See LAP_TIMING.md.
 
 Car lights publish configuration and current command state independently of
-simulation randomness. `CarLightRenderState` owns separately loaded single-level
-textures, point-frustum culling and per-view prepared billboard draws. Mirrors
-prepare before the main view; retained plans preserve immediate repeated rasters.
-`SceneRenderer.setCarLights` begins a new display publication. The existing scene
-pass submits the light group after shadows with depth reads and no depth writes.
-`DrivingSceneHeight` retains one-point light leaves in the original light anchor,
-including switched-off lights, so their bounds influence the selected Fly graph.
-See CAR_LIGHTS.md for deferred-order and inherited-state limits.
+simulation randomness. The renderer receives the raw brake and light commands
+and lights the car's lens geometry through an emissive material channel, so
+brake lights and headlights need no billboard, culling or mirror bookkeeping.
+The classic point-billboard path and its `CarLightRenderState` are retired; see
+RENDERER_REPLACEMENT.md.
 
-Scene submission preserves original anchor order and defers translucent leaves
-in traversal order. `SceneDrawOrder` retains whole-car ordering between scene
-publications and prepares mirror/main order independently from horizontal camera
-distance. Body, wheel and brake instances share a car identifier and position;
-mirror exclusions keep original publication indices. Meshes use LEQUAL and write
-depth regardless of their translucency flag; shadow/light effects have their own
-read-only depth state. `SceneGeometry` traverses explicit children and appends the
-first DRIVER subtree as the original car loader does. See DRAW_ORDER.md for the
-reference adapter, host libc equal-distance behavior and remaining state limits.
+Scene submission no longer reproduces the original anchor order. The forward
+path sorts opaque batches by pipeline and material, draws cutouts and
+translucents after opaques, and reads depth through a prepass; the original
+draw-order and alpha-state comparisons are retired with the classic path. See
+RENDERER_REPLACEMENT.md for the decision record.

@@ -2,7 +2,7 @@
 import XCTest
 import simd
 import CReference
-@testable import TORCSMetal
+@testable import TORCSPresentation
 
 final class CameraZoomTests:XCTestCase {
     func testAllFactoriesZoomCommandsSavedDefaultsAndDistanceUpdatesAgainstOriginal() throws {
@@ -72,21 +72,4 @@ final class CameraZoomTests:XCTestCase {
         let expected=try baseline.view(preset:.chase,body:matrix_identity_float4x4,bonnetPosition:.zero,yaw:2,trackHeading:0){_ in 0}
         XCTAssertEqual(actual.eye,expected.eye)
         XCTAssertThrowsError(try rig.view(preset:.tracksideZoom,body:matrix_identity_float4x4,bonnetPosition:.zero,world:CameraWorld(bounds:SIMD3(800,900,30)),zoomValue:.leastNonzeroMagnitude,yaw:0,trackHeading:0){_ in 0})
-    }
-    func testDefaultZoomMatchesExistingProjectionAndResetRestoresGPU() async throws {
-        try await MainActor.run {
-            let renderer=try SceneRenderer(scene:SceneRenderingTests.loaded([SceneRenderingTests.quad()]))
-            var rig=DrivingCameraRig(),body=matrix_identity_float4x4;body[3]=SIMD4(0,0,2,1)
-            // Panorama supplies a fixed view so zoom cannot be confused with movement.
-            let world=try CameraWorld(bounds:SIMD3(0,0,100)),preset=DrivingCameraPreset.panorama1
-            func view(_ value:Float?) throws -> SceneCamera { try rig.view(preset:preset,body:body,bonnetPosition:.zero,world:world,zoomValue:value,yaw:0,trackHeading:0){_ in 0} }
-            renderer.camera=try view(nil);let original=try renderer.render(width:96,height:72)
-            renderer.camera=try view(preset.zoomLimits.standard);XCTAssertEqual(try renderer.render(width:96,height:72),original)
-            let zoom=try preset.adjustedZoom(preset.zoomLimits.standard,command:.minimum)
-            renderer.camera=try view(zoom);let enlarged=try renderer.render(width:96,height:72)
-            XCTAssertNotEqual(enlarged,original)
-            renderer.camera=try view(preset.adjustedZoom(zoom,command:.reset));XCTAssertEqual(try renderer.render(width:96,height:72),original)
-            print("CAMERA_ZOOM_GPU defaultIdentity=1 zoomChangesPixels=1 resetRestoresPixels=1")
-        }
-    }
-}
+    }}

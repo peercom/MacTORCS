@@ -71,59 +71,7 @@ void ref_camera_chase(const float *samples,int count,float distance,float height
 
 void ref_camera_behind(const float *samples,int count,float *output) { ref_camera_chase(samples,count,6,2,output); }
 #include "graphics/camera-bonnet.inc"
-void ref_camera_bonnet(const float *body,const float *position,float *output) {
-    tCarElt car{};memcpy(car._posMat,body,sizeof(sgMat4));
-    car._bonnetPos_x=position[0];car._bonnetPos_y=position[1];car._bonnetPos_z=position[2];
-    cGrCarCamInsideFixedCar camera(nullptr,0,1,1,67.5,50,95,.3,600,300,600);
-    camera.update(&car,nullptr);memcpy(output,camera.eye,12);memcpy(output+3,camera.center,12);memcpy(output+6,camera.up,12);
-}
-template<int N> struct ShadowArray { float values[6][N]{};int count=0;void add(const float *p){memcpy(values[count++],p,N*sizeof(float));} };
-void ref_shadow_vertices(float length,float width,const float *body,float *output) {
-    tCarElt elt{};tCarElt *car=&elt;car->_dimension_x=length;car->_dimension_y=width;
-    constexpr int GR_SHADOW_POINTS=6;int i;float x;sgVec3 vtx;sgVec2 tex;
-    ShadowArray<3> vertices;ShadowArray<2> texture;auto *shd_vtx=&vertices;auto *shd_tex=&texture;
-#include "graphics/shadow-vertices.inc"
-    sgMat4 matrix;memcpy(matrix,body,sizeof(matrix));
-    for(i=0;i<6;i++) { sgXformPnt3(vertices.values[i],matrix);memcpy(output+i*5,vertices.values[i],12);memcpy(output+i*5+3,texture.values[i],8); }
-}
-
-#include <vector>
-#include <array>
-template<int N> struct BackgroundArray {
-    std::vector<std::array<float,N>> values;
-    void add(const float *p) { std::array<float,N> v;memcpy(v.data(),p,N*sizeof(float));values.push_back(v); }
-};
-int ref_background_geometry(int type,float *output,int capacity) {
-    constexpr int NB_BG_FACES=36;constexpr double BG_DIST=1.0;
-    BackgroundArray<3> positions;BackgroundArray<2> uv;
-    auto *bg_vtx=&positions;auto *bg_tex=&uv;
-    int i;float alpha,texLen,x,y,z1=type==4 ? -1.0f:-0.5f,z2=1;sgVec3 vtx;sgVec2 tex;
-    switch(type) {
-    case 0: {
-#include "graphics/background-0.inc"
-    break; }
-    case 2: {
-#include "graphics/background-1.inc"
-#include "graphics/background-2.inc"
-#include "graphics/background-3.inc"
-#include "graphics/background-4.inc"
-    break; }
-    case 4: {
-#include "graphics/background-5.inc"
-    break; }
-    }
-    int count=positions.values.size();if(capacity<count*5)return -1;
-    for(i=0;i<count;i++) { memcpy(output+i*5,positions.values[i].data(),12);memcpy(output+i*5+3,uv.values[i].data(),8); }
-    return count;
-}
-
 using cGrCamera=cGrPerspCamera;
-class cGrBackgroundCam:public cGrPerspCamera { public:void update(cGrCamera *); };
-#include "graphics/background-camera.inc"
-void ref_background_camera(const float *input,float *output) {
-    cGrCamera camera;memcpy(camera.eye,input,12);memcpy(camera.center,input+3,12);memcpy(camera.up,input+6,12);camera.fovy=input[9];
-    cGrBackgroundCam bg;bg.update(&camera);memcpy(output,bg.eye,12);memcpy(output+3,bg.center,12);memcpy(output+6,bg.up,12);output[9]=bg.fovy;
-}
 
 // Original track-aligned, front, side and overhead classes and their factory block.
 static float capturedCameraTangent;
@@ -151,96 +99,6 @@ void ref_camera_exterior(int kind,const float *samples,int count,float *output) 
         o[9]=selected->fovy;o[10]=selected->fnear;o[11]=selected->ffar;o[12]=selected->fogstart;o[13]=selected->fogend;
     }
     for(auto &list:cams)for(auto *item:list)delete item;
-}
-
-// Execute the unchanged car texture-matrix block without a GL context.
-void ref_car_reflections(float distance,float yaw,int level,float *output) {
-    struct CarInfo { tdble distFromStart,envAngle; } grCarInfo[1]{};grCarInfo[0].distFromStart=distance;grCarInfo[0].envAngle=RAD2DEG(yaw);
-    struct State { void apply(int) {} } state;
-    State *grEnvState=&state,*grEnvShadowState=&state;
-    int indexCar=0,mapLevelBitmap=level,unit=0;
-    sgMat4 captured[3];for(auto &matrix:captured)sgMakeIdentMat4(matrix);
-    auto glActiveTextureARB=[&](int value){unit=value;};
-    auto glMatrixMode=[](int){};
-    auto glEnable=[](int){};
-    auto glLoadIdentity=[&](){sgMakeIdentMat4(captured[unit]);};
-    auto glMultMatrixf=[&](const float *value){sgMat4 rhs,result;memcpy(rhs,value,sizeof(rhs));sgMultMat4(result,captured[unit],rhs);memcpy(captured[unit],result,sizeof(result));};
-#define GL_TEXTURE1_ARB 1
-#define GL_TEXTURE2_ARB 2
-#define GL_TEXTURE 0
-#define GL_MODELVIEW 0
-#define GL_TEXTURE_2D 0
-#define LEVELC2 -2
-#define TRACE_GL(message)
-#include "graphics/reflection-matrices.inc"
-#undef TRACE_GL
-#undef LEVELC2
-#undef GL_TEXTURE_2D
-#undef GL_MODELVIEW
-#undef GL_TEXTURE
-#undef GL_TEXTURE2_ARB
-#undef GL_TEXTURE1_ARB
-    memcpy(output,captured[1],sizeof(sgMat4));memcpy(output+16,captured[2],sizeof(sgMat4));
-}
-
-void ref_car_track_shadow(const float *track,const float *car,const float *position,float yaw,int level,int present,float *output) {
-    double shad_xmin=track[0],shad_xmax=track[1],shad_ymin=track[2],shad_ymax=track[3];
-    struct Info { tdble px,py,envAngle,sx,sy; } grCarInfo[1]{};
-    auto &info=grCarInfo[0];info.px=position[0];info.py=position[1];info.envAngle=RAD2DEG(yaw);
-    // Original loader ratio expression, then grcar's assignment into tdble.
-    info.sx=(double(car[1])-double(car[0]))/(shad_xmax-shad_xmin);
-    info.sy=(double(car[3])-double(car[2]))/(shad_ymax-shad_ymin);
-    struct State { void apply(int) {} } state;
-    State *grEnvShadowStateOnCars=present ? &state:nullptr;
-    int indexCar=0,mapLevelBitmap=level;sgMat4 mat,mat2,mat4,captured;sgVec3 axis;sgMakeIdentMat4(captured);
-    auto glActiveTextureARB=[](int){};auto glMatrixMode=[](int){};
-    auto glLoadIdentity=[&](){sgMakeIdentMat4(captured);};
-    auto glMultMatrixf=[&](const float *value){sgMat4 rhs,result;memcpy(rhs,value,sizeof(rhs));sgMultMat4(result,captured,rhs);memcpy(captured,result,sizeof(result));};
-#define GL_TEXTURE3_ARB 3
-#define GL_TEXTURE 0
-#define GL_MODELVIEW 0
-#define LEVELC3 -3
-#include "graphics/track-shadow-matrix.inc"
-#undef LEVELC3
-#undef GL_MODELVIEW
-#undef GL_TEXTURE
-#undef GL_TEXTURE3_ARB
-    memcpy(output,captured,sizeof(captured));output[16]=info.sx;output[17]=info.sy;
-}
-
-// Original nested wheel-load loops and later sx/sy assignment. Only scene I/O
-// is replaced: a requested speed mesh publishes the supplied loader ratios.
-void ref_car_shadow_scale_order(const double *ratios,int detailed,float *output,int *loads) {
-    struct Entity {};
-    struct Branch:Entity { void addKid(Entity *) {} } body;
-    struct Info { int LODSelectMask[4]{};tdble sx,sy; } grCarInfo[1]{};
-    double carTrackRatioX=ratios[0],carTrackRatioY=ratios[1];
-    int grUseDetailedWheels=detailed,grCarIndex=0,index=0,selIndex=0,i=0,calls=0;
-    Entity entity,*wheel[4];Branch *carBody=&body;tCarElt original{};tCarElt *car=&original;
-    auto initWheel=[&](tCarElt *car,int wheel_index)->Entity * {
-        int j;
-        auto ssgModelPath=[](const char *){};auto ssgTexturePath=[](const char *){};
-        auto parameter=[](void *,const char *,const char *,const char *){return "wheel";};
-        auto grssgCarLoadAC3D=[&](const char *name,void *,int)->Entity * {
-            int speed=-1;sscanf(name,"wheel%d.acc",&speed);
-            if(speed>=0 && speed<4) { carTrackRatioX=ratios[(speed+1)*2];carTrackRatioY=ratios[(speed+1)*2+1]; }
-            calls++;return &entity;
-        };
-#define ssgBranch Branch
-#define ssgEntity Entity
-#define GfParmGetStr parameter
-#define DETAILED 1
-#include "graphics/wheel-model-load.inc"
-            delete whl_branch;
-        }
-#undef DETAILED
-#undef GfParmGetStr
-#undef ssgEntity
-#undef ssgBranch
-        return &entity;
-    };
-#include "graphics/car-shadow-scale-init.inc"
-    output[0]=grCarInfo[0].sx;output[1]=grCarInfo[0].sy;*loads=calls;
 }
 
 static int grWrldX,grWrldY,grWrldZ,grWrldMaxSize;
@@ -280,58 +138,6 @@ void ref_camera_driver(const float *body,const float *position,float *output) {
 #include "graphics/camera-driver-preset.inc"
     tCarElt car{};memcpy(car._posMat,body,sizeof(sgMat4));car._drvPos_x=position[0];car._drvPos_y=position[1];car._drvPos_z=position[2];
     cam->update(&car,nullptr);captureCameraFields(cam,output);delete cam;
-}
-
-// Execute original mirror camera/layout/store/display through GL call capture.
-namespace MirrorCapture {
-using GLuint=unsigned int;
-constexpr int GL_TEXTURE_2D=0,GL_TEXTURE_MIN_FILTER=1,GL_TEXTURE_MAG_FILTER=2,GL_LINEAR=3,GL_BACK=4,GL_RGB=5,GL_SCISSOR_TEST=6,GL_TRIANGLE_STRIP=7;
-static float *result;static int vertexIndex;static float texWidth,texHeight,u,v;
-static void glGenTextures(int,GLuint *p){*p=1;}
-static void glDeleteTextures(int,const GLuint *){}
-static void glBindTexture(int,GLuint){}
-static void glTexParameteri(int,int,int){}
-static void glReadBuffer(int){}
-static void glEnable(int){}
-static void glDisable(int){}
-static void glBegin(int){vertexIndex=0;}
-static void glEnd(){}
-static void glColor4f(float,float,float,float){}
-static void glViewport(int x,int y,int w,int h){result[17]=x;result[18]=y;result[19]=w;result[20]=h;}
-static void glScissor(int x,int y,int w,int h){result[21]=x;result[22]=y;result[23]=w;result[24]=h;}
-static void glCopyTexImage2D(int,int,int,int,int,int w,int h,int){texWidth=w;texHeight=h;}
-static void glCopyTexSubImage2D(int,int,int,int,int x,int y,int w,int h){result[25]=x;result[26]=y;result[27]=w;result[28]=h;}
-static void glTexCoord2f(float x,float y){u=x;v=y;}
-static void glVertex2f(float x,float y){result[29+vertexIndex*2]=x;result[30+vertexIndex*2]=y;result[37+vertexIndex*2]=u*texWidth;result[38+vertexIndex*2]=v*texHeight;vertexIndex++;}
-// Allocation-only helper: floor power of two. The original setPos then rounds
-// upward. GPU allocation and legacy POT padding are deliberately not compared.
-static int floorPower(int x){int n=1;while(n<=x/2)n*=2;return n;}
-#define GfNearestPow2 floorPower
-struct cGrOrthoCamera { cGrOrthoCamera(cGrScreen *,int,int,int,int){} void action(){} };
-#include "graphics/mirror-class.inc"
-#include "graphics/mirror-methods.inc"
-#undef GfNearestPow2
-struct Harness:cGrScreen {
-    cGrCarCamMirror *mirrorCam=nullptr;
-    void factory(){float fovFactor=1;
-#include "graphics/mirror-factory.inc"
-    }
-    void layout(int w,int h){int scrx=0,scry=0,scrw=w,scrh=h;viewRatio=float(w)/float(h);
-#include "graphics/mirror-layout.inc"
-    }
-};
-}
-void ref_camera_mirror(const float *body,const float *position,int width,int height,float *output) {
-    using namespace MirrorCapture;result=output;Harness screen;screen.viewRatio=float(width)/float(height);screen.factory();screen.layout(width,height);
-    tCarElt car{};memcpy(car._posMat,body,sizeof(sgMat4));car._bonnetPos_x=position[0];car._bonnetPos_y=position[1];car._bonnetPos_z=position[2];
-    auto *cam=screen.mirrorCam;cam->update(&car,nullptr);captureCameraFields(cam,output);cam->activateViewport();cam->store();cam->display();delete cam;
-}
-void ref_camera_mirror_flags(int *output) {
-    cGrCarCamInside driver(nullptr,0,1,1,67.5,50,95,.1,600,300,600);
-    cGrCarCamInsideFixedCar bonnet(nullptr,0,1,1,67.5,50,95,.3,600,300,600);
-    cGrCarCamBehind behind(nullptr,0,1,1,40,5,95,6,2,1,600,300,600);
-    cGrCarCamCenter center(nullptr,0,1,1,21,1,50,120,100,1500,10500,20500);
-    output[0]=driver.mirrorAllowed;output[1]=bonnet.mirrorAllowed;output[2]=behind.mirrorAllowed;output[3]=center.mirrorAllowed;
 }
 
 #define GR_SCT_DISPMODE "Display Mode"
@@ -398,68 +204,6 @@ void ref_camera_zoom(int head,int identifier,float saved,const int *commands,con
         v[21]=commands[i]<0 || strcmp(zoomSavedKey,key)==0;v[22]=commands[i]<0 || strcmp(zoomSavedPath,"Display Mode/0")==0;
     }
     captureZoomLoad=false;for(auto &list:cams)for(auto *item:list)delete item;
-}
-
-// Original fly-camera state machine. rand() remains the reference platform libc;
-// the height function executes the separately captured original scene traversal.
-static void *flyHeightScene=nullptr;
-static int flyRandomDraws=0,flyHeightCalls=0;
-static int captureFlyRandom(){++flyRandomDraws;return ::rand();}
-static float captureFlyHeight(float x,float y){
-    ++flyHeightCalls;float xy[2]={x,y},height;int hits,triangles;
-    ref_scene_height_query(flyHeightScene,xy,1,&height,&hits,&triangles);return height;
-}
-#define rand captureFlyRandom
-#define grGetHOT captureFlyHeight
-#include "graphics/camera-fly.inc"
-#undef grGetHOT
-#undef rand
-class FlyCapture:public cGrCarCamRoadFly {
-public:
- using cGrCarCamRoadFly::cGrCarCamRoadFly;
- void capture(float *out,double *time){
-    captureCameraFields(this,out);memcpy(out+17,speed,12);memcpy(out+20,offset,12);
-    out[23]=timer;out[24]=current<0 ? 0:gain;out[25]=current<0 ? 0:damp;
-    out[26]=current<0 ? 0:zOffset;out[27]=current;*time=currenttime;
- }
-};
-void ref_camera_fly(void *scene,unsigned seed,const double *times,const float *positions,const int *indices,const int *selects,int count,float *output,double *storedTimes,int *draws,int *heightCalls){
-    srand(seed);flyRandomDraws=0;flyHeightCalls=0;flyHeightScene=scene;
-    cGrScreen *myscreen=nullptr;cGrCamera *cam=nullptr;int c=-1,id=0;float fovFactor=1;
-    std::vector<cGrPerspCamera*> cams[1];
-#define cGrCarCamRoadFly FlyCapture
-#define GF_TAILQ_INIT(head) (head)->clear()
-#include "graphics/camera-fly-preset.inc"
-#undef GF_TAILQ_INIT
-#undef cGrCarCamRoadFly
-    auto *camera=static_cast<FlyCapture*>(cams[0][0]);tCarElt car{};tSituation situation{};
-    for(int i=0;i<count;++i){
-        car.index=indices[i];car._pos_X=positions[i*3];car._pos_Y=positions[i*3+1];car._pos_Z=positions[i*3+2];situation.currentTime=times[i];
-        if(selects[i])camera->onSelect(&car,&situation);
-        camera->update(&car,&situation);camera->capture(output+i*28,storedTimes+i);
-        draws[i]=flyRandomDraws;heightCalls[i]=flyHeightCalls;
-    }
-    delete camera;flyHeightScene=nullptr;
-}
-
-void ref_camera_fly_zoom(float saved,const int *commands,int count,float *output){
-    cGrScreen screen;screen.currentHead=8;cGrScreen *myscreen=&screen;
-    cGrCamera *cam=nullptr;int c=-1,id=0;float fovFactor=1;
-    std::vector<cGrPerspCamera*> cams[1];
-#define GF_TAILQ_INIT(head) (head)->clear()
-#include "graphics/camera-fly-preset.inc"
-#undef GF_TAILQ_INIT
-    captureZoomLoad=true;zoomLoadedValue=saved;zoomStoredValue=std::isnan(saved)?cam->fovydflt:saved;
-    char key[]="fovy-8-0";cam->loadDefaults(key);
-    for(int i=0;i<count;++i){
-        zoomSavedKey[0]=zoomSavedPath[0]=0;
-        if(commands[i]>=0)cam->setZoom(commands[i]);
-        float values[17];captureCameraFields(cam,values);float *v=output+i*7;
-        v[0]=values[9];v[1]=zoomStoredValue;v[2]=cam->fovydflt;v[3]=cam->fovymin;v[4]=cam->fovymax;
-        v[5]=commands[i]<0||strcmp(zoomSavedKey,"fovy-8-0")==0;
-        v[6]=commands[i]<0||strcmp(zoomSavedPath,"Display Mode/0")==0;
-    }
-    captureZoomLoad=false;delete cam;
 }
 
 namespace TVReference {
@@ -548,17 +292,6 @@ void ref_camera_tv_zoom(float saved,const int *commands,int count,float *output)
         v[5]=commands[i]<0||strcmp(zoomSavedPath,"Display Mode/0")==0;
     }
     captureZoomLoad=false;delete context;
-}
-
-namespace ShadowVisibilityReference {
-static int captured;
-static void grDrawShadow(tCarElt *,int visible){captured=visible;}
-}
-int ref_shadow_visibility(int carIndex,int currentIndex,int dispCarFlag){
-    using namespace ShadowVisibilityReference;
-    tCarElt subject{},other{};tCarElt *car=&subject,*curCar=carIndex==currentIndex?car:&other;
-#include "graphics/shadow-visibility.inc"
-    return captured;
 }
 
 namespace BrakeReference {
