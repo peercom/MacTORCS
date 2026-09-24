@@ -58,6 +58,9 @@ struct Options {
     var surfaceView: String? = nil
     var motionBlur: Bool? = nil
     var compareMotionBlur = false
+    var compareParticles = false
+    /// Frames of tyre smoke to emit at the rear wheels before rendering.
+    var smokeFrames = 0
     var orbitSpeed: Float = 0
     var sustainSeconds: Double = 0
     var dynamic = false
@@ -144,6 +147,8 @@ func parse() -> Options {
         case "--motion-blur": options.motionBlur = true
         case "--no-motion-blur": options.motionBlur = false
         case "--compare-motion-blur": options.compareMotionBlur = true
+        case "--compare-particles": options.compareParticles = true
+        case "--smoke": options.smokeFrames = Int(next()) ?? 45
         case "--orbit-speed": options.orbitSpeed = Float(next()) ?? 0
         case "--sustain": options.sustainSeconds = Double(next()) ?? 0
         case "--dynamic": options.dynamic = true
@@ -470,6 +475,19 @@ do {
         }
         exit(0)
     }
+    if options.smokeFrames > 0 {
+        // A stationary car's rear wheels spinning up: two sources a frame,
+        // stepped at 60 Hz so the cloud has had time to rise and thin.
+        for _ in 0 ..< options.smokeFrames {
+            renderer.particles.sources = [
+                ParticleSystem.Source(kind: .smoke, position: SIMD3(-1.25, -0.8, 0.03), velocity: SIMD3(-2, 0, 0), intensity: 0.9),
+                ParticleSystem.Source(kind: .smoke, position: SIMD3(-1.25, 0.8, 0.03), velocity: SIMD3(-2, 0, 0), intensity: 0.9),
+                ParticleSystem.Source(kind: .dust, position: SIMD3(1.25, -0.8, 0.03), velocity: SIMD3(-3, 0, 0), intensity: 0.7)]
+            renderer.particles.advance(by: 1 / 60)
+        }
+        print("particles: \(renderer.particles.count) live after \(options.smokeFrames) frames")
+    }
+    if options.compareParticles { try compare("particles") { $0.particles = $1 } }
     if options.compareMotionBlur { try compare("motion blur") { $0.motionBlur = $1 } }
     if options.compareReflections {
         let quality = settings.screenSpaceReflections == .off ? .half : settings.screenSpaceReflections

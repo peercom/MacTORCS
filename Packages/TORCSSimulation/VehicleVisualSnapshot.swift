@@ -12,8 +12,10 @@ public struct WheelVisualPose: Sendable {
 public struct WheelVisualSnapshot: Sendable {
     public let pose: WheelVisualPose
     public let spin,radius,width,brakeTemperature,brakeRadius: Float
-    public init(pose: WheelVisualPose,spin: Float,radius: Float,width: Float,brakeTemperature: Float,brakeRadius: Float) {
-        self.pose=pose;self.spin=spin;self.radius=radius;self.width=width;self.brakeTemperature=brakeTemperature;self.brakeRadius=brakeRadius
+    /// Original per-wheel skid factor, 0–1, as published by the simulation.
+    public let skid: Float
+    public init(pose: WheelVisualPose,spin: Float,radius: Float,width: Float,brakeTemperature: Float,brakeRadius: Float,skid: Float = 0) {
+        self.pose=pose;self.spin=spin;self.radius=radius;self.width=width;self.brakeTemperature=brakeTemperature;self.brakeRadius=brakeRadius;self.skid=skid
     }
 }
 /// Immutable presentation values. No renderer can mutate active simulation state.
@@ -29,7 +31,8 @@ public struct VehicleVisualSnapshot: Sendable {
         func wheel(_ i: Int) -> WheelVisualSnapshot {
             let d=configuration.wheels[i]
             return WheelVisualSnapshot(pose:published.publishedWheelPose[i],spin:published.publishedSpin[i],
-                radius:d.rimRadius+d.tireHeight,width:d.force.tireWidth,brakeTemperature:published.publishedBrakeTemperature[i],brakeRadius:d.brake.radius)
+                radius:d.rimRadius+d.tireHeight,width:d.force.tireWidth,brakeTemperature:published.publishedBrakeTemperature[i],brakeRadius:d.brake.radius,
+                skid:published.publishedSkid[i])
         }
         wheels=FourWheels(wheel(0),wheel(1),wheel(2),wheel(3))
     }

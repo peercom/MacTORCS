@@ -1127,6 +1127,75 @@ road pixel, no draws and no textures. `--road-aerial H` on the render tool
 raises the road camera to look down on the line; from 45 m the band visibly
 crosses to the inside of the hairpin and back.
 
+## Tyre smoke and dust
+
+Phase 7 opens with particles. `ParticleSystem` in `TORCSRender` steps a few
+hundred puffs on the CPU once per frame and `ParticleRenderer` draws them as
+camera-facing quads in one instanced call. Emission is described by sources
+— a contact patch, a velocity, a kind and an intensity — supplied by whoever
+knows the simulation. The app builds them from the wheel skid factor the
+simulation already computed and now publishes (`WheelVisualSnapshot.skid`,
+the original per-wheel `skid` from `SimWheelUpdateForce`), and from the
+surface under each hub: smoke where a tyre skids on anything, dust where it
+runs on grass, gravel, sand or dirt, or off every strip onto the terrain.
+The physics contact segment is not published, so the surface comes from the
+track query at the hub, which is what the physics would have used.
+
+The draw is depth-tested by hand. The pass has no depth attachment; the
+fragment samples the stored opaque depth, discards behind it, and fades over
+the last 0.6 m in front of it so a puff meets the ground and the car as a
+volume rather than a cut. It writes neither depth nor velocity; motion blur
+sees the background's motion through the cloud, which for a puff that is
+drifting anyway is fine. Nothing in the pass depends on wall-clock time — the
+churn is driven by each particle's age — and the emitter is a seeded
+SplitMix64, so a diagnostic render repeats and `testDeterministicForASeed`
+can compare two systems particle for particle.
+
+### The first version cost three milliseconds
+
+At 1280×832, 193 particles measured **+3.18 ms** in the interleaved
+comparison. Not the fragment: the overdraw. A puff that has grown to two
+metres across a few metres from the camera covers a large part of the screen,
+and a cloud of them stacks that coverage. Three things brought it down:
+
+| | Δ ms | |
+|---|---|---|
+| full resolution, 90/s, two-metre puffs | +3.18 | 193 particles |
+| half resolution target + composite, 48/s, smaller puffs | +0.35 | 107 particles |
+| tighter cloud, shorter life | **+0.31** | 107 particles |
+
+The particles now render into a half-resolution `rgba16Float` target,
+premultiplied and accumulating coverage in alpha, and a fullscreen composite
+enlarges it bilinearly over the colour target. Smoke has no edge that half
+resolution loses; where a puff meets a silhouette the bilinear enlargement
+does soften the boundary by a pixel, and a depth-aware upsample is the
+obvious refinement if it ever shows.
+
+The look took two more rounds. The first cloud was a blown-out white fog
+around the whole car: too many particles, too opaque, lit too bright, and
+the noise that was meant to give a puff lumps was so gentle it read as a
+gradient disc. Now the coverage is the noise at high contrast — a puff is
+lumps with gaps — the smoke rises at half a metre a second rather than one,
+lives under two seconds, and takes less sun and less ambient. Dust is
+opaque and takes more sun than smoke.
+
+`testPuffIsDrawnWhereVisibleAndHiddenBehindGeometry` renders the car
+fixture with one puff above the roof (the image changes, and only near the
+puff) and one on the view ray past the car's centre (the image does not
+change at all: the manual depth test rejected every fragment).
+`testSettingOffDrawsNothing` and `testRepeatable` cover the switch and the
+determinism; `testCapacityIsRespected` the hard cap of 4096.
+
+The mirror renderer draws the same system, so a burnout shows in the
+mirror. The render tool's `--smoke N` steps N frames of emission at a
+stationary car's rear wheels before rendering, and `--compare-particles`
+measures the pass. The app smoke checks that a settled session at rest on
+asphalt has nothing to emit.
+
+Not done: skid marks on the road, spray, and the exhaust. Skid marks are
+the same signal — the published skid — laid into a ring-buffer decal set,
+which is the next increment.
+
 ## Licensing
 
 No third-party artwork is imported by this work. New render source is

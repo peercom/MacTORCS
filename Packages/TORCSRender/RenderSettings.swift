@@ -79,6 +79,8 @@ public struct RenderSettings: Sendable, Equatable {
     /// diffuse surface at a sensible exposure sits below it and does not glow.
     public var bloomThreshold: Float
     public var motionBlur: Bool
+    /// Tyre smoke and dust billboards, drawn after the opaque scene.
+    public var particles: Bool
 
     /// Render a depth-only pass before shading.
     ///
@@ -118,6 +120,7 @@ public struct RenderSettings: Sendable, Equatable {
             bloomStrength = 0.06
             bloomThreshold = 1.0
             motionBlur = true
+            particles = true
             depthPrepass = false
             mirrorScale = 0.5
             textureMemoryBudgetBytes = 1_500_000_000
@@ -137,6 +140,7 @@ public struct RenderSettings: Sendable, Equatable {
             bloomStrength = 0.06
             bloomThreshold = 1.0
             motionBlur = true
+            particles = true
             depthPrepass = false
             mirrorScale = 0.67
             textureMemoryBudgetBytes = 3_000_000_000
@@ -156,6 +160,7 @@ public struct RenderSettings: Sendable, Equatable {
             bloomStrength = 0.06
             bloomThreshold = 1.0
             motionBlur = true
+            particles = true
             depthPrepass = false
             mirrorScale = 1
             textureMemoryBudgetBytes = 6_000_000_000

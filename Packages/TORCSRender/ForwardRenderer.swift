@@ -195,6 +195,10 @@ public final class ForwardRenderer {
     public let occlusion: OcclusionRenderer
     public let reflections: ReflectionRenderer
     public let motionBlur: MotionBlurRenderer
+    /// Smoke and dust. Presentation fills `particles.sources` and calls
+    /// `advance` once per frame; the mirror renderer draws the same system.
+    public var particles: ParticleSystem
+    public let particleRenderer: ParticleRenderer
     /// Whether motion blur wrote the post-colour target this frame.
     private var postProduced = false
     /// Bound at the occlusion slot when the pass is off, so the shader never
@@ -338,6 +342,8 @@ public final class ForwardRenderer {
         occlusion = try OcclusionRenderer(device: device, library: library)
         reflections = try ReflectionRenderer(device: device, library: library)
         motionBlur = try MotionBlurRenderer(device: device, library: library)
+        particles = try ParticleSystem(device: device)
+        particleRenderer = try ParticleRenderer(device: device, library: library)
         let neutral = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: OcclusionRenderer.format,
                                                                 width: 1, height: 1, mipmapped: false)
         neutral.usage = .shaderRead
@@ -823,6 +829,13 @@ public final class ForwardRenderer {
         } else {
             reflections.discard()
         }
+
+        // Smoke and dust over the opaque scene, after the reflections so a
+        // puff never leaves a ghost in the road: depth-tested by hand against
+        // the stored opaque depth, colour only.
+        if settings.particles {
+            particleRenderer.encode(into: commands, targets: targets, system: particles, frame: &frame, near: camera.near)
+        }
     }
 
     /// Depth-only draws of everything opaque that will later shade. Shared by
@@ -946,6 +959,7 @@ public final class ForwardRenderer {
                                  lighting: SunLighting) throws -> MTLTexture {
         let targets = try mirror.renderer.targets(outputWidth: mirror.width, outputHeight: mirror.height)
         mirror.renderer.animationTime = animationTime
+        mirror.renderer.particles = particles
         mirror.renderer.encodeFrame(into: commands, targets: targets, resources: mirror.resources,
                                     instances: mirror.instances, camera: mirror.camera, lighting: lighting,
                                     aspect: Float(mirror.width) / Float(max(mirror.height, 1)))

@@ -6,6 +6,7 @@ import simd
 import TORCSAssets
 import TORCSPresentation
 import TORCSRaceEngine
+import TORCSSimulation
 import TORCSRender
 import TORCSTrack
 import TORCSTrackMesh
@@ -156,10 +157,49 @@ final class ModernDrivingRenderer {
         renderer.configure(view)
     }
 
+    /// Smoke where a tyre skids, dust where it runs on a loose surface.
+    ///
+    /// The simulation publishes the original per-wheel skid factor; the
+    /// surface comes from the track query at the hub, because the physics
+    /// contact segment is not published and the query is what it would use.
+    static func particleSources(pose: VehiclePresentation, snapshot: VehicleVisualSnapshot, speed: Float,
+                                geometry: TrackGeometry, segment: Int) -> [ParticleSystem.Source] {
+        var sources: [ParticleSystem.Source] = []
+        let forward = SIMD3(pose.body[0].x, pose.body[0].y, pose.body[0].z)
+        let velocity = forward * speed
+        for i in 0 ..< 4 {
+            let wheel = snapshot.wheels[i]
+            let hub = pose.wheels[i].transform[3]
+            let contact = SIMD3(hub.x, hub.y, hub.z - wheel.radius + 0.02)
+            let skid = wheel.skid
+            if skid > 0.2, abs(speed) > 3 {
+                sources.append(.init(kind: .smoke, position: contact, velocity: velocity,
+                                     intensity: min((skid - 0.2) / 0.5, 1)))
+            }
+            guard abs(speed) > 2 else { continue }
+            let loose: Bool
+            if let local = try? geometry.globalToLocal(SIMD2(hub.x, hub.y), startingAt: segment, mode: .segment) {
+                let material = geometry.segments[local.segment].surface.material.lowercased()
+                loose = ["grass", "gravel", "sand", "dirt", "terre", "mud"].contains { material.contains($0) }
+            } else {
+                loose = true  // off every strip: the terrain
+            }
+            if loose {
+                sources.append(.init(kind: .dust, position: contact, velocity: velocity,
+                                     intensity: min(abs(speed) / 25, 1) * 0.8))
+            }
+        }
+        return sources
+    }
+
     func draw(in view: MTKView, pose: VehiclePresentation, camera sceneCamera: SceneCamera,
               brakeCommand: Float = 0, lightCommand: UInt32 = 0,
-              drawsDriver: Bool, drawsCar: Bool) {
+              drawsDriver: Bool, drawsCar: Bool,
+              particleSources: [ParticleSystem.Source] = [], deltaTime: Float = 1 / 60) {
         do {
+            renderer.particles.sources = particleSources
+            renderer.particles.advance(by: deltaTime)
+
             // A car filling the near cascade would shadow the camera in cockpit
             // views, where the body is hidden but would still cast.
             let lightState = RenderInstance.lightState(brakeCommand: brakeCommand, lightCommand: lightCommand)

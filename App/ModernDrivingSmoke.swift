@@ -121,8 +121,14 @@ import TORCSTrackMesh
         try writePNG(Data(diagnosticPixels), width: width, height: height,
                                 output: output.appendingPathComponent("diagnostic.png"))
 
+        // Particle emission on the settled session: at rest on asphalt there
+        // must be nothing to emit, and the query must not throw.
+        let sources = ModernDrivingRenderer.particleSources(
+            pose: pose, snapshot: content.simulation.visualSnapshot, speed: 0,
+            geometry: geometry, segment: content.simulation.vehicle.chassis.trackPosition.segment)
         let summary: [String: Any] = [
             "cameras": report.count,
+            "particleSourcesAtRest": sources.count,
             "resources": resources.resources.count,
             "terrainResource": resources.terrainResource ?? -1,
             "texturesUploaded": resources.textures.count,
