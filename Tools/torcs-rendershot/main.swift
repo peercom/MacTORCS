@@ -43,6 +43,7 @@ struct Options {
     var upscale: Bool? = nil
     var comparePrepass = false
     var compareBloom = false
+    var compareUpscale = false
     /// Track XML enabling procedural terrain from its Terrain Generation section.
     var trackXML: String? = nil
     var textureRoots: [String] = []
@@ -89,6 +90,7 @@ func parse() -> Options {
         case "--no-upscale": options.upscale = false
         case "--compare-prepass": options.comparePrepass = true
         case "--compare-bloom": options.compareBloom = true
+        case "--compare-upscale": options.compareUpscale = true
         case "--compare-occlusion": options.compareOcclusion = true
         case "--ao": options.ambientOcclusion = ["off": .off, "half": .half, "full": .full][next()]
         case "--contact": options.contactShadows = true
@@ -274,6 +276,34 @@ do {
     }
     if options.comparePrepass { try compare("depth prepass") { $0.depthPrepass = $1 } }
     if options.compareBloom { try compare("bloom") { $0.bloom = $1 } }
+    if options.compareUpscale {
+        // Blocks rather than single frames: toggling upscaling changes the
+        // render targets, and alternating every frame would measure target
+        // reallocation and a cold temporal history rather than the scaler.
+        // Eight blocks of thirty, the first ten of each discarded.
+        var samples: [Bool: [Double]] = [false: [], true: []]
+        for block in 0 ..< 8 {
+            let on = block.isMultiple(of: 2)
+            renderer.settings.temporalUpscaling = on
+            for frame in 0 ..< 30 {
+                _ = try renderer.render(scene: resources, camera: camera, lighting: lighting,
+                                        width: options.width, height: options.height)
+                if frame >= 10 { samples[on, default: []].append(renderer.lastGPUTime * 1000) }
+            }
+        }
+        func report(_ key: Bool) -> String {
+            let sorted = samples[key]!.sorted()
+            return String(format: "median %.3f ms  p95 %.3f ms  (n=%d)", sorted[sorted.count / 2],
+                          sorted[min(sorted.count - 1, Int(Double(sorted.count) * 0.95))], sorted.count)
+        }
+        let size = settings.renderSize(output: (options.width, options.height))
+        print("block-interleaved upscaling comparison, output \(options.width)x\(options.height), render \(size.width)x\(size.height)")
+        print("  native      \(report(false))")
+        print("  upscaled    \(report(true))\(renderer.lastUpscalerError.map { "  error: " + $0 } ?? "")")
+        let off = samples[false]!.sorted()[samples[false]!.count / 2], on = samples[true]!.sorted()[samples[true]!.count / 2]
+        print(String(format: "  delta       %+.3f ms (%+.1f%%)", on - off, (on - off) / off * 100))
+        exit(0)
+    }
     if options.compareOcclusion {
         let quality = settings.ambientOcclusion == .off ? .half : settings.ambientOcclusion
         try compare("occlusion") { $0.ambientOcclusion = $1 ? quality : .off; $0.contactShadows = $1 }

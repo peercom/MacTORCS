@@ -396,11 +396,25 @@ materials every pixel now samples albedo, a BC5 normal, ORM, three atmosphere
 tables and a filtered shadow, and native costs three to six times what
 1280x832 does. Pixels have a price again.
 
-That reopens the decision this document made two sections up. Temporal
-upscaling was switched off because halving the render resolution saved
-nothing; it now saves several milliseconds, against the scaler's fixed cost.
-It needs re-measuring with materials on, cold, before the default preset is
-changed — not changed on the strength of a throttled run.
+That reopened the decision this document made two sections up, so it was
+re-measured properly: block-interleaved (eight blocks of thirty frames,
+alternating, the first ten of each discarded — per-frame alternation would
+have measured target reallocation and a cold history), in the default
+configuration with materials, bloom and occlusion, at 2560x1664 output:
+
+| Configuration | Native | Upscaled from 1280x832 | Delta |
+|---|---|---|---|
+| default preset, on-track camera | 5.997 ms | 8.501 ms | +2.50 ms |
+| materials only | 5.328 ms | 8.707 ms | +3.38 ms |
+| default preset, aerial framing | 6.370 ms | 8.134 ms | +1.76 ms |
+
+Still a loss. Halving the resolution now does save around three
+milliseconds, but the temporal scaler costs about six at this output size on
+this GPU, and that is the whole story. Upscaling stays implemented and off.
+Two things would change it: a cheaper scaler — `MTLFXSpatialScaler` is a
+fraction of the cost at lower quality, untested here — or a frame expensive
+enough that the saving exceeds six milliseconds, which the remaining passes
+may yet produce.
 
 One methodological note for that re-measurement, learned the hard way here:
 `for res in "1280 832"; do set -- $res` does not split words in zsh. A sweep
