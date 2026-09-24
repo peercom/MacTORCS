@@ -1498,6 +1498,54 @@ All twenty-six generate at 1024² in 13 s and weigh 312 MB uncompressed,
 loaded lazily by name so a session pays only for the sets its surfaces use.
 The shipped session uses six.
 
+## The hero car, in place
+
+The plan left a new high-polygon car out of scope and named it the obvious
+follow-on. A new model needs a source with documentable terms, which is a
+decision for the user; what can be done from project code is the plan's
+own §7d, "upgrade the car in place", taken further than materials:
+`MeshSubdivision` Loop-subdivides the original 155-DTM twice at load.
+
+The rules are the standard ones with two additions that matter for a car.
+Edges whose dihedral angle exceeds 35° are **creases** and subdivide as
+curves of their own, so the panel lines the artist made sharp stay sharp
+while the arches and the roof line round; a boundary vertex whose boundary
+turns by more than 60° is a **corner** and stays put. Positions are
+subdivided on the welded topology, texture coordinates are interpolated
+per face corner, so the atlas seams AC files carry at every UV island
+survive intact, and normals are recomputed from the finer surface,
+averaged only across faces within the crease angle.
+
+The first version subdivided each node on its own and opened gaps: a car's
+panels are separate nodes sharing their outlines, and each outline rounded
+by its own rule — a vertex with three crease edges on one panel and two on
+its neighbour — so the bonnet drifted from the bumper by a centimetre and a
+slit showed beside the headlight. `loop(group:)` now welds every node of
+the car in scene space and subdivides them as one surface, then hands the
+faces back to their nodes with the identity transform; a mirrored node has
+its winding restored first. The join between two panels is then an
+ordinary edge, a crease if they meet at an angle and smooth if they are
+one surface, and the gaps closed.
+
+| | triangles | GPU, native, car alone, 60 frames |
+|---|---|---|
+| as authored | 5,698 | 6.69 ms median |
+| subdivided twice | 71,920 | 7.23 ms median |
+
+Twelve times the triangles rather than sixteen: welding removes the
+duplicate and degenerate faces the file carries. The half millisecond is
+the car through four shadow cascades and the prepass as well as the
+shading pass; in the session's chase view the frame carries 401k
+triangles with the subdivided car and its wheels. The wheel arches are round,
+the flake and the highlights run over a continuous surface, and the car no
+longer reads as a set of facets — but its form is still a 1990s model's,
+and the honest ceiling the plan named stands: the visible improvement is
+shading and silhouette, not design. `testFixtureCarSubdividesInPlace` pins
+the count and that the car's box moves by under five centimetres;
+`testCreaseIsPreserved` folds a sheet and checks the ridge, the boundaries
+and the two normal directions survive; the octahedron test checks the
+smooth case rounds and welds.
+
 ## Licensing
 
 No third-party artwork is imported by this work. New render source is

@@ -22,6 +22,8 @@ struct Options {
     var output = ""
     var width = 1280, height = 832
     var car = false
+    /// Loop subdivision levels for a car scene.
+    var subdivide = 0
     var azimuth: Float = -60, elevation: Float = 18
     var sunAzimuth: Float = 135, sunElevation: Float = 40
     var exposure: Float = 0
@@ -112,6 +114,7 @@ func parse() -> Options {
         case "--width": options.width = Int(next()) ?? options.width
         case "--height": options.height = Int(next()) ?? options.height
         case "--car": options.car = true
+        case "--subdivide": options.subdivide = Int(next()) ?? 2
         case "--azimuth": options.azimuth = Float(next()) ?? options.azimuth
         case "--elevation": options.elevation = Float(next()) ?? options.elevation
         case "--sun-azimuth": options.sunAzimuth = Float(next()) ?? options.sunAzimuth
@@ -234,7 +237,7 @@ guard !options.input.isEmpty, !options.output.isEmpty else {
 do {
     let radians = Float.pi / 180
     let data = try Data(contentsOf: URL(fileURLWithPath: options.input))
-    var scene = try RenderScene(ACScene.parse(data, car: options.car), car: options.car)
+    var scene = try RenderScene(ACScene.parse(data, car: options.car), car: options.car, subdivisionLevels: options.subdivide)
 
     // Procedural terrain from the track's own Terrain Generation parameters.
     // Aalborg's baked mesh contains almost no ground, so without this the

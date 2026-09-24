@@ -137,7 +137,10 @@ public struct RenderScene: Sendable {
     /// - Parameter car: apply `CarMaterials` by node name. Car models carry
     ///   one AC material for paint, glass and everything else, so this is the
     ///   only way they get distinct surfaces.
-    public init(_ scene: ACScene, car: Bool = false) throws {
+    /// - Parameter subdivisionLevels: Loop-subdivide every mesh this many
+    ///   times (see `MeshSubdivision`), for a car whose silhouette is a
+    ///   handful of facets. Zero leaves the geometry as authored.
+    public init(_ scene: ACScene, car: Bool = false, subdivisionLevels: Int = 0) throws {
         try scene.validate()
 
         var children = Array(repeating: [Int](), count: scene.nodes.count)
@@ -156,6 +159,15 @@ public struct RenderScene: Sendable {
         // geometry child, so a mesh's name is its nearest named ancestor's.
         var names: [String] = []
         var collected: [Int: RenderBatch] = [:]
+        /// Geometry waiting to become a batch, so a car's nodes can be
+        /// subdivided together before any of them is packed.
+        struct Pending {
+            var positions: [SIMD3<Float>], normals: [SIMD3<Float>], uv0: [SIMD2<Float>], uv1: [SIMD2<Float>]
+            var indices: [UInt32]
+            var transform: simd_float4x4
+            let material: ACRenderState, diffuse: SIMD4<Float>, cull: Bool, name: String, isDriver: Bool
+        }
+        var pending: [(index: Int, geometry: Pending)] = []
         var faces: [TreeForest.Face] = []
         var warnings = Set(scene.warnings ?? [])
         var low = SIMD3<Float>(repeating: .infinity), high = SIMD3<Float>(repeating: -.infinity)
@@ -176,7 +188,7 @@ public struct RenderScene: Sendable {
 
             guard let mesh = node.mesh else { continue }
             guard let material = mesh.states[0] else { throw ACError.invalid("Mesh has no base material") }
-            let indices = try mesh.triangleIndices()
+            var indices = try mesh.triangleIndices()
             if indices.isEmpty { continue }
             if mesh.normals.isEmpty {
                 warnings.insert("Geometry without normals uses (0, 0, 1).")
@@ -216,21 +228,59 @@ public struct RenderScene: Sendable {
                 let world = positions.map { p -> SIMD3<Float> in let q = transform * SIMD4(p, 1); return SIMD3(q.x, q.y, q.z) }
                 faces.append(TreeForest.Face(batch: index, positions: world, uvs: uv0))
             }
-            let render = try RenderMesh.build(positions: positions, normals: normals,
-                                              uv0: uv0, uv1: uv1, indices: indices, transform: transform)
             // AC stores diffuse RGBA per vertex; the loader writes the surface
             // material's colour to every vertex of the batch, so the first is
             // representative. Absent colours mean untinted white.
             let diffuse: SIMD4<Float> = mesh.colors.count >= 4
                 ? SIMD4(mesh.colors[0], mesh.colors[1], mesh.colors[2], mesh.colors[3])
                 : SIMD4(1, 1, 1, 1)
+            pending.append((index, Pending(positions: positions, normals: normals, uv0: uv0, uv1: uv1, indices: indices,
+                                           transform: transform, material: material, diffuse: diffuse,
+                                           cull: mesh.cull, name: name, isDriver: isDriver)))
+        }
 
+        if subdivisionLevels > 0, !pending.isEmpty {
+            // Every node into the scene's own space, welded and subdivided as
+            // one surface, then kept there: the batch transform becomes the
+            // identity. A mirrored node has its winding restored so culling
+            // still sees its front faces.
+            let inputs = pending.map { item -> MeshSubdivision.Mesh in
+                let g = item.geometry
+                let t = g.transform
+                let normalMatrix = DrawUniforms.normalMatrix(for: t)
+                let world = g.positions.map { p -> SIMD3<Float> in let q = t * SIMD4(p, 1); return SIMD3(q.x, q.y, q.z) }
+                let normals = g.normals.map { n -> SIMD3<Float> in
+                    let q = normalMatrix * SIMD4(n, 0); let v = SIMD3(q.x, q.y, q.z); let l = simd_length(v)
+                    return l > 1e-8 ? v / l : n
+                }
+                var indices = g.indices
+                if simd_determinant(t) < 0 {
+                    for f in stride(from: 0, to: indices.count - 2, by: 3) { indices.swapAt(f + 1, f + 2) }
+                }
+                return MeshSubdivision.Mesh(positions: world, normals: normals, uv0: g.uv0, uv1: g.uv1, indices: indices)
+            }
+            let smooth = MeshSubdivision.loop(group: inputs, levels: subdivisionLevels)
+            for (i, mesh) in smooth.enumerated() {
+                pending[i].geometry.positions = mesh.positions
+                pending[i].geometry.normals = mesh.normals
+                pending[i].geometry.indices = mesh.indices
+                pending[i].geometry.uv0 = pending[i].geometry.uv0.isEmpty ? [] : mesh.uv0
+                pending[i].geometry.uv1 = pending[i].geometry.uv1.isEmpty ? [] : mesh.uv1
+                pending[i].geometry.transform = matrix_identity_float4x4
+            }
+        }
+
+        for (index, g) in pending {
+            guard !g.indices.isEmpty else { continue }
+            let render = try RenderMesh.build(positions: g.positions, normals: g.normals,
+                                              uv0: g.uv0, uv1: g.uv1, indices: g.indices, transform: g.transform)
+            let material = g.material
             // AC flags: bit 0 blend, bit 4 alpha test, bit 5 translucent.
             let alphaTested = material.flags & 16 != 0
-            var resolved = MaterialResolution.resolve(state: material, diffuse: diffuse)
+            var resolved = MaterialResolution.resolve(state: material, diffuse: g.diffuse)
             var carPart: CarMaterials.Part? = nil
             if car {
-                let part = CarMaterials.part(name: name, texture: material.texture, isDriver: isDriver)
+                let part = CarMaterials.part(name: g.name, texture: material.texture, isDriver: g.isDriver)
                 resolved = CarMaterials.material(for: part, base: resolved)
                 carPart = part
             }
@@ -242,8 +292,8 @@ public struct RenderScene: Sendable {
                 blends: material.flags & 1 != 0,
                 isDeferred: material.flags & 32 != 0,
                 alphaTestThreshold: alphaTested ? material.alphaClamp : nil,
-                culls: mesh.cull,
-                isDriver: isDriver,
+                culls: g.cull,
+                isDriver: g.isDriver,
                 sourceMaterial: material,
                 material: resolved,
                 carPart: carPart)

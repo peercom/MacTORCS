@@ -25,6 +25,8 @@ public final class SessionRenderResources {
 
     public static let bodyResource = 0
     public static let wheelResources = [1, 2, 3, 4]
+    /// Loop subdivision levels applied to the car's meshes at load.
+    public static let carSubdivisionLevels = 2
     public static let sceneryResource = 5
     public static let brakeResources = Array(6 ..< 18)
 
@@ -50,7 +52,11 @@ public final class SessionRenderResources {
         var low = SIMD3<Float>(repeating: .infinity), high = SIMD3<Float>(repeating: -.infinity)
         for (index, loaded) in scenes.enumerated() {
             // Everything but the scenery package is car: body, wheels, brakes.
-            var flattened = try RenderScene(loaded.asset.scene, car: index != Self.sceneryResource)
+            // The car and its wheels are subdivided twice: a 4,000-vertex
+            // body becomes a smooth one, the scenery stays as generated.
+            let isCar = index != Self.sceneryResource
+            var flattened = try RenderScene(loaded.asset.scene, car: isCar,
+                                            subdivisionLevels: isCar ? Self.carSubdivisionLevels : 0)
             // The scenery package is first; only it carries trackgen output.
             if index == Self.sceneryResource {
                 // Solid trees first, while the card faces' batch indices are
