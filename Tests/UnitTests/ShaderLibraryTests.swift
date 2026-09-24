@@ -10,14 +10,16 @@ final class ShaderLibraryTests: XCTestCase {
         // previous view-projections feed motion vectors for temporal upscaling.
         XCTAssertEqual(MemoryLayout<FrameUniforms>.size, 400)
         XCTAssertEqual(MemoryLayout<FrameUniforms>.stride, 400)
-        XCTAssertEqual(MemoryLayout<DrawUniforms>.size, 192)
-        XCTAssertEqual(MemoryLayout<DrawUniforms>.stride, 192)
+        XCTAssertEqual(MemoryLayout<DrawUniforms>.size, 208)
+        XCTAssertEqual(MemoryLayout<DrawUniforms>.stride, 208)
+        XCTAssertEqual(MemoryLayout<DrawUniforms>.offset(of: \.emissive), 192)
         XCTAssertEqual(MemoryLayout<FrameUniforms>.offset(of: \.cameraPosition), 320)
         XCTAssertEqual(MemoryLayout<DrawUniforms>.offset(of: \.baseColour), 128)
         XCTAssertEqual(MemoryLayout<DrawUniforms>.offset(of: \.maps), 176)
-        // model, normalMatrix and previousModel.
-        XCTAssertEqual(MemoryLayout<InstanceUniforms>.size, 192)
+        // model, normalMatrix, previousModel and the light state.
+        XCTAssertEqual(MemoryLayout<InstanceUniforms>.size, 208)
         XCTAssertEqual(MemoryLayout<InstanceUniforms>.offset(of: \.previousModel), 128)
+        XCTAssertEqual(MemoryLayout<InstanceUniforms>.offset(of: \.lightState), 192)
     }
 
     func testLocalIncludesAreStrippedButSystemIncludesSurvive() throws {

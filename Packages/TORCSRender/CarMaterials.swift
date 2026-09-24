@@ -11,7 +11,7 @@ import simd
 /// wheels, which TORCS builds procedurally, by their texture.
 public enum CarMaterials {
     public enum Part: String, Sendable, CaseIterable {
-        case paint, glass, lens, interior, driver, wheel
+        case paint, glass, lens, brakeLens, headLens, interior, driver, wheel
     }
 
     /// Classifies a car node. `nil` for scenes that are not cars.
@@ -21,6 +21,8 @@ public enum CarMaterials {
         if isDriver || upper.hasPrefix("DRIVER") { return .driver }
         if tex.contains("tex-wheel") || upper.hasPrefix("WHEEL") && !upper.contains("COVER") { return .wheel }
         if upper.hasPrefix("WI") {
+            if upper.contains("LIGHTREAR") { return .brakeLens }
+            if upper.contains("FRONTLIGHT") { return .headLens }
             return upper.contains("LIGHT") ? .lens : .glass
         }
         if upper.contains("INTERIOR") || upper.contains("COCKPIT") { return .interior }
@@ -47,6 +49,18 @@ public enum CarMaterials {
         case .lens:
             m.roughness = 0.2
             m.metallic = 0
+        case .brakeLens:
+            // Red through the lens, lit by the brake command. Bright enough
+            // to bloom in daylight, as a brake light does.
+            m.roughness = 0.2
+            m.metallic = 0
+            m.emissive = SIMD3(1.0, 0.04, 0.02) * 6
+            m.emissiveChannel = 1
+        case .headLens:
+            m.roughness = 0.2
+            m.metallic = 0
+            m.emissive = SIMD3(1.0, 0.95, 0.85) * 8
+            m.emissiveChannel = 2
         case .interior:
             m.roughness = 0.92
             m.metallic = 0

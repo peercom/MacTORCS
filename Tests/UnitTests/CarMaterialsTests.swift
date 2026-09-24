@@ -18,8 +18,12 @@ final class CarMaterialsTests: XCTestCase {
         XCTAssertEqual(CarMaterials.part(name: "CARBODY_s_90", texture: "155-DTM.rgb", isDriver: false), .paint)
         XCTAssertEqual(CarMaterials.part(name: "WIFRONTWINDOW_s_0", texture: "155-DTM.rgb", isDriver: false), .glass)
         XCTAssertEqual(CarMaterials.part(name: "WISIDE_s_3", texture: nil, isDriver: false), .glass)
-        XCTAssertEqual(CarMaterials.part(name: "WILIGHTREAR1_s_0", texture: nil, isDriver: false), .lens)
-        XCTAssertEqual(CarMaterials.part(name: "WIFRONTLIGHT_s_1", texture: nil, isDriver: false), .lens)
+        XCTAssertEqual(CarMaterials.part(name: "WILIGHTREAR1_s_0", texture: nil, isDriver: false), .brakeLens)
+        XCTAssertEqual(CarMaterials.part(name: "WIFRONTLIGHT_s_1", texture: nil, isDriver: false), .headLens)
+        let brake = CarMaterials.material(for: .brakeLens, base: base), head = CarMaterials.material(for: .headLens, base: base)
+        XCTAssertEqual(brake.emissiveChannel, 1); XCTAssertEqual(head.emissiveChannel, 2)
+        XCTAssertGreaterThan(brake.emissive.x, brake.emissive.y * 5, "brake lights are red")
+        XCTAssertEqual(CarMaterials.material(for: .paint, base: base).emissiveChannel, 0)
         XCTAssertEqual(CarMaterials.part(name: "BODYINTERIOR_s_30", texture: nil, isDriver: false), .interior)
         XCTAssertEqual(CarMaterials.part(name: "DRIVER_s_22", texture: "driver.rgb", isDriver: false), .driver)
         XCTAssertEqual(CarMaterials.part(name: "anything", texture: nil, isDriver: true), .driver)
@@ -46,6 +50,33 @@ final class CarMaterialsTests: XCTestCase {
         XCTAssertGreaterThan(Set(car.batches.map(\.material.roughness)).count, 2)
         XCTAssertTrue(car.batches.contains { $0.material.clearcoat > 0 }, "some paint")
         XCTAssertTrue(car.batches.contains { $0.isDeferred && $0.material.roughness < 0.1 }, "some glass")
+    }
+
+    /// Braking lights the rear lenses on the instance and nothing else: the
+    /// frame from behind gets brighter, and a frame with the same scene and
+    /// no brake command is unchanged from before lights existed.
+    func testBrakeCommandLightsTheRearLenses() throws {
+        guard MTLCreateSystemDefaultDevice() != nil else { throw XCTSkip("Metal device unavailable") }
+        var settings = RenderSettings()
+        settings.bloom = false
+        let renderer = try ForwardRenderer(settings: settings)
+        let scene = try SceneResources(device: renderer.device, scene: RenderScene(fixture(), car: true))
+        // From behind and slightly above, sun ahead so the lenses are in shade.
+        let camera = RenderCamera(eye: SIMD3(-6, 0, 1.5), target: SIMD3(0, 0, 0.6))
+        let lighting = SunLighting(direction: simd_normalize(SIMD3(1, 0.2, 0.6)))
+        let off = try renderer.render(scene: scene, camera: camera, lighting: lighting, width: 256, height: 160)
+        let on = try renderer.render(scene: scene, camera: camera, lighting: lighting, width: 256, height: 160,
+                                     lightState: RenderInstance.lightState(brakeCommand: 1, lightCommand: 0))
+        XCTAssertNotEqual(off, on, "the brake command changed nothing")
+        var brighterRed = 0, darker = 0
+        for i in stride(from: 0, to: off.count, by: 4) {
+            if Int(on[i]) > Int(off[i]) + 8 { brighterRed += 1 }
+            for c in 0 ..< 3 where Int(on[i + c]) < Int(off[i + c]) - 2 { darker += 1 }
+        }
+        XCTAssertGreaterThan(brighterRed, 20, "some pixels should glow red")
+        XCTAssertEqual(darker, 0, "lighting a lens must not darken anything")
+        XCTAssertEqual(off, try renderer.render(scene: scene, camera: camera, lighting: lighting, width: 256, height: 160),
+                       "no command, no change")
     }
 
     func testCarMaterialsChangeTheRenderedFrame() throws {

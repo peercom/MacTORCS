@@ -91,11 +91,12 @@ final class ModernDrivingRenderer {
     /// matrix, so every transform here is world-space and there is no rig to
     /// maintain.
     static func vehicleInstances(_ pose: VehiclePresentation, drawsDriver: Bool,
-                                 drawsCar: Bool, castsShadow: Bool) -> [RenderInstance] {
+                                 drawsCar: Bool, castsShadow: Bool,
+                                 lightState: SIMD4<Float> = .zero) -> [RenderInstance] {
         guard drawsCar else { return [] }
         var instances = [RenderInstance(resource: SessionRenderResources.bodyResource,
                                         transform: pose.body, drawsDriver: drawsDriver,
-                                        castsShadow: castsShadow)]
+                                        castsShadow: castsShadow, lightState: lightState)]
         for index in 0 ..< 4 {
             let wheel = pose.wheels[index]
             for part in 0 ..< 3 {
@@ -114,12 +115,13 @@ final class ModernDrivingRenderer {
     }
 
     func draw(in view: MTKView, pose: VehiclePresentation, camera sceneCamera: SceneCamera,
+              brakeCommand: Float = 0, lightCommand: UInt32 = 0,
               drawsDriver: Bool, drawsCar: Bool) {
         do {
             // A car filling the near cascade would shadow the camera in cockpit
             // views, where the body is hidden but would still cast.
             let instances = staticInstances + Self.vehicleInstances(
-                pose, drawsDriver: drawsDriver, drawsCar: drawsCar, castsShadow: drawsCar)
+                pose, drawsDriver: drawsDriver, drawsCar: drawsCar, castsShadow: drawsCar, lightState: RenderInstance.lightState(brakeCommand: brakeCommand, lightCommand: lightCommand))
             try renderer.present(in: view, resources: resources.resources, instances: instances,
                                  camera: Self.camera(from: sceneCamera), lighting: lighting)
             lastDrawCount = renderer.lastDrawCount

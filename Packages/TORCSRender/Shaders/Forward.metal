@@ -50,6 +50,7 @@ struct DrawUniforms {
     float4 material;            // x roughness, y metallic, z clearcoat, w clearcoat roughness
     float4 parameters;          // x normal strength, y alpha threshold, z uv0 scale, w metre-UV fold period or 0
     uint4 maps;                 // x albedo, y normal, z ORM, w bits: 1 receives occlusion, 2 paints road markings, 4 foliage
+    float4 emissive;            // rgb radiance when lit, w channel: 0 never, 1 brake, 2 headlight, 3 any light
 };
 
 /// Places a whole scene in the world, on top of each batch's own node-local
@@ -65,6 +66,8 @@ struct InstanceUniforms {
     /// Where this instance was last frame. Equal to `model` for static
     /// geometry, which makes its motion purely the camera's.
     float4x4 previousModel;
+    /// x brake lights lit, y headlights lit, z rear lights lit, w unused.
+    float4 lightState;
 };
 
 struct ForwardVarying {
@@ -79,6 +82,8 @@ struct ForwardVarying {
     /// Per-vertex attributes, 0..1. The road generator writes lateral
     /// position, width and role here; see RoadGeneration.attributes.
     float4 attributes;
+    /// How lit this draw's emissive channel is on this instance, 0 or 1.
+    float lit;
     /// Unjittered clip positions, for the motion vector.
     float4 currentClip;
     float4 previousClip;
@@ -149,6 +154,10 @@ vertex ForwardVarying forwardVertex(uint id [[vertex_id]],
     out.uv0 = float2(v.uv0) + float2(v.uv1) * draw.parameters.w;
     out.uv1 = float2(v.uv1);
     out.attributes = float4(v.blend) * (1.0f / 255.0f);
+    // Resolved here so the fragment stage needs no instance binding.
+    float channel = draw.emissive.w;
+    out.lit = channel > 2.5f ? instance.lightState.z : (channel > 1.5f ? instance.lightState.y
+            : (channel > 0.5f ? instance.lightState.x : 0.0f));
     out.currentClip = frame.unjitteredViewProjection * world;
     out.previousClip = frame.previousViewProjection * instance.previousModel * draw.model
                      * float4(float3(v.position), 1.0f);
@@ -248,7 +257,10 @@ fragment ForwardOutput forwardFragment(ForwardVarying in [[stage_in]],
     surface.metallic = saturate(metallic);
     surface.ambientOcclusion = occlusion;
     surface.normal = normal;
-    surface.emissive = float3(0.0f);
+    // A lens is drawn blended with its own alpha; dividing the emission by
+    // that alpha lets the glow through the blend at full strength.
+    surface.emissive = draw.emissive.rgb * in.lit
+        / (draw.emissive.w > 0.0f ? max(albedo.a, 0.25f) : 1.0f);
     surface.clearcoat = draw.material.z;
     surface.clearcoatRoughness = draw.material.w;
     // The coat is a separate flat layer over the base, so it uses the

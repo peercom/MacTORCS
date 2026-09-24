@@ -32,6 +32,8 @@ struct Options {
     var generateTrack = false
     var trees = false
     var grass = false
+    var brake = false
+    var headlights = false
     var grassEverywhere = false
     var treeDetail = TrackSurfaceAssembly.TreeDetail.levelOfDetail
     var cascades: Int? = nil
@@ -104,6 +106,8 @@ func parse() -> Options {
         case "--generate-track": options.generateTrack = true
         case "--trees": options.trees = true
         case "--grass": options.grass = true
+        case "--brake": options.brake = true
+        case "--headlights": options.headlights = true
         case "--grass-everywhere": options.grass = true; options.grassEverywhere = true
         case "--tree-detail":
             switch next() { case "near": options.treeDetail = .merged(middle: false)
@@ -489,7 +493,9 @@ do {
                                        elevation: options.elevation * radians)
         }
         pixels = try renderer.render(scene: resources, camera: frameCamera, lighting: lighting,
-                                     width: options.width, height: options.height)
+                                     width: options.width, height: options.height,
+                                     lightState: RenderInstance.lightState(brakeCommand: options.brake ? 1 : 0,
+                                                                           lightCommand: options.headlights ? 1 : 0))
         if frame >= warmups { samples.append(renderer.lastGPUTime * 1000) }
     }
     samples.sort()

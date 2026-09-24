@@ -17,16 +17,21 @@ public struct ResolvedMaterial: Equatable, Sendable {
     public var clearcoat: Float
     public var clearcoatRoughness: Float
     public var normalStrength: Float
+    /// Radiance emitted when the part's channel is lit; see `DrawUniforms.emissive`.
+    public var emissive: SIMD3<Float>
+    public var emissiveChannel: Float
 
     public init(baseColour: SIMD4<Float>, roughness: Float, metallic: Float,
                 clearcoat: Float = 0, clearcoatRoughness: Float = 0.04,
-                normalStrength: Float = 1) {
+                normalStrength: Float = 1, emissive: SIMD3<Float> = .zero, emissiveChannel: Float = 0) {
         self.baseColour = baseColour
         self.roughness = roughness
         self.metallic = metallic
         self.clearcoat = clearcoat
         self.clearcoatRoughness = clearcoatRoughness
         self.normalStrength = normalStrength
+        self.emissive = emissive
+        self.emissiveChannel = emissiveChannel
     }
 }
 

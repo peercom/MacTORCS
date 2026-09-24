@@ -72,18 +72,24 @@ public struct DrawUniforms: Equatable, Sendable {
     /// w is a bitfield: 1 receives screen-space occlusion, 2 paints road
     /// markings, 4 sways in the wind and tints per leaf.
     public var maps: SIMD4<UInt32>
+    /// rgb emitted radiance when lit, w the channel that lights it: 0 never,
+    /// 1 the brake command, 2 the headlight command, 3 any light command.
+    /// Which channel is lit comes per instance, in `InstanceUniforms.lightState`.
+    public var emissive: SIMD4<Float>
 
     public init(model: simd_float4x4, baseColour: SIMD4<Float>,
                 roughness: Float, metallic: Float,
                 clearcoat: Float = 0, clearcoatRoughness: Float = 0.04,
                 normalStrength: Float = 1, alphaThreshold: Float = 0,
-                maps: SIMD4<UInt32> = .zero, uvScale: Float = 1, uvPeriod: Float = 0) {
+                maps: SIMD4<UInt32> = .zero, uvScale: Float = 1, uvPeriod: Float = 0,
+                emissive: SIMD3<Float> = .zero, emissiveChannel: Float = 0) {
         self.model = model
         self.normalMatrix = Self.normalMatrix(for: model)
         self.baseColour = baseColour
         self.material = SIMD4(roughness, metallic, clearcoat, clearcoatRoughness)
         self.parameters = SIMD4(normalStrength, alphaThreshold, uvScale, uvPeriod)
         self.maps = maps
+        self.emissive = SIMD4(emissive, emissiveChannel)
     }
 
     /// Inverse transpose of the upper 3x3, promoted back to 4x4.
@@ -118,11 +124,16 @@ public struct InstanceUniforms: Equatable, Sendable {
     /// Where this instance was last frame. Equal to `model` for static
     /// geometry, whose only motion is then the camera's.
     public var previousModel: simd_float4x4
+    /// x brake lights lit, y headlights lit, z rear lights lit, w unused.
+    /// Per instance because it changes every frame while the draw's material
+    /// does not.
+    public var lightState: SIMD4<Float>
 
-    public init(model: simd_float4x4, previousModel: simd_float4x4? = nil) {
+    public init(model: simd_float4x4, previousModel: simd_float4x4? = nil, lightState: SIMD4<Float> = .zero) {
         self.model = model
         self.normalMatrix = DrawUniforms.normalMatrix(for: model)
         self.previousModel = previousModel ?? model
+        self.lightState = lightState
     }
 
     public static let identity = InstanceUniforms(model: matrix_identity_float4x4)
@@ -138,12 +149,22 @@ public struct RenderInstance: Equatable, Sendable {
     /// Excluded from shadow casting. Used for geometry that would shadow the
     /// camera itself, such as the car in a bonnet view.
     public var castsShadow: Bool
+    /// See `InstanceUniforms.lightState`. Zero for anything but a car.
+    public var lightState: SIMD4<Float>
 
     public init(resource: Int, transform: simd_float4x4 = matrix_identity_float4x4,
-                drawsDriver: Bool = true, castsShadow: Bool = true) {
+                drawsDriver: Bool = true, castsShadow: Bool = true, lightState: SIMD4<Float> = .zero) {
         self.resource = resource
         self.transform = transform
         self.drawsDriver = drawsDriver
         self.castsShadow = castsShadow
+        self.lightState = lightState
+    }
+
+    /// The light state a car's commands produce, as grcar reads them: brake
+    /// lights from the brake command, headlights from bit 0 of the light
+    /// command, rear lights from either headlight bit.
+    public static func lightState(brakeCommand: Float, lightCommand: UInt32) -> SIMD4<Float> {
+        SIMD4(brakeCommand > 0 ? 1 : 0, lightCommand & 1 != 0 ? 1 : 0, lightCommand & 3 != 0 ? 1 : 0, 0)
     }
 }

@@ -118,7 +118,8 @@ public final class SceneResources {
                                                (batch.isDeferred ? 0 : 1) | (batch.paintsRoadMarkings ? 2 : 0)
                                                    | (batch.swaysInWind ? 4 : 0)),
                                    uvScale: batch.uvInMetres ? 1 / max(generated?.worldSize ?? 1, 1e-3) : 1,
-                                   uvPeriod: batch.uvInMetres ? RenderMesh.metresPeriod : 0),
+                                   uvPeriod: batch.uvInMetres ? RenderMesh.metresPeriod : 0,
+                                   emissive: material.emissive, emissiveChannel: material.emissiveChannel),
                 needsAlphaTest: batch.alphaTestThreshold != nil,
                 normal: generated?.normal,
                 orm: generated?.orm,
@@ -467,9 +468,10 @@ public final class ForwardRenderer {
     /// The verification entry point, matching the classic path's offscreen
     /// smoke renders. Interactive presentation uses `draw(in:)`.
     public func render(scene: SceneResources, camera: RenderCamera, lighting: SunLighting,
-                       width: Int, height: Int, includeDriver: Bool = true) throws -> [UInt8] {
+                       width: Int, height: Int, includeDriver: Bool = true,
+                       lightState: SIMD4<Float> = .zero) throws -> [UInt8] {
         try render(resources: [scene],
-                   instances: [RenderInstance(resource: 0, drawsDriver: includeDriver)],
+                   instances: [RenderInstance(resource: 0, drawsDriver: includeDriver, lightState: lightState)],
                    camera: camera, lighting: lighting, width: width, height: height)
     }
 
@@ -738,7 +740,8 @@ public final class ForwardRenderer {
             let scene = resources[instance.resource]
             var instanceUniforms = InstanceUniforms(
                 model: instance.transform,
-                previousModel: previousInstanceTransforms[instance.resource] ?? instance.transform)
+                previousModel: previousInstanceTransforms[instance.resource] ?? instance.transform,
+                lightState: instance.lightState)
             encoder.setVertexBytes(&instanceUniforms, length: MemoryLayout<InstanceUniforms>.stride, index: 5)
             // Mirroring composes: a mirrored mesh inside a mirrored instance
             // faces the original way again. The left and right wheels differ by
@@ -781,7 +784,7 @@ public final class ForwardRenderer {
             for item in deferred.sorted(by: { $0.distance > $1.distance }) {
                 let instance = instances[item.instance]
                 let scene = resources[instance.resource]
-                var instanceUniforms = InstanceUniforms(model: instance.transform)
+                var instanceUniforms = InstanceUniforms(model: instance.transform, lightState: instance.lightState)
                 encoder.setVertexBytes(&instanceUniforms, length: MemoryLayout<InstanceUniforms>.stride, index: 5)
                 // Glass is see-through from both sides, and culling it leaves
                 // the far side of a windscreen missing.

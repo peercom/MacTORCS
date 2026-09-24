@@ -979,6 +979,30 @@ instead, forgoing occlusion and reflection on itself). At the shipped
 density — 17,600 cards, eight metres of reach, drawn to sixty — the
 frame with grass measured 5.16 ms against 5.14 without.
 
+## Brake lights and headlights
+
+The first of the two features the classic path had that the new one did
+not — the other is the mirror. The classic path drew the car's lights as
+textured glow sprites at positions from the car's `Graphic Objects/Light`
+section; the new path lights the lens geometry itself. `CarMaterials`
+already knew the lenses by name; it now tells the rear ones (`WILIGHTREAR`)
+from the front (`WIFRONTLIGHT`) and gives each an emitted radiance and a
+channel — brake for the rear, headlight for the front. The channel's state
+is per instance, since it changes every frame while the draw's material
+does not: `InstanceUniforms` carries brake, headlight and rear-light bits
+derived from the snapshot's commands the way `grUpdateCarlight` reads them,
+and the vertex shader resolves the draw's channel against them into a
+varying, so the fragment stage needs no new binding.
+
+One detail: TORCS marks every `WI*` part as a window, so a lens is drawn
+blended with its texture's alpha, and a glow blended at 0.3 is a dim glow.
+The emission is divided by that alpha for lens channels, which puts it
+through the blend at full strength. Bright enough to bloom in daylight,
+which is what a brake light does.
+
+The AC light sprites, their frusta and the fourteen-slot table stay with
+the classic path; the lens geometry is the light now.
+
 ## Licensing
 
 No third-party artwork is imported by this work. New render source is

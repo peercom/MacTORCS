@@ -473,7 +473,7 @@ struct DrivingMetalView: NSViewRepresentable {
                 }
 
                 if let modern {
-                    modern.draw(in:view,pose:pose,camera:sceneCamera,drawsDriver:preset.drawsDriver,drawsCar:preset.drawsCar)
+                    modern.draw(in:view,pose:pose,camera:sceneCamera,brakeCommand:frame.current.brakeCommand,lightCommand:frame.current.lightCommand,drawsDriver:preset.drawsDriver,drawsCar:preset.drawsCar)
                     if let error=modern.lastError { throw RendererError.unavailable(error) }
                     return
                 }
