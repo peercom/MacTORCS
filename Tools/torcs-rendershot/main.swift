@@ -62,6 +62,9 @@ struct Options {
     var compareSkid = false
     /// Lay an S-shaped pair of skid marks on the ground before rendering.
     var skid = false
+    /// Scene wetness, 0 dry to 1 soaked.
+    var wetness: Float = 0
+    var compareWet = false
     /// Frames of tyre smoke to emit at the rear wheels before rendering.
     var smokeFrames = 0
     var orbitSpeed: Float = 0
@@ -153,6 +156,8 @@ func parse() -> Options {
         case "--compare-particles": options.compareParticles = true
         case "--compare-skid": options.compareSkid = true
         case "--skid": options.skid = true
+        case "--wet": options.wetness = Float(next()) ?? 1
+        case "--compare-wet": options.compareWet = true
         case "--smoke": options.smokeFrames = Int(next()) ?? 45
         case "--orbit-speed": options.orbitSpeed = Float(next()) ?? 0
         case "--sustain": options.sustainSeconds = Double(next()) ?? 0
@@ -327,6 +332,7 @@ do {
     if let cascades = options.cascades { settings.shadowCascades = max(0, min(4, cascades)) }
     let renderer = try ForwardRenderer(settings: settings)
     renderer.animationTime = Double(options.animationTime)
+    renderer.wetness = options.wetness
     if let radius = options.aoRadius { renderer.occlusion.ambientRadius = radius }
     if let power = options.aoPower { renderer.occlusion.ambientPower = power }
     // Default to the scene file's own directory, which is where the original
@@ -509,6 +515,11 @@ do {
         print("skid marks: \(renderer.skidMarks.quadCount) quads")
     }
     if options.compareSkid { try compare("skid marks") { $0.skidMarks = $1 } }
+    if options.compareWet {
+        // Wetness is a scene condition, not a setting: toggle it on the renderer.
+        let wet = options.wetness > 0 ? options.wetness : 1
+        try compare("wet ground") { _, on in renderer.wetness = on ? wet : 0 }
+    }
     if options.compareParticles { try compare("particles") { $0.particles = $1 } }
     if options.compareMotionBlur { try compare("motion blur") { $0.motionBlur = $1 } }
     if options.compareReflections {

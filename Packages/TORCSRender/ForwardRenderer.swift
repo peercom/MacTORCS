@@ -116,7 +116,7 @@ public final class SceneResources {
                                                generated == nil ? 0 : 1,
                                                generated == nil ? 0 : 1,
                                                (batch.isDeferred ? 0 : 1) | (batch.paintsRoadMarkings ? 2 : 0)
-                                                   | (batch.swaysInWind ? 4 : 0)),
+                                                   | (batch.swaysInWind ? 4 : 0) | (batch.receivesWeather ? 8 : 0)),
                                    uvScale: batch.uvInMetres ? 1 / max(generated?.worldSize ?? 1, 1e-3) : 1,
                                    uvPeriod: batch.uvInMetres ? RenderMesh.metresPeriod : 0,
                                    emissive: material.emissive, emissiveChannel: material.emissiveChannel),
@@ -240,6 +240,10 @@ public final class ForwardRenderer {
     /// Seconds driving vertex animation (foliage). Presentation advances it;
     /// offscreen renders leave it at zero so they repeat.
     public var animationTime: Double = 0
+    /// How wet the ground is, 0 dry to 1 soaked: darkens and glosses the
+    /// road and terrain, and fills puddles. A scene condition, not a
+    /// quality setting, so it lives here rather than in `RenderSettings`.
+    public var wetness: Float = 0
     private var cachedTargets: FrameTargets?
 
     public private(set) var lastGPUTime: Double = 0
@@ -661,7 +665,7 @@ public final class ForwardRenderer {
             mipBias: settings.upscaling
                 ? RenderCamera.mipBias(renderWidth: targets.renderWidth, outputWidth: targets.outputWidth)
                 : 0,
-            animationTime: Float(animationTime))
+            animationTime: Float(animationTime), wetness: min(max(wetness, 0), 1))
 
         let scenePass = MTLRenderPassDescriptor()
         scenePass.colorAttachments[0].texture = targets.colour
@@ -971,6 +975,7 @@ public final class ForwardRenderer {
                                  lighting: SunLighting) throws -> MTLTexture {
         let targets = try mirror.renderer.targets(outputWidth: mirror.width, outputHeight: mirror.height)
         mirror.renderer.animationTime = animationTime
+        mirror.renderer.wetness = wetness
         mirror.renderer.particles = particles
         mirror.renderer.skidMarks = skidMarks
         mirror.renderer.encodeFrame(into: commands, targets: targets, resources: mirror.resources,

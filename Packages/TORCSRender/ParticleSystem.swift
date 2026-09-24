@@ -19,6 +19,8 @@ public final class ParticleSystem {
     public enum Kind: Int, Sendable {
         case smoke = 0
         case dust = 1
+        /// Water thrown up by a tyre on a wet road: short-lived white mist.
+        case spray = 2
     }
 
     /// One emitter for one frame.
@@ -78,6 +80,10 @@ public final class ParticleSystem {
         public var dustSettle: Float = -0.6
         public var smokeColour = SIMD3<Float>(0.82, 0.82, 0.84)
         public var dustColour = SIMD3<Float>(0.62, 0.53, 0.38)
+        public var sprayRate: Float = 70
+        public var sprayLife: ClosedRange<Float> = 0.35 ... 0.8
+        public var spraySize: Float = 0.14, sprayGrowth: Float = 0.8
+        public var sprayColour = SIMD3<Float>(0.78, 0.8, 0.82)
         public init() {}
     }
 
@@ -127,7 +133,7 @@ public final class ParticleSystem {
             if particle.age >= particle.life { continue }
             let retention = pow(p.drag, dt)
             particle.velocity *= retention
-            particle.velocity.z += (particle.kind == .smoke ? p.smokeRise : p.dustSettle) * dt
+            particle.velocity.z += (particle.kind == .smoke ? p.smokeRise : particle.kind == .spray ? -2.5 : p.dustSettle) * dt
             particle.position += particle.velocity * dt
             particle.size += particle.growth * dt
             particle.rotation += particle.spin * dt
@@ -139,7 +145,7 @@ public final class ParticleSystem {
         // still emit, and a source that vanishes takes its credit with it.
         var credit: [Int: Float] = [:]
         for (index, source) in sources.enumerated() where source.intensity > 0.01 {
-            let rate = (source.kind == .smoke ? p.smokeRate : p.dustRate) * min(source.intensity, 1)
+            let rate = (source.kind == .smoke ? p.smokeRate : source.kind == .spray ? p.sprayRate : p.dustRate) * min(source.intensity, 1)
             var due = (emissionCredit[index] ?? 0) + rate * dt
             while due >= 1, live.count < capacity {
                 due -= 1
@@ -155,23 +161,25 @@ public final class ParticleSystem {
 
     private func spawn(_ source: Source, dt: Float) -> Live {
         let p = parameters
-        let smoke = source.kind == .smoke
+        let kind = source.kind
         // Thrown from a disc the size of the contact patch, back along the
-        // motion and up, with a little scatter so a stream is a cloud.
+        // motion and up, with a little scatter so a stream is a cloud. Spray
+        // is flung: it keeps more of the wheel's speed and goes higher.
         let scatter = SIMD3(random.symmetric() * 0.6, random.symmetric() * 0.6, random.unit() * 0.5 + 0.3)
         let offset = SIMD3(random.symmetric() * 0.15, random.symmetric() * 0.15, 0.03)
-        let inherited = source.velocity * p.inheritance
-        let velocity = inherited + scatter * (smoke ? 1.2 : 1.6)
-        let life = smoke ? p.smokeLife : p.dustLife
+        let inherited = source.velocity * (kind == .spray ? 0.6 : p.inheritance)
+        let velocity = inherited + scatter * (kind == .smoke ? 1.2 : kind == .spray ? 3.0 : 1.6)
+        let life = kind == .smoke ? p.smokeLife : kind == .spray ? p.sprayLife : p.dustLife
         // Sub-frame spawn: distribute along the frame so a fast car leaves
         // a trail rather than clumps.
         let lead = random.unit() * dt
         return Live(position: source.position + offset - source.velocity * lead,
                     velocity: velocity, age: lead, life: life.lowerBound + random.unit() * (life.upperBound - life.lowerBound),
-                    size: smoke ? p.smokeSize : p.dustSize, growth: smoke ? p.smokeGrowth : p.dustGrowth,
-                    opacity: min(source.intensity, 1) * (smoke ? 0.45 : 0.3),
+                    size: kind == .smoke ? p.smokeSize : kind == .spray ? p.spraySize : p.dustSize,
+                    growth: kind == .smoke ? p.smokeGrowth : kind == .spray ? p.sprayGrowth : p.dustGrowth,
+                    opacity: min(source.intensity, 1) * (kind == .smoke ? 0.45 : kind == .spray ? 0.3 : 0.3),
                     rotation: random.unit() * 2 * .pi, spin: random.symmetric() * 0.8,
-                    kind: source.kind, seed: random.unit())
+                    kind: kind, seed: random.unit())
     }
 
     /// Packs the live particles for the draw.
@@ -191,7 +199,7 @@ public final class ParticleSystem {
         // In fast, out slow: a puff appears in a tenth of its life and thins
         // over the rest.
         let fade = min(t / 0.1, 1) * (1 - t) * (1 - t)
-        let colour = particle.kind == .smoke ? p.smokeColour : p.dustColour
+        let colour = particle.kind == .smoke ? p.smokeColour : particle.kind == .spray ? p.sprayColour : p.dustColour
         return Particle(positionSize: SIMD4(particle.position, particle.size),
                         colourAlpha: SIMD4(colour, particle.opacity * fade),
                         attributes: SIMD4(particle.rotation, t, Float(particle.kind.rawValue), particle.seed))

@@ -94,7 +94,8 @@ fragment float4 particleFragment(ParticleVarying in [[stage_in]],
     float3 normal = float3(in.local, sqrt(saturate(1.0f - r * r)));
     float3 sunView = (frame.view * float4(frame.sunDirection.xyz, 0.0f)).xyz;
     float facing = dot(normal, normalize(float3(sunView.xy, max(sunView.z, 0.0f) + 0.2f)));
-    float smoke = in.attributes.z < 0.5f ? 1.0f : 0.0f;
+    // Smoke and spray are lit as mist; dust is opaque and takes more sun.
+    float smoke = abs(in.attributes.z - 1.0f) > 0.5f ? 1.0f : 0.0f;
     float wrap = mix(0.3f, 0.4f, smoke) + 0.6f * saturate(facing * 0.5f + 0.5f);
     float3 sun = frame.sunIlluminance.xyz * wrap * mix(0.16f, 0.09f, smoke);
     float3 ambient = frame.ambientIrradiance.xyz * mix(0.6f, 0.75f, smoke);

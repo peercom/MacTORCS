@@ -178,6 +178,6 @@ public enum TrackSurfaceAssembly {
                            alphaTestThreshold: nil, culls: true, isDriver: false,
                            sourceMaterial: state,
                            material: ResolvedMaterial(baseColour: SIMD4(1, 1, 1, 1), roughness: roughness, metallic: 0),
-                           uvInMetres: true, paintsRoadMarkings: markings)
+                           uvInMetres: true, paintsRoadMarkings: markings, receivesWeather: true)
     }
 }

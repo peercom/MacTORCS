@@ -163,7 +163,7 @@ final class ModernDrivingRenderer {
     /// surface comes from the track query at the hub, because the physics
     /// contact segment is not published and the query is what it would use.
     static func particleSources(pose: VehiclePresentation, snapshot: VehicleVisualSnapshot, speed: Float,
-                                geometry: TrackGeometry, segment: Int) -> [ParticleSystem.Source] {
+                                geometry: TrackGeometry, segment: Int, wetness: Float = 0) -> [ParticleSystem.Source] {
         var sources: [ParticleSystem.Source] = []
         let forward = SIMD3(pose.body[0].x, pose.body[0].y, pose.body[0].z)
         let velocity = forward * speed
@@ -177,6 +177,11 @@ final class ModernDrivingRenderer {
                                      intensity: min((skid - 0.2) / 0.5, 1)))
             }
             guard abs(speed) > 2 else { continue }
+            // On a wet road every tyre flings spray, more the faster it goes.
+            if wetness > 0.2, abs(speed) > 8 {
+                sources.append(.init(kind: .spray, position: contact, velocity: velocity,
+                                     intensity: min(abs(speed) / 40, 1) * wetness))
+            }
             let loose: Bool
             if let local = try? geometry.globalToLocal(SIMD2(hub.x, hub.y), startingAt: segment, mode: .segment) {
                 let material = geometry.segments[local.segment].surface.material.lowercased()
@@ -239,6 +244,12 @@ final class ModernDrivingRenderer {
         } catch {
             lastError = String(describing: error)
         }
+    }
+
+    /// The scene's wetness, 0 dry to 1 soaked, applied to the main and mirror renderers.
+    var wetness: Float {
+        get { renderer.wetness }
+        set { renderer.wetness = newValue }
     }
 
     var uploadedTextureBytes: Int { resources.textures.uploadedBytes }

@@ -16,8 +16,10 @@ public struct RenderBatch: Sendable {
                 alphaTestThreshold: Float?, culls: Bool, isDriver: Bool,
                 sourceMaterial: ACRenderState, material: ResolvedMaterial, uvInMetres: Bool = false,
                 paintsRoadMarkings: Bool = false, swaysInWind: Bool = false,
-                detailRange: ClosedRange<Float>? = nil, castsShadow: Bool = true, prepass: Bool = true) {
+                detailRange: ClosedRange<Float>? = nil, castsShadow: Bool = true, prepass: Bool = true,
+                receivesWeather: Bool = false) {
         self.mesh = mesh
+        self.receivesWeather = receivesWeather
         self.uvInMetres = uvInMetres
         self.paintsRoadMarkings = paintsRoadMarkings
         self.swaysInWind = swaysInWind
@@ -45,6 +47,9 @@ public struct RenderBatch: Sendable {
     /// Foliage: the vertex shader sways it by its height attribute, and the
     /// fragment shader applies the per-leaf tint.
     public let swaysInWind: Bool
+    /// Ground: the scene's wetness darkens and glosses it and fills puddles
+    /// on its near-horizontal parts.
+    public let receivesWeather: Bool
     /// Camera distance to the batch's centre, in metres, within which it is
     /// drawn. Nil draws always. Two batches of the same object with abutting
     /// ranges are a level-of-detail pair.

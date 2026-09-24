@@ -71,6 +71,9 @@ private actor DrivingWorker {
     var vegetationAvailable=false
     var shadows=true
     var mirrors=true
+    /// Wet track: darkened, glossy road with puddles and spray. A visual
+    /// condition only; the physics stays dry until the simulation has weather.
+    var wet=false
     var smoothEdges=false
     let supportsEdgeSmoothing=MTLCreateSystemDefaultDevice()?.supportsTextureSampleCount(4) == true
     var message: String?
@@ -329,6 +332,8 @@ struct DrivingScreen: View {
             HStack {
                 Toggle("Rear-view mirror",isOn:Binding(get:{session.mirrors},set:{session.mirrors=$0}))
                     .disabled(!session.cameraPreset.allowsMirror).help("Available in Driver, Bonnet and Road views.")
+                Toggle("Wet track",isOn:Binding(get:{session.wet},set:{session.wet=$0}))
+                    .help("Visual only: the road darkens, glosses and puddles, and the tyres throw spray. Grip is unchanged.")
                 Spacer()
             }.padding(.horizontal).padding(.top,8)
             HStack(spacing:24) {
@@ -443,7 +448,8 @@ struct DrivingMetalView: NSViewRepresentable {
                 }
 
                 modern.mirror=session.mirrors && preset.allowsMirror ? RearViewMirror(body:pose.body,bonnetPosition:content.bonnetPosition,hiddenInstances:preset.drawsCar ? Set(1...17):[]):nil
-                let sources=ModernDrivingRenderer.particleSources(pose:pose,snapshot:frame.current,speed:frame.speed,geometry:content.simulation.road.geometry,segment:frame.trackSegment)
+                modern.wetness=session.wet ? 1:0
+                let sources=ModernDrivingRenderer.particleSources(pose:pose,snapshot:frame.current,speed:frame.speed,geometry:content.simulation.road.geometry,segment:frame.trackSegment,wetness:modern.wetness)
                 modern.draw(in:view,pose:pose,camera:sceneCamera,brakeCommand:frame.current.brakeCommand,lightCommand:frame.current.lightCommand,drawsDriver:preset.drawsDriver,drawsCar:preset.drawsCar,particleSources:sources,skidSources:ModernDrivingRenderer.skidSources(pose:pose,snapshot:frame.current,speed:frame.speed),deltaTime:1/Float(max(view.preferredFramesPerSecond,1)))
                 if let error=modern.lastError { throw RenderError.unavailable(error) }
             } catch { session.message=String(describing:error);session.stop() }

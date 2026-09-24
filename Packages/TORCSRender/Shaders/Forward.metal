@@ -30,7 +30,7 @@ struct FrameUniforms {
     /// feed the upscaler the subpixel shimmer it exists to remove.
     float4x4 unjitteredViewProjection;
     float4x4 previousViewProjection;
-    float4 cameraPosition;      // w unused
+    float4 cameraPosition;      // w scene wetness, 0 dry to 1 soaked
     float4 sunDirection;        // xyz points toward the sun, w unused
     float4 sunIlluminance;      // linear RGB, w holds the exposure scale
     float4 ambientIrradiance;   // xyz flat ambient until real IBL lands, w animation time in seconds
@@ -49,7 +49,7 @@ struct DrawUniforms {
     float4 baseColour;
     float4 material;            // x roughness, y metallic, z clearcoat, w clearcoat roughness
     float4 parameters;          // x normal strength, y alpha threshold, z uv0 scale, w metre-UV fold period or 0
-    uint4 maps;                 // x albedo, y normal, z ORM, w bits: 1 receives occlusion, 2 paints road markings, 4 foliage
+    uint4 maps;                 // x albedo, y normal, z ORM, w bits: 1 receives occlusion, 2 paints road markings, 4 foliage, 8 receives weather
     float4 emissive;            // rgb radiance when lit, w channel: 0 never, 1 brake, 2 headlight, 3 any light
 };
 
@@ -69,6 +69,18 @@ struct InstanceUniforms {
     /// x brake lights lit, y headlights lit, z rear lights lit, w unused.
     float4 lightState;
 };
+
+/// Value noise on an integer lattice, for the puddle mask.
+inline float groundHash(float2 p) {
+    return fract(sin(dot(p, float2(127.1f, 311.7f))) * 43758.5453f);
+}
+inline float groundNoise(float2 p) {
+    float2 i = floor(p), f = fract(p);
+    f = f * f * (3.0f - 2.0f * f);
+    float a = groundHash(i), b = groundHash(i + float2(1, 0));
+    float c = groundHash(i + float2(0, 1)), d = groundHash(i + float2(1, 1));
+    return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+}
 
 struct ForwardVarying {
     // Invariant so the depth prepass and this pass agree exactly, which the
@@ -259,6 +271,37 @@ fragment ForwardOutput forwardFragment(ForwardVarying in [[stage_in]],
             albedo.rgb = mix(albedo.rgb, albedo.rgb * 0.28f, rubber);
             roughness = mix(roughness, roughness * 0.6f, rubber);
         }
+    }
+
+    // Wet ground. A film of water darkens every surface it covers and
+    // makes it glossy; where the surface is near-horizontal and low, water
+    // collects into puddles that are flat and mirror-smooth. The puddle
+    // mask is a two-octave value noise of the world position, thresholded
+    // by the wetness, and on the road biased toward the edges, where the
+    // crown drains.
+    float wet = frame.cameraPosition.w;
+    if (wet > 0.0f && (draw.maps.w & 8u)) {
+        float film = wet * 0.85f;
+        albedo.rgb *= mix(1.0f, 0.55f, film);
+        // A sheen, not a mirror: kept above the reflection trace's roughness
+        // cutoff so only the puddles are traced. Tracing the whole road cost
+        // 0.8 ms at 1280x832 and looked like a lake.
+        roughness = mix(roughness, 0.5f, film);
+        float2 wp = in.worldPosition.xy;
+        float n = groundNoise(wp * 0.33f) * 0.6f + groundNoise(wp * 1.05f + 7.3f) * 0.4f;
+        float bias = 0.0f;
+        if (draw.maps.w & 2u) {
+            float lateral = in.attributes.x;
+            bias = mix(0.16f, -0.06f, smoothstep(0.0f, 0.22f, min(lateral, 1.0f - lateral)));
+        }
+        float threshold = 0.7f - wet * 0.2f + bias;
+        float puddle = smoothstep(threshold, threshold + 0.08f, n) * wet;
+        // Only where water can stand: flat ground, not walls or banks.
+        puddle *= saturate(basis[2].z * 6.0f - 5.0f);
+        albedo.rgb *= mix(1.0f, 0.7f, puddle);
+        roughness = mix(roughness, 0.03f, puddle);
+        metallic = mix(metallic, 0.0f, puddle);
+        normal = normalize(mix(normal, basis[2], puddle));
     }
 
     SurfaceMaterial surface;

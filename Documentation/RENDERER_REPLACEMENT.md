@@ -1233,6 +1233,56 @@ the tarmac the way the racing line's rubber is. That would take a second
 decal target the road shader reads, and can wait until the marks are
 judged to need it.
 
+## Wet weather
+
+A scene condition rather than a quality setting: `ForwardRenderer.wetness`,
+0 dry to 1 soaked, travels in the spare lane of the frame's camera position
+and is shared with the mirror renderer. Batches flagged `receivesWeather`
+— every generated road, side, barrier and terrain surface — respond to it
+in the forward fragment, after the markings and rubber and before the
+material is assembled:
+
+- a film of water darkens the albedo by up to 45 % and pulls the roughness
+  toward 0.5, a sheen rather than a mirror;
+- puddles come from a two-octave value noise of the world position,
+  thresholded by the wetness, and on the road biased toward the edges where
+  the crown drains; a puddle darkens further, drops the roughness to 0.03,
+  flattens the normal to the geometric one and clears the metallic, so it
+  is a sheet of water the reflection trace and the sky probe both see;
+- puddles only stand on near-horizontal ground, so a wet wall darkens and
+  glosses but holds no water.
+
+The road physics stays dry: the session's "Wet track" toggle changes the
+picture, not the grip, and says so in its help. When the simulation has
+weather the same value comes from it.
+
+Spray is a third particle kind. On a wet road every tyre above 8 m/s flings
+short-lived white mist that keeps more of the wheel's speed than smoke and
+falls; the app emits it alongside smoke and dust, scaled by speed and
+wetness.
+
+### The lake
+
+The first version pulled the film's roughness to 0.3. The road became a
+lake — a continuous mirror of sky between the puddles — and the interleaved
+comparison read **+0.79 ms** at 1280×832, because 0.3 is under the
+reflection trace's roughness cutoff of 0.45 and every road pixel was being
+traced where before none was. At 0.5 the film sits above the cutoff, only
+the puddles trace, the road between them reads as wet tarmac rather than
+water, and the cost is **+0.29 ms** at 1280×832 and **+0.89 ms** at native
+2560×1664 — paid only while it rains.
+
+`testWetGroundDarkensAndPuddlesWhereFlagged` renders a flat ground square:
+soaked, its mean drops by more than a tenth and its pixel spread grows by
+half, the puddles breaking up the flat shading; the same square without the
+flag renders identically wet and dry. `testFrameUniformsCarryWetness` pins
+the lane, and `testSprayIsShortLivedAndFalls` the new kind. The render
+tool takes `--wet W` and `--compare-wet`.
+
+Not done: rain itself — streaks in the air, drops on the glass — and a wet
+sky. The sun still shines on the puddles, which reads as the hour after a
+shower rather than the shower.
+
 ## Licensing
 
 No third-party artwork is imported by this work. New render source is
