@@ -18,8 +18,17 @@ import TORCSAssets
 ///   values darkens every mip. On a road surface, where almost every pixel
 ///   samples a mip, the error is a visible darkening with distance.
 public enum TextureLoading {
-    /// Decodes SGI or PNG by content, matching `torcs-assetc`.
+    /// Decodes SGI, PNG, or a compiled `.torcstex` cache by content.
+    ///
+    /// Prepared driving sessions ship compiled caches rather than source
+    /// artwork, so the renderer has to read both. Only the base level is taken
+    /// from a cache: its mip chain was built with upstream's integer averaging
+    /// of sRGB bytes, which is correct for parity and wrong for shading, so the
+    /// chain is rebuilt in linear space here.
     public static func decode(_ data: Data) throws -> TextureImage {
+        if let compiled = try? TextureCache.decode(data), let base = compiled.pyramid.levels.first {
+            return base
+        }
         // PNG magic; anything else is treated as SGI, which fails explicitly.
         let isPNG = data.count >= 8 && data.prefix(8).elementsEqual([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A])
         return isPNG ? try TextureImage.decodePNG(data) : try TextureImage.decodeSGI(data)
@@ -140,13 +149,55 @@ public final class TextureStore {
     /// with inconsistent casing and the original loader compared case-insensitively.
     func locate(_ name: String) -> URL? {
         let basename = (name as NSString).lastPathComponent.lowercased()
+        let stem = (basename as NSString).deletingPathExtension
         for root in roots {
-            let direct = root.appendingPathComponent(basename)
-            if FileManager.default.fileExists(atPath: direct.path) { return direct }
+            for candidate in [basename, stem + ".torcstex"] {
+                let direct = root.appendingPathComponent(candidate)
+                if FileManager.default.fileExists(atPath: direct.path) { return direct }
+            }
             guard let entries = try? FileManager.default.contentsOfDirectory(at: root, includingPropertiesForKeys: nil) else { continue }
             if let match = entries.first(where: { $0.lastPathComponent.lowercased() == basename }) { return match }
         }
         return nil
+    }
+
+    /// Uploads an already-decoded compiled texture.
+    ///
+    /// Prepared session packages hand the loader `CompiledTexture` values keyed
+    /// by the name the mesh references, so no file search is involved. Only the
+    /// base level is used: the cached chain was built with upstream's integer
+    /// averaging of sRGB bytes, which is right for parity and wrong for
+    /// shading, so it is rebuilt in linear space.
+    public func albedo(compiled: CompiledTexture, key: String, isCutout: Bool) -> MTLTexture? {
+        if let cached = cache[key] { return cached }
+        if missing.contains(key) { return nil }
+        guard let base = compiled.pyramid.levels.first,
+              let levels = try? TextureLoading.linearMipChain(base, preserveCutoutCoverage: isCutout),
+              let texture = try? TextureLoading.upload(levels, device: device, srgb: true) else {
+            missing.insert(key)
+            return nil
+        }
+        cache[key] = texture
+        uploadedBytes += levels.reduce(0) { $0 + $1.width * $1.height * 4 }
+        return texture
+    }
+
+    /// Loads from an explicit file, bypassing the search roots. Used for
+    /// compiled session packages, where a scene's textures are addressed by
+    /// index rather than by the name the mesh references.
+    public func albedo(at url: URL, key: String, isCutout: Bool) -> MTLTexture? {
+        if let cached = cache[key] { return cached }
+        if missing.contains(key) { return nil }
+        guard let data = try? Data(contentsOf: url),
+              let image = try? TextureLoading.decode(data),
+              let levels = try? TextureLoading.linearMipChain(image, preserveCutoutCoverage: isCutout),
+              let texture = try? TextureLoading.upload(levels, device: device, srgb: true) else {
+            missing.insert(key)
+            return nil
+        }
+        cache[key] = texture
+        uploadedBytes += levels.reduce(0) { $0 + $1.width * $1.height * 4 }
+        return texture
     }
 
     public func albedo(named name: String, isCutout: Bool) -> MTLTexture? {

@@ -72,7 +72,11 @@ final class SceneFlatteningTests: XCTestCase {
             let threshold = try XCTUnwrap(batch.alphaTestThreshold)
             XCTAssertTrue(threshold > 0 && threshold <= 1, "implausible cutout threshold \(threshold)")
         }
-        XCTAssertFalse(track.batches.allSatisfy(\.isTranslucent), "not every track batch is translucent")
+        // Blending and deferral are independent: TORCS enables blending very
+        // widely, where it is a no-op at alpha 1, but defers only genuinely
+        // see-through surfaces. Treating the blend flag as transparency marks
+        // whole vehicles transparent.
+        XCTAssertFalse(track.batches.allSatisfy(\.isDeferred), "not every track batch is transparent")
     }
 
     func testBaseTexturesAreRetainedForMaterialResolution() throws {

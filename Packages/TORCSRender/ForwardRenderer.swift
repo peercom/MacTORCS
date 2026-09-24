@@ -19,11 +19,19 @@ public final class SceneResources {
         let needsAlphaTest: Bool
         let culls: Bool
         let isDriver: Bool
-        let isTranslucent: Bool
+        let blends: Bool
+        let isDeferred: Bool
         let albedo: MTLTexture?
         /// World-space bounds for shadow cascade culling.
         let worldCentre: SIMD3<Float>
         let worldRadius: Float
+        /// True when the batch's own transform mirrors the geometry.
+        ///
+        /// A negative determinant reverses which side of every triangle faces
+        /// the camera, so a mirrored mesh must cull the opposite face. The
+        /// original wheel meshes are mirrored, which is why they vanished
+        /// entirely once back-face culling was correct for everything else.
+        let mirrored: Bool
     }
 
     let batches: [Batch]
@@ -34,7 +42,12 @@ public final class SceneResources {
     /// Number of drawable batches, for diagnostics and budget reporting.
     public var batchCount: Int { batches.count }
 
-    public init(device: MTLDevice, scene: RenderScene, textures: TextureStore? = nil) throws {
+    /// - Parameter resolveTexture: maps a batch's base-texture name and cutout
+    ///   flag to an uploaded texture, or nil when the reference cannot be
+    ///   satisfied. Injected rather than fixed so the same builder serves both
+    ///   loose artwork on disk and already-decoded compiled session packages.
+    public init(device: MTLDevice, scene: RenderScene,
+                resolveTexture: (String, Bool) -> MTLTexture?) throws {
         var built: [Batch] = []
         var bytes = 0
         for batch in scene.batches {
@@ -63,7 +76,7 @@ public final class SceneResources {
             // texture must read as an obvious untextured surface, never as a
             // silently substituted stand-in.
             let albedo = batch.baseTexture.flatMap {
-                textures?.albedo(named: $0, isCutout: batch.alphaTestThreshold != nil)
+                resolveTexture($0, batch.alphaTestThreshold != nil)
             }
             built.append(Batch(
                 vertices: vertices, indices: indices, indexCount: batch.mesh.indices.count,
@@ -79,10 +92,12 @@ public final class SceneResources {
                 needsAlphaTest: batch.alphaTestThreshold != nil,
                 culls: batch.culls,
                 isDriver: batch.isDriver,
-                isTranslucent: batch.isTranslucent,
+                blends: batch.blends,
+                isDeferred: batch.isDeferred,
                 albedo: albedo,
                 worldCentre: worldCentre,
-                worldRadius: worldRadius))
+                worldRadius: worldRadius,
+                mirrored: simd_determinant(transform) < 0))
         }
         guard !built.isEmpty else { throw RenderError.unavailable("Scene has no drawable batches") }
         batches = built
@@ -90,6 +105,13 @@ public final class SceneResources {
         bufferBytes = bytes
         minimum = scene.minimum
         maximum = scene.maximum
+    }
+
+    /// Resolves textures by name against a store's search roots.
+    public convenience init(device: MTLDevice, scene: RenderScene, textures: TextureStore? = nil) throws {
+        try self.init(device: device, scene: scene) { name, isCutout in
+            textures?.albedo(named: name, isCutout: isCutout)
+        }
     }
 }
 
@@ -104,6 +126,12 @@ public final class ForwardRenderer {
     let queue: MTLCommandQueue
     let opaque: MTLRenderPipelineState
     let opaqueCutout: MTLRenderPipelineState
+    let blended: MTLRenderPipelineState
+    let blendedCutout: MTLRenderPipelineState
+    /// Depth tested but not written, for the sorted transparent phase. Glass
+    /// that wrote depth would hide whatever is behind it, including the rest of
+    /// the same window.
+    let readOnlyDepthState: MTLDepthStencilState
     let resolve: MTLRenderPipelineState
     let sky: MTLRenderPipelineState
     let depthState: MTLDepthStencilState
@@ -121,6 +149,23 @@ public final class ForwardRenderer {
     private var targets: FrameTargets?
 
     public private(set) var lastGPUTime: Double = 0
+    /// Rolling GPU time, written from the command buffer completion handler and
+    /// therefore off the main thread.
+    private let frameTimeLock = NSLock()
+    private var measuredGPUTime: Double = 0
+
+    /// Most recent measured GPU time, in seconds.
+    public var gpuTime: Double {
+        frameTimeLock.lock()
+        defer { frameTimeLock.unlock() }
+        return measuredGPUTime
+    }
+
+    func recordFrameTime(_ seconds: Double) {
+        frameTimeLock.lock()
+        measuredGPUTime = seconds
+        frameTimeLock.unlock()
+    }
     public private(set) var lastDrawCount = 0
     public private(set) var lastTriangleCount = 0
 
@@ -134,21 +179,35 @@ public final class ForwardRenderer {
         self.settings = settings
         let library = try ShaderLibrary(device: device).library
 
-        func forwardPipeline(alphaTest: Bool) throws -> MTLRenderPipelineState {
+        func forwardPipeline(alphaTest: Bool, blend: Bool) throws -> MTLRenderPipelineState {
             let constants = MTLFunctionConstantValues()
             var enabled = alphaTest
             constants.setConstantValue(&enabled, type: .bool, index: 0)
             let descriptor = MTLRenderPipelineDescriptor()
             descriptor.vertexFunction = try library.makeFunction(name: "forwardVertex", constantValues: constants)
             descriptor.fragmentFunction = try library.makeFunction(name: "forwardFragment", constantValues: constants)
-            descriptor.colorAttachments[0].pixelFormat = FrameTargets.colourFormat
+            let colour = descriptor.colorAttachments[0]!
+            colour.pixelFormat = FrameTargets.colourFormat
+            if blend {
+                // Straight (non-premultiplied) source-alpha blending, matching
+                // what the original fixed-function path set up.
+                colour.isBlendingEnabled = true
+                colour.rgbBlendOperation = .add
+                colour.alphaBlendOperation = .add
+                colour.sourceRGBBlendFactor = .sourceAlpha
+                colour.sourceAlphaBlendFactor = .sourceAlpha
+                colour.destinationRGBBlendFactor = .oneMinusSourceAlpha
+                colour.destinationAlphaBlendFactor = .oneMinusSourceAlpha
+            }
             descriptor.depthAttachmentPixelFormat = FrameTargets.depthFormat
             return try device.makeRenderPipelineState(descriptor: descriptor)
         }
         // Specialized rather than branched: RASTER_STABILITY.md documents an M2
         // repeat-render instability caused by an inactive discard path.
-        opaque = try forwardPipeline(alphaTest: false)
-        opaqueCutout = try forwardPipeline(alphaTest: true)
+        opaque = try forwardPipeline(alphaTest: false, blend: false)
+        opaqueCutout = try forwardPipeline(alphaTest: true, blend: false)
+        blended = try forwardPipeline(alphaTest: false, blend: true)
+        blendedCutout = try forwardPipeline(alphaTest: true, blend: true)
 
         let skyDescriptor = MTLRenderPipelineDescriptor()
         skyDescriptor.vertexFunction = library.makeFunction(name: "fullscreenVertex")
@@ -175,6 +234,14 @@ public final class ForwardRenderer {
             throw RenderError.unavailable("Could not create a depth state")
         }
         self.depthState = depthState
+
+        let readOnlyDepth = MTLDepthStencilDescriptor()
+        readOnlyDepth.depthCompareFunction = .greater
+        readOnlyDepth.isDepthWriteEnabled = false
+        guard let readOnlyDepthState = device.makeDepthStencilState(descriptor: readOnlyDepth) else {
+            throw RenderError.unavailable("Could not create the transparent depth state")
+        }
+        self.readOnlyDepthState = readOnlyDepthState
 
         let skyDepth = MTLDepthStencilDescriptor()
         skyDepth.depthCompareFunction = .always
@@ -206,24 +273,28 @@ public final class ForwardRenderer {
         return fresh
     }
 
-    /// Renders offscreen and returns sRGB-encoded RGBA bytes.
+    /// Renders a single scene offscreen and returns sRGB-encoded RGBA bytes.
     ///
-    /// This is the verification entry point, matching the classic path's
-    /// offscreen smoke renders. Interactive presentation reuses `encode`.
+    /// The verification entry point, matching the classic path's offscreen
+    /// smoke renders. Interactive presentation uses `draw(in:)`.
     public func render(scene: SceneResources, camera: RenderCamera, lighting: SunLighting,
                        width: Int, height: Int, includeDriver: Bool = true) throws -> [UInt8] {
+        try render(resources: [scene],
+                   instances: [RenderInstance(resource: 0, drawsDriver: includeDriver)],
+                   camera: camera, lighting: lighting, width: width, height: height)
+    }
+
+    public func render(resources: [SceneResources], instances: [RenderInstance],
+                       camera: RenderCamera, lighting: SunLighting,
+                       width: Int, height: Int) throws -> [UInt8] {
         let targets = try targets(width: width, height: height)
         guard let commands = queue.makeCommandBuffer() else {
             throw RenderError.unavailable("Could not create a command buffer")
         }
-        atmosphere.update(into: commands, lighting: lighting, cameraAltitude: camera.eye.z)
-        let cascades = ShadowCascades(camera: camera, sunDirection: lighting.direction,
-                                      aspect: Float(width) / Float(max(height, 1)),
-                                      count: settings.shadowCascades, resolution: shadows.resolution,
-                                      shadowDistance: shadowDistance).cascades
-        shadows.encode(into: commands, scene: scene, cascades: cascades)
-        encode(into: commands, targets: targets, scene: scene, camera: camera,
-               lighting: lighting, cascades: cascades, includeDriver: includeDriver)
+        encodeFrame(into: commands, targets: targets, resources: resources, instances: instances,
+                    camera: camera, lighting: lighting, aspect: Float(width) / Float(max(height, 1)))
+        encodeResolve(into: commands, source: targets.colour, destination: targets.display,
+                      lighting: lighting)
         commands.commit()
         commands.waitUntilCompleted()
         if let error = commands.error { throw RenderError.unavailable("GPU error: \(error)") }
@@ -237,10 +308,29 @@ public final class ForwardRenderer {
         return pixels
     }
 
+    /// Everything up to but not including the tonemapping resolve: atmosphere
+    /// tables, shadow cascades, sky and forward opaque.
+    ///
+    /// Split from the resolve so interactive presentation can tonemap straight
+    /// into the drawable, and so the offscreen path can reuse the identical
+    /// scene encoding rather than a parallel copy of it.
+    public func encodeFrame(into commands: MTLCommandBuffer, targets: FrameTargets,
+                            resources: [SceneResources], instances: [RenderInstance],
+                            camera: RenderCamera, lighting: SunLighting, aspect: Float) {
+        atmosphere.update(into: commands, lighting: lighting, cameraAltitude: camera.eye.z)
+        let cascades = ShadowCascades(camera: camera, sunDirection: lighting.direction,
+                                      aspect: aspect, count: settings.shadowCascades,
+                                      resolution: shadows.resolution,
+                                      shadowDistance: shadowDistance).cascades
+        shadows.encode(into: commands, resources: resources, instances: instances, cascades: cascades)
+        encode(into: commands, targets: targets, resources: resources, instances: instances,
+               camera: camera, lighting: lighting, cascades: cascades, aspect: aspect)
+    }
+
     public func encode(into commands: MTLCommandBuffer, targets: FrameTargets,
-                       scene: SceneResources, camera: RenderCamera, lighting: SunLighting,
-                       cascades: [ShadowCascades.Cascade], includeDriver: Bool = true) {
-        let aspect = Float(targets.width) / Float(max(targets.height, 1))
+                       resources: [SceneResources], instances: [RenderInstance],
+                       camera: RenderCamera, lighting: SunLighting,
+                       cascades: [ShadowCascades.Cascade], aspect: Float) {
         var frame = FrameUniforms(
             viewProjection: camera.viewProjection(aspect: aspect),
             view: camera.view(),
@@ -264,70 +354,122 @@ public final class ForwardRenderer {
 
         lastDrawCount = 0
         lastTriangleCount = 0
-        if let encoder = commands.makeRenderCommandEncoder(descriptor: scenePass) {
-            encoder.label = "Sky and forward opaque"
-            encoder.setVertexBytes(&frame, length: MemoryLayout<FrameUniforms>.stride, index: 1)
-            encoder.setFragmentBytes(&frame, length: MemoryLayout<FrameUniforms>.stride, index: 1)
-            encoder.setFragmentSamplerState(sampler, index: 0)
+        guard let encoder = commands.makeRenderCommandEncoder(descriptor: scenePass) else { return }
+        encoder.label = "Sky and forward opaque"
+        encoder.setVertexBytes(&frame, length: MemoryLayout<FrameUniforms>.stride, index: 1)
+        encoder.setFragmentBytes(&frame, length: MemoryLayout<FrameUniforms>.stride, index: 1)
+        encoder.setFragmentSamplerState(sampler, index: 0)
 
-            encoder.setRenderPipelineState(sky)
-            encoder.setDepthStencilState(skyDepthState)
-            encoder.setFragmentTexture(atmosphere.skyView, index: 0)
-            encoder.setFragmentTexture(atmosphere.transmittance, index: 1)
-            encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
+        encoder.setRenderPipelineState(sky)
+        encoder.setDepthStencilState(skyDepthState)
+        encoder.setFragmentTexture(atmosphere.skyView, index: 0)
+        encoder.setFragmentTexture(atmosphere.transmittance, index: 1)
+        encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
 
-            encoder.setDepthStencilState(depthState)
-            // AC/TORCS geometry comes from OpenGL, whose front face is
-            // counter-clockwise. Metal defaults to clockwise, so without this
-            // every culled mesh keeps its back faces and discards its front
-            // ones. Generated geometry follows the same convention.
-            encoder.setFrontFacing(.counterClockwise)
-            // Aerial perspective in the forward pass reads the same tables the
-            // sky does, so haze and sky agree at the horizon.
-            encoder.setFragmentTexture(atmosphere.transmittance, index: 3)
-            encoder.setFragmentTexture(atmosphere.multiScatter, index: 4)
-            encoder.setFragmentTexture(atmosphere.skyView, index: 5)
-            encoder.setFragmentBuffer(atmosphere.irradiance, offset: 0, index: 3)
-            encoder.setFragmentTexture(shadows.map, index: 6)
-            encoder.setFragmentSamplerState(shadows.comparisonSampler, index: 1)
-            // Bias in normalized depth. Cascades are orthographic over a few
-            // hundred metres, so a small constant plus a slope term suffices;
-            // the normal offset in the shader does the rest of the work.
-            // Bias in shadow texels. Hardware slope-scaled bias handles the
-            // gradient during the depth write; this covers the residual.
-            var shadowUniforms = ShadowUniforms(cascades: cascades, depthBias: 3.0,
-                                                normalBias: 1.5, filterRadius: 1.5)
-            encoder.setFragmentBytes(&shadowUniforms, length: MemoryLayout<ShadowUniforms>.stride, index: 4)
+        encoder.setDepthStencilState(depthState)
+        // AC/TORCS geometry comes from OpenGL, whose front face is
+        // counter-clockwise. Metal defaults to clockwise, so without this
+        // every culled mesh keeps its back faces and discards its front ones.
+        encoder.setFrontFacing(.counterClockwise)
+        encoder.setFragmentTexture(atmosphere.transmittance, index: 3)
+        encoder.setFragmentTexture(atmosphere.multiScatter, index: 4)
+        encoder.setFragmentTexture(atmosphere.skyView, index: 5)
+        encoder.setFragmentBuffer(atmosphere.irradiance, offset: 0, index: 3)
+        encoder.setFragmentTexture(shadows.map, index: 6)
+        encoder.setFragmentSamplerState(shadows.comparisonSampler, index: 1)
+        // Bias in shadow texels. Hardware slope-scaled bias handles the
+        // gradient during the depth write; this covers the residual.
+        var shadowUniforms = ShadowUniforms(cascades: cascades, depthBias: 3.0,
+                                            normalBias: 1.5, filterRadius: 1.5)
+        encoder.setFragmentBytes(&shadowUniforms, length: MemoryLayout<ShadowUniforms>.stride, index: 4)
 
-            // Translucent batches are deferred to a blended pass in the next
-            // phase; drawing them opaque here is wrong but visible, which is
-            // preferable to dropping them silently.
-            for batch in scene.batches {
-                if batch.isDriver && !includeDriver { continue }
-                encoder.setRenderPipelineState(batch.needsAlphaTest ? opaqueCutout : opaque)
-                encoder.setCullMode(batch.culls ? .back : .none)
-                var draw = batch.draw
-                if let albedo = batch.albedo { encoder.setFragmentTexture(albedo, index: 0) }
-                encoder.setVertexBuffer(batch.vertices, offset: 0, index: 0)
-                encoder.setVertexBytes(&draw, length: MemoryLayout<DrawUniforms>.stride, index: 2)
-                encoder.setFragmentBytes(&draw, length: MemoryLayout<DrawUniforms>.stride, index: 2)
-                encoder.drawIndexedPrimitives(type: .triangle, indexCount: batch.indexCount,
-                                              indexType: .uint32, indexBuffer: batch.indices,
-                                              indexBufferOffset: 0)
-                lastDrawCount += 1
-                lastTriangleCount += batch.indexCount / 3
+        // Opaque first, then the deferred transparent phase sorted back to
+        // front. One pass rather than two encoders: the transparent draws need
+        // the same depth buffer the opaque ones just wrote.
+        struct DeferredDraw {
+            let instance: Int
+            let batch: Int
+            let distance: Float
+        }
+        var deferred: [DeferredDraw] = []
+
+        for (instanceIndex, instance) in instances.enumerated() {
+            guard resources.indices.contains(instance.resource) else { continue }
+            let scene = resources[instance.resource]
+            var instanceUniforms = InstanceUniforms(model: instance.transform)
+            encoder.setVertexBytes(&instanceUniforms, length: MemoryLayout<InstanceUniforms>.stride, index: 5)
+            // Mirroring composes: a mirrored mesh inside a mirrored instance
+            // faces the original way again. The left and right wheels differ by
+            // exactly such a flip.
+            let instanceMirrored = simd_determinant(instance.transform) < 0
+
+            for (batchIndex, batch) in scene.batches.enumerated() {
+                if batch.isDriver && !instance.drawsDriver { continue }
+                if batch.isDeferred {
+                    let centre = instance.transform * SIMD4(batch.worldCentre, 1)
+                    deferred.append(DeferredDraw(instance: instanceIndex, batch: batchIndex,
+                                                 distance: simd_length(SIMD3(centre.x, centre.y, centre.z) - camera.eye)))
+                    continue
+                }
+                draw(batch, on: encoder, blendOverride: nil, mirroredInstance: instanceMirrored)
             }
-            encoder.endEncoding()
         }
 
+        if !deferred.isEmpty {
+            encoder.setDepthStencilState(readOnlyDepthState)
+            // Farthest first. Sorting per batch rather than per triangle is the
+            // usual compromise; it is correct here because the transparent
+            // surfaces on a car do not interpenetrate.
+            for item in deferred.sorted(by: { $0.distance > $1.distance }) {
+                let instance = instances[item.instance]
+                let scene = resources[instance.resource]
+                var instanceUniforms = InstanceUniforms(model: instance.transform)
+                encoder.setVertexBytes(&instanceUniforms, length: MemoryLayout<InstanceUniforms>.stride, index: 5)
+                // Glass is see-through from both sides, and culling it leaves
+                // the far side of a windscreen missing.
+                draw(scene.batches[item.batch], on: encoder, blendOverride: true,
+                     mirroredInstance: simd_determinant(instance.transform) < 0, forceTwoSided: true)
+            }
+        }
+        encoder.endEncoding()
+    }
+
+    /// Submits one batch. Shared by the opaque and transparent phases so the
+    /// two cannot drift apart in how they bind material state.
+    private func draw(_ batch: SceneResources.Batch, on encoder: MTLRenderCommandEncoder,
+                      blendOverride: Bool?, mirroredInstance: Bool, forceTwoSided: Bool = false) {
+        let blends = blendOverride ?? batch.blends
+        switch (blends, batch.needsAlphaTest) {
+        case (false, false): encoder.setRenderPipelineState(opaque)
+        case (false, true): encoder.setRenderPipelineState(opaqueCutout)
+        case (true, false): encoder.setRenderPipelineState(blended)
+        case (true, true): encoder.setRenderPipelineState(blendedCutout)
+        }
+        let mirrored = batch.mirrored != mirroredInstance
+        encoder.setCullMode(forceTwoSided || !batch.culls ? .none : (mirrored ? .front : .back))
+        var draw = batch.draw
+        if let albedo = batch.albedo { encoder.setFragmentTexture(albedo, index: 0) }
+        encoder.setVertexBuffer(batch.vertices, offset: 0, index: 0)
+        encoder.setVertexBytes(&draw, length: MemoryLayout<DrawUniforms>.stride, index: 2)
+        encoder.setFragmentBytes(&draw, length: MemoryLayout<DrawUniforms>.stride, index: 2)
+        encoder.drawIndexedPrimitives(type: .triangle, indexCount: batch.indexCount,
+                                      indexType: .uint32, indexBuffer: batch.indices,
+                                      indexBufferOffset: 0)
+        lastDrawCount += 1
+        lastTriangleCount += batch.indexCount / 3
+    }
+
+    /// Tonemaps HDR scene colour into a display-format target.
+    public func encodeResolve(into commands: MTLCommandBuffer, source: MTLTexture,
+                              destination: MTLTexture, lighting: SunLighting) {
         let resolvePass = MTLRenderPassDescriptor()
-        resolvePass.colorAttachments[0].texture = targets.display
+        resolvePass.colorAttachments[0].texture = destination
         resolvePass.colorAttachments[0].loadAction = .dontCare
         resolvePass.colorAttachments[0].storeAction = .store
         if let encoder = commands.makeRenderCommandEncoder(descriptor: resolvePass) {
             encoder.label = "Tonemap resolve"
             encoder.setRenderPipelineState(resolve)
-            encoder.setFragmentTexture(targets.colour, index: 0)
+            encoder.setFragmentTexture(source, index: 0)
             var exposure = lighting.exposureScale
             encoder.setFragmentBytes(&exposure, length: MemoryLayout<Float>.stride, index: 0)
             encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)

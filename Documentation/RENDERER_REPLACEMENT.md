@@ -174,6 +174,32 @@ A first attempt at hand-reasoning produced 86% downward-facing normals; the
 rendered frames looked plausible anyway, because the batch had culling
 disabled. A unit test caught it.
 
+### Mirrored transforms invert cull face
+
+A negative-determinant transform reverses which side of every triangle faces the
+camera. Handedness was already folded into the stored tangent, but cull face was
+not, so once counter-clockwise front faces were correct for everything else the
+mirrored wheel meshes became exactly wrong and disappeared.
+
+The symptom was misleading: the draw count was unchanged, because the wheels were
+being submitted and then culled. Mirroring now composes — a mirrored mesh inside
+a mirrored instance faces the original way again, which is precisely how the left
+and right wheels differ.
+
+### Blending and transparency are separate flags
+
+The AC render state carries both, and they are independent:
+
+- bit 0 selects the alpha-blending pipeline
+- bit 5 defers the draw to the sorted transparent phase
+
+TORCS sets bit 0 on nearly every car surface, where it is a no-op at alpha 1, and
+sets bit 5 only on genuinely see-through ones. Treating either bit as
+"transparent" marks all 18 of the car's batches transparent; separating them
+gives 6 deferred and 18 blending, which is correct. Glass is drawn back to front
+with depth tested but not written, forced two-sided, and excluded from shadow
+casting.
+
 ## First measurements
 
 Offscreen, 1280x832, Apple M2, against a ~10.5 ms per-frame budget:

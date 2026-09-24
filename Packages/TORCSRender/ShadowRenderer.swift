@@ -99,7 +99,8 @@ public final class ShadowRenderer {
     /// Batches are culled per cascade against the cascade's world-space bounds.
     /// Without it the whole scene is submitted four extra times, which on a
     /// 1,315-batch track costs far more than the shadows are worth.
-    public func encode(into commands: MTLCommandBuffer, scene: SceneResources, cascades: [ShadowCascades.Cascade]) {
+    public func encode(into commands: MTLCommandBuffer, resources: [SceneResources],
+                       instances: [RenderInstance], cascades: [ShadowCascades.Cascade]) {
         lastDrawCount = 0
         for (index, cascade) in cascades.prefix(cascadeCount).enumerated() {
             let pass = MTLRenderPassDescriptor()
@@ -126,15 +127,31 @@ public final class ShadowRenderer {
             // polygons cannot push their shadow arbitrarily far away.
             encoder.setDepthBias(2.0, slopeScale: 3.0, clamp: 0.01)
 
-            for batch in scene.batches {
-                guard Self.intersects(cascade: cascade, centre: batch.worldCentre, radius: batch.worldRadius) else { continue }
-                var modelViewProjection = cascade.viewProjection * batch.draw.model
-                encoder.setVertexBuffer(batch.vertices, offset: 0, index: 0)
-                encoder.setVertexBytes(&modelViewProjection, length: MemoryLayout<simd_float4x4>.stride, index: 1)
-                encoder.drawIndexedPrimitives(type: .triangle, indexCount: batch.indexCount,
-                                              indexType: .uint32, indexBuffer: batch.indices,
-                                              indexBufferOffset: 0)
-                lastDrawCount += 1
+            for instance in instances {
+                guard instance.castsShadow, resources.indices.contains(instance.resource) else { continue }
+                let scene = resources[instance.resource]
+                let isMoving = instance.transform != matrix_identity_float4x4
+                for batch in scene.batches {
+                    if !instance.drawsDriver && batch.isDriver { continue }
+                    // Transparent surfaces do not cast. Glass casting a solid
+                    // shadow is the most obvious way to make a windscreen read
+                    // as painted metal.
+                    if batch.isDeferred { continue }
+                    // Cull against the batch's world bounds. A moving instance
+                    // carries its own transform, so its cached bounds no longer
+                    // describe where it is; those are left in rather than
+                    // dropped, since a car is a handful of batches and a wrong
+                    // cull deletes its shadow.
+                    if !isMoving,
+                       !Self.intersects(cascade: cascade, centre: batch.worldCentre, radius: batch.worldRadius) { continue }
+                    var modelViewProjection = cascade.viewProjection * instance.transform * batch.draw.model
+                    encoder.setVertexBuffer(batch.vertices, offset: 0, index: 0)
+                    encoder.setVertexBytes(&modelViewProjection, length: MemoryLayout<simd_float4x4>.stride, index: 1)
+                    encoder.drawIndexedPrimitives(type: .triangle, indexCount: batch.indexCount,
+                                                  indexType: .uint32, indexBuffer: batch.indices,
+                                                  indexBufferOffset: 0)
+                    lastDrawCount += 1
+                }
             }
             encoder.endEncoding()
         }

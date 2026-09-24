@@ -1,0 +1,95 @@
+// SPDX-License-Identifier: GPL-2.0-only
+import Foundation
+import simd
+import TORCSAssets
+import TORCSMetal
+import TORCSRaceEngine
+import TORCSRender
+import TORCSTrackMesh
+
+/// Offscreen diagnostic of the modern render path against real prepared
+/// content.
+///
+/// Exercises everything the driving window does except presentation: compiled
+/// scene packages, compiled textures, generated terrain, settled physics, the
+/// original camera presets and the instance assembly for body, wheels and
+/// brakes. Timings exclude CPU readback and are not gameplay frame rates.
+@MainActor enum ModernDrivingSmoke {
+    static func run(session: URL, output: URL, width: Int = 1280, height: Int = 832) throws {
+        guard !FileManager.default.fileExists(atPath: output.path) else {
+            throw ACError.invalid("Visual output directory already exists")
+        }
+        let content = try DrivingContent.load(session)
+        let renderer = try ForwardRenderer()
+        let resources = try SessionRenderResources(
+            device: renderer.device, scenes: content.renderScenes,
+            road: content.simulation.road.geometry, terrain: TerrainParameters())
+        let lighting = ModernDrivingRenderer.lighting(from: content.graphics)
+        let pose = try VehiclePresentation(content.simulation.visualSnapshot)
+        let world = try CameraWorld(bounds: content.simulation.road.bounds)
+        let geometry = content.simulation.road.geometry
+        try FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
+
+        let body = pose.body
+        let heading = geometry.tangent(try geometry.globalToLocal(SIMD2(body[3].x, body[3].y), startingAt: 0))
+        var report: [[String: Any]] = []
+
+        // The fly and television presets need their own controllers, which this
+        // diagnostic does not build.
+        for preset in DrivingCameraPreset.allCases where preset != .fly && preset != .television {
+            var rig = DrivingCameraRig()
+            var camera: SceneCamera?
+            // Chase relaxation steps a fixed fraction per call, so it has to be
+            // spun to steady state before capture, exactly as the classic
+            // diagnostic does.
+            for _ in 0 ..< 200 {
+                camera = try rig.view(preset: preset, body: body, bonnetPosition: content.bonnetPosition,
+                                      driverPosition: content.driverPosition, world: world,
+                                      roadCameraPosition: content.simulation.road.camera(at: content.simulation.vehicle.chassis.trackPosition.segment)?.position,
+                                      yaw: content.simulation.visualSnapshot.body.orientation.z,
+                                      trackHeading: heading) { try geometry.height(at: $0, startingAt: 0) }
+            }
+            guard let sceneCamera = camera else { continue }
+
+            let instances = resources.staticInstances() + ModernDrivingRenderer.vehicleInstances(
+                pose, drawsDriver: preset.drawsDriver, drawsCar: preset.drawsCar, castsShadow: preset.drawsCar)
+            let pixels = try renderer.render(resources: resources.resources, instances: instances,
+                                             camera: ModernDrivingRenderer.camera(from: sceneCamera),
+                                             lighting: lighting, width: width, height: height)
+            try SceneSmoke.writePNG(Data(pixels), width: width, height: height,
+                                    output: output.appendingPathComponent("\(preset).png"))
+            report.append(["camera": "\(preset)", "draws": renderer.lastDrawCount,
+                           "triangles": renderer.lastTriangleCount,
+                           "gpuMilliseconds": renderer.lastGPUTime * 1000])
+        }
+
+        // A fixed three-quarter view close to the car. The original presets are
+        // all either behind it or far away, which hides the wheels and brakes
+        // exactly where assembly errors show up.
+        let centre = SIMD3(body[3].x, body[3].y, body[3].z)
+        let forward = SIMD3(body[0].x, body[0].y, body[0].z)
+        let right = SIMD3(body[1].x, body[1].y, body[1].z)
+        let diagnostic = RenderCamera(eye: centre + forward * 4.5 + right * 3.6 + SIMD3(0, 0, 1.6),
+                                      target: centre + SIMD3(0, 0, 0.4),
+                                      verticalFieldOfView: 38 * .pi / 180, near: 0.2, far: 4000)
+        let diagnosticInstances = resources.staticInstances() + ModernDrivingRenderer.vehicleInstances(
+            pose, drawsDriver: true, drawsCar: true, castsShadow: true)
+        let diagnosticPixels = try renderer.render(resources: resources.resources, instances: diagnosticInstances,
+                                                   camera: diagnostic, lighting: lighting,
+                                                   width: width, height: height)
+        try SceneSmoke.writePNG(Data(diagnosticPixels), width: width, height: height,
+                                output: output.appendingPathComponent("diagnostic.png"))
+
+        let summary: [String: Any] = [
+            "cameras": report.count,
+            "resources": resources.resources.count,
+            "terrainResource": resources.terrainResource ?? -1,
+            "texturesUploaded": resources.textures.count,
+            "textureMegabytes": Double(resources.textures.uploadedBytes) / 1_048_576,
+            "missingTextures": resources.textures.missing.sorted(),
+            "views": report]
+        try JSONSerialization.data(withJSONObject: summary, options: [.prettyPrinted, .sortedKeys])
+            .write(to: output.appendingPathComponent("report.json"))
+        print("modern driving smoke: \(report.count) cameras, \(resources.textures.count) textures, \(resources.textures.missing.count) missing")
+    }
+}

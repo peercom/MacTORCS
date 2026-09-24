@@ -112,6 +112,12 @@ import os
                 try FlyVisualSmoke.run(session:URL(fileURLWithPath:CommandLine.arguments[index+1]),output:URL(fileURLWithPath:CommandLine.arguments[index+2]));exit(0)
             } catch { FileHandle.standardError.write(Data("Fly visual test failed: \(error)\n".utf8));exit(1) }
         }
+        if let index=CommandLine.arguments.firstIndex(of:"--modern-driving-test") {
+            do {
+                guard CommandLine.arguments.count==index+3 else { throw RendererError.unavailable("Usage: --modern-driving-test session-directory new-output-directory") }
+                try ModernDrivingSmoke.run(session:URL(fileURLWithPath:CommandLine.arguments[index+1]),output:URL(fileURLWithPath:CommandLine.arguments[index+2]));exit(0)
+            } catch { FileHandle.standardError.write(Data(String(describing:error).utf8));exit(1) }
+        }
         if let index=CommandLine.arguments.firstIndex(of:"--driving-visual-test") {
             do {
                 guard CommandLine.arguments.count==index+3 else { throw RendererError.unavailable("Usage: --driving-visual-test session-directory new-output-directory") }

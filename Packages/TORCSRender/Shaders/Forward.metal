@@ -42,6 +42,18 @@ struct DrawUniforms {
     uint4 maps;                 // x albedo, y normal, z ORM, w reserved
 };
 
+/// Places a whole scene in the world, on top of each batch's own node-local
+/// transform.
+///
+/// Kept separate from `DrawUniforms` rather than folded into it because a batch
+/// transform is fixed at load while an instance transform changes every frame.
+/// Composing them on the GPU means a moving car costs one 128-byte upload per
+/// instance instead of recomputing an inverse-transpose for each of its batches.
+struct InstanceUniforms {
+    float4x4 model;
+    float4x4 normalMatrix;
+};
+
 struct ForwardVarying {
     // Invariant so the depth prepass and this pass agree exactly, which the
     // temporal path depends on.
@@ -62,18 +74,19 @@ constant bool forwardAlphaTest [[function_constant(0)]];
 vertex ForwardVarying forwardVertex(uint id [[vertex_id]],
                                     const device PackedVertex *vertices [[buffer(0)]],
                                     constant FrameUniforms &frame [[buffer(1)]],
-                                    constant DrawUniforms &draw [[buffer(2)]]) {
+                                    constant DrawUniforms &draw [[buffer(2)]],
+                                    constant InstanceUniforms &instance [[buffer(5)]]) {
     PackedVertex v = vertices[id];
-    float4 world = draw.model * float4(float3(v.position), 1.0f);
+    float4 world = instance.model * draw.model * float4(float3(v.position), 1.0f);
 
     ForwardVarying out;
     out.position = frame.viewProjection * world;
     out.worldPosition = world.xyz;
-    out.normal = (draw.normalMatrix * float4(decodeNormal(v.normal), 0.0f)).xyz;
+    out.normal = (instance.normalMatrix * draw.normalMatrix * float4(decodeNormal(v.normal), 0.0f)).xyz;
     float4 tangent = decodeTangent(v.tangent);
     // The tangent is a direction in the surface, so it transforms by the model
     // matrix, not the inverse transpose. Handedness rides along untouched.
-    out.tangent = float4((draw.model * float4(tangent.xyz, 0.0f)).xyz, tangent.w);
+    out.tangent = float4((instance.model * draw.model * float4(tangent.xyz, 0.0f)).xyz, tangent.w);
     out.uv0 = float2(v.uv0);
     out.uv1 = float2(v.uv1);
     return out;

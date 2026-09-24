@@ -27,6 +27,7 @@ struct Options {
     var preset = RenderSettings.Preset.m2Air
     var stats = false
     var frames = 1
+    var noCull = false
     /// Track XML enabling procedural terrain from its Terrain Generation section.
     var trackXML: String? = nil
     var textureRoots: [String] = []
@@ -61,6 +62,7 @@ func parse() -> Options {
         case "--exposure": options.exposure = Float(next()) ?? options.exposure
         case "--preset": options.preset = RenderSettings.Preset(rawValue: next()) ?? options.preset
         case "--stats": options.stats = true
+        case "--no-cull": options.noCull = true
         case "--frames": options.frames = Int(next()) ?? options.frames
         case "--track-xml": options.trackXML = next()
         case "--textures": options.textureRoots.append(next())
@@ -144,7 +146,7 @@ do {
                                       texture: terrainParameters.surface + ".rgb",
                                       flags: 8, alphaClamp: 0)
             scene = scene.adding([RenderBatch(mesh: mesh, baseTexture: state.texture,
-                                              isTranslucent: false, alphaTestThreshold: nil,
+                                              blends: false, isDeferred: false, alphaTestThreshold: nil,
                                               culls: true, isDriver: false,
                                               sourceMaterial: state, material: material)])
             print("terrain: \(apron.triangleCount) triangles, \(apron.positions.count) vertices, surface \(terrainParameters.surface)")
@@ -156,6 +158,13 @@ do {
     var roots = options.textureRoots.map { URL(fileURLWithPath: $0) }
     roots.append(URL(fileURLWithPath: options.input).deletingLastPathComponent())
     let textures = TextureStore(device: renderer.device, roots: roots)
+    if options.noCull {
+        scene = RenderScene(batches: scene.batches.map {
+            RenderBatch(mesh: $0.mesh, baseTexture: $0.baseTexture, blends: $0.blends, isDeferred: $0.isDeferred,
+                        alphaTestThreshold: $0.alphaTestThreshold, culls: false, isDriver: $0.isDriver,
+                        sourceMaterial: $0.sourceMaterial, material: $0.material)
+        }, minimum: scene.minimum, maximum: scene.maximum, warnings: scene.warnings)
+    }
     let resources = try SceneResources(device: renderer.device, scene: scene, textures: textures)
 
     let camera: RenderCamera
@@ -217,6 +226,8 @@ do {
         for (key, count) in buckets.sorted(by: { $0.value > $1.value }).prefix(8) {
             print("  \(key): \(count) batches")
         }
+        let deferred = scene.batches.filter(\.isDeferred), blending = scene.batches.filter(\.blends)
+        print("  deferred (transparent) batches: \(deferred.count), blending: \(blending.count), of \(scene.batches.count)")
         let textured = scene.batches.filter { $0.baseTexture != nil }.count
         print("  batches with a base texture: \(textured) of \(scene.batches.count)")
     }

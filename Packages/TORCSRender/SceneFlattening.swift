@@ -12,12 +12,13 @@ import TORCSAssets
 /// material resolution can derive sensible defaults for content that has no
 /// authored material set yet.
 public struct RenderBatch: Sendable {
-    public init(mesh: RenderMesh, baseTexture: String?, isTranslucent: Bool,
+    public init(mesh: RenderMesh, baseTexture: String?, blends: Bool, isDeferred: Bool,
                 alphaTestThreshold: Float?, culls: Bool, isDriver: Bool,
                 sourceMaterial: ACRenderState, material: ResolvedMaterial) {
         self.mesh = mesh
         self.baseTexture = baseTexture
-        self.isTranslucent = isTranslucent
+        self.blends = blends
+        self.isDeferred = isDeferred
         self.alphaTestThreshold = alphaTestThreshold
         self.culls = culls
         self.isDriver = isDriver
@@ -27,8 +28,16 @@ public struct RenderBatch: Sendable {
 
     public let mesh: RenderMesh
     public let baseTexture: String?
-    /// Needs blending rather than depth-sorted opaque submission.
-    public let isTranslucent: Bool
+    /// Draw through the alpha-blending pipeline.
+    ///
+    /// Distinct from `isDeferred`, and the two are genuinely independent in the
+    /// source data: TORCS enables blending on nearly every car surface, where
+    /// it is a no-op at alpha 1, but defers only the actually see-through ones.
+    /// Conflating them marks an entire car transparent.
+    public let blends: Bool
+    /// Draw in the sorted transparent phase, after all opaque geometry and
+    /// without writing depth. This is what glass needs.
+    public let isDeferred: Bool
     /// Alpha cutout threshold, or nil for no alpha test. Cutouts also need a
     /// coverage-preserving mip chain, which the classic path did not build.
     public let alphaTestThreshold: Float?
@@ -164,7 +173,10 @@ public struct RenderScene: Sendable {
             collected[index] = RenderBatch(
                 mesh: render,
                 baseTexture: material.texture,
-                isTranslucent: material.flags & 32 != 0 || material.flags & 1 != 0,
+                // Bit 0 selects the blending pipeline; bit 5 defers the draw.
+                // Both come straight from the original render state.
+                blends: material.flags & 1 != 0,
+                isDeferred: material.flags & 32 != 0,
                 alphaTestThreshold: alphaTested ? material.alphaClamp : nil,
                 culls: mesh.cull,
                 isDriver: isDriver,

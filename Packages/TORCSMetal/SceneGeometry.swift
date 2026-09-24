@@ -106,5 +106,7 @@ public struct SceneCamera: Sendable {
         let projection=simd_float4x4(SIMD4(y/aspect,0,0,0),SIMD4(0,y,0,0),SIMD4(0,0,far/(near-far),-1),SIMD4(0,0,near*far/(near-far),0))
         return projection*view()
     }
-    var clippingRange: SIMD2<Float> { clipping ?? SIMD2(max(0.01,distance/10_000),max(100,distance*10)) }
+    /// Near and far planes. Public so an alternative renderer can build an
+    /// equivalent projection; the classic path keeps its own matrix.
+    public var clippingRange: SIMD2<Float> { clipping ?? SIMD2(max(0.01,distance/10_000),max(100,distance*10)) }
 }

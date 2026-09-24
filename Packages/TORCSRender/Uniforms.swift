@@ -83,3 +83,40 @@ public struct DrawUniforms: Equatable, Sendable {
             SIMD4(0, 0, 0, 1))
     }
 }
+
+/// Mirrors `InstanceUniforms` in `Shaders/Forward.metal`.
+///
+/// Places a whole loaded scene in the world. The car body, each wheel and each
+/// brake part are separate instances of separate resources, which is how a
+/// moving vehicle is assembled without rebuilding any GPU buffer.
+public struct InstanceUniforms: Equatable, Sendable {
+    public var model: simd_float4x4
+    public var normalMatrix: simd_float4x4
+
+    public init(model: simd_float4x4) {
+        self.model = model
+        self.normalMatrix = DrawUniforms.normalMatrix(for: model)
+    }
+
+    public static let identity = InstanceUniforms(model: matrix_identity_float4x4)
+}
+
+/// One placement of a loaded resource in the world.
+public struct RenderInstance: Equatable, Sendable {
+    /// Index into the renderer's resource list.
+    public var resource: Int
+    public var transform: simd_float4x4
+    /// Cockpit views hide the driver; the batch flag marks which geometry that is.
+    public var drawsDriver: Bool
+    /// Excluded from shadow casting. Used for geometry that would shadow the
+    /// camera itself, such as the car in a bonnet view.
+    public var castsShadow: Bool
+
+    public init(resource: Int, transform: simd_float4x4 = matrix_identity_float4x4,
+                drawsDriver: Bool = true, castsShadow: Bool = true) {
+        self.resource = resource
+        self.transform = transform
+        self.drawsDriver = drawsDriver
+        self.castsShadow = castsShadow
+    }
+}
