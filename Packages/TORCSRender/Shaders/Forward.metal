@@ -51,7 +51,8 @@ struct DrawUniforms {
     float4 parameters;          // x normal strength, y alpha threshold, z uv0 scale, w metre-UV fold period or 0
     uint4 maps;                 // x albedo, y normal, z ORM, w bits: 1 receives occlusion, 2 paints road markings, 4 foliage, 8 receives weather
     float4 emissive;
-    /// x coverage of a detail cross-fade, y +1 leaving / −1 arriving.
+    /// x coverage of a detail cross-fade, y +1 leaving / −1 arriving,
+    /// z extra UV scale of the normal and ORM maps over the albedo's.
     float4 fade;            // rgb radiance when lit, w channel: 0 never, 1 brake, 2 headlight, 3 any light
 };
 
@@ -221,7 +222,7 @@ fragment ForwardOutput forwardFragment(ForwardVarying in [[stage_in]],
     float3x3 basis = tangentBasis(in.normal, in.tangent);
     float3 normal = basis[2];
     if (draw.maps.y != 0) {
-        float2 encoded = normalMap.sample(surfaceSampler, (in.uv0 * draw.parameters.z), bias(frame.renderSize.z)).xy;
+        float2 encoded = normalMap.sample(surfaceSampler, (in.uv0 * draw.parameters.z * draw.fade.z), bias(frame.renderSize.z)).xy;
         normal = normalize(basis * unpackNormalMap(encoded, draw.parameters.x));
     }
 
@@ -230,7 +231,7 @@ fragment ForwardOutput forwardFragment(ForwardVarying in [[stage_in]],
 
     float roughness = draw.material.x, metallic = draw.material.y, occlusion = 1.0f;
     if (draw.maps.z != 0) {
-        float3 orm = ormMap.sample(surfaceSampler, (in.uv0 * draw.parameters.z), bias(frame.renderSize.z)).xyz;
+        float3 orm = ormMap.sample(surfaceSampler, (in.uv0 * draw.parameters.z * draw.fade.z), bias(frame.renderSize.z)).xyz;
         occlusion = orm.x;
         roughness *= orm.y;
         metallic *= orm.z;

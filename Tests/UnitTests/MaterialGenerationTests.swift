@@ -43,13 +43,21 @@ final class MaterialGenerationTests: XCTestCase {
             }
 
             // Roughness must never reach zero: a perfect mirror produces a
-            // specular lobe that aliases into single pixels.
+            // specular lobe that aliases into single pixels. Chrome and glass
+            // are allowed lower, but not zero.
             var minimumRoughness = 255
+            let metal = MaterialRecipes.metals.contains(name)
             for texel in 0 ..< texels {
                 minimumRoughness = min(minimumRoughness, Int(material.orm[texel * 4 + 1]))
-                XCTAssertEqual(material.orm[texel * 4 + 2], 0, "\(name) should be dielectric")
+                if metal {
+                    XCTAssertEqual(material.orm[texel * 4 + 2], 255, "\(name) should be metal")
+                } else {
+                    XCTAssertEqual(material.orm[texel * 4 + 2], 0, "\(name) should be dielectric")
+                }
             }
-            XCTAssertGreaterThan(minimumRoughness, 40, "\(name) has a near-mirror texel")
+            XCTAssertEqual(material.isMetal, metal, "\(name) metal flag")
+            XCTAssertGreaterThan(minimumRoughness, MaterialRecipes.smooth.contains(name) ? 10 : 40,
+                                 "\(name) has a near-mirror texel")
         }
     }
 
@@ -57,15 +65,17 @@ final class MaterialGenerationTests: XCTestCase {
     /// repeating across the surface, which is the most visible failure a
     /// generated material can have.
     func testMaterialsTileWithoutASeam() throws {
-        for name in ["asphalt", "grass", "concrete"] {
+        for name in ["asphalt", "grass", "concrete", "asphalt-patched", "brick", "armco", "carbon-weave", "sand"] {
             let material = try MaterialRecipes.generate(name, size: 64, seed: 5)
             let size = material.size
             func albedo(_ x: Int, _ y: Int) -> Int { Int(material.albedo[(y * size + x) * 4]) }
             var worstHorizontal = 0, worstInterior = 0
             for y in 0 ..< size {
-                // Across the wrap, against a typical interior step for scale.
+                // Across the wrap, against the largest step anywhere inside:
+                // a seam is a discontinuity bigger than any the texture has
+                // on purpose, such as a tar snake or a mortar line.
                 worstHorizontal = max(worstHorizontal, abs(albedo(0, y) - albedo(size - 1, y)))
-                worstInterior = max(worstInterior, abs(albedo(size / 2, y) - albedo(size / 2 - 1, y)))
+                for x in 1 ..< size { worstInterior = max(worstInterior, abs(albedo(x, y) - albedo(x - 1, y))) }
             }
             XCTAssertLessThanOrEqual(worstHorizontal, worstInterior + 8,
                                      "\(name) seams at the wrap: \(worstHorizontal) vs interior \(worstInterior)")

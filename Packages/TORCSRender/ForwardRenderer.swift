@@ -53,6 +53,8 @@ public final class SceneResources {
     public var triangleCount: Int { batches.reduce(0) { $0 + $1.indexCount / 3 } }
     public private(set) var bufferBytes = 0
     public private(set) var texturedBatches = 0
+    /// Batches carrying a generated normal and ORM, substituted or as detail.
+    public private(set) var structuredBatches = 0
     /// Number of drawable batches, for diagnostics and budget reporting.
     public var batchCount: Int { batches.count }
 
@@ -100,30 +102,41 @@ public final class SceneResources {
                 generated = materials.resolve(texture: texture, directory: materialDirectory,
                                               original: originalImage?(texture))
             }
+            // A car part takes a detail set — normal and ORM only — under its
+            // own painted atlas, tiled across the atlas at the part's scale.
+            var detail: MaterialLibrary.Binding? = nil
+            var detailScale: Float = 1
+            if generated == nil, let part = batch.carPart, let materials, let materialDirectory,
+               let choice = MaterialLibrary.detail(for: part) {
+                detail = materials.detailBinding(choice.material, directory: materialDirectory)
+                detailScale = choice.uvScale
+            }
             let albedo = generated?.albedo ?? batch.baseTexture.flatMap {
                 resolveTexture($0, batch.alphaTestThreshold != nil)
             }
+            let structure = generated ?? detail
             built.append(Batch(
                 vertices: vertices, indices: indices, indexCount: batch.mesh.indices.count,
                 draw: DrawUniforms(model: batch.mesh.transform,
                                    baseColour: material.baseColour,
                                    roughness: material.roughness,
-                                   metallic: material.metallic,
+                                   metallic: generated?.metallic == true ? 1 : material.metallic,
                                    clearcoat: material.clearcoat,
                                    clearcoatRoughness: material.clearcoatRoughness,
                                    normalStrength: material.normalStrength,
                                    alphaThreshold: batch.alphaTestThreshold ?? 0,
                                    maps: SIMD4(albedo == nil ? 0 : 1,
-                                               generated == nil ? 0 : 1,
-                                               generated == nil ? 0 : 1,
+                                               structure == nil ? 0 : 1,
+                                               structure == nil ? 0 : 1,
                                                (batch.isDeferred ? 0 : 1) | (batch.paintsRoadMarkings ? 2 : 0)
                                                    | (batch.swaysInWind ? 4 : 0) | (batch.receivesWeather ? 8 : 0)),
                                    uvScale: batch.uvInMetres ? 1 / max(generated?.worldSize ?? 1, 1e-3) : 1,
                                    uvPeriod: batch.uvInMetres ? RenderMesh.metresPeriod : 0,
-                                   emissive: material.emissive, emissiveChannel: material.emissiveChannel),
+                                   emissive: material.emissive, emissiveChannel: material.emissiveChannel,
+                                   structureScale: detailScale),
                 needsAlphaTest: batch.alphaTestThreshold != nil,
-                normal: generated?.normal,
-                orm: generated?.orm,
+                normal: structure?.normal,
+                orm: structure?.orm,
                 culls: batch.culls,
                 isDriver: batch.isDriver,
                 blends: batch.blends,
@@ -139,6 +152,7 @@ public final class SceneResources {
         guard !built.isEmpty else { throw RenderError.unavailable("Scene has no drawable batches") }
         batches = built
         texturedBatches = built.filter { $0.albedo != nil }.count
+        structuredBatches = built.filter { $0.normal != nil }.count
         bufferBytes = bytes
         minimum = scene.minimum
         maximum = scene.maximum

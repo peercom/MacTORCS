@@ -29,9 +29,13 @@ public final class MaterialLibrary {
         /// once per metre has its aggregate at half a millimetre and reads as
         /// flat grey.
         public let worldSize: Float
+        /// A metal set: the surface's metalness is set to one and the ORM's
+        /// blue channel scales it.
+        public let metallic: Bool
     }
     /// Per-material tile size from `materials.json`, when the directory has one.
     private var worldSizes: [String: Float] = [:]
+    private var metals: Set<String> = []
 
     private let device: MTLDevice
     private var cache: [String: Binding] = [:]
@@ -42,18 +46,39 @@ public final class MaterialLibrary {
 
     /// Ordered longest-first so a specific match wins over a general one:
     /// `tr-g-to-asphalt` is a grass-to-asphalt transition, not asphalt.
-    static let rules: [(fragment: String, material: String)] = [
+    public static let rules: [(fragment: String, material: String)] = [
         ("g-to-asphalt", "grass"), ("to-asphalt", "grass"),
         ("asphalt-pit", "concrete"), ("tarmac-wall", "concrete"),
+        // Aalborg's side strips and its second asphalt are the older, patched tarmac.
+        ("asphalt-aa-l", "asphalt-patched"), ("asphalt-aa-1-l", "asphalt-patched"), ("asphalt-2", "asphalt-patched"),
         ("asphalt", "asphalt"), ("tarmac", "asphalt"), ("road", "asphalt"),
         ("curb", "kerb"), ("kerb", "kerb"),
-        ("grass", "grass"), ("gazon", "grass"),
+        ("grass-dry", "grass-dry"), ("grass", "grass"), ("gazon", "grass"),
         ("concrete", "concrete"), ("beton", "concrete"),
+        ("armco", "armco"), ("guardrail", "armco"), ("rail", "armco"),
+        ("tyre", "tyre-wall"), ("tire", "tyre-wall"), ("pneu", "tyre-wall"),
+        // Wood before fence: a wooden fence is wood.
+        ("wood", "wood"), ("bois", "wood"), ("poutre", "painted-steel"), ("pylon", "painted-steel"),
+        ("fence", "chain-link"), ("grillage", "chain-link"),
+        ("brick", "brick"), ("brique", "brick"),
         // Track barriers are painted concrete walls in every TORCS circuit.
         ("barrier", "concrete"), ("wall", "concrete"),
-        ("gravel", "gravel"), ("sand", "gravel"),
+        ("gravel", "gravel"), ("sand", "sand"),
+        ("mud", "mud"), ("boue", "mud"),
         ("dirt", "dirt"), ("terre", "dirt"),
     ]
+
+    /// Detail sets for the parts of a car: the atlas keeps the colour, the
+    /// set supplies surface structure. Nil keeps the part as it is.
+    public static func detail(for part: CarMaterials.Part) -> (material: String, uvScale: Float)? {
+        switch part {
+        case .paint: return ("paint-flake", 40)
+        case .wheel: return ("rubber-tread", 6)
+        case .interior: return ("fabric", 12)
+        case .driver: return ("fabric", 8)
+        case .glass, .lens, .brakeLens, .headLens: return nil
+        }
+    }
 
     /// The generated material a texture name maps to, or nil to keep the
     /// original.
@@ -72,6 +97,7 @@ public final class MaterialLibrary {
                 if let name = entry["name"] as? String, let size = entry["worldSize"] as? Double, size > 0 {
                     worldSizes[name] = Float(size)
                 }
+                if let name = entry["name"] as? String, entry["metal"] as? Bool == true { metals.insert(name) }
             }
         }
         self.device = device
@@ -98,7 +124,8 @@ public final class MaterialLibrary {
         guard let albedo = load("albedo", srgb: true),
               let normal = load("normal", srgb: false),
               let orm = load("orm", srgb: false) else { return nil }
-        let binding = Binding(albedo: albedo, normal: normal, orm: orm, worldSize: worldSizes[material] ?? 1)
+        let binding = Binding(albedo: albedo, normal: normal, orm: orm, worldSize: worldSizes[material] ?? 1,
+                              metallic: metals.contains(material))
         cache[material] = binding
         return binding
     }
@@ -125,10 +152,17 @@ public final class MaterialLibrary {
                   TextureImage(width: size, height: size, channels: 4, pixels: merged),
                   preserveCutoutCoverage: false),
               let albedo = try? TextureLoading.upload(levels, device: device, srgb: true) else { return binding }
-        let result = Binding(albedo: albedo, normal: binding.normal, orm: binding.orm, worldSize: binding.worldSize)
+        let result = Binding(albedo: albedo, normal: binding.normal, orm: binding.orm, worldSize: binding.worldSize,
+                             metallic: binding.metallic)
         composited[texture] = result
         markingsPreserved.insert(texture)
         return result
+    }
+
+    /// A detail set by name, for car parts: loaded like any other, and the
+    /// caller ignores its albedo.
+    public func detailBinding(_ material: String, directory: URL) -> Binding? {
+        binding(material, directory: directory)
     }
 
     /// Raw generated albedo bytes, cached so compositing several textures onto

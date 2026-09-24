@@ -80,7 +80,9 @@ public struct DrawUniforms: Equatable, Sendable {
     public var emissive: SIMD4<Float>
     /// x coverage 0–1 of a detail cross-fade, y +1 when this build is
     /// leaving (keeps noise < coverage) or −1 when arriving (keeps
-    /// noise ≥ 1 − coverage); see `LevelOfDetail`. zw unused.
+    /// noise ≥ 1 − coverage); see `LevelOfDetail`. z the extra UV scale of
+    /// the normal and ORM maps over the albedo's, for a detail set tiled
+    /// under a painted atlas. w unused.
     public var fade: SIMD4<Float>
 
     public init(model: simd_float4x4, baseColour: SIMD4<Float>,
@@ -88,7 +90,7 @@ public struct DrawUniforms: Equatable, Sendable {
                 clearcoat: Float = 0, clearcoatRoughness: Float = 0.04,
                 normalStrength: Float = 1, alphaThreshold: Float = 0,
                 maps: SIMD4<UInt32> = .zero, uvScale: Float = 1, uvPeriod: Float = 0,
-                emissive: SIMD3<Float> = .zero, emissiveChannel: Float = 0) {
+                emissive: SIMD3<Float> = .zero, emissiveChannel: Float = 0, structureScale: Float = 1) {
         self.model = model
         self.normalMatrix = Self.normalMatrix(for: model)
         self.baseColour = baseColour
@@ -96,12 +98,13 @@ public struct DrawUniforms: Equatable, Sendable {
         self.parameters = SIMD4(normalStrength, alphaThreshold, uvScale, uvPeriod)
         self.maps = maps
         self.emissive = SIMD4(emissive, emissiveChannel)
-        self.fade = SIMD4(1, 1, 0, 0)
+        self.fade = SIMD4(1, 1, structureScale, 0)
     }
 
     /// Sets the detail cross-fade for this draw.
     public mutating func setFade(_ fade: LevelOfDetail.Fade) {
-        self.fade = SIMD4(fade.coverage, fade.side == .leaving ? 1 : -1, 0, 0)
+        self.fade.x = fade.coverage
+        self.fade.y = fade.side == .leaving ? 1 : -1
     }
 
     /// Inverse transpose of the upper 3x3, promoted back to 4x4.

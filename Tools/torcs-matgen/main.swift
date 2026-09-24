@@ -74,7 +74,8 @@ do {
     for name in options.names {
         let material = try MaterialRecipes.generate(name, size: options.size, seed: options.seed)
         var entry: [String: Any] = ["name": material.name, "size": material.size,
-                                    "worldSize": material.worldSize, "seed": Int(options.seed)]
+                                    "worldSize": material.worldSize, "seed": Int(options.seed),
+                                    "metal": material.isMetal]
         for (suffix, bytes) in [("albedo", material.albedo), ("normal", material.normal), ("orm", material.orm)] {
             let url = options.output.appendingPathComponent("\(material.name)-\(suffix).png")
             try writePNG(bytes, size: material.size, to: url)

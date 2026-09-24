@@ -1456,6 +1456,48 @@ return are the material list and a higher-polygon hero car, both content
 rather than renderer work, and Speed Dreams' content remains waiting on the
 user supplying it.
 
+## The material list
+
+Phase 4 had eight generated sets. `torcs-matgen` now authors twenty-six, in
+the same discipline — each a description of the physical surface, with the
+roughness and occlusion falling out of a height field rather than painted:
+
+| For the circuit | For the trackside | For the car (detail sets) |
+|---|---|---|
+| asphalt, asphalt-worn, **asphalt-patched** (square repairs, tar snakes) | **armco** (W-profile, bolts, zinc spangle; metal) | **paint-flake** (sparse micro-facets; metal) |
+| grass, **grass-dry**, grass-cards | **tyre-wall** (torus relief, alternate rows painted) | **rubber-tread** (grooves and sipes) |
+| concrete, kerb | **chain-link** (alpha cutout; metal) | **carbon-weave** (2×2 twill) |
+| gravel, dirt, **mud**, **sand** (wind ripples) | **brick** (stretcher bond, per-brick clay), **wood** (planks, rings), **painted-steel** | **brushed-metal**, **chrome** (metal), **plastic**, **fabric**, **glass** |
+
+Two things changed in the pipeline to carry them. A set can be a **metal**:
+the manifest records it, `MaterialLibrary.Binding.metallic` carries it, and
+the surface's metalness is set to one so the ORM's blue channel scales it —
+until now every generated set was a dielectric by construction, and the
+recipe tests said so. And a car part can take a **detail set**: the car
+keeps its painted atlas for colour and takes only the normal and ORM of a
+set tiled under it, at a scale per part carried in a new lane of the draw
+uniforms (`fade.z`) because the albedo must keep sampling at scale one.
+Paint takes the flake, wheels the tread, the interior and the driver the
+fabric; glass and lenses take nothing. `testCarBatchesBindDetailStructureAndMetalSetsAreFlagged`
+writes four small sets to a temporary directory and checks the bindings.
+
+The name rules grew with the list, and their order matters: a wooden fence
+is wood before it is a fence. `testNamesMapToTheMaterialList` pins the
+mapping for Aalborg's names and a set of generic ones, and checks that every
+rule targets a set that exists. Aalborg's side strips and its second asphalt
+now read as the older, patched tarmac; its walls stay concrete, because that
+is what they are.
+
+The tile test caught two seams on the first run: a brick and a plank
+straddling the tile edge took two different per-item shades because their
+ids were not wrapped. The first patched asphalt drew round patches — a
+cellular threshold — and now cuts square ones from a jittered grid, which
+is what a road crew does.
+
+All twenty-six generate at 1024² in 13 s and weigh 312 MB uncompressed,
+loaded lazily by name so a session pays only for the sets its surfaces use.
+The shipped session uses six.
+
 ## Licensing
 
 No third-party artwork is imported by this work. New render source is

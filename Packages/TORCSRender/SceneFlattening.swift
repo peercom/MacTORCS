@@ -17,9 +17,10 @@ public struct RenderBatch: Sendable {
                 sourceMaterial: ACRenderState, material: ResolvedMaterial, uvInMetres: Bool = false,
                 paintsRoadMarkings: Bool = false, swaysInWind: Bool = false,
                 detailRange: ClosedRange<Float>? = nil, castsShadow: Bool = true, prepass: Bool = true,
-                receivesWeather: Bool = false) {
+                receivesWeather: Bool = false, carPart: CarMaterials.Part? = nil) {
         self.mesh = mesh
         self.receivesWeather = receivesWeather
+        self.carPart = carPart
         self.uvInMetres = uvInMetres
         self.paintsRoadMarkings = paintsRoadMarkings
         self.swaysInWind = swaysInWind
@@ -50,6 +51,9 @@ public struct RenderBatch: Sendable {
     /// Ground: the scene's wetness darkens and glosses it and fills puddles
     /// on its near-horizontal parts.
     public let receivesWeather: Bool
+    /// Which part of a car this is, when the scene is a car: selects a
+    /// generated detail set for its surface.
+    public let carPart: CarMaterials.Part?
     /// Camera distance to the batch's centre, in metres, within which it is
     /// drawn. Nil draws always. Two batches of the same object with abutting
     /// ranges are a level-of-detail pair.
@@ -224,9 +228,11 @@ public struct RenderScene: Sendable {
             // AC flags: bit 0 blend, bit 4 alpha test, bit 5 translucent.
             let alphaTested = material.flags & 16 != 0
             var resolved = MaterialResolution.resolve(state: material, diffuse: diffuse)
+            var carPart: CarMaterials.Part? = nil
             if car {
                 let part = CarMaterials.part(name: name, texture: material.texture, isDriver: isDriver)
                 resolved = CarMaterials.material(for: part, base: resolved)
+                carPart = part
             }
             collected[index] = RenderBatch(
                 mesh: render,
@@ -239,7 +245,8 @@ public struct RenderScene: Sendable {
                 culls: mesh.cull,
                 isDriver: isDriver,
                 sourceMaterial: material,
-                material: resolved)
+                material: resolved,
+                carPart: carPart)
         }
 
         guard !collected.isEmpty else { throw ACError.invalid("Scene has no drawable triangles") }

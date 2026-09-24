@@ -22,14 +22,19 @@ public struct GeneratedMaterial {
     /// Metres covered by one tile, so the renderer can set UV scale from the
     /// material rather than from how the mesh happens to be parameterised.
     public let worldSize: Float
+    /// A metal: the renderer sets the surface's metalness to one and lets
+    /// the ORM's blue channel scale it, instead of the dielectric default.
+    public let isMetal: Bool
 
-    public init(name: String, size: Int, albedo: [UInt8], normal: [UInt8], orm: [UInt8], worldSize: Float) {
+    public init(name: String, size: Int, albedo: [UInt8], normal: [UInt8], orm: [UInt8], worldSize: Float,
+                isMetal: Bool = false) {
         self.name = name
         self.size = size
         self.albedo = albedo
         self.normal = normal
         self.orm = orm
         self.worldSize = worldSize
+        self.isMetal = isMetal
     }
 
     public var byteCount: Int { albedo.count + normal.count + orm.count }

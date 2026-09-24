@@ -60,6 +60,35 @@ public struct ScalarField {
 }
 
 public enum MaterialSynthesis {
+    /// Wrapping box blur of a field, applied twice, for softening masks.
+    public static func blurredField(_ field: ScalarField, radius: Int) -> ScalarField {
+        guard radius > 0 else { return field }
+        var result = field
+        for _ in 0 ..< 2 {
+            var pass = result
+            let window = Float(2 * radius + 1)
+            for y in 0 ..< field.size {
+                var sum: Float = 0
+                for k in -radius ... radius { sum += result[k, y] }
+                for x in 0 ..< field.size {
+                    pass[x, y] = sum / window
+                    sum += result[x + radius + 1, y] - result[x - radius, y]
+                }
+            }
+            var vertical = pass
+            for x in 0 ..< field.size {
+                var sum: Float = 0
+                for k in -radius ... radius { sum += pass[x, k] }
+                for y in 0 ..< field.size {
+                    vertical[x, y] = sum / window
+                    sum += pass[x, y + radius + 1] - pass[x, y - radius]
+                }
+            }
+            result = vertical
+        }
+        return result
+    }
+
     /// Derives a tangent-space normal map from a height field by central
     /// differences.
     ///

@@ -11,18 +11,47 @@ import simd
 /// texel. Building them that way is what makes the roughness and occlusion maps
 /// meaningful instead of decorative.
 public enum MaterialRecipes {
-    public static let all = ["asphalt", "asphalt-worn", "grass", "concrete", "kerb", "gravel", "dirt", "grass-cards"]
+    /// The circuit's surfaces first, then trackside furniture, then what a
+    /// car is made of. The car sets are detail maps: the car keeps its own
+    /// painted atlas for colour and takes only their normal and ORM.
+    public static let all = [
+        "asphalt", "asphalt-worn", "asphalt-patched", "grass", "grass-dry", "concrete", "kerb",
+        "gravel", "dirt", "mud", "sand", "grass-cards",
+        "armco", "tyre-wall", "chain-link", "brick", "wood", "painted-steel",
+        "rubber-tread", "carbon-weave", "brushed-metal", "chrome", "plastic", "fabric", "paint-flake", "glass"]
+
+    /// Deliberately smooth: allowed a roughness floor below the usual one.
+    public static let smooth: Set<String> = ["chrome", "glass"]
+    public static let metals: Set<String> = ["armco", "brushed-metal", "chrome", "chain-link", "paint-flake"]
 
     public static func generate(_ name: String, size: Int = 1024, seed: UInt32 = 1) throws -> GeneratedMaterial {
         switch name {
         case "asphalt": return asphalt(size: size, seed: seed, wear: 0.15)
         case "asphalt-worn": return asphalt(size: size, seed: seed &+ 17, wear: 0.65)
+        case "asphalt-patched": return asphaltPatched(size: size, seed: seed &+ 23)
         case "grass": return grass(size: size, seed: seed)
+        case "grass-dry": return grass(size: size, seed: seed &+ 29, dryness: 0.7)
         case "concrete": return concrete(size: size, seed: seed)
         case "kerb": return kerb(size: size, seed: seed)
         case "gravel": return gravel(size: size, seed: seed)
         case "dirt": return dirt(size: size, seed: seed)
+        case "mud": return mud(size: size, seed: seed &+ 31)
+        case "sand": return sand(size: size, seed: seed &+ 37)
         case "grass-cards": return grassCards(size: size, seed: seed)
+        case "armco": return armco(size: size, seed: seed &+ 41)
+        case "tyre-wall": return tyreWall(size: size, seed: seed &+ 43)
+        case "chain-link": return chainLink(size: size, seed: seed &+ 47)
+        case "brick": return brick(size: size, seed: seed &+ 53)
+        case "wood": return wood(size: size, seed: seed &+ 59)
+        case "painted-steel": return paintedSteel(size: size, seed: seed &+ 61)
+        case "rubber-tread": return rubberTread(size: size, seed: seed &+ 67)
+        case "carbon-weave": return carbonWeave(size: size, seed: seed &+ 71)
+        case "brushed-metal": return brushedMetal(size: size, seed: seed &+ 73)
+        case "chrome": return chrome(size: size, seed: seed &+ 79)
+        case "plastic": return plastic(size: size, seed: seed &+ 83)
+        case "fabric": return fabric(size: size, seed: seed &+ 89)
+        case "paint-flake": return paintFlake(size: size, seed: seed &+ 97)
+        case "glass": return glass(size: size, seed: seed &+ 101)
         default: throw MaterialError.unknown(name)
         }
     }
@@ -91,7 +120,7 @@ public enum MaterialRecipes {
 
     /// Many small blades, so the detail is high-frequency, plus patch-scale
     /// variation in colour and density from soil and growth.
-    static func grass(size: Int, seed: UInt32) -> GeneratedMaterial {
+    static func grass(size: Int, seed: UInt32, dryness: Float = 0) -> GeneratedMaterial {
         var blades = ScalarField(size: size) { x, y in
             // Anisotropic: blades are long in one axis and thin in the other.
             Noise.fractal(Float(x) / Float(size) * 220, Float(y) / Float(size) * 70,
@@ -116,7 +145,7 @@ public enum MaterialRecipes {
 
         let albedo = (0 ..< size * size).map { index -> SIMD3<Float> in
             let x = index % size, y = index / size
-            let dry = patches[x, y]
+            let dry = min(patches[x, y] + dryness, 1)
             let lush = SIMD3<Float>(0.055, 0.115, 0.032)
             let parched = SIMD3<Float>(0.135, 0.130, 0.055)
             let soil = SIMD3<Float>(0.055, 0.042, 0.028)
@@ -126,7 +155,7 @@ public enum MaterialRecipes {
             return base + (soil - base) * max(0, 0.35 - blade) * 1.4
         }
 
-        return GeneratedMaterial(name: "grass", size: size,
+        return GeneratedMaterial(name: dryness > 0 ? "grass-dry" : "grass", size: size,
                                  albedo: MaterialPacking.albedo(albedo),
                                  normal: MaterialPacking.normal(normals),
                                  orm: MaterialPacking.orm(occlusion: occlusion, roughness: roughness, metalness: 0),
