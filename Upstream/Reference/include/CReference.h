@@ -93,6 +93,7 @@ typedef struct { RefBTObservation input; float fuel; int repair; } RefBTPitDecis
 int ref_world_bt_pit_decision(RefWorld *world,RefBTPitDecision *output);
 
 
+
 int ref_world_visual(RefWorld *world,int car,RefVehicleVisual *output);
 RefWorld *ref_world_create(const char *trackPath, const char *carPath, const char *categoryPath,
                           unsigned int seed, int cars, float startDistance, float spacing);
@@ -460,6 +461,40 @@ typedef struct { RefTrackPosition position;float speed,width;unsigned int flags,
 typedef struct { RefLapTiming timing;double behindLeader,behindPrevious,beforeNext;int lapsBehindLeader,position; } RefRaceProgressCar;
 int ref_world_progress_init(RefWorld*,const int*,int);
 int ref_world_progress_step(RefWorld*,const RefRaceProgressSample*,double,unsigned int,RefRaceProgressCar*,int*);
+
+// N-car original BT race oracle. BT provides ten driver indices, so 1…10 cars.
+// All drivers share the pinned BT-0 setup staged per index by the caller.
+// Original race-manager "Starting Grid" values; poleSide: -1 original first-turn
+// default, 0 force right, 1 force left. Track XML overrides still apply.
+typedef struct {
+    int rows, poleSide;
+    float toStart, columnDistance, columnOffset, initialSpeed, initialHeight;
+} RefStartingGrid;
+// Placement captured immediately after the original routine, before any step.
+typedef struct { RefTrackPosition position; float x, y, z, yaw, speed; } RefGridSlot;
+RefWorld *ref_world_bt_field_create(const char *track,const char *car,const char *category,
+                                   const char *directory,unsigned int seed,int laps,int cars,
+                                   const RefStartingGrid *grid);
+int ref_world_grid_slot(RefWorld *world,int car,RefGridSlot *output);
+// Per-car original rules, penalties and classification after ReManage/ReSortCars.
+typedef struct {
+    double timeBehindLeader, timeBehindPrevious, timeBeforeNext;
+    int lapsBehindLeader, position, ruleState, penalties, firstPenalty, firstPenaltyLapToClear;
+    float penaltyTime;
+    int services, eliminated, pitCalls;
+    unsigned long long driveCalls;
+} RefRaceCarState;
+int ref_world_race_car_state(RefWorld *world,int car,RefRaceCarState *output);
+int ref_world_race_step(RefWorld *world);
+int ref_world_race_classification(RefWorld *world,int *order,int count);
+// Original rule inputs for an authored or physical race oracle: the enabled
+// RmRaceRules bitmask, the situation race type, and the per-car skill/driver
+// type ReRaceRules gates penalties and the lap-time DNF rule on.
+int ref_world_race_configure(RefWorld *world,unsigned int rules,unsigned int raceType,int skill,int driverType);
+int ref_world_bt_car_status(RefWorld *world,int car,RefRobotRaceState *output);
+int ref_world_bt_car_input(RefWorld *world,int car,double *values,int capacity);
+int ref_world_bt_car_observation(RefWorld *world,int car,RefBTObservation *output);
+int ref_world_bt_car_pit_decision(RefWorld *world,int car,RefBTPitDecision *output);
 typedef struct { float baseTime,fuelFlow,repairFactor,tireFactor,tireChangeTime; } RefRacePitRules;
 typedef struct {
     unsigned int flags,raceCommand; int stops,stall,occupant,stopType,services,menuRequests;

@@ -21,6 +21,12 @@ end = race.index(b"\nbool isItThisRobot", start)
 assert (root / "Upstream/Reference/race/pit-assignment.inc").read_bytes() == race[:race.index(b"#include")] + race[start:end]
 print("Verified verbatim original initPits excerpt.")
 
+# The starting-grid oracle is a verbatim function from the same pinned source.
+start = race.index(b"static void\ninitStartingGrid(void)")
+end = race.index(b"\nstatic void\ninitPits(void)", start)
+assert (root / "Upstream/Reference/race/starting-grid.inc").read_bytes() == race[:race.index(b"#include")] + race[start:end]
+print("Verified verbatim original initStartingGrid excerpt.")
+
 # Image oracle uses the complete unmodified original read function.
 img = (root / "Upstream/Reference/textures/img.cpp").read_bytes()
 start = img.index(b"unsigned char *\nGfImgReadPng")

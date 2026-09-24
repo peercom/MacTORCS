@@ -17,6 +17,30 @@ public struct ReferenceCommand: Sendable {
 }
 
 /// Serialized, test-only access to the original process-global TORCS engine.
+/// Original race-manager "Starting Grid" values. `codeDefaults` are raceinit.cpp's
+/// own fallbacks; `quickRace` are the values shipped in quickrace.xml. A track XML
+/// "Starting Grid" section still overrides these inside the original routine.
+public struct ReferenceStartingGrid: Sendable, Equatable {
+    public var rows: Int
+    public var toStart, columnDistance, columnOffset, initialSpeed, initialHeight: Float
+    /// nil keeps the original inside-of-first-turn pole side.
+    public var poleLeft: Bool?
+    public init(rows: Int = 2,toStart: Float = 10,columnDistance: Float = 10,columnOffset: Float = 5,
+                initialSpeed: Float = 0,initialHeight: Float = 0.3,poleLeft: Bool? = nil) {
+        self.rows=rows;self.toStart=toStart;self.columnDistance=columnDistance;self.columnOffset=columnOffset
+        self.initialSpeed=initialSpeed;self.initialHeight=initialHeight;self.poleLeft=poleLeft
+    }
+    public static let codeDefaults=Self()
+    public static let quickRace=Self(rows:2,toStart:25,columnDistance:20,columnOffset:10,initialSpeed:0,initialHeight:0.2)
+    var reference: RefStartingGrid {
+        RefStartingGrid(rows:Int32(rows),poleSide:poleLeft.map { $0 ? 1:0 } ?? -1,toStart:toStart,
+            columnDistance:columnDistance,columnOffset:columnOffset,initialSpeed:initialSpeed,initialHeight:initialHeight)
+    }
+}
+
+/// Original tSituation race types.
+public enum ReferenceRaceType: UInt32, Sendable { case practice=0, qualifying=1, race=2 }
+
 /// Native gameplay targets must never depend on this module.
 public final class ReferenceWorld {
     private var handle: OpaquePointer?
@@ -27,11 +51,26 @@ public final class ReferenceWorld {
     public private(set) var tick: Int = 0
     private let fields: [String]
     public init(track: URL, car: URL, category: URL, seed: UInt32 = 12345, cars: Int = 1,
-                startDistance: Float = 10, spacing: Float = 10,lateralPosition: Float? = nil, btDirectory: URL? = nil, laps: Int = 5) throws {
+                startDistance: Float = 10, spacing: Float = 10,lateralPosition: Float? = nil, btDirectory: URL? = nil, laps: Int = 5,
+                grid: ReferenceStartingGrid? = nil) throws {
         guard (1...16).contains(cars) else { throw TelemetryError.invalid("Reference car count must be 1…16") }
-        if btDirectory != nil { guard cars==1,(1...1000).contains(laps) else { throw TelemetryError.invalid("BT oracle requires one car and 1…1000 laps") } }
-        let created=btDirectory.map { ref_world_bt_create(track.path,car.path,category.path,$0.path,seed,Int32(laps)) }
-            ?? ref_world_create_lateral(track.path, car.path, category.path, seed, Int32(cars), startDistance, spacing,lateralPosition ?? .nan)
+        if btDirectory != nil {
+            guard (1...1000).contains(laps) else { throw TelemetryError.invalid("BT oracle requires 1…1000 laps") }
+            // Ten original BT driver indices exist; a field needs a starting grid.
+            guard grid != nil || cars==1 else { throw TelemetryError.invalid("A BT field requires an original starting grid") }
+            guard cars==1 || (1...10).contains(cars) else { throw TelemetryError.invalid("BT provides ten driver indices") }
+        } else if grid != nil { throw TelemetryError.invalid("Starting grids are only available to the BT race oracle") }
+        let created: OpaquePointer?
+        if let btDirectory {
+            if let grid {
+                var value=grid.reference
+                created=ref_world_bt_field_create(track.path,car.path,category.path,btDirectory.path,seed,Int32(laps),Int32(cars),&value)
+            } else {
+                created=ref_world_bt_create(track.path,car.path,category.path,btDirectory.path,seed,Int32(laps))
+            }
+        } else {
+            created=ref_world_create_lateral(track.path, car.path, category.path, seed, Int32(cars), startDistance, spacing,lateralPosition ?? .nan)
+        }
         guard let handle=created else {
             throw TelemetryError.invalid(String(cString: ref_world_error()))
         }
@@ -73,6 +112,66 @@ public final class ReferenceWorld {
         var state=RefRobotRaceState()
         guard let handle,ref_world_bt_step(handle,&state)==1 else { throw TelemetryError.invalid("BT race ended or is not active") }
         tick += 1;return state
+    }
+    /// One original ReOneStep for the whole field. Returns the original race state.
+    @discardableResult public func stepRace() throws -> Int {
+        guard let handle else { throw TelemetryError.invalid("Reference world is closed") }
+        let state=ref_world_race_step(handle)
+        guard state >= 0 else { throw TelemetryError.invalid("BT race ended or is not active") }
+        tick += 1;return Int(state)
+    }
+    public func robotStatus(car: Int) throws -> RefRobotRaceState {
+        var state=RefRobotRaceState()
+        guard (0..<carCount).contains(car),let handle,ref_world_bt_car_status(handle,Int32(car),&state)==1 else {
+            throw TelemetryError.invalid("No BT race is active for car \(car)")
+        }
+        return state
+    }
+    public func robotInput(car: Int) throws -> [String:Double] {
+        var values=[Double](repeating:0,count:fields.count)
+        guard (0..<carCount).contains(car),let handle,
+              ref_world_bt_car_input(handle,Int32(car),&values,Int32(values.count))==fields.count else {
+            throw TelemetryError.invalid("No BT drive input captured for car \(car)")
+        }
+        return Dictionary(uniqueKeysWithValues:zip(fields,values))
+    }
+    public func robotObservation(car: Int = 0) throws -> RefBTObservation {
+        var value=RefBTObservation()
+        guard (0..<carCount).contains(car),let handle,ref_world_bt_car_observation(handle,Int32(car),&value)==1 else {
+            throw TelemetryError.invalid("No BT observation captured for car \(car)")
+        }
+        return value
+    }
+    public func gridSlot(car: Int) throws -> RefGridSlot {
+        var value=RefGridSlot()
+        guard (0..<carCount).contains(car),let handle,ref_world_grid_slot(handle,Int32(car),&value)==1 else {
+            throw TelemetryError.invalid("No original grid placement is available for car \(car)")
+        }
+        return value
+    }
+    public func raceCarState(car: Int) throws -> RefRaceCarState {
+        var value=RefRaceCarState()
+        guard (0..<carCount).contains(car),let handle,ref_world_race_car_state(handle,Int32(car),&value)==1 else {
+            throw TelemetryError.invalid("No original race state is available for car \(car)")
+        }
+        return value
+    }
+    /// Original rule inputs. `rules` is the RmRaceRules bitmask: 1 corner-cut
+    /// invalidation, 2 wall-hit invalidation, 4 race corner-cut time penalty.
+    /// Penalties and the lap-time DNF rule need skill 3+ and a robot driver.
+    public func configureRules(_ rules: UInt32,raceType: ReferenceRaceType = .race,skill: Int = 3,human: Bool = false) throws {
+        guard (0...4).contains(skill),let handle,
+              ref_world_race_configure(handle,rules,raceType.rawValue,Int32(skill),human ? 1:2)==1 else {
+            throw TelemetryError.invalid("Invalid original race rule configuration")
+        }
+    }
+    /// Stable car indices in the current original race order (leader first).
+    public func classification() throws -> [Int] {
+        var order=[Int32](repeating:0,count:carCount)
+        guard let handle,ref_world_race_classification(handle,&order,Int32(carCount))==1 else {
+            throw TelemetryError.invalid("No original classification is available")
+        }
+        return order.map(Int.init)
     }
     public func sample(car: Int = 0) throws -> [String: Double] {
         guard (0..<carCount).contains(car), let handle else { throw TelemetryError.invalid("Invalid car or closed reference world") }
@@ -118,7 +217,9 @@ public final class ReferenceContent {
     public let track: URL
     public let car: URL
     public let category: URL
-    public init(fixtures: URL, bt: Bool = false) throws {
+    public init(fixtures: URL, bt: Bool = false, drivers: Int = 1) throws {
+        let btDrivers = bt ? drivers : 0
+        guard (0...10).contains(btDrivers) else { throw TelemetryError.invalid("BT provides ten driver indices") }
         let base = FileManager.default.temporaryDirectory.appendingPathComponent("TORCS-reference-" + UUID().uuidString)
         directory = base
         track = base.appendingPathComponent("tracks/road/aalborg/aalborg.xml")
@@ -145,13 +246,18 @@ public final class ReferenceContent {
                 try FileManager.default.createDirectory(at: destination.deletingLastPathComponent(), withIntermediateDirectories: true)
                 try bytes.write(to: destination, options: .atomic)
             }
-            if bt {
+            if btDrivers>0 {
                 let bytes=try Data(contentsOf:fixtures.appendingPathComponent("Robots/bt/0/default.xml"))
                 let hash=SHA256.hash(data:bytes).map { String(format:"%02x",$0) }.joined()
                 guard hash=="f8ba8bf45d243986b52d2b2ed924d17c1b11937dfc31132b6341b8b7004003f2" else { throw TelemetryError.invalid("Unpinned BT default setup") }
-                let destination=base.appendingPathComponent("drivers/bt/0/default.xml")
-                try FileManager.default.createDirectory(at:destination.deletingLastPathComponent(),withIntermediateDirectories:true)
-                try bytes.write(to:destination)
+                // Every driver index receives the same pinned BT-0 setup. Real
+                // installations ship per-index setups; this is a fixed oracle
+                // fixture, so the field differs only by grid slot and index.
+                for index in 0..<btDrivers {
+                    let destination=base.appendingPathComponent("drivers/bt/\(index)/default.xml")
+                    try FileManager.default.createDirectory(at:destination.deletingLastPathComponent(),withIntermediateDirectories:true)
+                    try bytes.write(to:destination)
+                }
             }
         } catch {
             try? FileManager.default.removeItem(at: base)

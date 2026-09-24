@@ -35,6 +35,10 @@ they do not generate opponent driving commands.
 
 This is not yet an integrated human-versus-AI race. Remaining gameplay work:
 
+0. **Done:** the multi-car original reference oracle. A 1–10 car BT field runs
+   the original grid, race loop, rules and sorting with per-car capture and
+   exact repeatability. See [race oracle](RACE_ORACLE.md). Everything below is
+   compared against it.
 1. Extend the working native BT single-car driver/runtime with original opponent
    handling, and resolve the measured native/reference trajectory difference.
    See [native BT](NATIVE_BT.md): ten native laps repeat exactly and a five-lap

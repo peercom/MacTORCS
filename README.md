@@ -58,6 +58,19 @@ It rejects schema, field and tick mismatches. Exit codes: 0 pass, 1 divergence,
 capture-size limit; see [telemetry comparison](Documentation/TELEMETRY_COMPARISON.md).
 Full race telemetry is not implemented.
 
+The reference CLI also runs a **multi-car original race**: 1-10 original BT
+drivers placed by the verbatim original starting grid and stepped through
+`ReOneStep`, `ReManage`, `ReRaceRules` and `ReSortCars`, with per-car callback,
+rule, penalty and classification capture. A three-car, three-lap Aalborg race
+completes and repeats exactly. This is the executable baseline for the remaining
+gameplay work; see [race oracle](Documentation/RACE_ORACLE.md).
+
+```sh
+.build/release/torcs-reference --robot bt --fixtures Tests/UnitTests/Fixtures \
+  --cars 3 --grid quickrace --laps 3 --max-ticks 600000 \
+  --summary Artifacts/race-oracle-3car.json
+```
+
 The reference CLI also runs original whole-car physics on pinned Aalborg/155-DTM
 configuration, including tires, drivetrain and collisions. This code is confined
 to tools/tests. The native CLI runs five single-car scenarios and the two-car

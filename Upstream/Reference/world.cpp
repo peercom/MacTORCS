@@ -16,6 +16,7 @@
 extern "C" int bt(tModInfo*);
 extern void ref_race_step_original(tRmInfo*);
 extern void ref_race_assign_original(tRmInfo*);
+extern void ref_race_starting_grid_original(tRmInfo*);
 extern void ref_race_manage_original(tRmInfo*,tCarElt*);
 extern void ref_race_time_original(tRmInfo*,tCarElt*);
 extern void ref_race_clear_original();
@@ -41,12 +42,16 @@ struct RefWorld {
     tSituation situation{};
     RmInfo info{};
     bool btMode=false,btNewRace=false;
-    tRobotItf btOriginal{};
-    RefRobotRaceState btState{};
-    std::vector<double> btInput;
-    RefBTObservation btObservation{};
-    RefBTPitDecision btPitDecision{};
-    bool btInputValid=true;
+    // One entry per BT driver index. Single-car accessors read entry zero.
+    std::vector<tRobotItf> btOriginals;
+    std::vector<RefRobotRaceState> btStates;
+    std::vector<std::vector<double>> btInputs;
+    std::vector<RefBTObservation> btObservations;
+    std::vector<RefBTPitDecision> btPitDecisions;
+    std::vector<char> btInputValid;
+    RefStartingGrid grid{};
+    bool gridPlaced=false;
+    std::vector<RefGridSlot> gridSlots;
     std::string previousDataDirectory,previousLocalDirectory;
     bool simulationInitialized = false;
     unsigned long long tick = 0;
@@ -89,9 +94,18 @@ const char *ref_world_field_name(int index) {
 void ref_world_destroy(RefWorld *world) {
     if (!world || world != activeWorld) return;
     if (world->btNewRace) {
-        auto &r=world->btOriginal;
-        r.rbEndRace(r.index,&world->cars[0],&world->situation);
-        r.rbShutdown(r.index);
+        // Each driver index owns its learning data; endRace then shutdown, as
+        // the original race end and ReRaceCleanDrivers do.
+        for (size_t i=0;i<world->btOriginals.size();++i) {
+            auto &r=world->btOriginals[i];
+            r.rbEndRace(r.index,&world->cars[i],&world->situation);
+            r.rbShutdown(r.index);
+        }
+    }
+    // ReRaceCleanDrivers releases every penalty the original rules allocated.
+    for (auto &car:world->cars) {
+        auto *penalty=GF_TAILQ_FIRST(&(car._penaltyList));
+        while (penalty) { GF_TAILQ_REMOVE(&(car._penaltyList),penalty,link);free(penalty);penalty=GF_TAILQ_FIRST(&(car._penaltyList)); }
     }
     if (world->btMode) {
         SetDataDir(world->previousDataDirectory.data());SetLocalDir(world->previousLocalDirectory.data());
@@ -109,7 +123,9 @@ void ref_world_destroy(RefWorld *world) {
     delete world;
 }
 
-static RefWorld *createWorld(const char*,const char*,const char*,unsigned int,int,float,float,float,const char*,int);
+static RefWorld *createWorld(const char*,const char*,const char*,unsigned int,int,float,float,float,const char*,int,const RefStartingGrid*);
+static bool initializeRaceParameters(RefWorld*,int,const RefStartingGrid*);
+static int geometryIndex(RefWorld*,tTrackSeg*);
 static void captureBTObservation(tCarElt *car,RefBTObservation &o) {
     o.toStart=car->_trkPos.toStart;o.toRight=car->_trkPos.toRight;o.toMiddle=car->_trkPos.toMiddle;o.toLeft=car->_trkPos.toLeft;
     o.segmentID=car->_trkPos.seg->id;o.x=car->_pos_X;o.y=car->_pos_Y;o.vx=car->_speed_X;o.vy=car->_speed_Y;
@@ -119,23 +135,31 @@ static void captureBTObservation(tCarElt *car,RefBTObservation &o) {
     o.damage=car->_dammage;o.pitFree=car->_pit && car->_pit->pitCarIndex==TR_PIT_STATE_FREE;
 }
 static void btDrive(int index,tCarElt *car,tSituation *s) {
-    auto *w=activeWorld;
-    w->btInput.resize(ref_world_field_count());
-    w->btInputValid=ref_world_read(w,0,w->btInput.data(),int(w->btInput.size()))==ref_world_field_count();
-    captureBTObservation(car,w->btObservation);
-    w->btOriginal.rbDrive(index,car,s);
-    auto &r=w->btState;++r.driveCalls;r.lastDriveTick=w->tick;
+    auto *w=activeWorld;const int id=car->index;
+    w->btInputs[id].resize(ref_world_field_count());
+    w->btInputValid[id]=ref_world_read(w,id,w->btInputs[id].data(),int(w->btInputs[id].size()))==ref_world_field_count();
+    captureBTObservation(car,w->btObservations[id]);
+    w->btOriginals[id].rbDrive(index,car,s);
+    auto &r=w->btStates[id];++r.driveCalls;r.lastDriveTick=w->tick;
     r.robotTime=s->currentTime;r.robotDelta=s->deltaTime;
     r.throttle=car->_accelCmd;r.brake=car->_brakeCmd;r.steering=car->_steerCmd;r.clutch=car->_clutchCmd;r.gear=car->_gearCmd;
 }
 static int btPit(int index,tCarElt *car,tSituation *s) {
-    auto *w=activeWorld;captureBTObservation(car,w->btPitDecision.input);
-    ++w->btState.pitCalls;int result=w->btOriginal.rbPitCmd(index,car,s);
-    w->btPitDecision.fuel=car->_pitFuel;w->btPitDecision.repair=car->_pitRepair;return result;
+    auto *w=activeWorld;const int id=car->index;captureBTObservation(car,w->btPitDecisions[id].input);
+    ++w->btStates[id].pitCalls;int result=w->btOriginals[id].rbPitCmd(index,car,s);
+    w->btPitDecisions[id].fuel=car->_pitFuel;w->btPitDecisions[id].repair=car->_pitRepair;return result;
 }
 RefWorld *ref_world_bt_create(const char *track,const char *car,const char *category,const char *directory,unsigned int seed,int laps) {
     if (!directory || laps<1 || laps>1000) { lastError="Invalid BT race configuration";return nullptr; }
-    return createWorld(track,car,category,seed,1,0,10,NAN,directory,laps);
+    return createWorld(track,car,category,seed,1,0,10,NAN,directory,laps,nullptr);
+}
+RefWorld *ref_world_bt_field_create(const char *track,const char *car,const char *category,const char *directory,
+    unsigned int seed,int laps,int cars,const RefStartingGrid *grid) {
+    if (!directory || laps<1 || laps>1000 || cars<1 || cars>10 || !grid) { lastError="Invalid BT field configuration";return nullptr; }
+    if (grid->rows<1 || grid->poleSide<-1 || grid->poleSide>1 ||
+        !std::isfinite(grid->toStart) || !std::isfinite(grid->columnDistance) || !std::isfinite(grid->columnOffset) ||
+        !std::isfinite(grid->initialSpeed) || !std::isfinite(grid->initialHeight)) { lastError="Invalid starting grid";return nullptr; }
+    return createWorld(track,car,category,seed,cars,0,10,NAN,directory,laps,grid);
 }
 RefWorld *ref_world_create(const char *trackPath, const char *carPath, const char *categoryPath,
                           unsigned int seed, int count, float startDistance, float spacing) {
@@ -143,10 +167,11 @@ RefWorld *ref_world_create(const char *trackPath, const char *carPath, const cha
 }
 RefWorld *ref_world_create_lateral(const char *trackPath,const char *carPath,const char *categoryPath,
     unsigned int seed,int count,float startDistance,float spacing,float lateral) {
-    return createWorld(trackPath,carPath,categoryPath,seed,count,startDistance,spacing,lateral,nullptr,0);
+    return createWorld(trackPath,carPath,categoryPath,seed,count,startDistance,spacing,lateral,nullptr,0,nullptr);
 }
 static RefWorld *createWorld(const char *trackPath,const char *carPath,const char *categoryPath,
-    unsigned int seed,int count,float startDistance,float spacing,float lateral,const char *robotDirectory,int totalLaps) {
+    unsigned int seed,int count,float startDistance,float spacing,float lateral,const char *robotDirectory,int totalLaps,
+    const RefStartingGrid *startingGrid) {
     lastError.clear();
     if (activeWorld) { lastError = "An upstream world is already active"; return nullptr; }
     if (!trackPath || !carPath || !categoryPath || count < 1 || count > 16 ||
@@ -181,17 +206,25 @@ static RefWorld *createWorld(const char *trackPath,const char *carPath,const cha
     }
     world->cars.resize(count); world->pointers.resize(count); world->assignedPits.resize(count);
     if (robotDirectory) {
-        std::error_code ec;
-        auto file=std::filesystem::path(robotDirectory)/"drivers/bt/0/default.xml";
-        if (!std::filesystem::is_regular_file(file,ec)) return fail("Missing pinned BT default setup");
-        void *preflight=GfParmReadFile(file.c_str(),GFPARM_RMODE_STD|GFPARM_RMODE_PRIVATE);
-        if (!preflight) return fail("Invalid BT setup XML");
-        GfParmReleaseHandle(preflight);
+        // The original driver reads drivers/bt/<index>/default.xml per index.
+        for (int i=0;i<count;++i) {
+            std::error_code ec;
+            auto file=std::filesystem::path(robotDirectory)/("drivers/bt/"+std::to_string(i)+"/default.xml");
+            if (!std::filesystem::is_regular_file(file,ec)) return fail("Missing pinned BT default setup");
+            void *preflight=GfParmReadFile(file.c_str(),GFPARM_RMODE_STD|GFPARM_RMODE_PRIVATE);
+            if (!preflight) return fail("Invalid BT setup XML");
+            GfParmReleaseHandle(preflight);
+        }
         world->btMode=true;world->previousDataDirectory=GetDataDir();world->previousLocalDirectory=GetLocalDir();
         std::string data=std::string(robotDirectory)+"/",local=data+"user/";
         SetDataDir(data.data());SetLocalDir(local.data());
         world->situation._totLaps=totalLaps;world->situation._raceType=RM_TYPE_RACE;
-        world->robots.resize(1);
+        world->btOriginals.resize(count);world->btStates.resize(count);world->btInputs.resize(count);
+        world->btObservations.resize(count);world->btPitDecisions.resize(count);world->btInputValid.assign(count,1);
+        world->gridSlots.resize(count);
+        if (startingGrid) world->grid=*startingGrid;
+        // Grid placement and initPits both read the race-manager parameters.
+        if (!initializeRaceParameters(world,1,startingGrid)) return fail("Could not create reference race parameters");
     }
     for (int i = 0; i < count; ++i) {
         auto &car = world->cars[i]; world->pointers[i] = &car;
@@ -219,21 +252,23 @@ static RefWorld *createWorld(const char *trackPath,const char *carPath,const cha
             std::filesystem::current_path(robotDirectory,ec);
             if (ec) return fail("Cannot enter reference fixture directory");
             tModInfo modules[10]{};bt(modules);
-            modules[0].fctInit(0,&world->btOriginal);
+            modules[i].fctInit(i,&world->btOriginals[i]);
             for (auto &module:modules) { free(module.name);free(module.desc); }
             void *setup=nullptr;
-            world->btOriginal.rbNewTrack(0,world->track,car._carHandle,&setup,&world->situation);
-            ++world->btState.newTrackCalls;
+            world->btOriginals[i].rbNewTrack(i,world->track,car._carHandle,&setup,&world->situation);
+            ++world->btStates[i].newTrackCalls;
             std::filesystem::current_path(previous,ec);
-            // Pinned empty BT-0 setup adds the original calculated starting fuel.
+            // Pinned empty BT setup adds the original calculated starting fuel.
             // No driver-specific setup fields are fabricated by this adapter.
             if (setup) {
                 car._carHandle=GfParmMergeHandles(car._carHandle,setup,
                     GFPARM_MMODE_SRC|GFPARM_MMODE_DST|GFPARM_MMODE_RELSRC|GFPARM_MMODE_RELDST);
             }
-            world->robots[0]=world->btOriginal;world->robots[0].rbDrive=btDrive;world->robots[0].rbPitCmd=btPit;
-            car.robot=&world->robots[0];strcpy(car._name,"bt 1");strcpy(car._teamname,"bt");
-            car._remainingLaps=totalLaps;car._pos=1;car._commitBestLapTime=true;
+            world->robots[i]=world->btOriginals[i];world->robots[i].rbDrive=btDrive;world->robots[i].rbPitCmd=btPit;
+            car.robot=&world->robots[i];
+            // Original module names are "bt 1"…"bt 10" for indices 0…9.
+            snprintf(car._name,MAX_NAME_LEN,"bt %d",i+1);strcpy(car._teamname,"bt");
+            car._remainingLaps=totalLaps;car._pos=i+1;car._commitBestLapTime=true;
         }
         RtInitCarPitSetup(car._carHandle, &car.pitcmd.setup, false);
     }
@@ -244,7 +279,20 @@ static RefWorld *createWorld(const char *trackPath,const char *carPath,const cha
     world->info.track = world->track; world->info.s = &world->situation;
     SimInit(count, world->track, 1, 1, world->btMode ? 1:0);
     world->simulationInitialized = true;
-    for (int i = 0; i < count; ++i) {
+    if (startingGrid) {
+        // The original routine owns placement, initial speed/height and the
+        // per-car configuration callback. Value-initialized cars already carry
+        // TR_LPOS_MAIN (zero), exactly as upstream's calloc'd car list does.
+        world->info._reSimItf.config=SimConfig;
+        ref_race_starting_grid_original(&world->info);
+        for (int i = 0; i < count; ++i) {
+            const auto &car = world->cars[i]; auto &slot = world->gridSlots[i];
+            slot.position={geometryIndex(world,car._trkPos.seg),car._trkPos.type,car._trkPos.toStart,
+                car._trkPos.toRight,car._trkPos.toMiddle,car._trkPos.toLeft};
+            slot.x=car._pos_X;slot.y=car._pos_Y;slot.z=car._pos_Z;slot.yaw=car._yaw;slot.speed=car._speed_x;
+        }
+        world->gridPlaced=true;
+    } else for (int i = 0; i < count; ++i) {
         auto &car = world->cars[i];
         tdble distance = fmod((world->btMode ? world->track->length-10:startDistance) + i * spacing, world->track->length);
         tTrackSeg *segment = world->track->seg->next;
@@ -261,16 +309,19 @@ static RefWorld *createWorld(const char *trackPath,const char *carPath,const cha
         SimConfig(&car, &world->info);
     }
     if (world->btMode) {
-        ref_world_race_pits_init(world,1);
+        ref_race_assign_original(&world->info);
         world->info._reSimItf.update=SimUpdate;
         world->info.raceRules={3,1,1,8,0.007f,2,1,16};
         world->situation._maxDammage=10000;
         // racemain.cpp: newRace, one uncommanded settling update, previous
         // position publication, then 500 settling updates with the brake held.
-        world->btOriginal.rbNewRace(0,&world->cars[0],&world->situation);
-        world->btNewRace=true;++world->btState.newRaceCalls;
+        for (int i=0;i<count;++i) {
+            world->btOriginals[i].rbNewRace(i,&world->cars[i],&world->situation);
+            ++world->btStates[i].newRaceCalls;
+        }
+        world->btNewRace=true;
         SimUpdate(&world->situation,RCM_MAX_DT_SIMU,-1);
-        world->raceCars[0].prevTrkPos=world->cars[0]._trkPos;
+        for (int i=0;i<count;++i) world->raceCars[i].prevTrkPos=world->cars[i]._trkPos;
         for (auto &car:world->cars) { car.ctrl={};car.ctrl.brakeCmd=1; }
         for (int i=0;i<int(1.0/RCM_MAX_DT_SIMU);++i) SimUpdate(&world->situation,RCM_MAX_DT_SIMU,-1);
         world->info._reTimeMult=1;world->situation.currentTime=-2;world->info._reLastTime=-1;
@@ -1203,16 +1254,41 @@ int ref_world_race_registration(RefWorld *w,int i,const char *team,float length,
     auto &car=w->cars[i]; strcpy(car._teamname,team); car._dimension_x=length; car._dimension_y=width; car._skillLevel=skill;
     car._driverType=RM_DRV_HUMAN; return 1; // Human bypasses unrelated lap-time DNF in the pit-boundary oracle.
 }
-int ref_world_race_pits_init(RefWorld *w,int capacity) {
-    if (!w || w!=activeWorld || w->raceParameters) return 0;
-    std::string xml="<params name='race'><section name='Race'><attnum name='cars per pit' val='"+std::to_string(capacity)+"'/></section></params>";
-    w->raceParameters=GfParmReadBuf(xml.data()); if (!w->raceParameters) return 0;
+// Original race-manager parameters. A starting grid writes the same attribute
+// names the original reads, so initStartingGrid sees an ordinary race handle.
+static bool initializeRaceParameters(RefWorld *w,int capacity,const RefStartingGrid *grid) {
+    if (w->raceParameters) return false;
+    auto number=[](const char *name,float value) {
+        char buffer[128];
+        // %.9g round-trips every finite float the original stores as tdble.
+        snprintf(buffer,sizeof buffer,"<attnum name='%s' val='%.9g'/>",name,value);
+        return std::string(buffer);
+    };
+    std::string xml="<params name='race'><section name='Race'><attnum name='"
+        RM_ATTR_CARSPERPIT "' val='"+std::to_string(capacity)+"'/>";
+    if (grid) {
+        xml+="<section name='" RM_SECT_STARTINGGRID "'>";
+        if (grid->poleSide>=0) xml+=std::string("<attstr name='" RM_ATTR_POLE "' val='")+(grid->poleSide ? "left":"right")+"'/>";
+        xml+=number(RM_ATTR_ROWS,float(grid->rows));
+        xml+=number(RM_ATTR_TOSTART,grid->toStart);
+        xml+=number(RM_ATTR_COLDIST,grid->columnDistance);
+        xml+=number(RM_ATTR_COLOFFSET,grid->columnOffset);
+        xml+=number(RM_ATTR_INITSPEED,grid->initialSpeed);
+        xml+=number(RM_ATTR_INITHEIGHT,grid->initialHeight);
+        xml+="</section>";
+    }
+    xml+="</section></params>";
+    w->raceParameters=GfParmReadBuf(xml.data()); if (!w->raceParameters) return false;
     int n=w->cars.size(); w->raceCars.resize(n); w->raceCarRules.resize(n); w->robots.resize(n);
     w->serviceCounts.resize(n); w->menuRequests.resize(n); w->menuModes.resize(n); w->tireOverrides.resize(n,-1);
     w->info.params=w->raceParameters; w->info._reRaceName="Race"; w->info.carList=w->cars.data();
     w->info._reCarInfo=w->raceCars.data(); w->info.rules=w->raceCarRules.data(); w->info._displayMode=RM_DISP_MODE_CONSOLE;
     w->info._reSimItf.reconfig=raceReconfigure; w->info._reGraphicItf.muteformenu=raceMute;
     for (int i=0;i<n;++i) { if (!w->btMode) { w->robots[i].index=i; w->robots[i].rbPitCmd=racePitCommand; } w->cars[i].robot=&w->robots[i]; GF_TAILQ_INIT(&w->cars[i]._penaltyList); }
+    return true;
+}
+int ref_world_race_pits_init(RefWorld *w,int capacity) {
+    if (!w || w!=activeWorld || !initializeRaceParameters(w,capacity,nullptr)) return 0;
     ref_race_assign_original(&w->info); return 1;
 }
 int ref_world_race_stall(RefWorld *w,int i,RefRacePitStall *out) {
@@ -1354,22 +1430,64 @@ int ref_world_laps_manage(RefWorld *w,RefTrackPosition p,float speed,float width
     return 1;
 }
 
-int ref_world_bt_status(RefWorld *w,RefRobotRaceState *out) {
-    if (!w||w!=activeWorld||!w->btNewRace||!out) return 0;
-    auto &c=w->cars[0];auto r=w->btState;
+int ref_world_bt_car_status(RefWorld *w,int car,RefRobotRaceState *out) {
+    if (!w||w!=activeWorld||!w->btNewRace||!out||car<0||car>=int(w->cars.size())) return 0;
+    auto &c=w->cars[car];auto r=w->btStates[car];
     r.time=w->situation.currentTime;r.lastLap=c._lastLapTime;r.bestLap=c._bestLapTime;r.totalTime=c._curTime;r.distance=c._distRaced;
     r.laps=c._laps;r.remainingLaps=c._remainingLaps;r.position=c._pos;r.raceState=w->situation._raceState;r.carState=c._state;
-    r.services=w->serviceCounts[0];r.validLap=c._commitBestLapTime;*out=r;return 1;
+    r.services=w->serviceCounts[car];r.validLap=c._commitBestLapTime;*out=r;return 1;
+}
+int ref_world_bt_status(RefWorld *w,RefRobotRaceState *out) { return ref_world_bt_car_status(w,0,out); }
+// One original ReOneStep for the whole field: robot callbacks, one physics
+// update, per-car ReManage (lap timing, pit service, race rules), ReSortCars.
+int ref_world_race_step(RefWorld *w) {
+    if (!w||w!=activeWorld||!w->btNewRace||w->situation._raceState==RM_RACE_ENDED) return -1;
+    ++w->tick;ref_race_step_original(&w->info);
+    for (size_t i=0;i<w->cars.size();++i) if (!w->btInputValid[i]) return -1;
+    return w->situation._raceState;
 }
 int ref_world_bt_step(RefWorld *w,RefRobotRaceState *out) {
-    if (!w||w!=activeWorld||!w->btNewRace||w->situation._raceState==RM_RACE_ENDED) return 0;
-    ++w->tick;ref_race_step_original(&w->info);
-    if (!w->btInputValid) return 0;
+    if (ref_world_race_step(w)<0) return 0;
     return ref_world_bt_status(w,out);
 }
-int ref_world_bt_input(RefWorld *w,double *values,int capacity) {
-    if (!w||w!=activeWorld||!values||!w->btInputValid||w->btInput.empty()||capacity<int(w->btInput.size())) return 0;
-    std::copy(w->btInput.begin(),w->btInput.end(),values);return int(w->btInput.size());
+int ref_world_bt_car_input(RefWorld *w,int car,double *values,int capacity) {
+    if (!w||w!=activeWorld||!values||car<0||car>=int(w->cars.size())||!w->btInputValid[car]) return 0;
+    const auto &input=w->btInputs[car];
+    if (input.empty()||capacity<int(input.size())) return 0;
+    std::copy(input.begin(),input.end(),values);return int(input.size());
+}
+int ref_world_bt_input(RefWorld *w,double *values,int capacity) { return ref_world_bt_car_input(w,0,values,capacity); }
+int ref_world_grid_slot(RefWorld *w,int car,RefGridSlot *out) {
+    if (!w||w!=activeWorld||!out||!w->gridPlaced||car<0||car>=int(w->gridSlots.size())) return 0;
+    *out=w->gridSlots[car];return 1;
+}
+int ref_world_race_car_state(RefWorld *w,int car,RefRaceCarState *out) {
+    if (!w||w!=activeWorld||!out||!w->raceParameters||car<0||car>=int(w->cars.size())) return 0;
+    const auto &c=w->cars[car];*out={};
+    out->timeBehindLeader=c._timeBehindLeader;out->timeBehindPrevious=c._timeBehindPrev;out->timeBeforeNext=c._timeBeforeNext;
+    out->lapsBehindLeader=c._lapsBehindLeader;out->position=c._pos;out->ruleState=w->raceCarRules[car].ruleState;
+    out->penaltyTime=c._penaltyTime;out->services=w->serviceCounts[car];
+    out->eliminated=(c._state & RM_CAR_STATE_ELIMINATED) != 0;
+    out->firstPenalty=-1;out->firstPenaltyLapToClear=-1;
+    // The original penalty list is a tail queue owned by ReRaceRules.
+    auto *penalty=GF_TAILQ_FIRST(&(c._penaltyList));
+    if (penalty) { out->firstPenalty=penalty->penalty;out->firstPenaltyLapToClear=penalty->lapToClear; }
+    for (auto *entry=penalty;entry;entry=GF_TAILQ_NEXT(entry,link)) ++out->penalties;
+    if (!w->btStates.empty()) { out->pitCalls=w->btStates[car].pitCalls;out->driveCalls=w->btStates[car].driveCalls; }
+    return 1;
+}
+int ref_world_race_configure(RefWorld *w,unsigned int rules,unsigned int raceType,int skill,int driverType) {
+    if (!w||w!=activeWorld||!w->raceParameters||skill<0||skill>4) return 0;
+    if (driverType!=RM_DRV_HUMAN&&driverType!=RM_DRV_ROBOT) return 0;
+    if (raceType!=RM_TYPE_PRACTICE&&raceType!=RM_TYPE_QUALIF&&raceType!=RM_TYPE_RACE) return 0;
+    w->info.raceRules.enabled=rules;w->situation._raceType=raceType;
+    for (auto &car:w->cars) { car._skillLevel=skill;car._driverType=driverType; }
+    return 1;
+}
+int ref_world_race_classification(RefWorld *w,int *order,int count) {
+    if (!w||w!=activeWorld||!order||count!=int(w->cars.size())) return 0;
+    for (int i=0;i<count;++i) order[i]=w->situation.cars[i]->index;
+    return 1;
 }
 
 // Original track/lighting reads, isolated from the legacy GL state calls.
@@ -1394,12 +1512,14 @@ const char *ref_world_track_camera(RefWorld *world,int index,float *position) {
     memcpy(position,&camera->pos,3*sizeof(float));return camera->name;
 }
 
-int ref_world_bt_observation(RefWorld *w,RefBTObservation *out) {
-    if(!w||w!=activeWorld||!out||!w->btNewRace||!w->btState.driveCalls)return 0;
-    *out=w->btObservation;return 1;
+int ref_world_bt_car_observation(RefWorld *w,int car,RefBTObservation *out) {
+    if(!w||w!=activeWorld||!out||!w->btNewRace||car<0||car>=int(w->cars.size())||!w->btStates[car].driveCalls)return 0;
+    *out=w->btObservations[car];return 1;
 }
+int ref_world_bt_observation(RefWorld *w,RefBTObservation *out) { return ref_world_bt_car_observation(w,0,out); }
 
-int ref_world_bt_pit_decision(RefWorld *w,RefBTPitDecision *out) {
-    if(!w||w!=activeWorld||!out||!w->btNewRace||!w->btState.pitCalls)return 0;
-    *out=w->btPitDecision;return 1;
+int ref_world_bt_car_pit_decision(RefWorld *w,int car,RefBTPitDecision *out) {
+    if(!w||w!=activeWorld||!out||!w->btNewRace||car<0||car>=int(w->cars.size())||!w->btStates[car].pitCalls)return 0;
+    *out=w->btPitDecisions[car];return 1;
 }
+int ref_world_bt_pit_decision(RefWorld *w,RefBTPitDecision *out) { return ref_world_bt_car_pit_decision(w,0,out); }

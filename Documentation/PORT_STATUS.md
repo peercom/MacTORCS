@@ -8,7 +8,7 @@ TORCS code for the documented cases. No whole-vehicle or race parity is claimed.
 | Feature | Status | Evidence / limitation |
 |---|---|---|
 | Upstream study and pin | Functional | 1.3.9 archive SHA-256, subsystem mapping, source manifest |
-| Full upstream reference race harness | Partial | Original full simuv2 physics, track loader and collisions run; original BT plus ReOneStep completes one selected physical reference lap; native BT solo runtime now completes a lap; opponent handling and complete race-mode coverage pending |
+| Full upstream reference race harness | Partial | Original full simuv2 physics, track loader and collisions run; original BT plus ReOneStep completes one selected physical reference lap; a 1–10 car BT field now runs the original starting grid, ReOneStep, ReManage, ReRaceRules and ReSortCars with per-car capture, and repeats exactly; native BT solo runtime completes a lap; opponent handling and complete race-mode coverage pending; see RACE_ORACLE.md |
 | Native BT AI | Partial | Single-car Swift policy matches reference lap and pit callbacks exactly; ten native laps repeat, forced-pit five-lap run completes with two services; 287 release tests and 5 ASan tests pass; trajectory parity, traffic, grids, penalties and UI integration pending; see NATIVE_BT.md |
 | Reference telemetry / diff | Functional | Strict JSONL comparison, per-field errors and divergence |
 | Native app shell | Functional | Packaged .app launches; menus/settings, fullscreen/resize inspected |
@@ -53,6 +53,7 @@ TORCS code for the documented cases. No whole-vehicle or race parity is claimed.
 | Pit setup / service physics | Partial | All 89 setup fields and complete SimReConfig; nine services followed by AWD/RWD/FWD driving match original; admission/stall ownership/timing now integrated; penalties/UI pending |
 | Human driving | Partial | Native keyboard/controller bindings; prepared 155-DTM/Aalborg; configurable practice/solo qualifying with countdown, pause, restart, retirement, results and JSON export; physical five-lap/controller proof and AI races pending |
 | GameController / wheel HID | Partial | Extended-gamepad snapshot adapter, button edges, neutral gating and configurable calibration; original joystick arithmetic exact in 13,032 cases; physical hardware and HID pending |
+| Multi-car race oracle | Functional | Verbatim original initStartingGrid; five grid configurations match independently recomputed upstream arithmetic; three-car fields repeat callbacks and final physics exactly; rule/penalty/classification capture available; oracle only, no native comparison yet |
 | Race engine / timing / results | Partial | Native prestart clock and race sorting match original; selected eight-car lap/validity/gap/finish transitions reference-tested; solo session results exported as JSON; pits tested separately; integrated AI races, qualifying grid progression, penalties and championships pending |
 | Robot API / legacy robots | Partial | Native BT solo commands and pit decisions match selected original runs exactly; independent native ten-lap runs repeat; opponent handling, legacy module loading and full race parity remain pending |
 | Replay | Not started | Repeatable component logs are not gameplay replay |

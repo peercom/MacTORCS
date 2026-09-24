@@ -1,0 +1,69 @@
+{
+ "date": "2026-09-24",
+ "evidence": {
+  "race-oracle-3car-repeat.json": "b166400e65bc37e2ca09b4ca713fa21430328ada29fcfe20b4da595ceda313f7",
+  "race-oracle-3car.json": "ff1990f2ce662b0ae65de4812cadd3fd447eeffc00756fb1ba0e99818bee4d4c",
+  "race-oracle-field-tests.log": "660728c5e31da589b3e6441e19e3406150af9e9f615407b73d4c2bba1cb5f46b"
+ },
+ "increment": "G1 multi-car reference race oracle",
+ "limits": [
+  "Reference oracle only: this increment pins upstream behaviour and repeatability, and compares no native code.",
+  "Aalborg / 155-DTM / BT pinned fixtures; not a general race manager, content importer or robot module loader.",
+  "All cars share one car model and one pinned BT-0 setup; heterogeneous fields are not covered.",
+  "Every BT driver index receives the same staged setup; real installations ship per-index setups.",
+  "Maximum ten cars, because the original BT module provides ten driver indices.",
+  "All measured laps are invalid under the default original lap-validity rules, so no best lap is committed; this matches the recorded single-car finding.",
+  "No penalty was triggered in the measured runs; the penalty and rule-state capture is exercised but the rules themselves are not yet proven against authored infringements.",
+  "The recorded C++ debug/release trajectory sensitivity is unresolved and applies to field runs; never compare captures across build configurations.",
+  "The full-race figures come from one release build on one machine; no performance claim is made."
+ ],
+ "measurements": {
+  "aalborgDefaultPoleSide": "right",
+  "aalborgTrackWidthMetres": 10.0,
+  "fieldCallbacksPerCar": 98,
+  "fieldRepeatCars": 3,
+  "fieldRepeatTicks": 1500,
+  "fullRaceCars": 3,
+  "fullRaceClassification": [
+   0,
+   2,
+   1
+  ],
+  "fullRaceDriveCallsPerCar": 12688,
+  "fullRaceGapsSeconds": [
+   0.0,
+   2.968,
+   7.544
+  ],
+  "fullRaceLaps": 3,
+  "fullRaceRepeatIdentical": true,
+  "fullRaceTicks": 131308,
+  "prestartTicks": 1000,
+  "singleCarBaselineDriveCalls": 4211,
+  "singleCarBaselineLapSeconds": 87.38799999997774,
+  "singleCarBaselineTick": 44694,
+  "startingGridConfigurations": 5,
+  "startingGridDistanceToleranceMetres": 0.02,
+  "startingGridLateralTolerance": 0.0001
+ },
+ "priority": "Gameplay; foliage and new graphical work deferred",
+ "schema": 1,
+ "scope": "Original 1-10 car BT field through initStartingGrid, ReOneStep, ReManage, ReRaceRules and ReSortCars, with per-car capture; reference-only, no native comparison",
+ "sources": {
+  "Package.swift": "1324e70dca025d74faa7c6ee0376ed02435b6c7a046fa881d8d0e305cd6272ad",
+  "Scripts/verify-provenance.py": "b582a81a94e25cf2ca419e3ce6297c0c183ee1ee220fe22b144d88df43a3a35f",
+  "Tests/UnitTests/RaceFieldReferenceTests.swift": "905ebb3385c162b0635ef8bbd80229784a53b096ad4acff360e9ea7b5241cbbf",
+  "Tools/TORCSReferenceSupport/ReferenceWorld.swift": "2ff5c7d10a49e4376be39f123612bdf5c0954840136a3f0670304323d876c7d0",
+  "Tools/torcs-reference/RobotRace.swift": "1583341c4b12b458dd92615c21b60013950b91f3023162a397f301dc82fb14c2",
+  "Upstream/Reference/include/CReference.h": "bf05085f97b3b08ec46c710573dd3759ab208018cd95553e6524c506c1d6595b",
+  "Upstream/Reference/race-instrumentation.cpp": "48853c174081e60e1ce3a1fe8a6955a076c8743fe855bdecadd122be1a6d99c8",
+  "Upstream/Reference/race/starting-grid.inc": "a029925c5a0849292f6e6d2b59f9c71fc487e95a35311349c1c2a12921f3351f",
+  "Upstream/Reference/world.cpp": "bb079fed0756afb717542936a34494eb35df3f9f7ebce5661ae11483c7085993"
+ },
+ "verification": {
+  "newTests": 4,
+  "provenance": "Scripts/verify-provenance.py asserts the byte-exact initStartingGrid excerpt",
+  "releaseSuite": "291 tests, 0 failures, 176.101 s",
+  "singleCarRegression": "RobotReferenceTests pass unchanged in release, preserving tick 44694 and 87.38799999997774 s"
+ }
+}

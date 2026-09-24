@@ -3,6 +3,7 @@
 // abort if entered unexpectedly; pit-menu notification is observed by tests.
 #include "race/raceengine.cpp"
 #include "race/pit-assignment.inc"
+#include "race/starting-grid.inc"
 #include "include/CReference.h"
 #include <vector>
 static void (*menuCallback)(void*) = nullptr;
@@ -26,6 +27,7 @@ void glReadPixels(int,int,int,int,int,int,void*) { abort(); }
 void glutPostRedisplay() { abort(); }
 double GfTimeClock() { abort(); }
 void ref_race_assign_original(tRmInfo *info) { ReInfo=info; initPits(); }
+void ref_race_starting_grid_original(tRmInfo *info) { ReInfo=info; initStartingGrid(); }
 void ref_race_manage_original(tRmInfo *info,tCarElt *car) { ReInfo=info; ReManage(car); }
 void ref_race_time_original(tRmInfo *info,tCarElt *car) { ReInfo=info; ReUpdtPitTime(car); }
 void ref_race_clear_original() { ReInfo=nullptr; menuCar=nullptr; menuCallback=nullptr; }
