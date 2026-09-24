@@ -184,4 +184,26 @@ inline float3 evaluateImageBasedLight(SurfaceMaterial material, float3 viewDirec
     return (diffuse + specular) * material.ambientOcclusion;
 }
 
+/// Environment weight of the clear coat: Fresnel at IOR 1.5 through the
+/// environment BRDF at the coat's roughness, scaled by coverage.
+inline float clearcoatEnvironmentWeight(SurfaceMaterial material, float3 viewDirection) {
+    if (material.clearcoat <= 0.0f) { return 0.0f; }
+    float NoV = saturate(dot(material.clearcoatNormal, viewDirection)) + 1e-5f;
+    float2 dfg = environmentBRDF(max(material.clearcoatRoughness, kMinPerceptualRoughness), NoV);
+    return (0.04f * dfg.x + dfg.y) * material.clearcoat;
+}
+
+/// Image-based lighting with the clear coat. The first version omitted the
+/// coat here entirely: paint reflected the sun sharply and the sky not at
+/// all, which is why car roofs read as matte between glints. `prefilteredCoat`
+/// is the sky sampled along the coat normal's reflection at the coat's
+/// roughness; light reaching the base passes the coat once each way.
+inline float3 evaluateImageBasedLight(SurfaceMaterial material, float3 viewDirection,
+                                      float3 irradiance, float3 prefiltered, float3 prefilteredCoat) {
+    float3 base = evaluateImageBasedLight(material, viewDirection, irradiance, prefiltered);
+    float coat = clearcoatEnvironmentWeight(material, viewDirection);
+    if (coat <= 0.0f) { return base; }
+    return base * (1.0f - coat) + prefilteredCoat * coat * material.ambientOcclusion;
+}
+
 #endif

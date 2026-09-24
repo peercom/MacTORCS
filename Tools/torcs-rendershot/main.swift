@@ -42,6 +42,10 @@ struct Options {
     var contactShadows: Bool? = nil
     var compareOcclusion = false
     var occlusionView: String? = nil
+    var reflections: RenderSettings.Quality? = nil
+    var compareReflections = false
+    var reflectionView: String? = nil
+    var surfaceView: String? = nil
     var aoRadius: Float? = nil
     var aoPower: Float? = nil
     var upscale: Bool? = nil
@@ -104,6 +108,10 @@ func parse() -> Options {
         case "--contact": options.contactShadows = true
         case "--no-contact": options.contactShadows = false
         case "--occlusion-view": options.occlusionView = next()
+        case "--ssr": options.reflections = ["off": .off, "half": .half, "full": .full][next()]
+        case "--compare-ssr": options.compareReflections = true
+        case "--reflection-view": options.reflectionView = next()
+        case "--surface-view": options.surfaceView = next()
         case "--ao-radius": options.aoRadius = Float(next())
         case "--ao-power": options.aoPower = Float(next())
         case "--frames": options.frames = Int(next()) ?? options.frames
@@ -258,6 +266,7 @@ do {
     if let threshold = options.bloomThreshold { settings.bloomThreshold = threshold }
     if let ao = options.ambientOcclusion { settings.ambientOcclusion = ao }
     if let contact = options.contactShadows { settings.contactShadows = contact }
+    if let ssr = options.reflections { settings.screenSpaceReflections = ssr }
     let renderer = try ForwardRenderer(settings: settings)
     if let radius = options.aoRadius { renderer.occlusion.ambientRadius = radius }
     if let power = options.aoPower { renderer.occlusion.ambientPower = power }
@@ -364,6 +373,10 @@ do {
         print(String(format: "  delta       %+.3f ms (%+.1f%%)", on - off, (on - off) / off * 100))
         exit(0)
     }
+    if options.compareReflections {
+        let quality = settings.screenSpaceReflections == .off ? .half : settings.screenSpaceReflections
+        try compare("reflections") { $0.screenSpaceReflections = $1 ? quality : .off }
+    }
     if options.compareOcclusion {
         let quality = settings.ambientOcclusion == .off ? .half : settings.ambientOcclusion
         try compare("occlusion") { $0.ambientOcclusion = $1 ? quality : .off; $0.contactShadows = $1 }
@@ -384,6 +397,66 @@ do {
     let median = samples.isEmpty ? 0 : samples[samples.count / 2]
     let p95 = samples.isEmpty ? 0 : samples[min(samples.count - 1, Int(Double(samples.count) * 0.95))]
     try writePNG(pixels, width: options.width, height: options.height, to: options.output)
+    if let view = options.surfaceView {
+        // The reflection G-buffer: roughness and specular weight of the sharp
+        // lobe, each as greyscale, straight from the target the trace reads.
+        let texture = try renderer.targets(outputWidth: options.width, outputHeight: options.height).reflectionSurface
+        let raw = try renderer.readback(texture, bytesPerPixel: 8)
+        var rough = [UInt8](repeating: 255, count: texture.width * texture.height * 4)
+        var weight = rough
+        var stats: (minR: Float, maxR: Float, minW: Float, maxW: Float) = (1e9, -1e9, 1e9, -1e9)
+        raw.withUnsafeBytes { bytes in
+            let halves = bytes.bindMemory(to: UInt16.self)
+            for i in 0 ..< texture.width * texture.height {
+                let r = Float(Float16(bitPattern: halves[i * 4 + 2])), w = Float(Float16(bitPattern: halves[i * 4 + 3]))
+                stats = (min(stats.minR, r), max(stats.maxR, r), min(stats.minW, w), max(stats.maxW, w))
+                let g = UInt8(min(max(r, 0), 1) * 255), h = UInt8(min(max(w, 0), 1) * 255)
+                rough[i * 4] = g; rough[i * 4 + 1] = g; rough[i * 4 + 2] = g
+                weight[i * 4] = h; weight[i * 4 + 1] = h; weight[i * 4 + 2] = h
+            }
+        }
+        // A few raw texels, for layout questions the images cannot answer.
+        raw.withUnsafeBytes { bytes in
+            let halves = bytes.bindMemory(to: UInt16.self)
+            for (x, y) in [(texture.width / 2, texture.height * 7 / 8), (texture.width * 25 / 32, texture.height * 5 / 8),
+                           (texture.width * 31 / 64, texture.height * 3 / 8), (texture.width / 2, texture.height / 8)] {
+                let i = (y * texture.width + x) * 4
+                let v = (0 ..< 4).map { Float(Float16(bitPattern: halves[i + $0])) }
+                print(String(format: "  surface (%d,%d): %.3f %.3f %.3f %.3f", x, y, v[0], v[1], v[2], v[3]))
+            }
+        }
+        try writePNG(rough, width: texture.width, height: texture.height, to: view)
+        let weightPath = view.replacingOccurrences(of: ".png", with: "-weight.png")
+        try writePNG(weight, width: texture.width, height: texture.height, to: weightPath)
+        print("surface view: roughness \(stats.minR)...\(stats.maxR), weight \(stats.minW)...\(stats.maxW) -> \(view), \(weightPath)")
+    }
+    if let view = options.reflectionView {
+        if let texture = renderer.reflections.result {
+            // rgba16f: reflected radiance and confidence. Radiance is shown
+            // clamped to white, confidence as a second greyscale image.
+            let raw = try renderer.readback(texture, bytesPerPixel: 8)
+            var radiance = [UInt8](repeating: 255, count: texture.width * texture.height * 4)
+            var confidence = radiance
+            raw.withUnsafeBytes { bytes in
+                let halves = bytes.bindMemory(to: UInt16.self)
+                for i in 0 ..< texture.width * texture.height {
+                    for c in 0 ..< 3 {
+                        let v = Float(Float16(bitPattern: halves[i * 4 + c]))
+                        radiance[i * 4 + c] = UInt8(min(max(v, 0), 1) * 255)
+                    }
+                    let a = Float(Float16(bitPattern: halves[i * 4 + 3]))
+                    let g = UInt8(min(max(a, 0), 1) * 255)
+                    confidence[i * 4] = g; confidence[i * 4 + 1] = g; confidence[i * 4 + 2] = g
+                }
+            }
+            try writePNG(radiance, width: texture.width, height: texture.height, to: view)
+            let confidencePath = view.replacingOccurrences(of: ".png", with: "-confidence.png")
+            try writePNG(confidence, width: texture.width, height: texture.height, to: confidencePath)
+            print("reflection view: \(texture.width)x\(texture.height) -> \(view), \(confidencePath)")
+        } else {
+            print("reflection view: no reflection target this frame")
+        }
+    }
     if let view = options.occlusionView {
         if let texture = renderer.occlusion.result {
             // Two greyscale images: ambient visibility, and sun visibility.
@@ -454,6 +527,7 @@ do {
       scalerBuilds  \(renderer.upscalerBuildCount)\(renderer.lastUpscalerError.map { " error: " + $0 } ?? "")
       bloom         \(settings.bloom ? "on, strength \(settings.bloomStrength), threshold \(settings.bloomThreshold) exposed, \(renderer.bloom.levelCount) levels" : "off")
       occlusion     ao \(["off","half","full"][settings.ambientOcclusion.rawValue]), contact \(settings.contactShadows ? "on" : "off")\(renderer.occlusion.result.map { ", \($0.width)x\($0.height)" } ?? "")
+      reflections   \(["off","half","full"][settings.screenSpaceReflections.rawValue])\(renderer.reflections.result.map { ", \($0.width)x\($0.height)" } ?? "")
       upscaling     \(settings.temporalUpscaling ? "on, render \(settings.renderSize(output: (options.width, options.height)).width)x\(settings.renderSize(output: (options.width, options.height)).height)" : "off")
       textures      \(textures.count) uploaded, \(String(format: "%.1f", Double(textures.uploadedBytes) / 1_048_576)) MiB
       textured      \(resources.texturedBatches) of \(resources.batchCount) batches

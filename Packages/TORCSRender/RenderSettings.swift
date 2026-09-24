@@ -95,10 +95,7 @@ public struct RenderSettings: Sendable, Equatable {
             staticShadowRefreshInterval = 3
             contactShadows = true
             ambientOcclusion = .half
-            // Not implemented yet. Left at their inert values rather than
-            // claiming a feature the frame does not have; each flips on in the
-            // commit that lands the pass.
-            screenSpaceReflections = .off
+            screenSpaceReflections = .half
             reflectionRoughnessCutoff = 0.45
             bloom = true
             bloomStrength = 0.06
@@ -116,10 +113,7 @@ public struct RenderSettings: Sendable, Equatable {
             staticShadowRefreshInterval = 2
             contactShadows = true
             ambientOcclusion = .half
-            // Not implemented yet. Left at their inert values rather than
-            // claiming a feature the frame does not have; each flips on in the
-            // commit that lands the pass.
-            screenSpaceReflections = .off
+            screenSpaceReflections = .half
             reflectionRoughnessCutoff = 0.6
             bloom = true
             bloomStrength = 0.06
@@ -137,7 +131,7 @@ public struct RenderSettings: Sendable, Equatable {
             staticShadowRefreshInterval = 1
             contactShadows = true
             ambientOcclusion = .full
-            screenSpaceReflections = .off
+            screenSpaceReflections = .full
             reflectionRoughnessCutoff = 0.8
             bloom = true
             bloomStrength = 0.06

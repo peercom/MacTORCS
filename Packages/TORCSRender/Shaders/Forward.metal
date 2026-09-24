@@ -103,6 +103,9 @@ inline float2 motionVector(float4 currentClip, float4 previousClip, float2 rende
 struct ForwardOutput {
     float4 colour [[color(0)]];
     float2 velocity [[color(1)]];
+    /// See encodeReflectionSurface. Memoryless and discarded when screen-space
+    /// reflections are off.
+    float4 reflectionSurface [[color(2)]];
 };
 
 /// Set when the material needs an alpha cutout. Specialized as a function
@@ -266,8 +269,28 @@ fragment ForwardOutput forwardFragment(ForwardVarying in [[stage_in]],
     float mipCount = float(max(skyViewLUT.get_num_mip_levels(), 1u) - 1u);
     float3 prefiltered = skyViewLUT.sample(skySampler, skyViewUV(reflection),
                                            level(surface.perceptualRoughness * mipCount)).rgb;
-    colour += evaluateImageBasedLight(surface, view, irradiance, prefiltered);
+    // The sharp white lobe: the clear coat where there is one, otherwise the
+    // base lobe of a dielectric. Screen-space reflections replace this lobe's
+    // probe where they hit; a metal's coloured base lobe is never traced.
+    float3 sharpNormal = surface.clearcoat > 0.0f ? surface.clearcoatNormal : normal;
+    float sharpRoughness = surface.clearcoat > 0.0f
+        ? max(surface.clearcoatRoughness, kMinPerceptualRoughness) : surface.perceptualRoughness;
+    float3 prefilteredCoat = prefiltered;
+    if (surface.clearcoat > 0.0f) {
+        prefilteredCoat = skyViewLUT.sample(skySampler, skyViewUV(reflect(-view, sharpNormal)),
+                                            level(sharpRoughness * mipCount)).rgb;
+    }
+    colour += evaluateImageBasedLight(surface, view, irradiance, prefiltered, prefilteredCoat);
     colour += surface.emissive;
+    float sharpWeight;
+    if (surface.clearcoat > 0.0f) {
+        sharpWeight = clearcoatEnvironmentWeight(surface, view);
+    } else {
+        float NoVs = saturate(dot(normal, view)) + 1e-5f;
+        float2 sdfg = environmentBRDF(sharpRoughness, NoVs);
+        sharpWeight = (0.04f * sdfg.x + sdfg.y) * (1.0f - surface.metallic);
+    }
+    sharpWeight *= surface.ambientOcclusion;
 
     // Aerial perspective, from the same medium the sky uses. This replaces the
     // classic path's per-camera linear fog, whose range was authored separately
@@ -280,6 +303,11 @@ fragment ForwardOutput forwardFragment(ForwardVarying in [[stage_in]],
 
     ForwardOutput out;
     out.colour = float4(colour, albedo.a);
+    // The composite adds onto the blended result, so a translucent draw's
+    // weight carries its alpha; and the probe it replaces was attenuated by
+    // the medium, so the weight carries that too.
+    out.reflectionSurface = encodeReflectionSurface(sharpNormal, sharpRoughness,
+        sharpWeight * albedo.a * dot(transmittance, float3(0.2126f, 0.7152f, 0.0722f)));
     out.velocity = motionVector(in.currentClip, in.previousClip, frame.renderSize.xy);
     return out;
 }

@@ -176,6 +176,7 @@ public final class ForwardRenderer {
     public let atmosphere: AtmosphereResources
     public let bloom: BloomRenderer
     public let occlusion: OcclusionRenderer
+    public let reflections: ReflectionRenderer
     /// Bound at the occlusion slot when the pass is off, so the shader never
     /// samples an unbound texture. White: nothing occluded.
     private let neutralOcclusion: MTLTexture
@@ -250,6 +251,9 @@ public final class ForwardRenderer {
             // that can be averaged with what is behind it.
             descriptor.colorAttachments[1].pixelFormat = FrameTargets.velocityFormat
             if blend { descriptor.colorAttachments[1].writeMask = [] }
+            // The reflection surface is written, never blended: glass writes
+            // its own normal and weight over what is behind it.
+            descriptor.colorAttachments[2].pixelFormat = FrameTargets.reflectionSurfaceFormat
             if blend {
                 // Straight (non-premultiplied) source-alpha blending, matching
                 // what the original fixed-function path set up.
@@ -284,6 +288,8 @@ public final class ForwardRenderer {
             descriptor.colorAttachments[0].writeMask = []
             descriptor.colorAttachments[1].pixelFormat = FrameTargets.velocityFormat
             descriptor.colorAttachments[1].writeMask = []
+            descriptor.colorAttachments[2].pixelFormat = FrameTargets.reflectionSurfaceFormat
+            descriptor.colorAttachments[2].writeMask = []
             descriptor.depthAttachmentPixelFormat = FrameTargets.depthFormat
             return try device.makeRenderPipelineState(descriptor: descriptor)
         }
@@ -295,11 +301,14 @@ public final class ForwardRenderer {
         skyDescriptor.fragmentFunction = library.makeFunction(name: "skyFragment")
         skyDescriptor.colorAttachments[0].pixelFormat = FrameTargets.colourFormat
         skyDescriptor.colorAttachments[1].pixelFormat = FrameTargets.velocityFormat
+        skyDescriptor.colorAttachments[2].pixelFormat = FrameTargets.reflectionSurfaceFormat
+        skyDescriptor.colorAttachments[2].writeMask = []
         skyDescriptor.depthAttachmentPixelFormat = FrameTargets.depthFormat
         sky = try device.makeRenderPipelineState(descriptor: skyDescriptor)
         atmosphere = try AtmosphereResources(device: device, library: library)
         bloom = try BloomRenderer(device: device, library: library)
         occlusion = try OcclusionRenderer(device: device, library: library)
+        reflections = try ReflectionRenderer(device: device, library: library)
         let neutral = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: OcclusionRenderer.format,
                                                                 width: 1, height: 1, mipmapped: false)
         neutral.usage = .shaderRead
@@ -380,13 +389,15 @@ public final class ForwardRenderer {
         let render = settings.renderSize(output: (outputWidth, outputHeight))
         let renderWidth = upscaling ? render.width : outputWidth
         let renderHeight = upscaling ? render.height : outputHeight
+        let reflections = settings.screenSpaceReflections != .off
         if let existing = cachedTargets, existing.matches(renderWidth: renderWidth, renderHeight: renderHeight,
                                                     outputWidth: outputWidth, outputHeight: outputHeight,
-                                                    upscaling: upscaling) {
+                                                    upscaling: upscaling, reflections: reflections) {
             return existing
         }
         let fresh = try FrameTargets(device: device, renderWidth: renderWidth, renderHeight: renderHeight,
-                                     outputWidth: outputWidth, outputHeight: outputHeight, upscaling: upscaling)
+                                     outputWidth: outputWidth, outputHeight: outputHeight, upscaling: upscaling,
+                                     reflections: reflections)
         cachedTargets = fresh
         // Resolution changes invalidate the accumulated history.
         upscaler = nil
@@ -425,6 +436,7 @@ public final class ForwardRenderer {
         // produce the same pixels, which the repeat-render discipline needs.
         // Interactive frames go through encodeFrame directly and keep rotating.
         occlusion.resetNoise()
+        reflections.resetNoise()
         encodeFrame(into: commands, targets: targets, resources: resources, instances: instances,
                     camera: camera, lighting: lighting, aspect: Float(width) / Float(max(height, 1)))
         encodeResolve(into: commands, source: tonemapSource(targets), destination: targets.display,
@@ -539,12 +551,14 @@ public final class ForwardRenderer {
         scenePass.colorAttachments[0].loadAction = .clear
         scenePass.colorAttachments[0].storeAction = .store
         scenePass.colorAttachments[0].clearColor = MTLClearColor(red: 0, green: 0, blue: 0, alpha: 1)
-        if let velocity = targets.velocity {
-            scenePass.colorAttachments[1].texture = velocity
-            scenePass.colorAttachments[1].loadAction = .clear
-            scenePass.colorAttachments[1].storeAction = .store
-            scenePass.colorAttachments[1].clearColor = MTLClearColor(red: 0, green: 0, blue: 0, alpha: 0)
-        }
+        scenePass.colorAttachments[1].texture = targets.velocityAttachment
+        scenePass.colorAttachments[1].loadAction = .clear
+        scenePass.colorAttachments[1].storeAction = targets.velocity != nil ? .store : .dontCare
+        scenePass.colorAttachments[1].clearColor = MTLClearColor(red: 0, green: 0, blue: 0, alpha: 0)
+        scenePass.colorAttachments[2].texture = targets.reflectionSurface
+        scenePass.colorAttachments[2].loadAction = .clear
+        scenePass.colorAttachments[2].storeAction = targets.reflections ? .store : .dontCare
+        scenePass.colorAttachments[2].clearColor = MTLClearColor(red: 0, green: 0, blue: 0, alpha: 0)
         scenePass.depthAttachment.texture = targets.depth
         // Reversed depth clears to 0, the far plane.
         scenePass.depthAttachment.clearDepth = 0
@@ -569,11 +583,12 @@ public final class ForwardRenderer {
             prepass.colorAttachments[0].texture = targets.colour
             prepass.colorAttachments[0].loadAction = .dontCare
             prepass.colorAttachments[0].storeAction = .dontCare
-            if let velocity = targets.velocity {
-                prepass.colorAttachments[1].texture = velocity
-                prepass.colorAttachments[1].loadAction = .dontCare
-                prepass.colorAttachments[1].storeAction = .dontCare
-            }
+            prepass.colorAttachments[1].texture = targets.velocityAttachment
+            prepass.colorAttachments[1].loadAction = .dontCare
+            prepass.colorAttachments[1].storeAction = .dontCare
+            prepass.colorAttachments[2].texture = targets.reflectionSurface
+            prepass.colorAttachments[2].loadAction = .dontCare
+            prepass.colorAttachments[2].storeAction = .dontCare
             prepass.depthAttachment.texture = targets.depth
             prepass.depthAttachment.loadAction = .clear
             prepass.depthAttachment.clearDepth = 0
@@ -689,6 +704,14 @@ public final class ForwardRenderer {
             }
         }
         encoder.endEncoding()
+
+        if settings.screenSpaceReflections != .off {
+            reflections.encode(into: commands, targets: targets, projection: projection, view: camera.view(),
+                               sunDirection: lighting.direction, roughnessCutoff: settings.reflectionRoughnessCutoff,
+                               quality: settings.screenSpaceReflections, skyView: atmosphere.skyView)
+        } else {
+            reflections.discard()
+        }
     }
 
     /// Depth-only draws of everything opaque that will later shade. Shared by

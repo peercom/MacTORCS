@@ -34,6 +34,24 @@ inline float2 signNotZero(float2 v) {
 }
 
 /// Inverse of `OctahedralPacking.project`.
+/// The reflection surface the forward pass leaves for screen-space
+/// reflections: octahedral world normal of the sharp lobe, that lobe's
+/// perceptual roughness, and its scalar specular weight (Fresnel and the
+/// environment BRDF folded together, so a composite multiplies a radiance by
+/// it and is done). Scalar because the pass serves only the white lobe —
+/// clear coat, glass, wet asphalt — never a metal's coloured one.
+inline float4 encodeReflectionSurface(float3 worldNormal, float roughness, float weight) {
+    float3 n = worldNormal / max(abs(worldNormal.x) + abs(worldNormal.y) + abs(worldNormal.z), 1e-6f);
+    float2 oct = n.z >= 0.0f ? n.xy : (1.0f - abs(n.yx)) * signNotZero(n.xy);
+    return float4(oct, roughness, weight);
+}
+
+inline float3 decodeReflectionNormal(float2 oct) {
+    float3 n = float3(oct, 1.0f - abs(oct.x) - abs(oct.y));
+    if (n.z < 0.0f) { n.xy = (1.0f - abs(n.yx)) * signNotZero(n.xy); }
+    return normalize(n);
+}
+
 inline float3 decodeOctahedral(float2 e) {
     float3 v = float3(e.x, e.y, 1.0f - abs(e.x) - abs(e.y));
     if (v.z < 0.0f) {

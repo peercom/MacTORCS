@@ -213,9 +213,15 @@ final class EffectAvailabilityTests: XCTestCase {
     func testUnimplementedEffectsAreInertInEveryPreset() {
         for preset in RenderSettings.Preset.allCases {
             let settings = RenderSettings(preset: preset)
-            XCTAssertEqual(settings.screenSpaceReflections, .off, "\(preset): SSR is not implemented")
             XCTAssertFalse(settings.motionBlur, "\(preset): motion blur is not implemented")
         }
+    }
+
+    func testScreenSpaceReflectionsAreOnInEveryPreset() {
+        for preset in RenderSettings.Preset.allCases {
+            XCTAssertNotEqual(RenderSettings(preset: preset).screenSpaceReflections, .off, "\(preset)")
+        }
+        XCTAssertEqual(RenderSettings(preset: .m2Air).screenSpaceReflections, .half)
     }
 
     func testScreenSpaceOcclusionIsOnInEveryPreset() {

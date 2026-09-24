@@ -663,6 +663,89 @@ transparent, and that the frame actually changes.
 What the reflections show is still the sky probe: the car reflects a
 horizon-to-horizon sky and nothing of the circuit. That is the next pass.
 
+## Screen-space reflections, and an attachment that was never bound
+
+The forward pass reflected a sky probe: every smooth surface showed a
+horizon-to-horizon sky and nothing of the circuit. A screen-space march now
+replaces that where the reflected point is on screen.
+
+### The lobe it serves
+
+Only the sharp white one: the clear coat on paint, glass, and a smooth
+dielectric such as wet asphalt. A metal's coloured base lobe is left to the
+probe — at the roughness those lobes have, a blurred reflection of a mostly
+off-screen world is what the probe already is. That choice is what makes
+the specular weight a *scalar*, and the scalar is what makes the composite
+a single additive pass: the forward pass writes a thin `rgba16f` surface
+(octahedral normal, roughness, weight) alongside colour, the march finds a
+radiance and a confidence, and the composite adds
+`confidence · weight · (found − probe)` onto colour with one/one blending,
+re-evaluating the probe from the sky table so it is taken back exactly. No
+second colour target, no subtraction ambiguity, and the sign is free to go
+negative where the probe overstated.
+
+Along the way the clear coat gained an environment term it never had:
+`evaluateImageBasedLight` omitted the coat entirely, so paint reflected the
+sun sharply and the sky not at all, and car roofs read as matte between
+glints. The coat now sees the sky, and the base sees it through the coat.
+
+### Three faults, one of them older than the pass
+
+**Self-intersection.** The first march started on the surface and accepted
+the first sample behind the depth buffer; every curved panel reflected
+itself and the confidence map was white over the whole car. The ray now
+starts off the surface, a hit is a *crossing* — the previous sample in
+front, this one behind — and the crossing is refined before the thickness
+is judged, because judging the coarse sample threw away nearly every
+legitimate hit at a 15 cm thickness and a metre step. A hit whose surface
+faces along the ray is rejected as the far side of an opaque object.
+
+**Thickness.** At 0.6 m every wheel arch a ray passed behind in screen space
+counted as a hit. It is 15 cm now, growing with distance.
+
+**The attachment that shifted.** With the gate set at roughness 0.45,
+grass, trees and the concrete wall were being traced and the wall came out
+orange. The G-buffer dump showed why: `x, y` were zero at every pixel and
+`z, w` ranged over [−1, 1], which no roughness does but a static frame's
+motion vectors do. With upscaling off the scene pass bound no velocity
+attachment, while every pipeline declared one — and on this GPU the later
+attachment slid down a slot, so the reflection surface received `color(1)`.
+That was undefined behaviour from R2 onward; it went unnoticed because
+nothing read the missing attachment. The velocity attachment now always
+exists, memoryless and discarded when upscaling is off, exactly as the
+reflection surface is when reflections are off. A test reads the surface
+back and fails on any roughness outside [0, 1].
+
+`torcs-rendershot --surface-view` dumps the G-buffer and prints four raw
+texels, and `--reflection-view` the traced radiance and confidence. Both
+exist because the images alone could not answer the question.
+
+### Measured
+
+Interleaved A/B, no bloom, sixty pairs after twenty warmups, taken directly
+after a ten-minute test run on a chip that was visibly throttling (the
+track's off column reads 6.3 ms where a cool run gives 2.2), so only the
+deltas carry information:
+
+| Scene | Resolution | Quality | Delta |
+|---|---|---|---|
+| Aalborg | 1280x832 | half | +0.20 ms |
+| Aalborg | 1280x832 | full | −0.36 ms (noise) |
+| Aalborg | 2560x1664 | half | +1.03 ms |
+| Car | 1280x832 | full | +0.69 ms |
+
+The default preset runs half resolution. The march is twenty-four steps
+with four refinements and a maximum reach of sixty metres; the cost is in
+the steps, and a depth pyramid would let the reach grow without them.
+
+### Not done
+
+The traced result is not filtered: the per-pixel jitter shows as dither on
+the reflection, and a depth-aware blur or temporal reuse is the standard
+next step. Rough surfaces get no reflection, by design, and glass traces
+from the depth of what is behind it, since the prepass is opaque-only —
+visually a few tens of centimetres off, and acceptable.
+
 ## Licensing
 
 No third-party artwork is imported by this work. New render source is
