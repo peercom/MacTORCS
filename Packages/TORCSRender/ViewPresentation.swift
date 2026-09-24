@@ -41,6 +41,9 @@ public extension ForwardRenderer {
         }
 
         animationTime = CACurrentMediaTime()
+        // Every scaler the resolution ladder can ask for, built before the
+        // first frame at this size rather than on the frame that steps.
+        try prewarmIfNeeded(outputWidth: width, outputHeight: height)
         // Last frame's measured cost decides this frame's render scale.
         let measured = gpuTime
         if measured > 0 { recordDynamicResolution(gpuTime: measured) }

@@ -1283,6 +1283,61 @@ Not done: rain itself — streaks in the air, drops on the glass — and a wet
 sky. The sun still shines on the puddles, which reads as the hour after a
 shower rather than the shower.
 
+## Hardening: the shipped app, its shaders, and its memory
+
+Three Phase 8 items, and a packaging fault found on the way.
+
+**The app was not carrying its shaders.** `build-app.sh` still copied the
+deleted TORCSMetal package's resource bundle — a stale copy lingered in the
+build directory — and never copied the TORCSRender one. The app worked only
+because SwiftPM's resource accessor falls back to the absolute build path
+baked into the binary, which a copy on another machine does not have. The
+script now copies every resource bundle of a package that still exists and
+none of the test bundles, and fails if the render bundle is missing.
+
+**Prebuilt shader library.** `Scripts/build-shaders.sh` compiles the sources
+offline with the same invariance flag as the runtime compile, in the same
+order — `testOfflineBuildScriptMirrorsTheSourceOrder` pins the script's list
+to `ShaderLibrary.sourceOrder` — and the app build puts the result in the
+render bundle. `ShaderLibrary` prefers it, looks for it in the package
+bundle, in the application bundle's copy of it (SwiftPM's accessor does not
+look in `Contents/Resources`), or at `TORCS_METALLIB`, and compiles from
+source only when none is there, which is what `swift test` and the render
+tool do. The app smoke now reports `shadersPrebuilt: true`.
+
+What the measurement actually showed, on the render tool with a generated
+circuit at 2560×1664:
+
+| | shader library | renderer construction |
+|---|---|---|
+| source, driver cache warm | 7.5 ms | 45–55 ms |
+| prebuilt, first use ever | 0.8 ms | **537 ms** |
+| prebuilt, subsequent runs | 0.7 ms | 53–61 ms |
+
+The library load is not where the time goes; pipeline construction is, and
+the driver caches compiled pipelines on disk keyed by function, so every
+route is fast after the first launch and every route pays about half a
+second on it. That half second lands in `ForwardRenderer.init`, before any
+race, which is what section 24 asks. An `MTLBinaryArchive` shipped with the
+app would remove it from the first launch too; it is deferred until a first
+launch is what is being tuned.
+
+**No scaler built mid-race.** The spatial scaler was constructed on the
+frame that first needed a render size — which, with dynamic resolution, is
+the frame the controller steps on, exactly when the GPU is already behind.
+The renderer now keeps scalers by render size and `prewarmSpatialScalers`
+builds one for every step of the resolution ladder at the output size;
+presentation calls it once per drawable size, before the first frame at
+that size. Eight scalers take 4–8 ms to build.
+
+**Memory budget.** `testGeneratedCircuitAtNativeOutputStaysUnderTheBudget`
+loads Aalborg's generated road, terrain and grass with the car, renders
+three native frames on the M2 Air preset and asserts the device's allocated
+size under the preset's 1.5 GB cap: **212 MB** without material sets. The
+render tool's `--memory` reports the same figure for a full session — road,
+terrain, trees, grass and the generated materials — at **650 MB**. The
+budget holds with room for a second car and a bigger circuit.
+
 ## Licensing
 
 No third-party artwork is imported by this work. New render source is

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 import Foundation
+import Metal
 import ImageIO
 import CoreGraphics
 import UniformTypeIdentifiers
@@ -65,6 +66,10 @@ struct Options {
     /// Scene wetness, 0 dry to 1 soaked.
     var wetness: Float = 0
     var compareWet = false
+    /// Report startup costs: shader library, renderer construction, scaler pre-warm.
+    var startup = false
+    /// Report the device's allocated memory after the frames.
+    var memory = false
     /// Frames of tyre smoke to emit at the rear wheels before rendering.
     var smokeFrames = 0
     var orbitSpeed: Float = 0
@@ -158,6 +163,8 @@ func parse() -> Options {
         case "--skid": options.skid = true
         case "--wet": options.wetness = Float(next()) ?? 1
         case "--compare-wet": options.compareWet = true
+        case "--startup": options.startup = true
+        case "--memory": options.memory = true
         case "--smoke": options.smokeFrames = Int(next()) ?? 45
         case "--orbit-speed": options.orbitSpeed = Float(next()) ?? 0
         case "--sustain": options.sustainSeconds = Double(next()) ?? 0
@@ -330,7 +337,25 @@ do {
     if let ssr = options.reflections { settings.screenSpaceReflections = ssr }
     if let blur = options.motionBlur { settings.motionBlur = blur }
     if let cascades = options.cascades { settings.shadowCascades = max(0, min(4, cascades)) }
+    let startupClock = DispatchTime.now()
+    if options.startup, let device = MTLCreateSystemDefaultDevice() {
+        let t0 = DispatchTime.now()
+        let shaders = try ShaderLibrary(device: device)
+        let t1 = DispatchTime.now()
+        print(String(format: "shader library: %.1f ms (%@)", Double(t1.uptimeNanoseconds - t0.uptimeNanoseconds) / 1e6,
+                     shaders.prebuilt ? "prebuilt metallib" : "compiled from source"))
+    }
     let renderer = try ForwardRenderer(settings: settings)
+    if options.startup {
+        let t = DispatchTime.now()
+        print(String(format: "renderer construction: %.1f ms (shaders %@)",
+                     Double(t.uptimeNanoseconds - startupClock.uptimeNanoseconds) / 1e6,
+                     renderer.shadersPrebuilt ? "prebuilt" : "from source"))
+        let w0 = DispatchTime.now()
+        let built = try renderer.prewarmSpatialScalers(outputWidth: options.width, outputHeight: options.height)
+        let w1 = DispatchTime.now()
+        print(String(format: "scaler pre-warm: %d scalers in %.1f ms", built, Double(w1.uptimeNanoseconds - w0.uptimeNanoseconds) / 1e6))
+    }
     renderer.animationTime = Double(options.animationTime)
     renderer.wetness = options.wetness
     if let radius = options.aoRadius { renderer.occlusion.ambientRadius = radius }
@@ -551,6 +576,11 @@ do {
                                      lightState: RenderInstance.lightState(brakeCommand: options.brake ? 1 : 0,
                                                                            lightCommand: options.headlights ? 1 : 0))
         if frame >= warmups { samples.append(renderer.lastGPUTime * 1000) }
+    }
+    if options.memory {
+        let bytes = renderer.device.currentAllocatedSize
+        print(String(format: "device memory: %.1f MB allocated (budget %.0f MB)", Double(bytes) / 1_048_576,
+                     Double(settings.textureMemoryBudgetBytes) / 1_048_576))
     }
     samples.sort()
     let median = samples.isEmpty ? 0 : samples[samples.count / 2]

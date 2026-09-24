@@ -22,6 +22,18 @@ final class ShaderLibraryTests: XCTestCase {
         XCTAssertEqual(MemoryLayout<InstanceUniforms>.offset(of: \.lightState), 192)
     }
 
+    /// The offline build script lists the sources in its own order; it must
+    /// be the runtime order, or the prebuilt library differs from the
+    /// compiled one.
+    func testOfflineBuildScriptMirrorsTheSourceOrder() throws {
+        let script = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+            .deletingLastPathComponent().appendingPathComponent("Scripts/build-shaders.sh")
+        let text = try String(contentsOf: script, encoding: .utf8)
+        let line = try XCTUnwrap(text.split(separator: "\n").first { $0.hasPrefix("order=(") })
+        let names = line.dropFirst("order=(".count).dropLast().split(separator: " ").map(String.init)
+        XCTAssertEqual(names, ShaderLibrary.sourceOrder)
+    }
+
     func testLocalIncludesAreStrippedButSystemIncludesSurvive() throws {
         let combined = try ShaderLibrary.combinedSource()
         XCTAssertFalse(combined.contains("#include \""), "local includes must be stripped for makeLibrary(source:)")

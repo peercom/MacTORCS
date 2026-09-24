@@ -25,11 +25,18 @@ public enum RenderError: Error, CustomStringConvertible {
 /// than a full package build. Every file also carries an include guard, so the
 /// concatenation tolerates duplication.
 ///
-/// This compiles at runtime, matching the classic path. Phase 8 replaces it
-/// with a prebuilt `.metallib` plus an `MTLBinaryArchive`, because
-/// PORT_SPECIFICATION.md section 24 requires that no pipeline compiles during a
-/// race.
+/// A prebuilt `TORCSRender.metallib` beside the sources — written by
+/// `Scripts/build-shaders.sh` into the app's resource bundle — is preferred
+/// when present, so the shipped app compiles no shader source at launch;
+/// `TORCS_METALLIB` names one explicitly for tools and measurement. Without
+/// either the sources compile at runtime, which is what `swift test` and the
+/// render tool do. PORT_SPECIFICATION.md section 24 requires no shader
+/// compilation stalls during a race; every pipeline is built when the
+/// renderer is, so either route satisfies it once the renderer exists.
 public struct ShaderLibrary {
+    /// Whether the library came from a prebuilt `.metallib` rather than source.
+    public let prebuilt: Bool
+    public static let prebuiltName = "TORCSRender"
     /// Dependency order: shared decoding, the BRDF that uses it, tonemapping,
     /// then the passes that draw on all three.
     public static let sourceOrder = ["Common", "BRDF", "Post", "Atmosphere", "Shadow", "Forward", "Sky", "Occlusion", "Reflections", "MotionBlur", "Bloom", "Particles", "SkidMarks", "Resolve"]
@@ -46,6 +53,23 @@ public struct ShaderLibrary {
 
     public init(device: MTLDevice, bundle: Bundle? = nil) throws {
         let bundle = bundle ?? .module
+        // The package bundle, the copy of it inside an application bundle
+        // (SwiftPM's accessor does not look in Contents/Resources), or an
+        // explicit path.
+        let candidates: [URL?] = [
+            bundle.url(forResource: Self.prebuiltName, withExtension: "metallib", subdirectory: "Shaders"),
+            Bundle.main.resourceURL?.appendingPathComponent("TORCSMac_TORCSRender.bundle/Shaders/\(Self.prebuiltName).metallib"),
+            ProcessInfo.processInfo.environment["TORCS_METALLIB"].map { URL(fileURLWithPath: $0) }]
+        if let url = candidates.compactMap({ $0 }).first(where: { FileManager.default.fileExists(atPath: $0.path) }) {
+            let loaded: MTLLibrary
+            do {
+                loaded = try device.makeLibrary(URL: url)
+            } catch {
+                throw RenderError.shaderCompilation("Could not load the prebuilt library at \(url.path): \(error)")
+            }
+            self.init(library: loaded, prebuilt: true)
+            return
+        }
         var combined = ""
         for name in Self.sourceOrder {
             guard let url = bundle.url(forResource: name, withExtension: "metal", subdirectory: "Shaders")
@@ -55,6 +79,11 @@ public struct ShaderLibrary {
             combined += Self.strippingLocalIncludes(try String(contentsOf: url, encoding: .utf8)) + "\n"
         }
         try self.init(device: device, source: combined)
+    }
+
+    private init(library: MTLLibrary, prebuilt: Bool) {
+        self.library = library
+        self.prebuilt = prebuilt
     }
 
     /// Compiles explicit source. Used by tests that append a probe kernel to
@@ -70,6 +99,7 @@ public struct ShaderLibrary {
         } catch {
             throw RenderError.shaderCompilation(String(describing: error))
         }
+        prebuilt = false
     }
 
     /// The concatenated shared sources, for tests that build on them.

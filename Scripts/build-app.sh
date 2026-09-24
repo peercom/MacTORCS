@@ -7,7 +7,22 @@ bin_dir="$(swift build -c release --show-bin-path)"
 app_dir="$PWD/build/TORCSMac.app"
 mkdir -p "$app_dir/Contents/MacOS" "$app_dir/Contents/Resources"
 cp "$bin_dir/TORCSMac" "$app_dir/Contents/MacOS/TORCSMac"
-cp -R "$bin_dir/TORCSMac_TORCSMetal.bundle" "$app_dir/Contents/Resources/"
+# Every package resource bundle the app links, and none of the test ones.
+# The render path's shaders live in TORCSMac_TORCSRender.bundle; without it
+# beside the executable the app only finds them through the build
+# directory baked into the binary, which a shipped copy does not have.
+render_bundle="$bin_dir/TORCSMac_TORCSRender.bundle"
+[[ -d "$render_bundle" ]] || { echo "missing $render_bundle" >&2; exit 1; }
+rm -rf "$app_dir/Contents/Resources"/TORCSMac_*.bundle
+for bundle in "$bin_dir"/TORCSMac_*.bundle; do
+    name="$(basename "$bundle" .bundle)"
+    # Only packages that still exist: a stale bundle from a deleted package
+    # lingers in the build directory and must not ship.
+    [[ -d "Packages/${name#TORCSMac_}" ]] || continue
+    cp -R "$bundle" "$app_dir/Contents/Resources/"
+done
+# Prebuilt shader library: no compilation at launch, no stalls in a race.
+Scripts/build-shaders.sh "$app_dir/Contents/Resources/TORCSMac_TORCSRender.bundle/Shaders/TORCSRender.metallib"
 cp LICENSE THIRD_PARTY_NOTICES.md "$app_dir/Contents/Resources/"
 cat > "$app_dir/Contents/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>

@@ -129,6 +129,7 @@ import TORCSTrackMesh
         let summary: [String: Any] = [
             "cameras": report.count,
             "particleSourcesAtRest": sources.count,
+            "shadersPrebuilt": renderer.shadersPrebuilt,
             "resources": resources.resources.count,
             "terrainResource": resources.terrainResource ?? -1,
             "texturesUploaded": resources.textures.count,

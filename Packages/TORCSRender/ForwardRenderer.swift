@@ -275,7 +275,9 @@ public final class ForwardRenderer {
         self.device = device
         self.queue = queue
         self.settings = settings
-        let library = try ShaderLibrary(device: device).library
+        let shaders = try ShaderLibrary(device: device)
+        let library = shaders.library
+        shadersPrebuilt = shaders.prebuilt
 
         func forwardPipeline(alphaTest: Bool, blend: Bool) throws -> MTLRenderPipelineState {
             let constants = MTLFunctionConstantValues()
@@ -563,13 +565,15 @@ public final class ForwardRenderer {
                 postProduced = motionBlur.encode(into: commands, targets: targets, source: targets.colour) != nil
             }
             do {
-                if spatialUpscaler?.matches(renderWidth: targets.renderWidth, renderHeight: targets.renderHeight,
-                                            outputWidth: targets.outputWidth, outputHeight: targets.outputHeight) != true {
-                    spatialUpscaler = try SpatialUpscaler(device: device,
-                                                          renderWidth: targets.renderWidth, renderHeight: targets.renderHeight,
-                                                          outputWidth: targets.outputWidth, outputHeight: targets.outputHeight)
+                let key = SIMD2(targets.renderWidth, targets.renderHeight)
+                if spatialUpscalers[key]?.matches(renderWidth: targets.renderWidth, renderHeight: targets.renderHeight,
+                                                 outputWidth: targets.outputWidth, outputHeight: targets.outputHeight) != true {
+                    spatialUpscalers[key] = try SpatialUpscaler(device: device,
+                                                                renderWidth: targets.renderWidth, renderHeight: targets.renderHeight,
+                                                                outputWidth: targets.outputWidth, outputHeight: targets.outputHeight)
                     upscalerBuildCount += 1
                 }
+                spatialUpscaler = spatialUpscalers[key]
                 try spatialUpscaler?.encode(into: commands, targets: targets,
                                             source: postProduced ? targets.postColour! : targets.colour)
                 upscaleProduced = spatialUpscaler != nil
@@ -637,9 +641,42 @@ public final class ForwardRenderer {
     }
 
     public private(set) var lastUpscalerError: String?
-    /// Diagnostic: how many times the scaler has been constructed. Should be
+    /// Diagnostic: how many times a scaler has been constructed. Should be
     /// one per resolution, not one per frame.
     public private(set) var upscalerBuildCount = 0
+    /// Whether the shaders came from a prebuilt library rather than source.
+    public private(set) var shadersPrebuilt = false
+    /// Spatial scalers by render size, kept so a dynamic-resolution step
+    /// never constructs one mid-race; `prewarmSpatialScalers` fills it.
+    private var spatialUpscalers: [SIMD2<Int>: SpatialUpscaler] = [:]
+    private var prewarmedOutput: SIMD2<Int>?
+
+    /// Builds the spatial scaler for every step of the resolution ladder at
+    /// this output size, so the first frame at a new scale does not stall.
+    /// Returns how many it built.
+    @discardableResult
+    public func prewarmSpatialScalers(outputWidth: Int, outputHeight: Int) throws -> Int {
+        guard settings.upscaling, settings.upscalingMode == .spatial else { return 0 }
+        var built = 0
+        for scale in DynamicResolutionController.ladder where scale < 0.999 && scale <= settings.renderScale + 1e-4 {
+            let render = settings.renderSize(output: (outputWidth, outputHeight), scale: scale)
+            let key = SIMD2(render.width, render.height)
+            if spatialUpscalers[key]?.matches(renderWidth: render.width, renderHeight: render.height,
+                                             outputWidth: outputWidth, outputHeight: outputHeight) == true { continue }
+            spatialUpscalers[key] = try SpatialUpscaler(device: device, renderWidth: render.width, renderHeight: render.height,
+                                                        outputWidth: outputWidth, outputHeight: outputHeight)
+            upscalerBuildCount += 1
+            built += 1
+        }
+        prewarmedOutput = SIMD2(outputWidth, outputHeight)
+        return built
+    }
+
+    /// Pre-warms once per output size; presentation calls this every frame.
+    func prewarmIfNeeded(outputWidth: Int, outputHeight: Int) throws {
+        guard prewarmedOutput != SIMD2(outputWidth, outputHeight) else { return }
+        try prewarmSpatialScalers(outputWidth: outputWidth, outputHeight: outputHeight)
+    }
 
     public func encode(into commands: MTLCommandBuffer, targets: FrameTargets,
                        resources: [SceneResources], instances: [RenderInstance],
