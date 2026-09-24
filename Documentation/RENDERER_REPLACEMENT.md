@@ -738,11 +738,19 @@ The default preset runs half resolution. The march is twenty-four steps
 with four refinements and a maximum reach of sixty metres; the cost is in
 the steps, and a depth pyramid would let the reach grow without them.
 
+### Filtered
+
+The march jitters its steps per pixel to avoid banding, and unfiltered that
+jitter is a dither that crawls with the camera. A depth-aware 4×4 blur at
+the traced resolution — the occlusion pass's filter, reused — removes it;
+confidence is blurred with the radiance so the two agree at the edge of a
+hit region, and samples across a depth discontinuity are rejected so a
+reflection cannot bleed off its surface.
+
 ### Not done
 
-The traced result is not filtered: the per-pixel jitter shows as dither on
-the reflection, and a depth-aware blur or temporal reuse is the standard
-next step. Rough surfaces get no reflection, by design, and glass traces
+Temporal reuse would let the march take fewer steps for the same result.
+Rough surfaces get no reflection, by design, and glass traces
 from the depth of what is behind it, since the prepass is opaque-only —
 visually a few tens of centimetres off, and acceptable.
 

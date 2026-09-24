@@ -151,6 +151,34 @@ fragment float4 reflectionFragment(FullscreenVarying in [[stage_in]],
     return float4(radiance, confidence);
 }
 
+/// Depth-aware 4×4 blur of the traced result, at the traced resolution. The
+/// march jitters its steps per pixel to avoid banding; unfiltered, that
+/// jitter is a dither that crawls as the camera moves. Samples across a
+/// depth discontinuity are rejected so a reflection does not bleed off its
+/// surface; confidence is blurred with the radiance so the two stay
+/// consistent at the edges of a hit region.
+fragment float4 reflectionBlurFragment(FullscreenVarying in [[stage_in]],
+                                       texture2d<float> traced [[texture(0)]],
+                                       depth2d<float> depth [[texture(1)]],
+                                       constant ReflectionUniforms &u [[buffer(0)]]) {
+    constexpr sampler pointSampler(coord::normalized, address::clamp_to_edge, filter::nearest);
+    float centreDepth = reflectionLinearDepth(depth.sample(pointSampler, in.uv), u);
+    if (centreDepth > 1e6f) { return float4(0.0f); }
+    float2 texel = 1.0f / float2(traced.get_width(), traced.get_height());
+    float4 total = 0.0f;
+    float weightSum = 0.0f;
+    for (int y = -2; y < 2; ++y) {
+        for (int x = -2; x < 2; ++x) {
+            float2 uv = in.uv + float2(float(x) + 0.5f, float(y) + 0.5f) * texel;
+            float sampleDepth = reflectionLinearDepth(depth.sample(pointSampler, uv), u);
+            float weight = saturate(1.0f - abs(sampleDepth - centreDepth) / (centreDepth * 0.04f));
+            total += traced.sample(pointSampler, uv) * weight;
+            weightSum += weight;
+        }
+    }
+    return weightSum > 0.0f ? total / weightSum : traced.sample(pointSampler, in.uv);
+}
+
 /// Adds `confidence · weight · (reflected − probe)` onto the scene colour.
 /// Bound with one/one additive blending, so a negative difference darkens
 /// the pixel exactly where the probe overstated it.

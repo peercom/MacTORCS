@@ -17,8 +17,10 @@ public final class ReflectionRenderer {
 
     private let device: MTLDevice
     private let trace: MTLRenderPipelineState
+    private let blur: MTLRenderPipelineState
     private let composite: MTLRenderPipelineState
     private var traced: MTLTexture?
+    private var smoothed: MTLTexture?
     private var frameIndex: UInt32 = 0
 
     /// How far a ray is followed, in metres. Beyond this the probe is close
@@ -42,6 +44,13 @@ public final class ReflectionRenderer {
         traceDescriptor.colorAttachments[0].pixelFormat = Self.format
         trace = try device.makeRenderPipelineState(descriptor: traceDescriptor)
 
+        let blurDescriptor = MTLRenderPipelineDescriptor()
+        blurDescriptor.label = "reflectionBlurFragment"
+        blurDescriptor.vertexFunction = library.makeFunction(name: "fullscreenVertex")
+        blurDescriptor.fragmentFunction = library.makeFunction(name: "reflectionBlurFragment")
+        blurDescriptor.colorAttachments[0].pixelFormat = Self.format
+        blur = try device.makeRenderPipelineState(descriptor: blurDescriptor)
+
         let compositeDescriptor = MTLRenderPipelineDescriptor()
         compositeDescriptor.label = "reflectionCompositeFragment"
         compositeDescriptor.vertexFunction = library.makeFunction(name: "fullscreenVertex")
@@ -58,18 +67,22 @@ public final class ReflectionRenderer {
         composite = try device.makeRenderPipelineState(descriptor: compositeDescriptor)
     }
 
-    public var byteCount: Int { traced.map { $0.width * $0.height * 8 } ?? 0 }
+    public var byteCount: Int { [traced, smoothed].compactMap { $0 }.reduce(0) { $0 + $1.width * $1.height * 8 } }
 
-    private func target(width: Int, height: Int) -> MTLTexture? {
-        if let traced, traced.width == width, traced.height == height { return traced }
+    private func targets(width: Int, height: Int) -> (MTLTexture, MTLTexture)? {
+        if let traced, let smoothed, traced.width == width, traced.height == height { return (traced, smoothed) }
         let descriptor = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: Self.format, width: width,
                                                                   height: height, mipmapped: false)
         descriptor.usage = [.renderTarget, .shaderRead]
         descriptor.storageMode = .private
-        let texture = device.makeTexture(descriptor: descriptor)
-        texture?.label = "Reflections traced"
-        traced = texture
-        return texture
+        guard let a = device.makeTexture(descriptor: descriptor), let b = device.makeTexture(descriptor: descriptor) else {
+            return nil
+        }
+        a.label = "Reflections traced"
+        b.label = "Reflections smoothed"
+        traced = a
+        smoothed = b
+        return (a, b)
     }
 
     @discardableResult
@@ -79,11 +92,12 @@ public final class ReflectionRenderer {
                        skyView: MTLTexture) -> MTLTexture? {
         guard quality != .off, targets.reflections else { result = nil; return nil }
         let divisor = quality == .half ? 2 : 1
-        guard let traced = target(width: max(1, targets.renderWidth / divisor),
-                                  height: max(1, targets.renderHeight / divisor)) else {
+        guard let pair = self.targets(width: max(1, targets.renderWidth / divisor),
+                                      height: max(1, targets.renderHeight / divisor)) else {
             result = nil
             return nil
         }
+        let (traced, smoothed) = pair
         let sunView = view * SIMD4(simd_normalize(sunDirection), 0)
         var uniforms = ReflectionUniforms(
             projection: projection, inverseProjection: projection.inverse, view: view,
@@ -108,6 +122,20 @@ public final class ReflectionRenderer {
             encoder.endEncoding()
         }
 
+        let blurPass = MTLRenderPassDescriptor()
+        blurPass.colorAttachments[0].texture = smoothed
+        blurPass.colorAttachments[0].loadAction = .dontCare
+        blurPass.colorAttachments[0].storeAction = .store
+        if let encoder = commands.makeRenderCommandEncoder(descriptor: blurPass) {
+            encoder.label = "Reflection blur"
+            encoder.setRenderPipelineState(blur)
+            encoder.setFragmentTexture(traced, index: 0)
+            encoder.setFragmentTexture(targets.depth, index: 1)
+            encoder.setFragmentBytes(&uniforms, length: MemoryLayout<ReflectionUniforms>.stride, index: 0)
+            encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
+            encoder.endEncoding()
+        }
+
         let compositePass = MTLRenderPassDescriptor()
         compositePass.colorAttachments[0].texture = targets.colour
         compositePass.colorAttachments[0].loadAction = .load
@@ -115,7 +143,7 @@ public final class ReflectionRenderer {
         if let encoder = commands.makeRenderCommandEncoder(descriptor: compositePass) {
             encoder.label = "Reflection composite"
             encoder.setRenderPipelineState(composite)
-            encoder.setFragmentTexture(traced, index: 0)
+            encoder.setFragmentTexture(smoothed, index: 0)
             encoder.setFragmentTexture(targets.reflectionSurface, index: 1)
             encoder.setFragmentTexture(targets.depth, index: 2)
             encoder.setFragmentTexture(skyView, index: 3)
@@ -123,8 +151,8 @@ public final class ReflectionRenderer {
             encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
             encoder.endEncoding()
         }
-        result = traced
-        return traced
+        result = smoothed
+        return smoothed
     }
 
     public func discard() { result = nil }
