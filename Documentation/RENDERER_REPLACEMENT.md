@@ -1371,6 +1371,34 @@ puts a swaying card out of view with a low sun throwing its shadow across
 the ground in view: the shadow region changes between two animation times,
 and with the card not casting, nothing in view changes at all.
 
+## Sustained, again, with everything on
+
+The earlier sustained runs measured the default preset on the bare generated
+road. This one is the whole session as the app now draws it — generated
+road, terrain, trees with their detail pairs, grass, the generated
+materials, rubber, occlusion, reflections, bloom, motion blur — on the M2
+Air preset with dynamic resolution armed, orbiting for four minutes at
+native 2560×1664:
+
+| window | median | p95 | scale |
+|---|---|---|---|
+| 0–15 s | 8.73 ms | 14.6 ms | 1.00 |
+| 60 s | 8.67 ms | 9.2 ms | 1.00 |
+| 120 s | 8.69 ms | 13.2 ms | 1.00 |
+| 180 s | 8.66 ms | 9.0 ms | 1.00 |
+| 225–240 s | 8.64 ms | 9.0 ms | 1.00 |
+
+First window to last, −1.0 %: no throttle in four minutes, the controller
+never stepped, and the frame stayed inside the plan's 10.5 ms target with
+the whole scene on. At 1280×832 the same session holds 3.47 ms flat for two
+minutes. The earlier run that throttled at three and a half minutes was on
+a warmer chip; this one was not, which is the reason the controller is
+there rather than a tuning parameter, and why absolute figures in this
+document are always paired with the window they came from.
+
+The p95 spikes in the early windows are the material and atlas uploads and
+the first pipeline uses; they are gone by the third minute.
+
 ## Licensing
 
 No third-party artwork is imported by this work. New render source is
