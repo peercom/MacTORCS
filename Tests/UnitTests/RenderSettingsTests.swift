@@ -1,15 +1,27 @@
 // SPDX-License-Identifier: GPL-2.0-only
 import XCTest
+import simd
 import TORCSRender
 
 final class RenderSettingsTests: XCTestCase {
     let retina = (width: 2560, height: 1664)
 
-    func testDefaultPresetTargetsHalfResolutionOnTheAir() {
+    /// The default preset renders natively. Upscaling is implemented but off:
+    /// the renderer is submission-bound, so a lower render resolution saves
+    /// nothing while the upscaler costs a fixed amount. The half-resolution
+    /// scale is retained for when that ceases to be true.
+    func testDefaultPresetRendersNativelyWithUpscalingAvailable() {
         let settings = RenderSettings(preset: .m2Air)
-        XCTAssertEqual(settings.renderScale, 0.5)
-        XCTAssertTrue(settings.temporalUpscaling)
-        XCTAssertTrue(settings.dynamicResolution)
+        XCTAssertEqual(settings.renderScale, 0.5, "the scale to use once upscaling pays for itself")
+        XCTAssertFalse(settings.temporalUpscaling)
+        let size = settings.renderSize(output: retina)
+        XCTAssertEqual(size.width, retina.width, "upscaling off means rendering at output resolution")
+        XCTAssertEqual(size.height, retina.height)
+    }
+
+    func testEnablingUpscalingHalvesTheRenderSize() {
+        var settings = RenderSettings(preset: .m2Air)
+        settings.temporalUpscaling = true
         let size = settings.renderSize(output: retina)
         XCTAssertEqual(size.width, 1280)
         XCTAssertEqual(size.height, 832)
@@ -43,7 +55,7 @@ final class RenderSettingsTests: XCTestCase {
 
     func testPresetsAreOrderedByCost() {
         let air = RenderSettings(preset: .m2Air), high = RenderSettings(preset: .high)
-        XCTAssertLessThan(air.renderScale, high.renderScale)
+        XCTAssertLessThanOrEqual(air.renderScale, high.renderScale)
         XCTAssertLessThanOrEqual(air.shadowResolution, high.shadowResolution)
         XCTAssertLessThanOrEqual(air.ambientOcclusion, high.ambientOcclusion)
         XCTAssertLessThan(air.textureMemoryBudgetBytes, high.textureMemoryBudgetBytes)
@@ -124,6 +136,72 @@ final class DynamicResolutionControllerTests: XCTestCase {
         for step in DynamicResolutionController.ladder {
             let controller = DynamicResolutionController(initialScale: step)
             XCTAssertEqual(controller.scale, step, "ladder step \(step) not selectable")
+        }
+    }
+}
+
+final class TemporalUpscalingTests: XCTestCase {
+    /// Halton is low-discrepancy: a short sequence must cover the pixel evenly
+    /// rather than clustering, or temporal accumulation converges to a biased
+    /// result instead of the true image.
+    func testJitterCoversThePixelWithoutClustering() {
+        var xs: [Float] = [], ys: [Float] = []
+        for index in 0 ..< 16 {
+            let offset = JitterSequence.offset(at: index, length: 16)
+            XCTAssertGreaterThanOrEqual(offset.x, -0.5)
+            XCTAssertLessThanOrEqual(offset.x, 0.5)
+            XCTAssertGreaterThanOrEqual(offset.y, -0.5)
+            XCTAssertLessThanOrEqual(offset.y, 0.5)
+            xs.append(offset.x); ys.append(offset.y)
+        }
+        // Mean near zero, or the accumulated image sits off-centre.
+        XCTAssertEqual(xs.reduce(0, +) / 16, 0, accuracy: 0.1)
+        XCTAssertEqual(ys.reduce(0, +) / 16, 0, accuracy: 0.1)
+        // Every sample distinct: a repeat wastes a phase.
+        XCTAssertEqual(Set(xs.map { Int($0 * 10_000) }).count, 16)
+    }
+
+    func testJitterSequenceIsDeterministicAndRepeats() {
+        var sequence = JitterSequence(length: 8)
+        let first = (0 ..< 8).map { _ in sequence.next() }
+        let second = (0 ..< 8).map { _ in sequence.next() }
+        XCTAssertEqual(first, second, "sequence must repeat so a golden image can pin a phase")
+        var other = JitterSequence(length: 8)
+        XCTAssertEqual(first, (0 ..< 8).map { _ in other.next() }, "two sequences must agree")
+    }
+
+    /// The jitter belongs in the projection's z column, because the perspective
+    /// divide turns it into a constant screen-space offset. Putting it anywhere
+    /// else would scale it with depth.
+    func testJitterOffsetsClipSpaceUniformlyWithDepth() {
+        let camera = RenderCamera(eye: SIMD3(0, -10, 2), target: SIMD3(0, 0, 1))
+        let projection = camera.projection(aspect: 1.5)
+        let jittered = RenderCamera.jittered(projection, jitter: SIMD2(0.25, -0.25),
+                                             renderWidth: 1280, renderHeight: 832)
+        for depth in [Float(-2), -20, -200] {
+            let point = SIMD4<Float>(1, 0.5, depth, 1)
+            let plain = projection * point, moved = jittered * point
+            let plainNDC = SIMD2(plain.x / plain.w, plain.y / plain.w)
+            let movedNDC = SIMD2(moved.x / moved.w, moved.y / moved.w)
+            // A quarter pixel of 1280 is 2 * 0.25 / 1280 in NDC.
+            XCTAssertEqual(movedNDC.x - plainNDC.x, 2 * 0.25 / 1280, accuracy: 1e-6, "depth \(depth)")
+            XCTAssertEqual(movedNDC.y - plainNDC.y, 2 * 0.25 / 832, accuracy: 1e-6, "depth \(depth)")
+        }
+    }
+
+    func testMipBiasMatchesTheUpscaleRatio() {
+        // Half linear resolution needs one mip level of extra detail.
+        XCTAssertEqual(RenderCamera.mipBias(renderWidth: 1280, outputWidth: 2560), -1, accuracy: 1e-5)
+        XCTAssertEqual(RenderCamera.mipBias(renderWidth: 2560, outputWidth: 2560), 0, accuracy: 1e-5)
+        XCTAssertEqual(RenderCamera.mipBias(renderWidth: 0, outputWidth: 2560), 0)
+    }
+
+    /// Off by default because it measured as a net loss: the renderer is
+    /// submission-bound, not pixel-bound.
+    func testUpscalingIsOffInEveryPreset() {
+        for preset in RenderSettings.Preset.allCases {
+            XCTAssertFalse(RenderSettings(preset: preset).temporalUpscaling,
+                           "\(preset) enables upscaling; measurement says it costs more than it saves")
         }
     }
 }

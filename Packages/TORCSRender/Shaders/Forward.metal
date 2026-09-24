@@ -20,14 +20,23 @@ using namespace metal;
 /// each column of a `float3x3` likewise; mixing those with tighter Swift types
 /// is a classic source of silent uniform corruption, so they are avoided.
 struct FrameUniforms {
+    /// Jittered, and therefore what geometry is rasterized with.
     float4x4 viewProjection;
     float4x4 view;
     /// Reconstructs world-space view rays in the fullscreen sky pass.
     float4x4 inverseViewProjection;
+    /// Unjittered current and previous transforms, used only for motion
+    /// vectors. Jitter is a sampling offset, not motion: including it would
+    /// feed the upscaler the subpixel shimmer it exists to remove.
+    float4x4 unjitteredViewProjection;
+    float4x4 previousViewProjection;
     float4 cameraPosition;      // w unused
     float4 sunDirection;        // xyz points toward the sun, w unused
     float4 sunIlluminance;      // linear RGB, w holds the exposure scale
     float4 ambientIrradiance;   // flat ambient until real IBL lands, w unused
+    /// xy input render size in pixels (motion vectors are in those pixels),
+    /// z texture mip bias, w unused.
+    float4 renderSize;
 };
 
 struct DrawUniforms {
@@ -52,6 +61,9 @@ struct DrawUniforms {
 struct InstanceUniforms {
     float4x4 model;
     float4x4 normalMatrix;
+    /// Where this instance was last frame. Equal to `model` for static
+    /// geometry, which makes its motion purely the camera's.
+    float4x4 previousModel;
 };
 
 struct ForwardVarying {
@@ -63,6 +75,30 @@ struct ForwardVarying {
     float4 tangent;
     float2 uv0;
     float2 uv1;
+    /// Unjittered clip positions, for the motion vector.
+    float4 currentClip;
+    float4 previousClip;
+};
+
+/// Converts a pair of clip positions into the motion vector MetalFX expects:
+/// the offset in input pixels from this pixel to where it was last frame, in
+/// Metal's device coordinates with the origin at the upper left.
+inline float2 motionVector(float4 currentClip, float4 previousClip, float2 renderSize) {
+    // A vertex behind the eye has a degenerate projection; treat it as static
+    // rather than emitting a wild vector the history would smear.
+    if (abs(currentClip.w) < 1e-6f || abs(previousClip.w) < 1e-6f) { return float2(0.0f); }
+    float2 current = currentClip.xy / currentClip.w;
+    float2 previous = previousClip.xy / previousClip.w;
+    // Clip to UV: x maps directly, y flips because clip space is y-up and
+    // device coordinates are y-down.
+    float2 currentUV = current * float2(0.5f, -0.5f) + 0.5f;
+    float2 previousUV = previous * float2(0.5f, -0.5f) + 0.5f;
+    return (previousUV - currentUV) * renderSize;
+}
+
+struct ForwardOutput {
+    float4 colour [[color(0)]];
+    float2 velocity [[color(1)]];
 };
 
 /// Set when the material needs an alpha cutout. Specialized as a function
@@ -89,10 +125,13 @@ vertex ForwardVarying forwardVertex(uint id [[vertex_id]],
     out.tangent = float4((instance.model * draw.model * float4(tangent.xyz, 0.0f)).xyz, tangent.w);
     out.uv0 = float2(v.uv0);
     out.uv1 = float2(v.uv1);
+    out.currentClip = frame.unjitteredViewProjection * world;
+    out.previousClip = frame.previousViewProjection * instance.previousModel * draw.model
+                     * float4(float3(v.position), 1.0f);
     return out;
 }
 
-fragment float4 forwardFragment(ForwardVarying in [[stage_in]],
+fragment ForwardOutput forwardFragment(ForwardVarying in [[stage_in]],
                                 constant FrameUniforms &frame [[buffer(1)]],
                                 constant DrawUniforms &draw [[buffer(2)]],
                                 texture2d<float> albedoMap [[texture(0)]],
@@ -109,20 +148,24 @@ fragment float4 forwardFragment(ForwardVarying in [[stage_in]],
     float4 albedo = draw.baseColour;
     if (draw.maps.x != 0) {
         // The albedo texture is bound as sRGB, so hardware returns linear.
-        albedo *= albedoMap.sample(surfaceSampler, in.uv0);
+        // The negative mip bias is what gives temporal upscaling something to
+        // reconstruct: sampling at the render resolution would otherwise select
+        // mips for that resolution and the upscaled image would just be a
+        // blurry half-resolution one.
+        albedo *= albedoMap.sample(surfaceSampler, in.uv0, bias(frame.renderSize.z));
     }
     if (forwardAlphaTest && albedo.a <= draw.parameters.y) { discard_fragment(); }
 
     float3x3 basis = tangentBasis(in.normal, in.tangent);
     float3 normal = basis[2];
     if (draw.maps.y != 0) {
-        float2 encoded = normalMap.sample(surfaceSampler, in.uv0).xy;
+        float2 encoded = normalMap.sample(surfaceSampler, in.uv0, bias(frame.renderSize.z)).xy;
         normal = normalize(basis * unpackNormalMap(encoded, draw.parameters.x));
     }
 
     float roughness = draw.material.x, metallic = draw.material.y, occlusion = 1.0f;
     if (draw.maps.z != 0) {
-        float3 orm = ormMap.sample(surfaceSampler, in.uv0).xyz;
+        float3 orm = ormMap.sample(surfaceSampler, in.uv0, bias(frame.renderSize.z)).xyz;
         occlusion = orm.x;
         roughness *= orm.y;
         metallic *= orm.z;
@@ -174,7 +217,25 @@ fragment float4 forwardFragment(ForwardVarying in [[stage_in]],
                                          normalize(frame.sunDirection.xyz), frame.sunIlluminance.rgb,
                                          transmittanceLUT, multiScatterLUT, transmittance);
     colour = colour * transmittance + inScatter;
-    return float4(colour, albedo.a);
+
+    ForwardOutput out;
+    out.colour = float4(colour, albedo.a);
+    out.velocity = motionVector(in.currentClip, in.previousClip, frame.renderSize.xy);
+    return out;
+}
+
+/// Depth-only fragment for alpha-tested geometry.
+///
+/// Cutouts cannot be depth-only with a nil fragment function: visibility
+/// depends on the texture, so the prepass has to sample and discard exactly as
+/// the forward pass will, or foliage writes depth where it is transparent.
+fragment void depthOnlyFragment(ForwardVarying in [[stage_in]],
+                                constant DrawUniforms &draw [[buffer(2)]],
+                                texture2d<float> albedoMap [[texture(0)]],
+                                sampler surfaceSampler [[sampler(0)]]) {
+    float alpha = draw.baseColour.a;
+    if (draw.maps.x != 0) { alpha *= albedoMap.sample(surfaceSampler, in.uv0).a; }
+    if (alpha <= draw.parameters.y) { discard_fragment(); }
 }
 
 // MARK: - Fullscreen resolve

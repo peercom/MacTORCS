@@ -185,10 +185,18 @@ static RefWorld *createWorld(const char *trackPath,const char *carPath,const cha
     // XML. This tool is for pinned fixtures, not an untrusted-content importer.
     void *trackParameters = GfParmReadFile(trackPath, GFPARM_RMODE_STD | GFPARM_RMODE_PRIVATE);
     if (!trackParameters) return fail("Original parameter parser could not load track XML/entities");
-    bool supported = GfParmGetNum(trackParameters, TRK_SECT_HDR, TRK_ATT_VERSION, nullptr, 0) == 4 &&
-        GfParmGetEltNb(trackParameters, "Main Track/Track Segments") > 0;
+    // Versions 0 through 3 use one schema and 4 another; the original loader
+    // dispatches on this and handles both. The preflight accepts either,
+    // checking the segment list each schema actually uses, so the harness can
+    // serve as an oracle for a version-3 port. The nonempty requirement stays:
+    // this is for pinned content, not untrusted input.
+    const double version = GfParmGetNum(trackParameters, TRK_SECT_HDR, TRK_ATT_VERSION, nullptr, 0);
+    const bool supported =
+        (version == 4 && GfParmGetEltNb(trackParameters, TRK_SECT_MAIN "/" TRK_LST_SEGMENTS) > 0) ||
+        (version >= 0 && version <= 3 &&
+         GfParmGetEltNb(trackParameters, TRK_SECT_MAIN "/" TRK_LST_SEG) > 0);
     GfParmReleaseHandle(trackParameters);
-    if (!supported) return fail("Reference harness currently requires a nonempty version-4 track");
+    if (!supported) return fail("Reference harness requires a nonempty version 0-4 track");
     srand(seed);
     world->track = TrackBuildv1(const_cast<char *>(trackPath));
     if (!world->track || !world->track->seg || world->track->length <= 0) return fail("Original track construction failed");

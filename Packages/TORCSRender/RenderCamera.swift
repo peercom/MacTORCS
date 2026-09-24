@@ -107,3 +107,38 @@ public struct SunLighting: Equatable, Sendable {
     public var exposureScale: Float { Exposure.scale(ev100: exposureEV100) }
 }
 
+
+public extension RenderCamera {
+    /// Applies a subpixel sample offset to the projection.
+    ///
+    /// A perspective matrix's clip x and y pick up a constant screen-space
+    /// offset from its z column, because the perspective divide is by -z. So
+    /// the jitter goes there, and nothing else about the projection changes.
+    ///
+    /// `jitter` is in device pixels with y downward, matching how MetalFX
+    /// expects to be told about it.
+    ///
+    /// Both signs are inverted relative to the obvious form, for two separate
+    /// reasons that happen to compose. This projection divides by `w = -z`, so
+    /// a term added to the z column reaches normalized coordinates negated. And
+    /// clip space is y-up while device pixels are y-down, flipping y once more.
+    static func jittered(_ projection: simd_float4x4, jitter: SIMD2<Float>,
+                         renderWidth: Int, renderHeight: Int) -> simd_float4x4 {
+        guard renderWidth > 0, renderHeight > 0 else { return projection }
+        var jittered = projection
+        jittered.columns.2.x -= 2 * jitter.x / Float(renderWidth)
+        jittered.columns.2.y += 2 * jitter.y / Float(renderHeight)
+        return jittered
+    }
+
+    /// Mip bias that keeps an upscaled image from reproducing a blurry
+    /// half-resolution one.
+    ///
+    /// Sampling at the render resolution selects mips for that resolution, so
+    /// without this the upscaler has no high-frequency detail to reconstruct.
+    /// The standard bias is log2 of the scale factor.
+    static func mipBias(renderWidth: Int, outputWidth: Int) -> Float {
+        guard renderWidth > 0, outputWidth > 0 else { return 0 }
+        return log2(Float(renderWidth) / Float(outputWidth))
+    }
+}

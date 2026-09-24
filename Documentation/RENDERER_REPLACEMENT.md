@@ -214,10 +214,13 @@ Offscreen, 1280x832, Apple M2, against a ~10.5 ms per-frame budget:
 | 155-DTM, all of the above | 1.796 ms |
 
 Against a ~10.5 ms budget at 1280x832. The terrain step is the largest single
-increase and is almost entirely overdraw rather than geometry: 6,736 triangles
-is negligible, but the apron fills the frame with a fragment shader running
-eight aerial-perspective steps and eight shadow taps. That is the argument for
-moving the depth prepass ahead of ambient occlusion and reflections.
+increase: 6,736 triangles is negligible, but the apron fills the frame with a
+fragment shader running eight aerial-perspective steps and eight shadow taps.
+
+That was initially attributed to overdraw. It is not — see the depth prepass
+measurement below. The terrain replaced cheap sky pixels with expensive shaded
+ones, so the cost is in *visible* pixels, and the remedies are a cheaper
+fragment shader or fewer pixels, not a prepass.
 
 Atmosphere table construction costs about 12 ms once at load. It is startup
 cost, not frame cost; measuring a single render rather than a warmed sequence
@@ -231,6 +234,90 @@ per the asset package's rule never to silently replace a missing dependency.
 
 This is a correct pipeline, not yet a good-looking one: no shadows, no
 atmosphere, no ambient occlusion, no reflections, and 256-square source art.
+
+## Depth prepass: measured, and not worth shipping
+
+Implemented behind `RenderSettings.depthPrepass`, off in every preset.
+
+Interleaved A/B within one process, 20 warmup frames then 60 samples per
+configuration alternating frame by frame, 1280x832:
+
+| View | Off | On | Delta |
+|---|---|---|---|
+| Trackside, terrain filling the frame | 3.765 ms | 3.676 ms | -0.089 ms (-2.4%) |
+| Overhead, maximum geometry | 3.293 ms | 3.340 ms | +0.047 ms (+1.4%) |
+
+Both within noise, in opposite directions. This is what Apple's guidance
+predicts: the GPU removes hidden surfaces in hardware, so the prepass that pays
+for itself on immediate-mode architectures is redundant here and only adds a
+geometry submission.
+
+It also is not free in correctness. An equal-depth shading pass draws every
+surface that matches the stored depth, where a plain depth-ordered pass lets the
+comparison decide, so coplanar geometry and alpha-tested edges resolve
+differently: 1,867 of 1,064,960 pixels differ (0.175%), worst channel delta 55.
+
+The code and the setting are retained rather than deleted so the question does
+not have to be re-litigated from scratch, and so it can be re-measured if the
+forward fragment shader becomes substantially heavier.
+
+### The measurement methodology matters more than the result
+
+The first attempt measured a 39-46% improvement. That was a broken frame: the
+prepass ordering left the sky undrawn, and a black sky is cheap. Every
+performance claim now requires the rendered image to be checked, and the
+comparison to be pixel-diffed against the reference configuration.
+
+The second attempt, with correct images, produced contradictory results between
+views and a 3.3 to 5.2 ms spread for the *same* configuration minutes apart.
+This machine is fanless and its GPU clock falls under sustained load, so two
+configurations measured at different times are not comparable — the thermal
+drift was larger than the effect. Interleaving the configurations frame by frame
+within one process cancels it. The classic path's benchmarks already worked this
+way; this one did not, until it did.
+
+## The renderer is submission-bound, not pixel-bound
+
+The finding that reframes every performance decision so far. The same scene,
+same camera, same settings, varying only resolution:
+
+| Resolution | Pixels | GPU |
+|---|---|---|
+| 320x208 | 0.07 MP | 1.338 ms |
+| 640x416 | 0.27 MP | 1.306 ms |
+| 1280x832 | 1.06 MP | 1.305 ms |
+| 2560x1664 | 4.26 MP | 1.290 ms |
+
+A sixty-four-fold change in pixel count for no change in time. Shading is not
+the cost; 1,366 draw calls with per-draw uniform uploads are.
+
+This explains three earlier results that looked unrelated:
+
+- The depth prepass measured neutral. It reduces shaded pixels, and shaded
+  pixels are free here.
+- Terrain's 1.7 ms was attributed first to overdraw, then to visible pixels
+  running an expensive shader. Both were wrong. It added roughly 1,300 batches.
+- MetalFX temporal upscaling measures as a **net loss**: about 6.1 ms upscaled
+  from 1280x832 against 4.5 ms native at 2560x1664. Halving the render
+  resolution saves nothing, and the upscaler's fixed cost is pure addition.
+
+The work that would actually help is reducing submissions: merging the static
+track's batches, argument buffers, and indirect command buffers with GPU
+culling. Upscaling becomes the largest available lever only after that, which
+is why it is implemented and left switchable rather than deferred.
+
+### Temporal upscaling, implemented and off
+
+`MTLFXTemporalScaler` with Halton jitter, per-pixel motion vectors from
+unjittered current and previous transforms, a `log2` mip bias, and
+`isDepthReversed` set because this renderer maps near to 1.
+
+One correctness note worth keeping. The jitter offset applied to the projection
+is inverted twice over, for two independent reasons that compose: the projection
+divides by `w = -z`, so a term added to the z column arrives negated, and clip
+space is y-up while device pixels are y-down. A unit test asserts the resulting
+normalized offset is constant with depth, and caught the sign error — which
+would have shown up only as a subtly unstable image.
 
 ## Licensing
 

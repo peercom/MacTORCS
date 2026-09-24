@@ -26,6 +26,20 @@ public struct RenderSettings: Sendable, Equatable {
     /// Fraction of output resolution the scene is rendered at before temporal
     /// upscaling. Ignored when `temporalUpscaling` is off.
     public var renderScale: Float
+
+    /// MetalFX temporal upscaling. Implemented, working, and off by default.
+    ///
+    /// Measured on this content it is a net loss, because the renderer is not
+    /// pixel-bound: the same scene costs 1.34 ms at 320x208 and 1.29 ms at
+    /// 2560x1664, a 64-fold difference in pixel count for no difference in
+    /// time. 1,366 draw calls with per-draw uniform uploads dominate, so
+    /// halving the render resolution saves almost nothing while the upscaler
+    /// adds a fixed cost of roughly 1.5 ms.
+    ///
+    /// Turn it on once the renderer is submission-efficient — merged static
+    /// batches, argument buffers, indirect command buffers — and the fragment
+    /// shader is carrying real work. At that point it becomes the largest lever
+    /// available, which is why it is built rather than deferred.
     public var temporalUpscaling: Bool
     public var dynamicResolution: Bool
 
@@ -44,6 +58,15 @@ public struct RenderSettings: Sendable, Equatable {
     public var bloom: Bool
     public var motionBlur: Bool
 
+    /// Render a depth-only pass before shading.
+    ///
+    /// Off by default, and deliberately so. Apple GPUs remove hidden surfaces
+    /// in hardware, so the prepass that is standard on immediate-mode
+    /// architectures is usually redundant here and costs an extra geometry
+    /// submission. It is exposed as a setting so the claim can be measured on
+    /// real content rather than assumed either way.
+    public var depthPrepass: Bool
+
     /// Mirror passes render at this fraction of the main render resolution.
     public var mirrorScale: Float
 
@@ -55,7 +78,7 @@ public struct RenderSettings: Sendable, Equatable {
         switch preset {
         case .m2Air:
             renderScale = 0.5
-            temporalUpscaling = true
+            temporalUpscaling = false
             dynamicResolution = true
             shadowCascades = 4
             shadowResolution = 2048
@@ -66,11 +89,12 @@ public struct RenderSettings: Sendable, Equatable {
             reflectionRoughnessCutoff = 0.45
             bloom = true
             motionBlur = true
+            depthPrepass = false
             mirrorScale = 0.5
             textureMemoryBudgetBytes = 1_500_000_000
         case .balanced:
             renderScale = 0.67
-            temporalUpscaling = true
+            temporalUpscaling = false
             dynamicResolution = true
             shadowCascades = 4
             shadowResolution = 2048
@@ -81,11 +105,12 @@ public struct RenderSettings: Sendable, Equatable {
             reflectionRoughnessCutoff = 0.6
             bloom = true
             motionBlur = true
+            depthPrepass = false
             mirrorScale = 0.67
             textureMemoryBudgetBytes = 3_000_000_000
         case .high:
             renderScale = 1
-            temporalUpscaling = true
+            temporalUpscaling = false
             dynamicResolution = false
             shadowCascades = 4
             shadowResolution = 4096
@@ -96,6 +121,7 @@ public struct RenderSettings: Sendable, Equatable {
             reflectionRoughnessCutoff = 0.8
             bloom = true
             motionBlur = true
+            depthPrepass = false
             mirrorScale = 1
             textureMemoryBudgetBytes = 6_000_000_000
         }

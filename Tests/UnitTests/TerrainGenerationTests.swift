@@ -110,12 +110,44 @@ final class TerrainGenerationTests: XCTestCase {
         }
     }
 
-    /// Longitudinal UVs are in metres so a material sets its own texel density.
-    func testUVsAreInMetresAndGrowAlongTheTrack() throws {
+    /// UVs are world XY in metres.
+    ///
+    /// The ribbon generator parameterised them along and across the track,
+    /// which distorts wherever the track curves and cannot be made consistent
+    /// between neighbouring segments. A world-space planar mapping gives a
+    /// tiling material the same texel density everywhere, which is what ground
+    /// wants, and is well defined on a grid that does not follow the track.
+    func testUVsAreWorldMetresSoTilingIsUniform() throws {
         let road = try aalborg().road
-        let apron = TerrainGeneration.apron(road.geometry)
-        let longitudinal = apron.uv0.map(\.x)
-        XCTAssertGreaterThan(longitudinal.max() ?? 0, 1000, "expected kilometres of track length in UVs")
-        XCTAssertEqual(apron.uv0.map(\.y).max() ?? 0, 100, accuracy: 1, "lateral UV should reach the border margin")
+        let parameters = TerrainParameters(document: try aalborg().document)
+        let ground = TerrainGeneration.ground(road.geometry, parameters: parameters)
+        XCTAssertFalse(ground.isEmpty)
+
+        for (index, position) in ground.positions.enumerated() {
+            XCTAssertEqual(ground.uv0[index].x, position.x, accuracy: 1e-3, "UV x should be world x")
+            XCTAssertEqual(ground.uv0[index].y, position.y, accuracy: 1e-3, "UV y should be world y")
+        }
+        // Spans the circuit plus its margin on both sides.
+        let spanX = (ground.uv0.map(\.x).max() ?? 0) - (ground.uv0.map(\.x).min() ?? 0)
+        XCTAssertGreaterThan(spanX, 800, "expected the terrain to span the circuit and its margin")
+    }
+
+    /// The failure mode the ribbon generator had: on the inside of a curve its
+    /// outward march passed through the centre of curvature and inverted,
+    /// producing fans of degenerate triangles. A grid cannot do that, and this
+    /// pins it by checking no triangle collapses.
+    func testNoDegenerateTrianglesAtTightCorners() throws {
+        let road = try aalborg().road
+        let ground = TerrainGeneration.ground(road.geometry)
+        var degenerate = 0, triangle = 0
+        while triangle + 2 < ground.indices.count {
+            let a = ground.positions[Int(ground.indices[triangle])]
+            let b = ground.positions[Int(ground.indices[triangle + 1])]
+            let c = ground.positions[Int(ground.indices[triangle + 2])]
+            // Twice the triangle's area.
+            if simd_length(simd_cross(b - a, c - a)) < 1e-4 { degenerate += 1 }
+            triangle += 3
+        }
+        XCTAssertEqual(degenerate, 0, "\(degenerate) collapsed triangles of \(ground.triangleCount)")
     }
 }

@@ -128,6 +128,16 @@ public final class ForwardRenderer {
     let opaqueCutout: MTLRenderPipelineState
     let blended: MTLRenderPipelineState
     let blendedCutout: MTLRenderPipelineState
+    /// Depth-only variants for the optional prepass. They reuse the forward
+    /// vertex function rather than a simpler one: an equal-depth test in the
+    /// shading pass requires bit-identical positions, which is only guaranteed
+    /// if the same code computes them.
+    let depthOnly: MTLRenderPipelineState
+    let depthOnlyCutout: MTLRenderPipelineState
+    /// Writes depth, for the prepass.
+    let prepassDepthState: MTLDepthStencilState
+    /// Passes only where the prepass already wrote this exact depth.
+    let equalDepthState: MTLDepthStencilState
     /// Depth tested but not written, for the sorted transparent phase. Glass
     /// that wrote depth would hide whatever is behind it, including the rest of
     /// the same window.
@@ -140,13 +150,23 @@ public final class ForwardRenderer {
     /// depth-equal trickery needed to draw it last.
     let skyDepthState: MTLDepthStencilState
     public let atmosphere: AtmosphereResources
+    private var upscaler: TemporalUpscaler?
+    private var jitterSequence = JitterSequence()
+    /// Unjittered view-projection from the previous frame, for motion vectors.
+    private var previousViewProjection: simd_float4x4?
+    /// Previous instance transforms, keyed by resource. Static geometry keeps
+    /// its own transform, so only moving instances need tracking.
+    private var previousInstanceTransforms: [Int: simd_float4x4] = [:]
+    /// Jitter applied this frame, in render pixels.
+    public private(set) var currentJitter = SIMD2<Float>(0, 0)
     public let shadows: ShadowRenderer
     /// Distance beyond which nothing casts. Beyond this the cascades would be
     /// too coarse to read as shadows anyway, and aerial perspective has taken over.
     public var shadowDistance: Float = 400
     let sampler: MTLSamplerState
+    /// Mutable so a benchmark can alternate configurations within one process.
     public var settings: RenderSettings
-    private var targets: FrameTargets?
+    private var cachedTargets: FrameTargets?
 
     public private(set) var lastGPUTime: Double = 0
     /// Rolling GPU time, written from the command buffer completion handler and
@@ -188,6 +208,11 @@ public final class ForwardRenderer {
             descriptor.fragmentFunction = try library.makeFunction(name: "forwardFragment", constantValues: constants)
             let colour = descriptor.colorAttachments[0]!
             colour.pixelFormat = FrameTargets.colourFormat
+            // Motion vectors ride alongside scene colour. Blended draws must
+            // not blend into it: a velocity is a coordinate, not a quantity
+            // that can be averaged with what is behind it.
+            descriptor.colorAttachments[1].pixelFormat = FrameTargets.velocityFormat
+            if blend { descriptor.colorAttachments[1].writeMask = [] }
             if blend {
                 // Straight (non-premultiplied) source-alpha blending, matching
                 // what the original fixed-function path set up.
@@ -209,10 +234,30 @@ public final class ForwardRenderer {
         blended = try forwardPipeline(alphaTest: false, blend: true)
         blendedCutout = try forwardPipeline(alphaTest: true, blend: true)
 
+        func depthPipeline(alphaTest: Bool) throws -> MTLRenderPipelineState {
+            let constants = MTLFunctionConstantValues()
+            var enabled = alphaTest
+            constants.setConstantValue(&enabled, type: .bool, index: 0)
+            let descriptor = MTLRenderPipelineDescriptor()
+            descriptor.vertexFunction = try library.makeFunction(name: "forwardVertex", constantValues: constants)
+            // Opaque geometry needs no fragment stage at all; cutouts need one
+            // that samples and discards.
+            descriptor.fragmentFunction = alphaTest ? library.makeFunction(name: "depthOnlyFragment") : nil
+            descriptor.colorAttachments[0].pixelFormat = FrameTargets.colourFormat
+            descriptor.colorAttachments[0].writeMask = []
+            descriptor.colorAttachments[1].pixelFormat = FrameTargets.velocityFormat
+            descriptor.colorAttachments[1].writeMask = []
+            descriptor.depthAttachmentPixelFormat = FrameTargets.depthFormat
+            return try device.makeRenderPipelineState(descriptor: descriptor)
+        }
+        depthOnly = try depthPipeline(alphaTest: false)
+        depthOnlyCutout = try depthPipeline(alphaTest: true)
+
         let skyDescriptor = MTLRenderPipelineDescriptor()
         skyDescriptor.vertexFunction = library.makeFunction(name: "fullscreenVertex")
         skyDescriptor.fragmentFunction = library.makeFunction(name: "skyFragment")
         skyDescriptor.colorAttachments[0].pixelFormat = FrameTargets.colourFormat
+        skyDescriptor.colorAttachments[1].pixelFormat = FrameTargets.velocityFormat
         skyDescriptor.depthAttachmentPixelFormat = FrameTargets.depthFormat
         sky = try device.makeRenderPipelineState(descriptor: skyDescriptor)
         atmosphere = try AtmosphereResources(device: device, library: library)
@@ -243,6 +288,20 @@ public final class ForwardRenderer {
         }
         self.readOnlyDepthState = readOnlyDepthState
 
+        // The prepass writes; the shading pass then matches exactly.
+        let prepassDepth = MTLDepthStencilDescriptor()
+        prepassDepth.depthCompareFunction = .greater
+        prepassDepth.isDepthWriteEnabled = true
+        let equalDepth = MTLDepthStencilDescriptor()
+        equalDepth.depthCompareFunction = .equal
+        equalDepth.isDepthWriteEnabled = false
+        guard let prepassDepthState = device.makeDepthStencilState(descriptor: prepassDepth),
+              let equalDepthState = device.makeDepthStencilState(descriptor: equalDepth) else {
+            throw RenderError.unavailable("Could not create the prepass depth states")
+        }
+        self.prepassDepthState = prepassDepthState
+        self.equalDepthState = equalDepthState
+
         let skyDepth = MTLDepthStencilDescriptor()
         skyDepth.depthCompareFunction = .always
         skyDepth.isDepthWriteEnabled = false
@@ -266,11 +325,33 @@ public final class ForwardRenderer {
         self.sampler = sampler
     }
 
-    func targets(width: Int, height: Int) throws -> FrameTargets {
-        if let existing = targets, existing.matches(width: width, height: height) { return existing }
-        let fresh = try FrameTargets(device: device, width: width, height: height)
-        targets = fresh
+    /// Allocates or reuses targets for an output size, deriving the render
+    /// size from the current settings.
+    public func targets(outputWidth: Int, outputHeight: Int) throws -> FrameTargets {
+        let upscaling = settings.temporalUpscaling
+        let render = settings.renderSize(output: (outputWidth, outputHeight))
+        let renderWidth = upscaling ? render.width : outputWidth
+        let renderHeight = upscaling ? render.height : outputHeight
+        if let existing = cachedTargets, existing.matches(renderWidth: renderWidth, renderHeight: renderHeight,
+                                                    outputWidth: outputWidth, outputHeight: outputHeight,
+                                                    upscaling: upscaling) {
+            return existing
+        }
+        let fresh = try FrameTargets(device: device, renderWidth: renderWidth, renderHeight: renderHeight,
+                                     outputWidth: outputWidth, outputHeight: outputHeight, upscaling: upscaling)
+        cachedTargets = fresh
+        // Resolution changes invalidate the accumulated history.
+        upscaler = nil
         return fresh
+    }
+
+    /// Discards temporal history. Call on a camera cut, where reprojection has
+    /// nothing meaningful to say and would smear the old view into the new one.
+    public func resetTemporalHistory() {
+        upscaler?.needsReset = true
+        previousViewProjection = nil
+        previousInstanceTransforms.removeAll()
+        jitterSequence.reset()
     }
 
     /// Renders a single scene offscreen and returns sRGB-encoded RGBA bytes.
@@ -287,13 +368,13 @@ public final class ForwardRenderer {
     public func render(resources: [SceneResources], instances: [RenderInstance],
                        camera: RenderCamera, lighting: SunLighting,
                        width: Int, height: Int) throws -> [UInt8] {
-        let targets = try targets(width: width, height: height)
+        let targets = try targets(outputWidth: width, outputHeight: height)
         guard let commands = queue.makeCommandBuffer() else {
             throw RenderError.unavailable("Could not create a command buffer")
         }
         encodeFrame(into: commands, targets: targets, resources: resources, instances: instances,
                     camera: camera, lighting: lighting, aspect: Float(width) / Float(max(height, 1)))
-        encodeResolve(into: commands, source: targets.colour, destination: targets.display,
+        encodeResolve(into: commands, source: targets.tonemapSource, destination: targets.display,
                       lighting: lighting)
         commands.commit()
         commands.waitUntilCompleted()
@@ -317,6 +398,7 @@ public final class ForwardRenderer {
     public func encodeFrame(into commands: MTLCommandBuffer, targets: FrameTargets,
                             resources: [SceneResources], instances: [RenderInstance],
                             camera: RenderCamera, lighting: SunLighting, aspect: Float) {
+        currentJitter = settings.temporalUpscaling ? jitterSequence.next() : SIMD2(0, 0)
         atmosphere.update(into: commands, lighting: lighting, cameraAltitude: camera.eye.z)
         let cascades = ShadowCascades(camera: camera, sunDirection: lighting.direction,
                                       aspect: aspect, count: settings.shadowCascades,
@@ -325,20 +407,65 @@ public final class ForwardRenderer {
         shadows.encode(into: commands, resources: resources, instances: instances, cascades: cascades)
         encode(into: commands, targets: targets, resources: resources, instances: instances,
                camera: camera, lighting: lighting, cascades: cascades, aspect: aspect)
+
+        if settings.temporalUpscaling {
+            do {
+                if upscaler == nil || upscaler?.matches(renderWidth: targets.renderWidth,
+                                                        renderHeight: targets.renderHeight,
+                                                        outputWidth: targets.outputWidth,
+                                                        outputHeight: targets.outputHeight) != true {
+                    upscaler = try TemporalUpscaler(device: device,
+                                                    renderWidth: targets.renderWidth,
+                                                    renderHeight: targets.renderHeight,
+                                                    outputWidth: targets.outputWidth,
+                                                    outputHeight: targets.outputHeight)
+                    upscalerBuildCount += 1
+                }
+                try upscaler?.encode(into: commands, targets: targets, jitter: currentJitter)
+            } catch {
+                // Upscaling is an optimization, not a requirement. Falling back
+                // to the render-resolution image keeps a frame on screen rather
+                // than failing the session, and the tonemap source follows.
+                upscaler = nil
+                lastUpscalerError = String(describing: error)
+            }
+        }
+
+        // Remember this frame's transforms so the next one can reproject.
+        previousViewProjection = camera.viewProjection(aspect: aspect)
+        previousInstanceTransforms = Dictionary(instances.map { ($0.resource, $0.transform) },
+                                                uniquingKeysWith: { first, _ in first })
     }
+
+    public private(set) var lastUpscalerError: String?
+    /// Diagnostic: how many times the scaler has been constructed. Should be
+    /// one per resolution, not one per frame.
+    public private(set) var upscalerBuildCount = 0
 
     public func encode(into commands: MTLCommandBuffer, targets: FrameTargets,
                        resources: [SceneResources], instances: [RenderInstance],
                        camera: RenderCamera, lighting: SunLighting,
                        cascades: [ShadowCascades.Cascade], aspect: Float) {
+        let unjittered = camera.viewProjection(aspect: aspect)
+        let projection = RenderCamera.jittered(camera.projection(aspect: aspect), jitter: currentJitter,
+                                               renderWidth: targets.renderWidth,
+                                               renderHeight: targets.renderHeight)
         var frame = FrameUniforms(
-            viewProjection: camera.viewProjection(aspect: aspect),
+            viewProjection: projection * camera.view(),
             view: camera.view(),
             cameraPosition: camera.eye,
             sunDirection: lighting.direction,
             sunIlluminance: lighting.illuminance,
             exposureScale: lighting.exposureScale,
-            ambientIrradiance: lighting.ambient)
+            ambientIrradiance: lighting.ambient,
+            unjitteredViewProjection: unjittered,
+            // No history on the first frame: reprojecting against the current
+            // transform yields zero motion, which is what a cold history wants.
+            previousViewProjection: previousViewProjection ?? unjittered,
+            renderSize: SIMD2(Float(targets.renderWidth), Float(targets.renderHeight)),
+            mipBias: settings.temporalUpscaling
+                ? RenderCamera.mipBias(renderWidth: targets.renderWidth, outputWidth: targets.outputWidth)
+                : 0)
 
         let scenePass = MTLRenderPassDescriptor()
         scenePass.colorAttachments[0].texture = targets.colour
@@ -346,6 +473,12 @@ public final class ForwardRenderer {
         scenePass.colorAttachments[0].loadAction = .clear
         scenePass.colorAttachments[0].storeAction = .store
         scenePass.colorAttachments[0].clearColor = MTLClearColor(red: 0, green: 0, blue: 0, alpha: 1)
+        if let velocity = targets.velocity {
+            scenePass.colorAttachments[1].texture = velocity
+            scenePass.colorAttachments[1].loadAction = .clear
+            scenePass.colorAttachments[1].storeAction = .store
+            scenePass.colorAttachments[1].clearColor = MTLClearColor(red: 0, green: 0, blue: 0, alpha: 0)
+        }
         scenePass.depthAttachment.texture = targets.depth
         scenePass.depthAttachment.loadAction = .clear
         // Reversed depth clears to 0, the far plane.
@@ -360,13 +493,36 @@ public final class ForwardRenderer {
         encoder.setFragmentBytes(&frame, length: MemoryLayout<FrameUniforms>.stride, index: 1)
         encoder.setFragmentSamplerState(sampler, index: 0)
 
-        encoder.setRenderPipelineState(sky)
-        encoder.setDepthStencilState(skyDepthState)
-        encoder.setFragmentTexture(atmosphere.skyView, index: 0)
-        encoder.setFragmentTexture(atmosphere.transmittance, index: 1)
-        encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
+        // Optional depth-only prepass. Everything that will shade writes depth
+        // first, so the shading pass touches each visible pixel once.
+        if settings.depthPrepass {
+            encoder.setDepthStencilState(prepassDepthState)
+            encoder.setFrontFacing(.counterClockwise)
+            for instance in instances {
+                guard resources.indices.contains(instance.resource) else { continue }
+                let scene = resources[instance.resource]
+                var instanceUniforms = InstanceUniforms(model: instance.transform)
+                encoder.setVertexBytes(&instanceUniforms, length: MemoryLayout<InstanceUniforms>.stride, index: 5)
+                let instanceMirrored = simd_determinant(instance.transform) < 0
+                for batch in scene.batches {
+                    if batch.isDeferred { continue }
+                    if batch.isDriver && !instance.drawsDriver { continue }
+                    encoder.setRenderPipelineState(batch.needsAlphaTest ? depthOnlyCutout : depthOnly)
+                    let mirrored = batch.mirrored != instanceMirrored
+                    encoder.setCullMode(batch.culls ? (mirrored ? .front : .back) : .none)
+                    var draw = batch.draw
+                    if let albedo = batch.albedo { encoder.setFragmentTexture(albedo, index: 0) }
+                    encoder.setVertexBuffer(batch.vertices, offset: 0, index: 0)
+                    encoder.setVertexBytes(&draw, length: MemoryLayout<DrawUniforms>.stride, index: 2)
+                    encoder.setFragmentBytes(&draw, length: MemoryLayout<DrawUniforms>.stride, index: 2)
+                    encoder.drawIndexedPrimitives(type: .triangle, indexCount: batch.indexCount,
+                                                  indexType: .uint32, indexBuffer: batch.indices,
+                                                  indexBufferOffset: 0)
+                }
+            }
+        }
 
-        encoder.setDepthStencilState(depthState)
+        encoder.setDepthStencilState(settings.depthPrepass ? equalDepthState : depthState)
         // AC/TORCS geometry comes from OpenGL, whose front face is
         // counter-clockwise. Metal defaults to clockwise, so without this
         // every culled mesh keeps its back faces and discards its front ones.
@@ -396,7 +552,9 @@ public final class ForwardRenderer {
         for (instanceIndex, instance) in instances.enumerated() {
             guard resources.indices.contains(instance.resource) else { continue }
             let scene = resources[instance.resource]
-            var instanceUniforms = InstanceUniforms(model: instance.transform)
+            var instanceUniforms = InstanceUniforms(
+                model: instance.transform,
+                previousModel: previousInstanceTransforms[instance.resource] ?? instance.transform)
             encoder.setVertexBytes(&instanceUniforms, length: MemoryLayout<InstanceUniforms>.stride, index: 5)
             // Mirroring composes: a mirrored mesh inside a mirrored instance
             // faces the original way again. The left and right wheels differ by
@@ -414,6 +572,18 @@ public final class ForwardRenderer {
                 draw(batch, on: encoder, blendOverride: nil, mirroredInstance: instanceMirrored)
             }
         }
+
+        // Sky last among the opaque work. The fullscreen triangle sits at the
+        // far plane, so an equal test against the cleared depth passes exactly
+        // where no geometry wrote — the sky shades only the pixels it actually
+        // covers instead of every pixel and then being overdrawn. It still
+        // precedes the transparent phase so glass blends over it.
+        encoder.setRenderPipelineState(sky)
+        encoder.setDepthStencilState(equalDepthState)
+        encoder.setCullMode(.none)
+        encoder.setFragmentTexture(atmosphere.skyView, index: 0)
+        encoder.setFragmentTexture(atmosphere.transmittance, index: 1)
+        encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
 
         if !deferred.isEmpty {
             encoder.setDepthStencilState(readOnlyDepthState)

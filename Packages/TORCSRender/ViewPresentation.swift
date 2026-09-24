@@ -39,7 +39,7 @@ public extension ForwardRenderer {
                 "Drawable is \(drawable.texture.pixelFormat); the renderer needs \(Self.drawableFormat). Call configure(_:) first.")
         }
 
-        let targets = try targets(width: width, height: height)
+        let targets = try targets(outputWidth: width, outputHeight: height)
         guard let commands = queue.makeCommandBuffer() else {
             throw RenderError.unavailable("Could not create a command buffer")
         }
@@ -48,7 +48,7 @@ public extension ForwardRenderer {
                     camera: camera, lighting: lighting, aspect: Float(width) / Float(height))
         // Tonemap straight into the drawable rather than into `targets.display`
         // and blitting: one less full-resolution write per frame.
-        encodeResolve(into: commands, source: targets.colour, destination: drawable.texture,
+        encodeResolve(into: commands, source: targets.tonemapSource, destination: drawable.texture,
                       lighting: lighting)
 
         // GPU time is sampled on completion, which is one frame behind. That is

@@ -28,6 +28,10 @@ struct Options {
     var stats = false
     var frames = 1
     var noCull = false
+    var terrainOnly = false
+    var depthPrepass = false
+    var upscale: Bool? = nil
+    var comparePrepass = false
     /// Track XML enabling procedural terrain from its Terrain Generation section.
     var trackXML: String? = nil
     var textureRoots: [String] = []
@@ -63,6 +67,11 @@ func parse() -> Options {
         case "--preset": options.preset = RenderSettings.Preset(rawValue: next()) ?? options.preset
         case "--stats": options.stats = true
         case "--no-cull": options.noCull = true
+        case "--terrain-only": options.terrainOnly = true
+        case "--depth-prepass": options.depthPrepass = true
+        case "--upscale": options.upscale = true
+        case "--no-upscale": options.upscale = false
+        case "--compare-prepass": options.comparePrepass = true
         case "--frames": options.frames = Int(next()) ?? options.frames
         case "--track-xml": options.trackXML = next()
         case "--textures": options.textureRoots.append(next())
@@ -145,6 +154,9 @@ do {
             let state = ACRenderState(material: [0, 0, 0, 1, 0, 0, 0, 1, 0.2, 0.2, 0.2, 1, 0],
                                       texture: terrainParameters.surface + ".rgb",
                                       flags: 8, alphaClamp: 0)
+            if options.terrainOnly {
+                scene = RenderScene(batches: [], minimum: scene.minimum, maximum: scene.maximum)
+            }
             scene = scene.adding([RenderBatch(mesh: mesh, baseTexture: state.texture,
                                               blends: false, isDeferred: false, alphaTestThreshold: nil,
                                               culls: true, isDriver: false,
@@ -152,7 +164,10 @@ do {
             print("terrain: \(apron.triangleCount) triangles, \(apron.positions.count) vertices, surface \(terrainParameters.surface)")
         }
     }
-    let renderer = try ForwardRenderer(settings: RenderSettings(preset: options.preset))
+    var settings = RenderSettings(preset: options.preset)
+    settings.depthPrepass = options.depthPrepass
+    if let upscale = options.upscale { settings.temporalUpscaling = upscale }
+    let renderer = try ForwardRenderer(settings: settings)
     // Default to the scene file's own directory, which is where the original
     // per-track artwork sits. Extra roots are explicit, never implicit.
     var roots = options.textureRoots.map { URL(fileURLWithPath: $0) }
@@ -184,6 +199,36 @@ do {
         intensity: options.sunIntensity,
         ambient: SIMD3(0.16, 0.20, 0.28) * options.ambient,
         exposureEV100: options.exposure)
+
+    if options.comparePrepass {
+        // Interleaved A/B in one process. This machine is fanless, so its GPU
+        // clock falls under sustained load: two configurations measured minutes
+        // apart are not comparable, and the drift is larger than the effect
+        // being measured. Alternating frame by frame cancels it, which is the
+        // same methodology the classic path's benchmarks use.
+        var samples: [Bool: [Double]] = [false: [], true: []]
+        let warmups = 20, pairs = 60
+        for frame in 0 ..< (warmups + pairs * 2) {
+            let prepass = frame.isMultiple(of: 2)
+            renderer.settings.depthPrepass = prepass
+            _ = try renderer.render(scene: resources, camera: camera, lighting: lighting,
+                                    width: options.width, height: options.height)
+            if frame >= warmups { samples[prepass, default: []].append(renderer.lastGPUTime * 1000) }
+        }
+        func report(_ key: Bool) -> String {
+            let sorted = samples[key]!.sorted()
+            let median = sorted[sorted.count / 2]
+            let p95 = sorted[min(sorted.count - 1, Int(Double(sorted.count) * 0.95))]
+            return String(format: "median %.3f ms  p95 %.3f ms  (n=%d)", median, p95, sorted.count)
+        }
+        print("interleaved depth prepass comparison, \(options.width)x\(options.height)")
+        print("  prepass off  \(report(false))")
+        print("  prepass on   \(report(true))")
+        let off = samples[false]!.sorted()[samples[false]!.count / 2]
+        let on = samples[true]!.sorted()[samples[true]!.count / 2]
+        print(String(format: "  delta        %+.3f ms (%+.1f%%)", on - off, (on - off) / off * 100))
+        exit(0)
+    }
 
     // Repeat-render methodology matching the classic path's benchmarks:
     // discard warmups, then report median and p95. The first frame builds the
@@ -222,6 +267,16 @@ do {
             let key = String(format: "luma %.1f rough %.2f", (luma * 10).rounded() / 10, batch.material.roughness)
             buckets[key, default: 0] += 1
         }
+        var specBuckets: [String: Int] = [:]
+        for batch in scene.batches {
+            let m = batch.sourceMaterial.material
+            let spec = m.count >= 3 ? max(m[0], max(m[1], m[2])) : 0
+            let shine = m.count >= 13 ? m[12] : 0
+            specBuckets[String(format: "specular %.3f shininess %.1f", spec, shine), default: 0] += 1
+        }
+        for (key, count) in specBuckets.sorted(by: { $0.value > $1.value }).prefix(6) {
+            print("  \(key): \(count) batches")
+        }
         print("materials: \(buckets.count) distinct, luma range \(String(format: "%.3f", darkest)) to \(String(format: "%.3f", brightest))")
         for (key, count) in buckets.sorted(by: { $0.value > $1.value }).prefix(8) {
             print("  \(key): \(count) batches")
@@ -239,6 +294,8 @@ do {
       batches       \(renderer.lastDrawCount)
       triangles     \(renderer.lastTriangleCount)
       geometry      \(String(format: "%.2f", megabytes)) MiB
+      scalerBuilds  \(renderer.upscalerBuildCount)\(renderer.lastUpscalerError.map { " error: " + $0 } ?? "")
+      upscaling     \(settings.temporalUpscaling ? "on, render \(settings.renderSize(output: (options.width, options.height)).width)x\(settings.renderSize(output: (options.width, options.height)).height)" : "off")
       textures      \(textures.count) uploaded, \(String(format: "%.1f", Double(textures.uploadedBytes) / 1_048_576)) MiB
       textured      \(resources.texturedBatches) of \(resources.batchCount) batches
       missing       \(textures.missing.count)\(textures.missing.isEmpty ? "" : ": " + textures.missing.sorted().prefix(6).joined(separator: ", "))

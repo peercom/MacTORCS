@@ -9,10 +9,15 @@ import simd
 /// silently shifts every subsequent field. Using only `float4` and `float4x4`
 /// makes the layouts trivially identical, and `UniformLayoutTests` pins it.
 public struct FrameUniforms: Equatable, Sendable {
+    /// Jittered, and therefore what geometry is rasterized with.
     public var viewProjection: simd_float4x4
     public var view: simd_float4x4
     /// Reconstructs world-space view rays in the fullscreen sky pass.
     public var inverseViewProjection: simd_float4x4
+    /// Unjittered current and previous transforms, for motion vectors only.
+    /// Jitter is a sampling offset, not motion.
+    public var unjitteredViewProjection: simd_float4x4
+    public var previousViewProjection: simd_float4x4
     /// xyz world-space eye position, w unused.
     public var cameraPosition: SIMD4<Float>
     /// xyz unit vector pointing *toward* the sun, w unused.
@@ -21,14 +26,27 @@ public struct FrameUniforms: Equatable, Sendable {
     public var sunIlluminance: SIMD4<Float>
     /// Flat ambient standing in until real spherical-harmonic irradiance lands.
     public var ambientIrradiance: SIMD4<Float>
+    /// xy render size in pixels (motion vectors are in those pixels),
+    /// z texture mip bias, w unused.
+    public var renderSize: SIMD4<Float>
 
     public init(viewProjection: simd_float4x4, view: simd_float4x4,
                 cameraPosition: SIMD3<Float>, sunDirection: SIMD3<Float>,
                 sunIlluminance: SIMD3<Float>, exposureScale: Float,
-                ambientIrradiance: SIMD3<Float>) {
+                ambientIrradiance: SIMD3<Float>,
+                unjitteredViewProjection: simd_float4x4? = nil,
+                previousViewProjection: simd_float4x4? = nil,
+                renderSize: SIMD2<Float> = SIMD2(1, 1),
+                mipBias: Float = 0) {
         self.viewProjection = viewProjection
         self.view = view
         self.inverseViewProjection = viewProjection.inverse
+        // Without temporal upscaling there is no jitter and no history, so the
+        // unjittered and previous transforms collapse onto the current one and
+        // every motion vector is zero.
+        self.unjitteredViewProjection = unjitteredViewProjection ?? viewProjection
+        self.previousViewProjection = previousViewProjection ?? (unjitteredViewProjection ?? viewProjection)
+        self.renderSize = SIMD4(renderSize.x, renderSize.y, mipBias, 0)
         self.cameraPosition = SIMD4(cameraPosition, 0)
         self.sunDirection = SIMD4(simd_normalize(sunDirection), 0)
         self.sunIlluminance = SIMD4(sunIlluminance, exposureScale)
@@ -92,10 +110,14 @@ public struct DrawUniforms: Equatable, Sendable {
 public struct InstanceUniforms: Equatable, Sendable {
     public var model: simd_float4x4
     public var normalMatrix: simd_float4x4
+    /// Where this instance was last frame. Equal to `model` for static
+    /// geometry, whose only motion is then the camera's.
+    public var previousModel: simd_float4x4
 
-    public init(model: simd_float4x4) {
+    public init(model: simd_float4x4, previousModel: simd_float4x4? = nil) {
         self.model = model
         self.normalMatrix = DrawUniforms.normalMatrix(for: model)
+        self.previousModel = previousModel ?? model
     }
 
     public static let identity = InstanceUniforms(model: matrix_identity_float4x4)

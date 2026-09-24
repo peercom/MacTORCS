@@ -6,14 +6,18 @@ import TORCSRender
 
 final class ShaderLibraryTests: XCTestCase {
     func testUniformLayoutsMatchTheMetalStructs() {
-        // 3 matrices (64 each) plus 4 vectors (16 each).
-        XCTAssertEqual(MemoryLayout<FrameUniforms>.size, 256)
-        XCTAssertEqual(MemoryLayout<FrameUniforms>.stride, 256)
+        // 5 matrices (64 each) plus 5 vectors (16 each). The unjittered and
+        // previous view-projections feed motion vectors for temporal upscaling.
+        XCTAssertEqual(MemoryLayout<FrameUniforms>.size, 400)
+        XCTAssertEqual(MemoryLayout<FrameUniforms>.stride, 400)
         XCTAssertEqual(MemoryLayout<DrawUniforms>.size, 192)
         XCTAssertEqual(MemoryLayout<DrawUniforms>.stride, 192)
-        XCTAssertEqual(MemoryLayout<FrameUniforms>.offset(of: \.cameraPosition), 192)
+        XCTAssertEqual(MemoryLayout<FrameUniforms>.offset(of: \.cameraPosition), 320)
         XCTAssertEqual(MemoryLayout<DrawUniforms>.offset(of: \.baseColour), 128)
         XCTAssertEqual(MemoryLayout<DrawUniforms>.offset(of: \.maps), 176)
+        // model, normalMatrix and previousModel.
+        XCTAssertEqual(MemoryLayout<InstanceUniforms>.size, 192)
+        XCTAssertEqual(MemoryLayout<InstanceUniforms>.offset(of: \.previousModel), 128)
     }
 
     func testLocalIncludesAreStrippedButSystemIncludesSurvive() throws {

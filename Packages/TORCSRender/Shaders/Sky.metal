@@ -8,7 +8,7 @@
 using namespace metal;
 
 /// Fullscreen sky. Replaces the classic 36-sided textured cylinder.
-fragment float4 skyFragment(FullscreenVarying in [[stage_in]],
+fragment ForwardOutput skyFragment(FullscreenVarying in [[stage_in]],
                             constant FrameUniforms &frame [[buffer(1)]],
                             texture2d<float> skyViewLUT [[texture(0)]],
                             texture2d<float> transmittanceLUT [[texture(1)]]) {
@@ -35,7 +35,16 @@ fragment float4 skyFragment(FullscreenVarying in [[stage_in]],
         // most of what makes a sun read as a sun.
         radiance += frame.sunIlluminance.rgb * transmittance * limb * 40.0f;
     }
-    return float4(radiance, 1.0f);
+
+    ForwardOutput out;
+    out.colour = float4(radiance, 1.0f);
+    // The sky sits at infinity, so only camera rotation moves it. Projecting
+    // the view direction as a point at infinity (w = 0) gives exactly that,
+    // with the camera's translation correctly having no effect.
+    out.velocity = motionVector(frame.unjitteredViewProjection * float4(direction, 0.0f),
+                                frame.previousViewProjection * float4(direction, 0.0f),
+                                frame.renderSize.xy);
+    return out;
 }
 
 #endif

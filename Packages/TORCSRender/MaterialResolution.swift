@@ -43,22 +43,42 @@ public enum MaterialResolution {
 
     /// Derives a material from AC state plus the mesh's diffuse colour.
     ///
-    /// Metalness is 0 for everything. The original art was authored for a
-    /// fixed-function pipeline where "shiny" meant a specular exponent, and
-    /// guessing metalness from that would turn every polished surface into a
-    /// mirror with no diffuse term at all — far worse than treating it as a
-    /// glossy dielectric.
+    /// The conversion is deliberately blunt, because the source carries no
+    /// usable gloss signal. Every one of Aalborg's 1,315 batches is authored
+    /// `specular 0.5, shininess 50` — asphalt, grass, buildings and foliage
+    /// alike. Mapping that exponent to a GGX roughness gives 0.196 for all of
+    /// them, which renders a circuit as though it were wet plastic: large
+    /// low-polygon surfaces sweep through a tight specular lobe and blow out to
+    /// white.
+    ///
+    /// Two further reasons the naive conversion is wrong here. A Blinn-Phong
+    /// highlight is bounded by its specular colour, while a GGX lobe at the
+    /// equivalent exponent concentrates far more energy, so matching apparent
+    /// gloss needs a markedly rougher surface. And the physically based path
+    /// ignores the authored specular colour entirely, giving every dielectric
+    /// the full 4% response whether or not the artist wanted a highlight.
+    ///
+    /// So content without a roughness map is treated as a rough dielectric,
+    /// which is what a circuit actually is. Authored material sets carry real
+    /// ORM maps and override this completely; this exists only to keep original
+    /// content looking deliberate until they do.
     public static func resolve(state: ACRenderState, diffuse: SIMD4<Float>) -> ResolvedMaterial {
         // material layout: specular RGBA, emission RGBA, ambient RGBA, shininess.
         let shininess = state.material.count >= 13 ? state.material[12] : 0
-        var roughness = roughness(fromShininess: shininess)
+        let specular = state.material.count >= 3
+            ? max(state.material[0], max(state.material[1], state.material[2])) : 0
 
-        // A near-black specular colour means the surface was never meant to
-        // have a highlight, whatever its exponent says.
-        if state.material.count >= 3 {
-            let specular = max(state.material[0], max(state.material[1], state.material[2]))
-            if specular < 0.02 { roughness = max(roughness, 0.8) }
-        }
-        return ResolvedMaterial(baseColour: diffuse, roughness: roughness, metallic: 0)
+        // Rough by default. The exponent is allowed to pull the surface
+        // glossier, but only within a range that cannot produce a mirror, and
+        // only in proportion to how much specular the artist actually asked for.
+        let fromExponent = roughness(fromShininess: shininess)
+        let glossWeight = min(max(specular, 0), 1) * 0.35
+        let combined = defaultRoughness * (1 - glossWeight) + fromExponent * glossWeight
+        return ResolvedMaterial(baseColour: diffuse,
+                                roughness: min(max(combined, 0.45), 1),
+                                metallic: 0)
     }
+
+    /// Roughness assumed for content with no roughness map.
+    public static let defaultRoughness: Float = 0.9
 }

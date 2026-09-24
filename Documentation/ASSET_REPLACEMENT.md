@@ -35,6 +35,27 @@ The first three are replaced outright by the modern path rather than
 re-sourced: `env.png` and `envshadow.png` are superseded by sky-derived image
 based lighting, and the brake light becomes an emissive material.
 
+### Additions found by inventorying a full installation
+
+Three items beyond the eight textures above, from classifying every car and
+track in an unmodified 1.3.9 tree:
+
+- `road/brondehach` — its Free Art grant is explicitly scoped to Andrew
+  Sumner's contributions. The underlying geometry is a Brands Hatch conversion
+  from SBK2001 that the notice itself says was *"released without any license"*.
+  The only qualified grant in the whole content tree.
+- `cars/models/buggy` and `cars/models/p406` — no artwork notice at all. `p406`
+  additionally carries a live trademark.
+- `installer/windows/base/stripe.exe` — noncommercial use only, by permission
+  from Steven Skiena. The root README's non-free list omits it, but `accc`
+  shells out to it, so regenerating any `.acc` with stripification depends on a
+  noncommercial tool.
+
+`Scripts/content-inventory.py` reproduces this classification mechanically from
+the shipped notices. On a stock 1.3.9 tree it reports 15 usable cars of 42 and
+31 usable tracks of 39, with 7 further freely licensed tracks rejected only
+because they declare track XML version 3.
+
 ## Blocking: copyleft artwork
 
 Six meshes, 27 SGI textures and three PNG textures carry Free Art License terms

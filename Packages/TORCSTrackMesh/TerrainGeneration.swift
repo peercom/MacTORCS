@@ -91,123 +91,104 @@ public enum TerrainGeneration {
         return total
     }
 
-    /// Generates a terrain apron following the track out to the border margin
-    /// on both sides.
+    /// Generates ground covering the circuit and its margin, as a regular grid.
     ///
-    /// A ribbon rather than a triangulated field. The band the driver actually
-    /// sees is the one flanking the circuit, and following the track guarantees
-    /// the apron meets the road edge exactly — a general heightfield would have
-    /// to be stitched to it, which is where cracks and z-fighting come from.
+    /// The first implementation followed the track outward as a ribbon, which
+    /// is wrong in a way that only shows from the air: on the inside of a curve
+    /// the outward direction converges, so marching further than the radius
+    /// folds the surface through the centre of curvature, and neighbouring
+    /// segments' ribbons overlap each other. Aalborg has 12-metre corners
+    /// against a 100-metre margin, so every hairpin produced a fan of
+    /// degenerate triangles, and degenerate triangles produce garbage normals.
     ///
-    /// Heights come from the parity-verified `height(_:)` query at the track
-    /// edge, then rise across the margin on a smoothstep so the join is
-    /// tangent-continuous and reads as ground rather than as a wall.
-    public static func apron(_ geometry: TrackGeometry, parameters: TerrainParameters = .init()) -> GeneratedGeometry {
-        let mains = geometry.segments.indices.filter { geometry.segments[$0].role == .main }
+    /// A grid in world space cannot fold over or self-overlap, whatever the
+    /// track does. It pays for that with a seam: the grid does not follow the
+    /// road edge exactly, so it is sunk slightly and the road is drawn over it.
+    public static func ground(_ geometry: TrackGeometry, parameters: TerrainParameters = .init()) -> GeneratedGeometry {
+        let mains = geometry.mainSegments
         guard !mains.isEmpty else { return GeneratedGeometry() }
 
-        // Bounding box of the road itself, which is what the rim is measured
-        // against.
-        var boxLow = SIMD2<Float>(repeating: .greatestFiniteMagnitude)
-        var boxHigh = SIMD2<Float>(repeating: -.greatestFiniteMagnitude)
+        var low = SIMD2<Float>(repeating: .greatestFiniteMagnitude)
+        var high = SIMD2<Float>(repeating: -.greatestFiniteMagnitude)
+        var centres: [(index: Int, point: SIMD2<Float>, height: Float)] = []
         for index in mains {
-            for corner in [geometry.segments[index].startRight, geometry.segments[index].startLeft,
-                           geometry.segments[index].endRight, geometry.segments[index].endLeft] {
-                boxLow = simd_min(boxLow, SIMD2(corner.x, corner.y))
-                boxHigh = simd_max(boxHigh, SIMD2(corner.x, corner.y))
+            let segment = geometry.segments[index]
+            for corner in [segment.startRight, segment.startLeft, segment.endRight, segment.endLeft] {
+                low = simd_min(low, SIMD2(corner.x, corner.y))
+                high = simd_max(high, SIMD2(corner.x, corner.y))
+            }
+            let mid = (segment.startRight + segment.endLeft) * 0.5
+            centres.append((index, SIMD2(mid.x, mid.y), mid.z))
+        }
+
+        let origin = low - parameters.borderMargin
+        let extent = (high + parameters.borderMargin) - origin
+        // Finer than the declared border step: that value describes the rim,
+        // and using it everywhere leaves the ground visibly faceted where it
+        // meets the road.
+        let step = max(1, min(parameters.borderStep, parameters.trackStep))
+        let columns = max(2, Int((extent.x / step).rounded(.up)) + 1)
+        let rows = max(2, Int((extent.y / step).rounded(.up)) + 1)
+        // A grid this size is a few tens of thousands of triangles; guard
+        // against a pathological track turning it into millions.
+        guard columns * rows <= 400_000 else { return GeneratedGeometry() }
+
+        /// Nearest main segment by midpoint, used as the search hint the track
+        /// queries need and as the fallback height when the query fails.
+        func nearest(_ point: SIMD2<Float>) -> (index: Int, height: Float) {
+            var best = centres[0], bestDistance = Float.greatestFiniteMagnitude
+            for candidate in centres {
+                let d = simd_length_squared(candidate.point - point)
+                if d < bestDistance { bestDistance = d; best = candidate }
+            }
+            return (best.index, best.height)
+        }
+
+        func distanceOutsideBox(_ p: SIMD2<Float>) -> Float {
+            simd_length(simd_max(simd_max(low - p, p - high), SIMD2(0, 0)))
+        }
+
+        var result = GeneratedGeometry()
+        result.positions.reserveCapacity(columns * rows)
+        for row in 0 ..< rows {
+            for column in 0 ..< columns {
+                let xy = origin + SIMD2(Float(column), Float(row)) * step
+                let hint = nearest(xy)
+                var height = hint.height
+                if let local = try? geometry.globalToLocal(xy, startingAt: hint.index, mode: .main) {
+                    // Clamp the lateral coordinate to the segment's own extent
+                    // before asking for a height: beyond the road the query
+                    // extrapolates banking, which diverges with distance.
+                    var clamped = local
+                    let width = geometry.width(segment: local.segment, toStart: local.toStart)
+                    clamped.toRight = min(max(local.toRight, 0), width)
+                    let candidate = geometry.height(clamped)
+                    if candidate.isFinite { height = candidate }
+                }
+                let outside = parameters.borderMargin > 0
+                    ? min(distanceOutsideBox(xy) / parameters.borderMargin, 1) : 0
+                let rise = parameters.borderHeight * outside * outside * (3 - 2 * outside)
+                result.positions.append(SIMD3(xy.x, xy.y, height + rise - parameters.depthOffset))
+                result.uv0.append(SIMD2(xy.x, xy.y))
             }
         }
 
-        /// Distance a point lies outside the road's bounding box. Zero inside,
-        /// which is what keeps the infield flat.
-        func distanceOutsideBox(_ p: SIMD2<Float>) -> Float {
-            let outside = simd_max(simd_max(boxLow - p, p - boxHigh), SIMD2(0, 0))
-            return simd_length(outside)
-        }
-
-        let lateralSpans = max(2, Int((parameters.borderMargin / parameters.borderStep).rounded(.up)))
-        var result = GeneratedGeometry()
-        // One row per longitudinal sample, each holding both sides' vertices.
-        var previousRow: [UInt32]? = nil
-        var distanceAlong: Float = 0
-
-        for (order, index) in mains.enumerated() {
-            let segment = geometry.segments[index]
-            let extent = segment.extent
-            guard extent > 0, extent.isFinite else { continue }
-            // Curved segments measure toStart in radians, so convert the
-            // longitudinal step into the segment's own units.
-            let metresPerUnit = segment.curve == .straight ? 1 : max(segment.radius, 1e-3)
-            let steps = max(1, Int((extent * metresPerUnit / parameters.trackStep).rounded(.up)))
-            let isLast = order == mains.count - 1
-
-            for step in 0 ... steps {
-                // The next segment emits its own row 0, so stop before the seam
-                // to avoid a duplicated row of degenerate triangles.
-                if step == steps && !isLast { break }
-                let toStart = extent * Float(step) / Float(steps)
-                let position = TrackLocalPosition(segment: index, toStart: toStart, mode: .segment)
-
-                var row: [UInt32] = []
-                for side in [TrackSide.right, TrackSide.left] {
-                    let mainWidth = geometry.width(segment: index, toStart: toStart)
-                    let sides = sideWidth(geometry, segment: index, side: side, toStart: toStart)
-                    // Lateral coordinate of the outermost track edge, in the
-                    // right-origin convention the queries use.
-                    let edgeToRight: Float = side == .right ? -sides : mainWidth + sides
-                    var edge = position
-                    edge.toRight = edgeToRight
-                    let edgeWorld = geometry.localToGlobal(edge, origin: .right)
-                    let edgeHeight = geometry.height(edge)
-
-                    // Outward direction: away from the track centre.
-                    var inner = position
-                    inner.toRight = side == .right ? edgeToRight + 1 : edgeToRight - 1
-                    let innerWorld = geometry.localToGlobal(inner, origin: .right)
-                    var outward = edgeWorld - innerWorld
-                    let length = simd_length(outward)
-                    outward = length > 1e-5 ? outward / length : SIMD2(1, 0)
-
-                    for span in 0 ... lateralSpans {
-                        let fraction = Float(span) / Float(lateralSpans)
-                        let distance = fraction * parameters.borderMargin
-                        let xy = edgeWorld + outward * distance
-                        // Rise only where the apron leaves the circuit's own
-                        // footprint. Smoothstep so both the join at the box
-                        // edge and the rim itself have zero slope.
-                        let outsideFraction = parameters.borderMargin > 0
-                            ? min(distanceOutsideBox(xy) / parameters.borderMargin, 1)
-                            : 0
-                        let rise = parameters.borderHeight * outsideFraction * outsideFraction * (3 - 2 * outsideFraction)
-                        result.positions.append(SIMD3(xy.x, xy.y, edgeHeight + rise - parameters.depthOffset))
-                        result.uv0.append(SIMD2(distanceAlong, distance))
-                        row.append(UInt32(result.positions.count - 1))
-                    }
-                }
-
-                if let previous = previousRow, previous.count == row.count {
-                    let perSide = lateralSpans + 1
-                    for side in 0 ..< 2 {
-                        let base = side * perSide
-                        for span in 0 ..< lateralSpans {
-                            let a = previous[base + span], b = previous[base + span + 1]
-                            let c = row[base + span], d = row[base + span + 1]
-                            // The two sides' lateral directions are mirrored, so
-                            // a single winding cannot serve both. Rather than
-                            // hand-deriving each, emit either and let
-                            // `orientUpward` settle it from the actual geometry.
-                            result.indices.append(contentsOf: [a, c, b, b, c, d])
-                        }
-                    }
-                }
-                previousRow = row
-                distanceAlong += extent * metresPerUnit / Float(steps)
+        for row in 0 ..< rows - 1 {
+            for column in 0 ..< columns - 1 {
+                let a = UInt32(row * columns + column), b = a + 1
+                let c = UInt32((row + 1) * columns + column), d = c + 1
+                result.indices.append(contentsOf: [a, c, b, b, c, d])
             }
         }
 
         orientUpward(positions: result.positions, indices: &result.indices)
         result.normals = smoothNormals(positions: result.positions, indices: result.indices)
         return result
+    }
+
+    /// Retained name for the ground generator. See ``ground(_:parameters:)``.
+    public static func apron(_ geometry: TrackGeometry, parameters: TerrainParameters = .init()) -> GeneratedGeometry {
+        ground(geometry, parameters: parameters)
     }
 
     /// Flips any triangle whose geometric normal points below the horizon.
