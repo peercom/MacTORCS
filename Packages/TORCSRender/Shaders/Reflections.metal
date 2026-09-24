@@ -31,6 +31,14 @@ struct ReflectionUniforms {
     /// x maximum march distance in metres, y thickness in metres,
     /// z roughness above which no reflection is traced, w frame index.
     float4 parameters;
+    /// Unjittered current and previous view-projection, for reprojecting
+    /// the history where no velocity is available.
+    float4x4 viewProjection;
+    float4x4 previousViewProjection;
+    float4x4 inverseViewProjection;
+    /// x history blend weight (0 = history off), y nonzero when a velocity
+    /// texture is bound, zw velocity texel size.
+    float4 temporal;
 };
 
 inline float reflectionLinearDepth(float deviceDepth, constant ReflectionUniforms &u) {
@@ -181,6 +189,57 @@ fragment float4 reflectionBlurFragment(FullscreenVarying in [[stage_in]],
         }
     }
     return weightSum > 0.0f ? total / weightSum : traced.sample(pointSampler, in.uv);
+}
+
+/// Temporal reuse: the previous frame's resolved reflection, reprojected by
+/// the velocity buffer where there is one and by the camera otherwise,
+/// clamped to the neighbourhood of this frame's result so a stale
+/// reflection cannot ghost, and blended in. The trace's noise phase rotates
+/// every frame, so what the blend converges on is the average over the
+/// phases: a reflection without the dither and without the crawl.
+fragment float4 reflectionResolveFragment(FullscreenVarying in [[stage_in]],
+                                          texture2d<float> current [[texture(0)]],
+                                          texture2d<float> history [[texture(1)]],
+                                          depth2d<float> depth [[texture(2)]],
+                                          texture2d<float> velocity [[texture(3)]],
+                                          constant ReflectionUniforms &u [[buffer(0)]]) {
+    constexpr sampler pointSampler(coord::normalized, address::clamp_to_edge, filter::nearest);
+    constexpr sampler linearSampler(coord::normalized, address::clamp_to_edge, filter::linear);
+    float4 now = current.sample(pointSampler, in.uv);
+    float weight = u.temporal.x;
+    if (weight <= 0.0f) { return now; }
+    float deviceDepth = depth.sample(pointSampler, in.uv);
+    if (deviceDepth <= 0.0f) { return now; }
+
+    float2 previousUV;
+    if (u.temporal.y > 0.0f) {
+        // Velocity is the offset in render pixels back to last frame.
+        float2 motion = velocity.sample(linearSampler, in.uv).xy;
+        previousUV = in.uv + motion * u.temporal.zw;
+    } else {
+        float2 ndc = float2(in.uv.x * 2.0f - 1.0f, 1.0f - in.uv.y * 2.0f);
+        float4 world = u.inverseViewProjection * float4(ndc, deviceDepth, 1.0f);
+        world /= world.w;
+        float4 previousClip = u.previousViewProjection * world;
+        if (previousClip.w <= 1e-5f) { return now; }
+        float2 previousNDC = previousClip.xy / previousClip.w;
+        previousUV = float2(previousNDC.x * 0.5f + 0.5f, 0.5f - previousNDC.y * 0.5f);
+    }
+    if (any(previousUV < 0.0f) || any(previousUV > 1.0f)) { return now; }
+    float4 past = history.sample(linearSampler, previousUV);
+
+    // Neighbourhood clamp: the history may only be what this frame could
+    // have produced nearby.
+    float2 texel = 1.0f / float2(current.get_width(), current.get_height());
+    float4 low = now, high = now;
+    for (int y = -1; y <= 1; ++y) {
+        for (int x = -1; x <= 1; ++x) {
+            float4 n = current.sample(pointSampler, in.uv + float2(x, y) * texel);
+            low = min(low, n); high = max(high, n);
+        }
+    }
+    past = clamp(past, low, high);
+    return mix(past, now, weight);
 }
 
 /// Adds `confidence · weight · (reflected − probe)` onto the scene colour.

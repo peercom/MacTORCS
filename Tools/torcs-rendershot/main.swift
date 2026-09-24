@@ -70,6 +70,8 @@ struct Options {
     var compareWet = false
     var sunGlare: Bool? = nil
     var compareGlare = false
+    var reflectionTemporal: Bool? = nil
+    var compareReflectionTemporal = false
     /// Report startup costs: shader library, renderer construction, scaler pre-warm.
     var startup = false
     /// Report the device's allocated memory after the frames.
@@ -171,6 +173,9 @@ func parse() -> Options {
         case "--glare": options.sunGlare = true
         case "--no-glare": options.sunGlare = false
         case "--compare-glare": options.compareGlare = true
+        case "--ssr-temporal": options.reflectionTemporal = true
+        case "--no-ssr-temporal": options.reflectionTemporal = false
+        case "--compare-ssr-temporal": options.compareReflectionTemporal = true
         case "--startup": options.startup = true
         case "--memory": options.memory = true
         case "--smoke": options.smokeFrames = Int(next()) ?? 45
@@ -345,6 +350,7 @@ do {
     if let ssr = options.reflections { settings.screenSpaceReflections = ssr }
     if let blur = options.motionBlur { settings.motionBlur = blur }
     if let glare = options.sunGlare { settings.sunGlare = glare }
+    if let temporal = options.reflectionTemporal { settings.reflectionTemporal = temporal }
     if let cascades = options.cascades { settings.shadowCascades = max(0, min(4, cascades)) }
     let startupClock = DispatchTime.now()
     if options.startup, let device = MTLCreateSystemDefaultDevice() {
@@ -550,6 +556,11 @@ do {
     }
     if options.compareSkid { try compare("skid marks") { $0.skidMarks = $1 } }
     if options.compareGlare { try compare("sun glare") { $0.sunGlare = $1 } }
+    if options.compareReflectionTemporal {
+        // The history must survive between frames for the reuse to run.
+        renderer.resetsHistoryPerRender = false
+        try compare("reflection temporal reuse") { $0.reflectionTemporal = $1 }
+    }
     if options.compareWet {
         // Wetness is a scene condition, not a setting: toggle it on the renderer.
         let wet = options.wetness > 0 ? options.wetness : 1

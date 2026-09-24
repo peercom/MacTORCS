@@ -103,3 +103,36 @@ final class ReflectionTests: XCTestCase {
         XCTAssertNil(renderer.reflections.result)
     }
 }
+
+extension ReflectionTests {
+    /// Offscreen renders start cold, so the temporal reuse never runs in a
+    /// single verification render and repeat renders stay identical; when
+    /// a sequence is rendered, the history takes hold and the frames converge.
+    func testTemporalReuseAccumulatesOverASequenceAndStaysColdOtherwise() throws {
+        guard MTLCreateSystemDefaultDevice() != nil else { throw XCTSkip("Metal device unavailable") }
+        var settings = RenderSettings()
+        settings.bloom = false; settings.motionBlur = false; settings.upscaling = false
+        settings.screenSpaceReflections = .full
+        settings.reflectionTemporal = true
+        let renderer = try ForwardRenderer(settings: settings)
+        let scene = try SceneResources(device: renderer.device, scene: MotionBlurTests().fixtureScene())
+        let camera = RenderCamera(eye: SIMD3(6, -5, 2), target: SIMD3(0, 0, 0.5))
+        func frame() throws -> [UInt8] {
+            try renderer.render(scene: scene, camera: camera, lighting: SunLighting(), width: 256, height: 160)
+        }
+        let a = try frame(), b = try frame()
+        XCTAssertEqual(a, b, "cold renders must repeat exactly")
+        XCTAssertFalse(renderer.reflections.lastFrameReusedHistory, "a cold render reuses nothing")
+
+        renderer.resetsHistoryPerRender = false
+        let first = try frame()
+        XCTAssertTrue(renderer.reflections.historyValid, "the first frame of a sequence leaves a history")
+        let second = try frame(), third = try frame()
+        XCTAssertTrue(renderer.reflections.lastFrameReusedHistory)
+        func distance(_ x: [UInt8], _ y: [UInt8]) -> Int { zip(x, y).reduce(0) { $0 + abs(Int($1.0) - Int($1.1)) } }
+        // The noise phase rotates, so consecutive frames differ; with the
+        // history blended in they differ less as the sequence goes on.
+        XCTAssertNotEqual(first, second)
+        XCTAssertLessThan(distance(second, third), distance(first, second))
+    }
+}

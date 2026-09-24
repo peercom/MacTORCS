@@ -66,6 +66,9 @@ public struct RenderSettings: Sendable, Equatable {
     /// Surfaces rougher than this skip SSR entirely; the probe is close enough
     /// and the march cost is wasted.
     public var reflectionRoughnessCutoff: Float
+    /// Reuse last frame's reflections, reprojected and clamped, so the
+    /// trace's per-frame dither averages out instead of crawling.
+    public var reflectionTemporal: Bool
 
     public var bloom: Bool
     /// Weight the bloom pyramid is added with. Small: the pyramid carries only
@@ -122,6 +125,7 @@ public struct RenderSettings: Sendable, Equatable {
             ambientOcclusion = .half
             screenSpaceReflections = .half
             reflectionRoughnessCutoff = 0.45
+            reflectionTemporal = true
             bloom = true
             bloomStrength = 0.06
             bloomThreshold = 1.0
@@ -145,6 +149,7 @@ public struct RenderSettings: Sendable, Equatable {
             ambientOcclusion = .half
             screenSpaceReflections = .half
             reflectionRoughnessCutoff = 0.6
+            reflectionTemporal = true
             bloom = true
             bloomStrength = 0.06
             bloomThreshold = 1.0
@@ -168,6 +173,7 @@ public struct RenderSettings: Sendable, Equatable {
             ambientOcclusion = .full
             screenSpaceReflections = .full
             reflectionRoughnessCutoff = 0.8
+            reflectionTemporal = true
             bloom = true
             bloomStrength = 0.06
             bloomThreshold = 1.0

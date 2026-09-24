@@ -529,8 +529,10 @@ public final class ForwardRenderer {
         // per-frame noise rotation starts over: two calls with the same inputs
         // produce the same pixels, which the repeat-render discipline needs.
         // Interactive frames go through encodeFrame directly and keep rotating.
-        occlusion.resetNoise()
-        reflections.resetNoise()
+        if resetsHistoryPerRender {
+            occlusion.resetNoise()
+            reflections.resetNoise()
+        }
         encodeFrame(into: commands, targets: targets, resources: resources, instances: instances,
                     camera: camera, lighting: lighting, aspect: Float(width) / Float(max(height, 1)))
         encodeResolve(into: commands, source: tonemapSource(targets), destination: targets.display,
@@ -662,6 +664,10 @@ public final class ForwardRenderer {
     public private(set) var upscalerBuildCount = 0
     /// Whether the shaders came from a prebuilt library rather than source.
     public private(set) var shadersPrebuilt = false
+    /// Offscreen `render` calls start each frame from a cold noise phase and
+    /// history so they repeat exactly. Tests of temporal accumulation turn
+    /// this off to render a sequence.
+    public var resetsHistoryPerRender = true
     /// The sun's position in uv space for the last encoded frame, when it is
     /// in front of the camera; the resolve draws the glare there.
     public private(set) var sunScreenPosition: SIMD2<Float>?
@@ -909,7 +915,9 @@ public final class ForwardRenderer {
         if settings.screenSpaceReflections != .off {
             reflections.encode(into: commands, targets: targets, projection: projection, view: camera.view(),
                                sunDirection: lighting.direction, roughnessCutoff: settings.reflectionRoughnessCutoff,
-                               quality: settings.screenSpaceReflections, skyView: atmosphere.skyView)
+                               quality: settings.screenSpaceReflections, skyView: atmosphere.skyView,
+                               viewProjection: unjittered, previousViewProjection: previousViewProjection ?? unjittered,
+                               temporal: settings.reflectionTemporal)
         } else {
             reflections.discard()
         }

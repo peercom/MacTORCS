@@ -1564,6 +1564,40 @@ them on. `testEveryListedNameHasACallSite` reads the sources and fails if a
 name on the list has no `begin` of it, so the list cannot drift from the
 code.
 
+## Reflections that hold still
+
+The reflection trace dithers its start offset by a per-pixel noise whose
+phase rotates every frame, and the depth-aware blur that followed it was
+the only thing between that dither and the screen: a fine crawl on the
+road and the car's flanks whenever the camera moved, and a shimmer when it
+did not. A temporal resolve now sits between the blur and the composite.
+It reprojects the previous frame's resolved reflection — by the velocity
+buffer when one is bound, by the unjittered camera matrices otherwise —
+clamps it to the 3×3 neighbourhood of this frame's result so a stale
+reflection cannot ghost across a surface, and blends the current frame in
+at 15 %. Because the phase rotates, what the blend converges on is the
+average over the phases: the reflection without the dither. Two history
+textures alternate at the trace's resolution; a size change or a
+verification render starts cold.
+
+The cold start is the same discipline as the noise reset: an offscreen
+`render` begins every frame from a fresh phase and no history, so two
+calls with the same inputs produce the same bytes, and
+`testTemporalReuseAccumulatesOverASequenceAndStaysColdOtherwise` checks
+both halves — cold renders identical and reusing nothing, then with the
+reset off a three-frame sequence whose consecutive frames differ less as
+it goes. The render tool's `--compare-ssr-temporal` measures the pass with
+the reset off so the reuse actually runs:
+
+| | Δ |
+|---|---|
+| 1280×832, full-resolution trace | +0.03 ms |
+| 2560×1664, full-resolution trace | +0.19 ms |
+
+Not done: reusing the history to trace fewer steps, which is the other
+half of the usual reason for the pass and would turn it from a cost into a
+saving.
+
 ## Licensing
 
 No third-party artwork is imported by this work. New render source is
