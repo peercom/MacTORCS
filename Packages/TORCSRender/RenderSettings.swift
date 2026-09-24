@@ -56,6 +56,16 @@ public struct RenderSettings: Sendable, Equatable {
     public var reflectionRoughnessCutoff: Float
 
     public var bloom: Bool
+    /// Weight the bloom pyramid is added with. Small: the pyramid carries only
+    /// radiance above `BloomRenderer.threshold`, and this is how much of that
+    /// spreads rather than staying in the highlight.
+    public var bloomStrength: Float
+    /// Exposed value above which light starts to spread. AgX maps 1.0 to about
+    /// 0.8 on the display and does not reach white until several stops higher,
+    /// so with the soft knee this confines bloom to the upper tones and above:
+    /// sun glints, the sky near the sun, lit specular highlights. A sunlit
+    /// diffuse surface at a sensible exposure sits below it and does not glow.
+    public var bloomThreshold: Float
     public var motionBlur: Bool
 
     /// Render a depth-only pass before shading.
@@ -83,12 +93,17 @@ public struct RenderSettings: Sendable, Equatable {
             shadowCascades = 4
             shadowResolution = 2048
             staticShadowRefreshInterval = 3
-            contactShadows = true
-            ambientOcclusion = .half
-            screenSpaceReflections = .half
+            // Not implemented yet. Left at their inert values rather than
+            // claiming a feature the frame does not have; each flips on in the
+            // commit that lands the pass.
+            contactShadows = false
+            ambientOcclusion = .off
+            screenSpaceReflections = .off
             reflectionRoughnessCutoff = 0.45
             bloom = true
-            motionBlur = true
+            bloomStrength = 0.06
+            bloomThreshold = 1.0
+            motionBlur = false
             depthPrepass = false
             mirrorScale = 0.5
             textureMemoryBudgetBytes = 1_500_000_000
@@ -99,12 +114,17 @@ public struct RenderSettings: Sendable, Equatable {
             shadowCascades = 4
             shadowResolution = 2048
             staticShadowRefreshInterval = 2
-            contactShadows = true
-            ambientOcclusion = .half
-            screenSpaceReflections = .half
+            // Not implemented yet. Left at their inert values rather than
+            // claiming a feature the frame does not have; each flips on in the
+            // commit that lands the pass.
+            contactShadows = false
+            ambientOcclusion = .off
+            screenSpaceReflections = .off
             reflectionRoughnessCutoff = 0.6
             bloom = true
-            motionBlur = true
+            bloomStrength = 0.06
+            bloomThreshold = 1.0
+            motionBlur = false
             depthPrepass = false
             mirrorScale = 0.67
             textureMemoryBudgetBytes = 3_000_000_000
@@ -115,12 +135,14 @@ public struct RenderSettings: Sendable, Equatable {
             shadowCascades = 4
             shadowResolution = 4096
             staticShadowRefreshInterval = 1
-            contactShadows = true
-            ambientOcclusion = .full
-            screenSpaceReflections = .full
+            contactShadows = false
+            ambientOcclusion = .off
+            screenSpaceReflections = .off
             reflectionRoughnessCutoff = 0.8
             bloom = true
-            motionBlur = true
+            bloomStrength = 0.06
+            bloomThreshold = 1.0
+            motionBlur = false
             depthPrepass = false
             mirrorScale = 1
             textureMemoryBudgetBytes = 6_000_000_000

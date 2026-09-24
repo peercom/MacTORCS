@@ -171,7 +171,13 @@ public final class ForwardRenderer {
     /// depth-equal trickery needed to draw it last.
     let skyDepthState: MTLDepthStencilState
     public let atmosphere: AtmosphereResources
+    public let bloom: BloomRenderer
     private var upscaler: TemporalUpscaler?
+    /// Whether the upscaler actually wrote its output this frame. The fallback
+    /// on upscaler failure cannot be expressed by which textures exist — the
+    /// output texture is still allocated — so the tonemap source is chosen from
+    /// what ran, not from what is available.
+    private var upscaleProduced = false
     private var jitterSequence = JitterSequence()
     /// Unjittered view-projection from the previous frame, for motion vectors.
     private var previousViewProjection: simd_float4x4?
@@ -282,6 +288,7 @@ public final class ForwardRenderer {
         skyDescriptor.depthAttachmentPixelFormat = FrameTargets.depthFormat
         sky = try device.makeRenderPipelineState(descriptor: skyDescriptor)
         atmosphere = try AtmosphereResources(device: device, library: library)
+        bloom = try BloomRenderer(device: device, library: library)
         shadows = try ShadowRenderer(device: device, library: library,
                                      resolution: settings.shadowResolution,
                                      cascadeCount: settings.shadowCascades)
@@ -395,7 +402,7 @@ public final class ForwardRenderer {
         }
         encodeFrame(into: commands, targets: targets, resources: resources, instances: instances,
                     camera: camera, lighting: lighting, aspect: Float(width) / Float(max(height, 1)))
-        encodeResolve(into: commands, source: targets.tonemapSource, destination: targets.display,
+        encodeResolve(into: commands, source: tonemapSource(targets), destination: targets.display,
                       lighting: lighting)
         commands.commit()
         commands.waitUntilCompleted()
@@ -420,6 +427,7 @@ public final class ForwardRenderer {
                             resources: [SceneResources], instances: [RenderInstance],
                             camera: RenderCamera, lighting: SunLighting, aspect: Float) {
         currentJitter = settings.temporalUpscaling ? jitterSequence.next() : SIMD2(0, 0)
+        upscaleProduced = false
         atmosphere.update(into: commands, lighting: lighting, cameraAltitude: camera.eye.z)
         let cascades = ShadowCascades(camera: camera, sunDirection: lighting.direction,
                                       aspect: aspect, count: settings.shadowCascades,
@@ -443,6 +451,7 @@ public final class ForwardRenderer {
                     upscalerBuildCount += 1
                 }
                 try upscaler?.encode(into: commands, targets: targets, jitter: currentJitter)
+                upscaleProduced = upscaler != nil
             } catch {
                 // Upscaling is an optimization, not a requirement. Falling back
                 // to the render-resolution image keeps a frame on screen rather
@@ -450,6 +459,17 @@ public final class ForwardRenderer {
                 upscaler = nil
                 lastUpscalerError = String(describing: error)
             }
+        }
+
+        // After the upscaler, so the pyramid is built at output resolution from
+        // the image that will actually be tonemapped. Building it at render
+        // resolution instead would be cheaper but would feed the upscaler a
+        // glow it then has to track temporally.
+        if settings.bloom && settings.bloomStrength > 0 {
+            bloom.encode(into: commands, source: tonemapSource(targets),
+                         threshold: settings.bloomThreshold, exposureScale: lighting.exposureScale)
+        } else {
+            bloom.discard()
         }
 
         // Remember this frame's transforms so the next one can reproject.
@@ -652,6 +672,12 @@ public final class ForwardRenderer {
         lastTriangleCount += batch.indexCount / 3
     }
 
+    /// The texture the resolve should tonemap: the upscaler's output when it
+    /// ran this frame, otherwise the render-resolution scene colour.
+    public func tonemapSource(_ targets: FrameTargets) -> MTLTexture {
+        upscaleProduced ? (targets.upscaled ?? targets.colour) : targets.colour
+    }
+
     /// Tonemaps HDR scene colour into a display-format target.
     public func encodeResolve(into commands: MTLCommandBuffer, source: MTLTexture,
                               destination: MTLTexture, lighting: SunLighting) {
@@ -665,6 +691,17 @@ public final class ForwardRenderer {
             encoder.setFragmentTexture(source, index: 0)
             var exposure = lighting.exposureScale
             encoder.setFragmentBytes(&exposure, length: MemoryLayout<Float>.stride, index: 0)
+            // Strength stays zero unless a pyramid was actually built, so a
+            // bloom target that failed to allocate resolves to a clean frame
+            // instead of sampling an unwritten texture.
+            var strength: Float = 0
+            if settings.bloom, let pyramid = bloom.result {
+                encoder.setFragmentTexture(pyramid, index: 1)
+                strength = settings.bloomStrength
+            } else {
+                encoder.setFragmentTexture(source, index: 1)
+            }
+            encoder.setFragmentBytes(&strength, length: MemoryLayout<Float>.stride, index: 1)
             encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
             encoder.endEncoding()
         }

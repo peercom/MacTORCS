@@ -48,7 +48,7 @@ public extension ForwardRenderer {
                     camera: camera, lighting: lighting, aspect: Float(width) / Float(height))
         // Tonemap straight into the drawable rather than into `targets.display`
         // and blitting: one less full-resolution write per frame.
-        encodeResolve(into: commands, source: targets.tonemapSource, destination: drawable.texture,
+        encodeResolve(into: commands, source: tonemapSource(targets), destination: drawable.texture,
                       lighting: lighting)
 
         // GPU time is sampled on completion, which is one frame behind. That is

@@ -319,6 +319,95 @@ space is y-up while device pixels are y-down. A unit test asserts the resulting
 normalized offset is constant with depth, and caught the sign error — which
 would have shown up only as a subtly unstable image.
 
+## Bloom, and a settings struct that stopped lying
+
+`RenderSettings` shipped with `bloom`, `motionBlur`, `contactShadows`,
+`ambientOcclusion` and `screenSpaceReflections` all switched on in every
+preset, and none of them existed. A budget table built on those flags would
+have been fiction. They now sit at their inert values, pinned by
+`EffectAvailabilityTests`, and each flips on in the commit that lands its pass.
+Bloom is the first.
+
+### The pass
+
+Jimenez's progressive pyramid: a soft-kneed threshold prefilter into a level a
+quarter of the source on each axis, thirteen-tap halvings down to an 8 px
+floor or six levels, then three-by-three tent upsamples blended additively
+back up. Ten small passes at 1280x832. The first level started at half
+resolution and was moved to a quarter after measuring: at native output it
+alone cost more than every other pass together.
+
+Two decisions worth recording.
+
+**The threshold is in exposed units, not radiance.** The first version
+thresholded raw scene radiance at 1.6 and changed zero pixels of a track
+render — and at strength 1.0, threshold 0, still zero. The pass was not
+reaching the resolve at all? No: the resolve was fine, the pyramid was simply
+empty. The scene's exposure scale is far below 1, so nothing in linear
+radiance came near 1.6 after the sun illuminance and EV100 were accounted for.
+A camera blooms where its *sensor* saturates, and exposure decides where that
+is; a fixed radiance threshold blooms nothing at one exposure and everything
+at another. The prefilter now exposes before thresholding, the resolve
+exposes the scene to match, and the tonemapper is handed unit scale.
+
+**Added, not mixed.** The energy-conserving formulation — `mix(scene, pyramid,
+strength)` — is correct only when the pyramid is unthresholded. With a
+threshold, most pixels contribute nothing to the pyramid, and mixing darkens
+the entire frame by the blend weight: a global error bought for local
+correctness. Adding overstates energy slightly around highlights, which is
+also what a lens does — its point spread function keeps a bright core and
+adds a halo rather than draining the core into it. `testBloomNeverDarkensAPixel`
+pins this.
+
+### One real bug found on the way
+
+`FrameTargets.tonemapSource` returned `upscaled ?? colour`. When the upscaler
+threw mid-frame the renderer set itself to nil and the comment promised "the
+tonemap source follows" — but the upscaled *texture* still existed, so the
+resolve would have tonemapped a never-written target. The choice now lives on
+the renderer, keyed on whether the upscale actually ran this frame. Dormant
+while upscaling is off, which is exactly how it went unnoticed.
+
+### Measured
+
+Interleaved A/B, Aalborg with generated materials, sixty pairs after twenty
+warmups:
+
+| Resolution | Bloom off | Bloom on | Delta |
+|---|---|---|---|
+| 1280x832 | 1.408 ms | 1.529 ms | +0.121 ms |
+| 1920x1248 | 2.815 ms | 3.203 ms | +0.389 ms |
+| 2560x1664 | 4.2–9.2 ms | 5.7–6.3 ms | unmeasurable, see below |
+
+At native — which is what the default preset renders, upscaling being off —
+three interleaved runs gave +4.3, +1.6 and +0.3 ms, and two sequential runs
+put bloom *on* below bloom *off*. Every native run had a p95 above 12 ms
+against medians of 4–9. The chip was throttling, and at that point
+interleaving no longer cancels the drift because the clock is moving within a
+single pair. The honest number is "somewhere under a millisecond, probably,"
+and the honest method is to measure again cold.
+
+### The frame is no longer submission-bound at native
+
+The larger finding in that table is the *off* column. The earlier resolution
+sweep showed 1.29 ms at 2560x1664 and concluded the renderer was
+submission-bound — and it was, with flat 256² textures. With generated
+materials every pixel now samples albedo, a BC5 normal, ORM, three atmosphere
+tables and a filtered shadow, and native costs three to six times what
+1280x832 does. Pixels have a price again.
+
+That reopens the decision this document made two sections up. Temporal
+upscaling was switched off because halving the render resolution saved
+nothing; it now saves several milliseconds, against the scaler's fixed cost.
+It needs re-measuring with materials on, cold, before the default preset is
+changed — not changed on the strength of a throttled run.
+
+One methodological note for that re-measurement, learned the hard way here:
+`for res in "1280 832"; do set -- $res` does not split words in zsh. A sweep
+written that way rendered 1280x832 three times and labelled them 640, 1280 and
+2560, and the "cool native 4.3 ms" it produced was wrong. Sweeps go in a
+`#!/bin/bash` script now.
+
 ## Licensing
 
 No third-party artwork is imported by this work. New render source is

@@ -205,3 +205,32 @@ final class TemporalUpscalingTests: XCTestCase {
         }
     }
 }
+
+final class EffectAvailabilityTests: XCTestCase {
+    /// A setting that is on for a pass the frame does not contain is a lie the
+    /// budget table would be built on. Each of these flips to its live value in
+    /// the commit that lands the pass, and this test is updated with it.
+    func testUnimplementedEffectsAreInertInEveryPreset() {
+        for preset in RenderSettings.Preset.allCases {
+            let settings = RenderSettings(preset: preset)
+            XCTAssertFalse(settings.contactShadows, "\(preset): contact shadows are not implemented")
+            XCTAssertEqual(settings.ambientOcclusion, .off, "\(preset): GTAO is not implemented")
+            XCTAssertEqual(settings.screenSpaceReflections, .off, "\(preset): SSR is not implemented")
+            XCTAssertFalse(settings.motionBlur, "\(preset): motion blur is not implemented")
+        }
+    }
+
+    func testBloomIsOnWithSaneParametersInEveryPreset() {
+        for preset in RenderSettings.Preset.allCases {
+            let settings = RenderSettings(preset: preset)
+            XCTAssertTrue(settings.bloom, "\(preset)")
+            // Strength is a fraction of the thresholded pyramid: above a few
+            // tenths the whole frame fogs, at zero the pass is wasted.
+            XCTAssertGreaterThan(settings.bloomStrength, 0, "\(preset)")
+            XCTAssertLessThanOrEqual(settings.bloomStrength, 0.3, "\(preset)")
+            // Threshold in exposed units: at or above middle grey, or ordinary
+            // sunlit surfaces glow.
+            XCTAssertGreaterThanOrEqual(settings.bloomThreshold, 0.18, "\(preset)")
+        }
+    }
+}

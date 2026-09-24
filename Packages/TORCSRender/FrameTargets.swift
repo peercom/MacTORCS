@@ -76,9 +76,6 @@ public final class FrameTargets {
             && (velocity != nil) == upscaling
     }
 
-    /// The texture the tonemapper should read.
-    public var tonemapSource: MTLTexture { upscaled ?? colour }
-
     /// Bytes the targets occupy, for the memory budget check.
     public var byteCount: Int {
         let render = renderWidth * renderHeight * (8 + 4 + (velocity != nil ? 4 : 0))

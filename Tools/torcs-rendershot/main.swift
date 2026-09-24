@@ -31,8 +31,12 @@ struct Options {
     var terrainOnly = false
     var materials: String? = nil
     var depthPrepass = false
+    var bloom: Bool? = nil
+    var bloomStrength: Float? = nil
+    var bloomThreshold: Float? = nil
     var upscale: Bool? = nil
     var comparePrepass = false
+    var compareBloom = false
     /// Track XML enabling procedural terrain from its Terrain Generation section.
     var trackXML: String? = nil
     var textureRoots: [String] = []
@@ -71,9 +75,14 @@ func parse() -> Options {
         case "--terrain-only": options.terrainOnly = true
         case "--materials": options.materials = next()
         case "--depth-prepass": options.depthPrepass = true
+        case "--bloom": options.bloom = true
+        case "--no-bloom": options.bloom = false
+        case "--bloom-strength": options.bloomStrength = Float(next()) ?? options.bloomStrength
+        case "--bloom-threshold": options.bloomThreshold = Float(next()) ?? options.bloomThreshold
         case "--upscale": options.upscale = true
         case "--no-upscale": options.upscale = false
         case "--compare-prepass": options.comparePrepass = true
+        case "--compare-bloom": options.compareBloom = true
         case "--frames": options.frames = Int(next()) ?? options.frames
         case "--track-xml": options.trackXML = next()
         case "--textures": options.textureRoots.append(next())
@@ -169,6 +178,9 @@ do {
     var settings = RenderSettings(preset: options.preset)
     settings.depthPrepass = options.depthPrepass
     if let upscale = options.upscale { settings.temporalUpscaling = upscale }
+    if let bloom = options.bloom { settings.bloom = bloom }
+    if let strength = options.bloomStrength { settings.bloomStrength = strength }
+    if let threshold = options.bloomThreshold { settings.bloomThreshold = threshold }
     let renderer = try ForwardRenderer(settings: settings)
     // Default to the scene file's own directory, which is where the original
     // per-track artwork sits. Extra roots are explicit, never implicit.
@@ -214,20 +226,20 @@ do {
         ambient: SIMD3(0.16, 0.20, 0.28) * options.ambient,
         exposureEV100: options.exposure)
 
-    if options.comparePrepass {
-        // Interleaved A/B in one process. This machine is fanless, so its GPU
-        // clock falls under sustained load: two configurations measured minutes
-        // apart are not comparable, and the drift is larger than the effect
-        // being measured. Alternating frame by frame cancels it, which is the
-        // same methodology the classic path's benchmarks use.
+    // Interleaved A/B in one process. This machine is fanless, so its GPU
+    // clock falls under sustained load: two configurations measured minutes
+    // apart are not comparable, and the drift is larger than the effect
+    // being measured. Alternating frame by frame cancels it, which is the
+    // same methodology the classic path's benchmarks use.
+    func compare(_ name: String, set: (inout RenderSettings, Bool) -> Void) throws -> Never {
         var samples: [Bool: [Double]] = [false: [], true: []]
         let warmups = 20, pairs = 60
         for frame in 0 ..< (warmups + pairs * 2) {
-            let prepass = frame.isMultiple(of: 2)
-            renderer.settings.depthPrepass = prepass
+            let on = frame.isMultiple(of: 2)
+            set(&renderer.settings, on)
             _ = try renderer.render(scene: resources, camera: camera, lighting: lighting,
                                     width: options.width, height: options.height)
-            if frame >= warmups { samples[prepass, default: []].append(renderer.lastGPUTime * 1000) }
+            if frame >= warmups { samples[on, default: []].append(renderer.lastGPUTime * 1000) }
         }
         func report(_ key: Bool) -> String {
             let sorted = samples[key]!.sorted()
@@ -235,14 +247,16 @@ do {
             let p95 = sorted[min(sorted.count - 1, Int(Double(sorted.count) * 0.95))]
             return String(format: "median %.3f ms  p95 %.3f ms  (n=%d)", median, p95, sorted.count)
         }
-        print("interleaved depth prepass comparison, \(options.width)x\(options.height)")
-        print("  prepass off  \(report(false))")
-        print("  prepass on   \(report(true))")
+        print("interleaved \(name) comparison, \(options.width)x\(options.height)")
+        print("  \(name) off  \(report(false))")
+        print("  \(name) on   \(report(true))")
         let off = samples[false]!.sorted()[samples[false]!.count / 2]
         let on = samples[true]!.sorted()[samples[true]!.count / 2]
         print(String(format: "  delta        %+.3f ms (%+.1f%%)", on - off, (on - off) / off * 100))
         exit(0)
     }
+    if options.comparePrepass { try compare("depth prepass") { $0.depthPrepass = $1 } }
+    if options.compareBloom { try compare("bloom") { $0.bloom = $1 } }
 
     // Repeat-render methodology matching the classic path's benchmarks:
     // discard warmups, then report median and p95. The first frame builds the
@@ -309,6 +323,7 @@ do {
       triangles     \(renderer.lastTriangleCount)
       geometry      \(String(format: "%.2f", megabytes)) MiB
       scalerBuilds  \(renderer.upscalerBuildCount)\(renderer.lastUpscalerError.map { " error: " + $0 } ?? "")
+      bloom         \(settings.bloom ? "on, strength \(settings.bloomStrength), threshold \(settings.bloomThreshold) exposed, \(renderer.bloom.levelCount) levels" : "off")
       upscaling     \(settings.temporalUpscaling ? "on, render \(settings.renderSize(output: (options.width, options.height)).width)x\(settings.renderSize(output: (options.width, options.height)).height)" : "off")
       textures      \(textures.count) uploaded, \(String(format: "%.1f", Double(textures.uploadedBytes) / 1_048_576)) MiB
       textured      \(resources.texturedBatches) of \(resources.batchCount) batches
