@@ -6,12 +6,12 @@ import TORCSRender
 
 final class ShaderLibraryTests: XCTestCase {
     func testUniformLayoutsMatchTheMetalStructs() {
-        // 2 matrices (64 each) plus 4 vectors (16 each).
-        XCTAssertEqual(MemoryLayout<FrameUniforms>.size, 192)
-        XCTAssertEqual(MemoryLayout<FrameUniforms>.stride, 192)
+        // 3 matrices (64 each) plus 4 vectors (16 each).
+        XCTAssertEqual(MemoryLayout<FrameUniforms>.size, 256)
+        XCTAssertEqual(MemoryLayout<FrameUniforms>.stride, 256)
         XCTAssertEqual(MemoryLayout<DrawUniforms>.size, 192)
         XCTAssertEqual(MemoryLayout<DrawUniforms>.stride, 192)
-        XCTAssertEqual(MemoryLayout<FrameUniforms>.offset(of: \.cameraPosition), 128)
+        XCTAssertEqual(MemoryLayout<FrameUniforms>.offset(of: \.cameraPosition), 192)
         XCTAssertEqual(MemoryLayout<DrawUniforms>.offset(of: \.baseColour), 128)
         XCTAssertEqual(MemoryLayout<DrawUniforms>.offset(of: \.maps), 176)
     }

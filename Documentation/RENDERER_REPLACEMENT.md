@@ -147,14 +147,55 @@ retains the genuine rough-metal recovery.
 Both faults passed every unit test. They were found by looking at rendered
 frames, which is the argument for `torcs-rendershot` existing at all.
 
+### Front faces are counter-clockwise
+
+AC/TORCS geometry comes from OpenGL, whose default front face is
+counter-clockwise. Metal defaults to clockwise, and the renderer did not set
+`setFrontFacing`, so every mesh drawn with culling enabled kept its **back**
+faces and discarded its front ones.
+
+The symptom was subtle enough to survive several milestones: the car rendered
+as a dark shell with a visible roll cage and interior, which read as plausible
+for a stripped DTM car. It was actually the inside of the bodywork, seen
+through it. Setting `.counterClockwise` produced the correct red livery with
+door numbers, badge and lights, and turned the pale track surface into dark
+asphalt with lane markings.
+
+Found only because generated terrain disappeared when back-face culling was
+enabled on it — the terrain's winding was derived from geometry and therefore
+correct, which made the renderer's convention the odd one out.
+
+### Terrain winding is derived, not reasoned
+
+The apron's two sides are mirror images, so their lateral parameterizations
+have opposite handedness and no single winding rule covers both. Rather than
+hand-deriving each, every triangle is oriented from its own geometric normal.
+A first attempt at hand-reasoning produced 86% downward-facing normals; the
+rendered frames looked plausible anyway, because the batch had culling
+disabled. A unit test caught it.
+
 ## First measurements
 
 Offscreen, 1280x832, Apple M2, against a ~10.5 ms per-frame budget:
 
-| Scene | Batches | Triangles | GPU |
-|---|---|---|---|
-| Aalborg, textured | 1,315 | 12,305 | 1.005 ms |
-| 155-DTM, textured | 18 | 5,698 | 0.718 ms |
+| Scene | GPU |
+|---|---|
+| Aalborg, forward PBR only | 1.005 ms |
+| plus atmosphere and aerial perspective | 1.211 ms |
+| plus sky spherical-harmonic IBL | 1.278 ms |
+| plus four shadow cascades | 1.980 ms |
+| plus generated terrain | 3.710 ms |
+| 155-DTM, all of the above | 1.796 ms |
+
+Against a ~10.5 ms budget at 1280x832. The terrain step is the largest single
+increase and is almost entirely overdraw rather than geometry: 6,736 triangles
+is negligible, but the apron fills the frame with a fragment shader running
+eight aerial-perspective steps and eight shadow taps. That is the argument for
+moving the depth prepass ahead of ambient occlusion and reflections.
+
+Atmosphere table construction costs about 12 ms once at load. It is startup
+cost, not frame cost; measuring a single render rather than a warmed sequence
+reports it as if it were the latter.
 
 Twenty-two textures resolve for Aalborg; five do not. Those five —
 `concrete.rgb`, `concrete2.rgb`, `pylon1.rgb`, `pylon2.rgb`, `pylon3.rgb` — are

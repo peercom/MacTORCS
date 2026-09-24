@@ -11,6 +11,8 @@ import simd
 public struct FrameUniforms: Equatable, Sendable {
     public var viewProjection: simd_float4x4
     public var view: simd_float4x4
+    /// Reconstructs world-space view rays in the fullscreen sky pass.
+    public var inverseViewProjection: simd_float4x4
     /// xyz world-space eye position, w unused.
     public var cameraPosition: SIMD4<Float>
     /// xyz unit vector pointing *toward* the sun, w unused.
@@ -26,6 +28,7 @@ public struct FrameUniforms: Equatable, Sendable {
                 ambientIrradiance: SIMD3<Float>) {
         self.viewProjection = viewProjection
         self.view = view
+        self.inverseViewProjection = viewProjection.inverse
         self.cameraPosition = SIMD4(cameraPosition, 0)
         self.sunDirection = SIMD4(simd_normalize(sunDirection), 0)
         self.sunIlluminance = SIMD4(sunIlluminance, exposureScale)

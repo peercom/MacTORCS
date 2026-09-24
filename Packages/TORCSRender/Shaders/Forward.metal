@@ -12,6 +12,8 @@
 #include <metal_stdlib>
 #include "Common.metal"
 #include "BRDF.metal"
+#include "Atmosphere.metal"
+#include "Shadow.metal"
 using namespace metal;
 
 /// Every field is float4-aligned on purpose. MSL pads `float3` to 16 bytes and
@@ -20,6 +22,8 @@ using namespace metal;
 struct FrameUniforms {
     float4x4 viewProjection;
     float4x4 view;
+    /// Reconstructs world-space view rays in the fullscreen sky pass.
+    float4x4 inverseViewProjection;
     float4 cameraPosition;      // w unused
     float4 sunDirection;        // xyz points toward the sun, w unused
     float4 sunIlluminance;      // linear RGB, w holds the exposure scale
@@ -81,7 +85,14 @@ fragment float4 forwardFragment(ForwardVarying in [[stage_in]],
                                 texture2d<float> albedoMap [[texture(0)]],
                                 texture2d<float> normalMap [[texture(1)]],
                                 texture2d<float> ormMap [[texture(2)]],
-                                sampler surfaceSampler [[sampler(0)]]) {
+                                texture2d<float> transmittanceLUT [[texture(3)]],
+                                texture2d<float> multiScatterLUT [[texture(4)]],
+                                texture2d<float> skyViewLUT [[texture(5)]],
+                                constant SkyIrradiance &skyIrradiance [[buffer(3)]],
+                                constant ShadowUniforms &shadow [[buffer(4)]],
+                                depth2d_array<float> shadowMap [[texture(6)]],
+                                sampler surfaceSampler [[sampler(0)]],
+                                sampler shadowSampler [[sampler(1)]]) {
     float4 albedo = draw.baseColour;
     if (draw.maps.x != 0) {
         // The albedo texture is bound as sRGB, so hardware returns linear.
@@ -121,12 +132,35 @@ fragment float4 forwardFragment(ForwardVarying in [[stage_in]],
     surface.clearcoatNormal = basis[2];
 
     float3 view = normalize(frame.cameraPosition.xyz - in.worldPosition);
-    float3 colour = evaluateLight(surface, view, normalize(frame.sunDirection.xyz), frame.sunIlluminance.rgb);
-    // Flat ambient stands in until spherical-harmonic irradiance and a
-    // prefiltered specular probe land in the next phase.
-    colour += evaluateImageBasedLight(surface, view, frame.ambientIrradiance.rgb,
-                                      frame.ambientIrradiance.rgb);
+    float3 sunDirection = normalize(frame.sunDirection.xyz);
+
+    // View-space depth selects the cascade. The camera looks down -Z.
+    float viewDepth = -(frame.view * float4(in.worldPosition, 1.0f)).z;
+    float visibility = sampleShadow(shadow, shadowMap, shadowSampler, in.worldPosition,
+                                    basis[2], sunDirection, viewDepth, in.position.xy);
+
+    float3 colour = evaluateLight(surface, view, sunDirection, frame.sunIlluminance.rgb) * visibility;
+
+    // Ambient comes from the sky itself, not a constant. SH9 for diffuse, and
+    // the sky table sampled along the reflection vector at a roughness-selected
+    // mip as a cheap specular probe.
+    constexpr sampler skySampler(coord::normalized, address::repeat, filter::linear, mip_filter::linear);
+    float3 irradiance = evaluateSkyIrradiance(skyIrradiance, normal);
+    float3 reflection = reflect(-view, normal);
+    float mipCount = float(max(skyViewLUT.get_num_mip_levels(), 1u) - 1u);
+    float3 prefiltered = skyViewLUT.sample(skySampler, skyViewUV(reflection),
+                                           level(surface.perceptualRoughness * mipCount)).rgb;
+    colour += evaluateImageBasedLight(surface, view, irradiance, prefiltered);
     colour += surface.emissive;
+
+    // Aerial perspective, from the same medium the sky uses. This replaces the
+    // classic path's per-camera linear fog, whose range was authored separately
+    // for each of the 31 cameras and could never agree with the sky behind it.
+    float3 transmittance;
+    float3 inScatter = aerialPerspective(in.worldPosition, frame.cameraPosition.xyz,
+                                         normalize(frame.sunDirection.xyz), frame.sunIlluminance.rgb,
+                                         transmittanceLUT, multiScatterLUT, transmittance);
+    colour = colour * transmittance + inScatter;
     return float4(colour, albedo.a);
 }
 

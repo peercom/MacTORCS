@@ -6,6 +6,9 @@ import UniformTypeIdentifiers
 import simd
 import TORCSAssets
 import TORCSRender
+import TORCSTrack
+import TORCSTrackMesh
+import TORCSConfiguration
 
 /// Renders a scene through the modern path and writes a PNG.
 ///
@@ -23,6 +26,9 @@ struct Options {
     var exposure: Float = 0
     var preset = RenderSettings.Preset.m2Air
     var stats = false
+    var frames = 1
+    /// Track XML enabling procedural terrain from its Terrain Generation section.
+    var trackXML: String? = nil
     var textureRoots: [String] = []
     var eye: SIMD3<Float>? = nil
     var target: SIMD3<Float>? = nil
@@ -55,6 +61,8 @@ func parse() -> Options {
         case "--exposure": options.exposure = Float(next()) ?? options.exposure
         case "--preset": options.preset = RenderSettings.Preset(rawValue: next()) ?? options.preset
         case "--stats": options.stats = true
+        case "--frames": options.frames = Int(next()) ?? options.frames
+        case "--track-xml": options.trackXML = next()
         case "--textures": options.textureRoots.append(next())
         case "--eye": options.eye = parseVector(next())
         case "--target": options.target = parseVector(next())
@@ -109,7 +117,39 @@ guard !options.input.isEmpty, !options.output.isEmpty else {
 do {
     let radians = Float.pi / 180
     let data = try Data(contentsOf: URL(fileURLWithPath: options.input))
-    let scene = try RenderScene(ACScene.parse(data, car: options.car))
+    var scene = try RenderScene(ACScene.parse(data, car: options.car))
+
+    // Procedural terrain from the track's own Terrain Generation parameters.
+    // Aalborg's baked mesh contains almost no ground, so without this the
+    // circuit sits in a void and nothing can receive a shadow.
+    if let trackXML = options.trackXML {
+        let xml = URL(fileURLWithPath: trackXML)
+        let directory = xml.deletingLastPathComponent()
+        var entities: [String: Data] = [:]
+        for (name, file) in [("default-surfaces", "surfaces.xml"), ("default-objects", "objects.xml")] {
+            if let contents = try? Data(contentsOf: directory.appendingPathComponent(file)) {
+                entities[name] = contents
+            }
+        }
+        let document = try ParameterDocument.parse(Data(contentsOf: xml), entities: entities,
+                                                   allowLegacyLatin1: true)
+        let road = try TrackBuilder.buildRoad(parameters: document)
+        let terrainParameters = TerrainParameters(document: document)
+        let apron = TerrainGeneration.apron(road.geometry, parameters: terrainParameters)
+        if !apron.isEmpty {
+            let mesh = try RenderMesh.build(positions: apron.positions, normals: apron.normals,
+                                            uv0: apron.uv0, indices: apron.indices)
+            let material = ResolvedMaterial(baseColour: SIMD4(1, 1, 1, 1), roughness: 0.9, metallic: 0)
+            let state = ACRenderState(material: [0, 0, 0, 1, 0, 0, 0, 1, 0.2, 0.2, 0.2, 1, 0],
+                                      texture: terrainParameters.surface + ".rgb",
+                                      flags: 8, alphaClamp: 0)
+            scene = scene.adding([RenderBatch(mesh: mesh, baseTexture: state.texture,
+                                              isTranslucent: false, alphaTestThreshold: nil,
+                                              culls: true, isDriver: false,
+                                              sourceMaterial: state, material: material)])
+            print("terrain: \(apron.triangleCount) triangles, \(apron.positions.count) vertices, surface \(terrainParameters.surface)")
+        }
+    }
     let renderer = try ForwardRenderer(settings: RenderSettings(preset: options.preset))
     // Default to the scene file's own directory, which is where the original
     // per-track artwork sits. Extra roots are explicit, never implicit.
@@ -136,10 +176,31 @@ do {
         ambient: SIMD3(0.16, 0.20, 0.28) * options.ambient,
         exposureEV100: options.exposure)
 
-    let pixels = try renderer.render(scene: resources, camera: camera, lighting: lighting,
+    // Repeat-render methodology matching the classic path's benchmarks:
+    // discard warmups, then report median and p95. The first frame builds the
+    // atmosphere tables, so a single sample measures startup, not steady state.
+    var samples: [Double] = []
+    var pixels: [UInt8] = []
+    let warmups = options.frames > 1 ? min(10, options.frames) : 0
+    for frame in 0 ..< (warmups + options.frames) {
+        pixels = try renderer.render(scene: resources, camera: camera, lighting: lighting,
                                      width: options.width, height: options.height)
+        if frame >= warmups { samples.append(renderer.lastGPUTime * 1000) }
+    }
+    samples.sort()
+    let median = samples.isEmpty ? 0 : samples[samples.count / 2]
+    let p95 = samples.isEmpty ? 0 : samples[min(samples.count - 1, Int(Double(samples.count) * 0.95))]
     try writePNG(pixels, width: options.width, height: options.height, to: options.output)
 
+    if options.stats {
+        let cascades = ShadowCascades(camera: camera, sunDirection: lighting.direction,
+                                      aspect: Float(options.width) / Float(options.height),
+                                      count: 4, resolution: 2048, shadowDistance: 400).cascades
+        for (i, c) in cascades.enumerated() {
+            print(String(format: "cascade %d: split %.1f m, texel %.4f m, depthRange %.1f m",
+                         i, c.splitDistance, c.texelWorldSize, c.depthRange))
+        }
+    }
     if options.stats {
         // Distribution of resolved materials, to tell "untextured but correct"
         // apart from "the diffuse colour never arrived".
@@ -170,7 +231,8 @@ do {
       textures      \(textures.count) uploaded, \(String(format: "%.1f", Double(textures.uploadedBytes) / 1_048_576)) MiB
       textured      \(resources.texturedBatches) of \(resources.batchCount) batches
       missing       \(textures.missing.count)\(textures.missing.isEmpty ? "" : ": " + textures.missing.sorted().prefix(6).joined(separator: ", "))
-      gpu time      \(String(format: "%.3f", renderer.lastGPUTime * 1000)) ms
+      gpu median    \(String(format: "%.3f", median)) ms over \(samples.count) frames
+      gpu p95       \(String(format: "%.3f", p95)) ms
     """)
 } catch {
     FileHandle.standardError.write(Data("torcs-rendershot: \(error)\n".utf8))

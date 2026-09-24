@@ -21,6 +21,9 @@ public final class SceneResources {
         let isDriver: Bool
         let isTranslucent: Bool
         let albedo: MTLTexture?
+        /// World-space bounds for shadow cascade culling.
+        let worldCentre: SIMD3<Float>
+        let worldRadius: Float
     }
 
     let batches: [Batch]
@@ -45,6 +48,16 @@ public final class SceneResources {
             else { throw RenderError.unavailable("Could not allocate geometry buffers") }
             bytes += vertexLength + indexLength
 
+            // Transform the local bounding sphere into world space. Scale can
+            // be non-uniform, so take the largest axis scale.
+            let transform = batch.mesh.transform
+            let centre4 = transform * SIMD4(batch.mesh.center, 1)
+            let worldCentre = SIMD3(centre4.x, centre4.y, centre4.z)
+            let scale = max(simd_length(SIMD3(transform.columns.0.x, transform.columns.0.y, transform.columns.0.z)),
+                        max(simd_length(SIMD3(transform.columns.1.x, transform.columns.1.y, transform.columns.1.z)),
+                            simd_length(SIMD3(transform.columns.2.x, transform.columns.2.y, transform.columns.2.z))))
+            let worldRadius = batch.mesh.radius * max(scale, 1e-4)
+
             let material = batch.material
             // Only bind a base map when one actually resolved: a missing
             // texture must read as an obvious untextured surface, never as a
@@ -67,7 +80,9 @@ public final class SceneResources {
                 culls: batch.culls,
                 isDriver: batch.isDriver,
                 isTranslucent: batch.isTranslucent,
-                albedo: albedo))
+                albedo: albedo,
+                worldCentre: worldCentre,
+                worldRadius: worldRadius))
         }
         guard !built.isEmpty else { throw RenderError.unavailable("Scene has no drawable batches") }
         batches = built
@@ -90,7 +105,17 @@ public final class ForwardRenderer {
     let opaque: MTLRenderPipelineState
     let opaqueCutout: MTLRenderPipelineState
     let resolve: MTLRenderPipelineState
+    let sky: MTLRenderPipelineState
     let depthState: MTLDepthStencilState
+    /// Sky writes no depth and ignores it: it is drawn first and everything
+    /// else lands on top. One fullscreen pass of overdraw is cheaper than the
+    /// depth-equal trickery needed to draw it last.
+    let skyDepthState: MTLDepthStencilState
+    public let atmosphere: AtmosphereResources
+    public let shadows: ShadowRenderer
+    /// Distance beyond which nothing casts. Beyond this the cascades would be
+    /// too coarse to read as shadows anyway, and aerial perspective has taken over.
+    public var shadowDistance: Float = 400
     let sampler: MTLSamplerState
     public var settings: RenderSettings
     private var targets: FrameTargets?
@@ -125,6 +150,17 @@ public final class ForwardRenderer {
         opaque = try forwardPipeline(alphaTest: false)
         opaqueCutout = try forwardPipeline(alphaTest: true)
 
+        let skyDescriptor = MTLRenderPipelineDescriptor()
+        skyDescriptor.vertexFunction = library.makeFunction(name: "fullscreenVertex")
+        skyDescriptor.fragmentFunction = library.makeFunction(name: "skyFragment")
+        skyDescriptor.colorAttachments[0].pixelFormat = FrameTargets.colourFormat
+        skyDescriptor.depthAttachmentPixelFormat = FrameTargets.depthFormat
+        sky = try device.makeRenderPipelineState(descriptor: skyDescriptor)
+        atmosphere = try AtmosphereResources(device: device, library: library)
+        shadows = try ShadowRenderer(device: device, library: library,
+                                     resolution: settings.shadowResolution,
+                                     cascadeCount: settings.shadowCascades)
+
         let resolveDescriptor = MTLRenderPipelineDescriptor()
         resolveDescriptor.vertexFunction = library.makeFunction(name: "fullscreenVertex")
         resolveDescriptor.fragmentFunction = library.makeFunction(name: "resolveFragment")
@@ -139,6 +175,14 @@ public final class ForwardRenderer {
             throw RenderError.unavailable("Could not create a depth state")
         }
         self.depthState = depthState
+
+        let skyDepth = MTLDepthStencilDescriptor()
+        skyDepth.depthCompareFunction = .always
+        skyDepth.isDepthWriteEnabled = false
+        guard let skyDepthState = device.makeDepthStencilState(descriptor: skyDepth) else {
+            throw RenderError.unavailable("Could not create the sky depth state")
+        }
+        self.skyDepthState = skyDepthState
 
         let samplerDescriptor = MTLSamplerDescriptor()
         samplerDescriptor.minFilter = .linear
@@ -172,8 +216,14 @@ public final class ForwardRenderer {
         guard let commands = queue.makeCommandBuffer() else {
             throw RenderError.unavailable("Could not create a command buffer")
         }
+        atmosphere.update(into: commands, lighting: lighting, cameraAltitude: camera.eye.z)
+        let cascades = ShadowCascades(camera: camera, sunDirection: lighting.direction,
+                                      aspect: Float(width) / Float(max(height, 1)),
+                                      count: settings.shadowCascades, resolution: shadows.resolution,
+                                      shadowDistance: shadowDistance).cascades
+        shadows.encode(into: commands, scene: scene, cascades: cascades)
         encode(into: commands, targets: targets, scene: scene, camera: camera,
-               lighting: lighting, includeDriver: includeDriver)
+               lighting: lighting, cascades: cascades, includeDriver: includeDriver)
         commands.commit()
         commands.waitUntilCompleted()
         if let error = commands.error { throw RenderError.unavailable("GPU error: \(error)") }
@@ -189,7 +239,7 @@ public final class ForwardRenderer {
 
     public func encode(into commands: MTLCommandBuffer, targets: FrameTargets,
                        scene: SceneResources, camera: RenderCamera, lighting: SunLighting,
-                       includeDriver: Bool = true) {
+                       cascades: [ShadowCascades.Cascade], includeDriver: Bool = true) {
         let aspect = Float(targets.width) / Float(max(targets.height, 1))
         var frame = FrameUniforms(
             viewProjection: camera.viewProjection(aspect: aspect),
@@ -202,12 +252,10 @@ public final class ForwardRenderer {
 
         let scenePass = MTLRenderPassDescriptor()
         scenePass.colorAttachments[0].texture = targets.colour
+        // The sky pass covers every pixel, so the clear is only a safety net.
         scenePass.colorAttachments[0].loadAction = .clear
         scenePass.colorAttachments[0].storeAction = .store
-        // Sky radiance stand-in until the atmosphere model lands. Above 1.0 on
-        // purpose: an unclipped sky is what gives the tonemapper something to
-        // roll off.
-        scenePass.colorAttachments[0].clearColor = MTLClearColor(red: 0.42, green: 0.60, blue: 0.95, alpha: 1)
+        scenePass.colorAttachments[0].clearColor = MTLClearColor(red: 0, green: 0, blue: 0, alpha: 1)
         scenePass.depthAttachment.texture = targets.depth
         scenePass.depthAttachment.loadAction = .clear
         // Reversed depth clears to 0, the far plane.
@@ -217,11 +265,39 @@ public final class ForwardRenderer {
         lastDrawCount = 0
         lastTriangleCount = 0
         if let encoder = commands.makeRenderCommandEncoder(descriptor: scenePass) {
-            encoder.label = "Forward opaque"
-            encoder.setDepthStencilState(depthState)
+            encoder.label = "Sky and forward opaque"
             encoder.setVertexBytes(&frame, length: MemoryLayout<FrameUniforms>.stride, index: 1)
             encoder.setFragmentBytes(&frame, length: MemoryLayout<FrameUniforms>.stride, index: 1)
             encoder.setFragmentSamplerState(sampler, index: 0)
+
+            encoder.setRenderPipelineState(sky)
+            encoder.setDepthStencilState(skyDepthState)
+            encoder.setFragmentTexture(atmosphere.skyView, index: 0)
+            encoder.setFragmentTexture(atmosphere.transmittance, index: 1)
+            encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
+
+            encoder.setDepthStencilState(depthState)
+            // AC/TORCS geometry comes from OpenGL, whose front face is
+            // counter-clockwise. Metal defaults to clockwise, so without this
+            // every culled mesh keeps its back faces and discards its front
+            // ones. Generated geometry follows the same convention.
+            encoder.setFrontFacing(.counterClockwise)
+            // Aerial perspective in the forward pass reads the same tables the
+            // sky does, so haze and sky agree at the horizon.
+            encoder.setFragmentTexture(atmosphere.transmittance, index: 3)
+            encoder.setFragmentTexture(atmosphere.multiScatter, index: 4)
+            encoder.setFragmentTexture(atmosphere.skyView, index: 5)
+            encoder.setFragmentBuffer(atmosphere.irradiance, offset: 0, index: 3)
+            encoder.setFragmentTexture(shadows.map, index: 6)
+            encoder.setFragmentSamplerState(shadows.comparisonSampler, index: 1)
+            // Bias in normalized depth. Cascades are orthographic over a few
+            // hundred metres, so a small constant plus a slope term suffices;
+            // the normal offset in the shader does the rest of the work.
+            // Bias in shadow texels. Hardware slope-scaled bias handles the
+            // gradient during the depth write; this covers the residual.
+            var shadowUniforms = ShadowUniforms(cascades: cascades, depthBias: 3.0,
+                                                normalBias: 1.5, filterRadius: 1.5)
+            encoder.setFragmentBytes(&shadowUniforms, length: MemoryLayout<ShadowUniforms>.stride, index: 4)
 
             // Translucent batches are deferred to a blended pass in the next
             // phase; drawing them opaque here is wrong but visible, which is

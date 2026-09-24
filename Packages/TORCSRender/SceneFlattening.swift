@@ -12,6 +12,19 @@ import TORCSAssets
 /// material resolution can derive sensible defaults for content that has no
 /// authored material set yet.
 public struct RenderBatch: Sendable {
+    public init(mesh: RenderMesh, baseTexture: String?, isTranslucent: Bool,
+                alphaTestThreshold: Float?, culls: Bool, isDriver: Bool,
+                sourceMaterial: ACRenderState, material: ResolvedMaterial) {
+        self.mesh = mesh
+        self.baseTexture = baseTexture
+        self.isTranslucent = isTranslucent
+        self.alphaTestThreshold = alphaTestThreshold
+        self.culls = culls
+        self.isDriver = isDriver
+        self.sourceMaterial = sourceMaterial
+        self.material = material
+    }
+
     public let mesh: RenderMesh
     public let baseTexture: String?
     /// Needs blending rather than depth-sorted opaque submission.
@@ -32,6 +45,29 @@ public struct RenderScene: Sendable {
     public let batches: [RenderBatch]
     public let minimum: SIMD3<Float>, maximum: SIMD3<Float>
     public let warnings: [String]
+
+    public init(batches: [RenderBatch], minimum: SIMD3<Float>, maximum: SIMD3<Float>, warnings: [String] = []) {
+        self.batches = batches
+        self.minimum = minimum
+        self.maximum = maximum
+        self.warnings = warnings
+    }
+
+    /// Returns a scene with extra generated batches appended and bounds grown
+    /// to include them. Used to add procedural terrain and track geometry
+    /// alongside whatever the original `.acc` provided.
+    public func adding(_ extra: [RenderBatch]) -> RenderScene {
+        guard !extra.isEmpty else { return self }
+        var low = minimum, high = maximum
+        for batch in extra {
+            for vertex in batch.mesh.vertices {
+                let world = batch.mesh.transform * SIMD4(vertex.position, 1)
+                low = simd_min(low, SIMD3(world.x, world.y, world.z))
+                high = simd_max(high, SIMD3(world.x, world.y, world.z))
+            }
+        }
+        return RenderScene(batches: batches + extra, minimum: low, maximum: high, warnings: warnings)
+    }
 
     public var triangleCount: Int { batches.reduce(0) { $0 + $1.mesh.indices.count / 3 } }
     public var vertexCount: Int { batches.reduce(0) { $0 + $1.mesh.vertices.count } }
