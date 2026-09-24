@@ -47,7 +47,8 @@ public final class SessionRenderResources {
         var built: [SceneResources] = []
         var low = SIMD3<Float>(repeating: .infinity), high = SIMD3<Float>(repeating: -.infinity)
         for (index, loaded) in scenes.enumerated() {
-            var flattened = try RenderScene(loaded.asset.scene)
+            // Everything but the scenery package is car: body, wheels, brakes.
+            var flattened = try RenderScene(loaded.asset.scene, car: index != Self.sceneryResource)
             // The scenery package is first; only it carries trackgen output.
             if index == Self.sceneryResource, road != nil, generateRoad {
                 flattened = TrackSurfaceAssembly.strippingTrackgen(flattened)

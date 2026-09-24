@@ -101,7 +101,10 @@ public struct RenderScene: Sendable {
     /// scheduling or its scene-anchor submission order: ordering in the new path
     /// comes from depth state and explicit opaque/transparent passes, not from
     /// replaying upstream's traversal.
-    public init(_ scene: ACScene) throws {
+    /// - Parameter car: apply `CarMaterials` by node name. Car models carry
+    ///   one AC material for paint, glass and everything else, so this is the
+    ///   only way they get distinct surfaces.
+    public init(_ scene: ACScene, car: Bool = false) throws {
         try scene.validate()
 
         var children = Array(repeating: [Int](), count: scene.nodes.count)
@@ -116,6 +119,9 @@ public struct RenderScene: Sendable {
         let driverRoot = order.first { scene.nodes[$0].name == "DRIVER" }
 
         var transforms: [simd_float4x4] = [], driverFlags: [Bool] = []
+        // AC puts the name on a transform node and the mesh on an unnamed
+        // geometry child, so a mesh's name is its nearest named ancestor's.
+        var names: [String] = []
         var collected: [Int: RenderBatch] = [:]
         var warnings = Set(scene.warnings ?? [])
         var low = SIMD3<Float>(repeating: .infinity), high = SIMD3<Float>(repeating: -.infinity)
@@ -123,6 +129,8 @@ public struct RenderScene: Sendable {
         for (index, node) in scene.nodes.enumerated() {
             let isDriver = index == driverRoot || (node.parent >= 0 && driverFlags[node.parent])
             driverFlags.append(isDriver)
+            let name = node.name.isEmpty && node.parent >= 0 ? names[node.parent] : node.name
+            names.append(name)
 
             let parent = node.parent < 0 ? matrix_identity_float4x4 : transforms[node.parent]
             let local = node.kind == 0 ? SceneTransform.matrix(node.matrix) : matrix_identity_float4x4
@@ -179,6 +187,11 @@ public struct RenderScene: Sendable {
 
             // AC flags: bit 0 blend, bit 4 alpha test, bit 5 translucent.
             let alphaTested = material.flags & 16 != 0
+            var resolved = MaterialResolution.resolve(state: material, diffuse: diffuse)
+            if car {
+                let part = CarMaterials.part(name: name, texture: material.texture, isDriver: isDriver)
+                resolved = CarMaterials.material(for: part, base: resolved)
+            }
             collected[index] = RenderBatch(
                 mesh: render,
                 baseTexture: material.texture,
@@ -190,7 +203,7 @@ public struct RenderScene: Sendable {
                 culls: mesh.cull,
                 isDriver: isDriver,
                 sourceMaterial: material,
-                material: MaterialResolution.resolve(state: material, diffuse: diffuse))
+                material: resolved)
         }
 
         guard !collected.isEmpty else { throw ACError.invalid("Scene has no drawable triangles") }

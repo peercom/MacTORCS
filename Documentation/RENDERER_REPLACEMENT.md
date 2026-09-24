@@ -634,6 +634,35 @@ names declare which edges carry lines (`asphalt-l-left`, `asphalt-l-both`)
 are not yet honoured — Aalborg's do not, and its original texture painted
 both edges and the centre, which is what this reproduces.
 
+## The car is not one material
+
+A TORCS car model is one texture atlas and one AC material — `spec 0.5,
+shi 50` — for paint, glass, lights, interior and driver alike, so the
+Blinn-Phong bridge gave the whole car a roughness of 0.78 and it shaded
+like a red plastic toy. Nothing in the render state distinguishes the
+parts; the node names do, and `grcar` itself relies on that (`WI` for
+windows). `CarMaterials` applies the same conventions: `CARBODY*` and the
+rest are paint, `WI*WINDOW`/`WISIDE` glass, `WI*LIGHT*` lenses,
+`*INTERIOR*` matte, `DRIVER` cloth, and the procedurally built wheels, which
+have no names worth reading, are identified by their `tex-wheel` texture.
+
+Paint is metallic flake under a smooth clear coat: base roughness 0.42 and
+metallic 0.3 for a broad coloured reflection, a coat at roughness 0.05 for
+the sharp one. That is the two-lobe response ACC's paint has, and it is
+what makes a sun glint on the roof read as a glint rather than a smear.
+Glass is a smooth dielectric; the deferred, blended pipeline supplies its
+transparency and this supplies its reflection. The atlas colour is kept
+throughout.
+
+`RenderScene` takes a `car` flag rather than sniffing names on every scene:
+the session knows the scenery package from the car packages, and
+`torcs-rendershot --car` already existed. Tests pin the name conventions,
+that the flag changes materials without changing which batches are
+transparent, and that the frame actually changes.
+
+What the reflections show is still the sky probe: the car reflects a
+horizon-to-horizon sky and nothing of the circuit. That is the next pass.
+
 ## Licensing
 
 No third-party artwork is imported by this work. New render source is

@@ -162,7 +162,7 @@ guard !options.input.isEmpty, !options.output.isEmpty else {
 do {
     let radians = Float.pi / 180
     let data = try Data(contentsOf: URL(fileURLWithPath: options.input))
-    var scene = try RenderScene(ACScene.parse(data, car: options.car))
+    var scene = try RenderScene(ACScene.parse(data, car: options.car), car: options.car)
 
     // Procedural terrain from the track's own Terrain Generation parameters.
     // Aalborg's baked mesh contains almost no ground, so without this the
