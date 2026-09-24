@@ -50,7 +50,9 @@ struct DrawUniforms {
     float4 material;            // x roughness, y metallic, z clearcoat, w clearcoat roughness
     float4 parameters;          // x normal strength, y alpha threshold, z uv0 scale, w metre-UV fold period or 0
     uint4 maps;                 // x albedo, y normal, z ORM, w bits: 1 receives occlusion, 2 paints road markings, 4 foliage, 8 receives weather
-    float4 emissive;            // rgb radiance when lit, w channel: 0 never, 1 brake, 2 headlight, 3 any light
+    float4 emissive;
+    /// x coverage of a detail cross-fade, y +1 leaving / −1 arriving.
+    float4 fade;            // rgb radiance when lit, w channel: 0 never, 1 brake, 2 headlight, 3 any light
 };
 
 /// Places a whole scene in the world, on top of each batch's own node-local
@@ -69,6 +71,19 @@ struct InstanceUniforms {
     /// x brake lights lit, y headlights lit, z rear lights lit, w unused.
     float4 lightState;
 };
+
+/// Interleaved gradient noise per pixel, for the detail cross-fade: stable
+/// frame to frame, and the two builds of one switch keep complementary
+/// halves of it.
+inline float ditherNoise(float2 pixel) {
+    return fract(52.9829189f * fract(dot(pixel, float2(0.06711056f, 0.00583715f))));
+}
+/// True when this fragment belongs to the other build of a detail switch.
+inline bool detailDithered(constant DrawUniforms &draw, float2 pixel) {
+    if (draw.fade.x >= 1.0f) { return false; }
+    float n = ditherNoise(pixel);
+    return draw.fade.y > 0.0f ? (n >= draw.fade.x) : (n < 1.0f - draw.fade.x);
+}
 
 /// Value noise on an integer lattice, for the puddle mask.
 inline float groundHash(float2 p) {
@@ -201,6 +216,7 @@ fragment ForwardOutput forwardFragment(ForwardVarying in [[stage_in]],
         albedo *= albedoMap.sample(surfaceSampler, (in.uv0 * draw.parameters.z), bias(frame.renderSize.z));
     }
     if (forwardAlphaTest && albedo.a <= draw.parameters.y) { discard_fragment(); }
+    if (forwardAlphaTest && detailDithered(draw, in.position.xy)) { discard_fragment(); }
 
     float3x3 basis = tangentBasis(in.normal, in.tangent);
     float3 normal = basis[2];
@@ -408,6 +424,7 @@ fragment void depthOnlyFragment(ForwardVarying in [[stage_in]],
     float alpha = draw.baseColour.a;
     if (draw.maps.x != 0) { alpha *= albedoMap.sample(surfaceSampler, (in.uv0 * draw.parameters.z)).a; }
     if (alpha <= draw.parameters.y) { discard_fragment(); }
+    if (detailDithered(draw, in.position.xy)) { discard_fragment(); }
 }
 
 // MARK: - Fullscreen resolve

@@ -38,6 +38,9 @@ public final class ShadowRenderer {
     public let resolution: Int
     public let cascadeCount: Int
     let pipeline: MTLRenderPipelineState
+    /// For foliage: the same sway as the forward vertex shader, so a tree's
+    /// shadow moves with the tree.
+    let swayPipeline: MTLRenderPipelineState
     let depthState: MTLDepthStencilState
     public let comparisonSampler: MTLSamplerState
     public private(set) var lastDrawCount = 0
@@ -72,6 +75,8 @@ public final class ShadowRenderer {
         pipelineDescriptor.depthAttachmentPixelFormat = Self.format
         pipelineDescriptor.rasterSampleCount = 1
         pipeline = try device.makeRenderPipelineState(descriptor: pipelineDescriptor)
+        pipelineDescriptor.vertexFunction = library.makeFunction(name: "shadowSwayVertex")
+        swayPipeline = try device.makeRenderPipelineState(descriptor: pipelineDescriptor)
 
         let depth = MTLDepthStencilDescriptor()
         depth.depthCompareFunction = .lessEqual
@@ -100,7 +105,8 @@ public final class ShadowRenderer {
     /// Without it the whole scene is submitted four extra times, which on a
     /// 1,315-batch track costs far more than the shadows are worth.
     public func encode(into commands: MTLCommandBuffer, resources: [SceneResources],
-                       instances: [RenderInstance], cascades: [ShadowCascades.Cascade]) {
+                       instances: [RenderInstance], cascades: [ShadowCascades.Cascade],
+                       animationTime: Float = 0) {
         lastDrawCount = 0
         for (index, cascade) in cascades.prefix(cascadeCount).enumerated() {
             let pass = MTLRenderPassDescriptor()
@@ -145,9 +151,18 @@ public final class ShadowRenderer {
                     // cull deletes its shadow.
                     if !isMoving,
                        !Self.intersects(cascade: cascade, centre: batch.worldCentre, radius: batch.worldRadius) { continue }
-                    var modelViewProjection = cascade.viewProjection * instance.transform * batch.draw.model
                     encoder.setVertexBuffer(batch.vertices, offset: 0, index: 0)
-                    encoder.setVertexBytes(&modelViewProjection, length: MemoryLayout<simd_float4x4>.stride, index: 1)
+                    if batch.draw.maps.w & 4 != 0 {
+                        encoder.setRenderPipelineState(swayPipeline)
+                        var uniforms = ShadowSwayUniforms(viewProjection: cascade.viewProjection,
+                                                          model: instance.transform * batch.draw.model,
+                                                          time: SIMD4(animationTime, 0, 0, 0))
+                        encoder.setVertexBytes(&uniforms, length: MemoryLayout<ShadowSwayUniforms>.stride, index: 1)
+                    } else {
+                        encoder.setRenderPipelineState(pipeline)
+                        var modelViewProjection = cascade.viewProjection * instance.transform * batch.draw.model
+                        encoder.setVertexBytes(&modelViewProjection, length: MemoryLayout<simd_float4x4>.stride, index: 1)
+                    }
                     encoder.drawIndexedPrimitives(type: .triangle, indexCount: batch.indexCount,
                                                   indexType: .uint32, indexBuffer: batch.indices,
                                                   indexBufferOffset: 0)
@@ -176,4 +191,11 @@ public final class ShadowRenderer {
         let marginX = radius * scaleX, marginY = radius * scaleY
         return abs(clip.x) <= 1 + marginX && abs(clip.y) <= 1 + marginY && clip.z <= 1 + radius * scaleX
     }
+}
+
+/// Mirrors `ShadowSwayUniforms` in `Shadow.metal`.
+struct ShadowSwayUniforms {
+    var viewProjection: simd_float4x4
+    var model: simd_float4x4
+    var time: SIMD4<Float>
 }

@@ -1338,6 +1338,39 @@ render tool's `--memory` reports the same figure for a full session — road,
 terrain, trees, grass and the generated materials — at **650 MB**. The
 budget holds with room for a second car and a bigger circuit.
 
+## Two artefacts of the trees
+
+Both left over from the tree increment: a tree changed shape on one frame
+as the car passed 70 m from it, and its shadow stood still while it swayed.
+
+**Dithered detail switches.** `LevelOfDetail.fade` spreads a switch over a
+12 m band. Inside it both builds draw, screen-door dithered with
+complementary halves of a per-pixel interleaved gradient noise — the build
+leaving keeps `noise < coverage`, the build arriving keeps
+`noise ≥ 1 − coverage` — so every pixel shows exactly one of them and the
+mix slides from one to the other across the band. The coverage and side
+travel in a new `DrawUniforms.fade` lane (the struct grows to 224 bytes;
+`ShaderLibraryTests` pins it), and the discard sits next to the alpha test
+in both the forward and the depth-prepass fragments, so the prepass depth
+matches what shades. Only alpha-tested pipelines dither, which is every
+batch that has a detail range: trees and grass. Grass has no partner beyond
+its 60 m and simply thins to nothing, which removes its pop as well.
+`testPairIsComplementaryThroughTheBand` checks the two coverages sum to one
+at every half metre through the band and that a three-level chain picks the
+right end. In a still the tree in the band reads as a fine stipple; in
+motion it is a two-second cross-dissolve.
+
+**Wind in the shadow pass.** The shadow map's vertex shader had no sway, so
+a tree's shadow was pinned to the ground while its crown moved. A second
+depth-only pipeline, `shadowSwayVertex`, applies the forward shader's sway
+formula in world space before the cascade projection and is chosen for any
+batch that sways; the shadow pass now takes the animation time. The formula
+is duplicated rather than shared because the two shaders take different
+uniforms, and the comment on each says so. `testTreeShadowMovesWithTheWind`
+puts a swaying card out of view with a low sun throwing its shadow across
+the ground in view: the shadow region changes between two animation times,
+and with the card not casting, nothing in view changes at all.
+
 ## Licensing
 
 No third-party artwork is imported by this work. New render source is

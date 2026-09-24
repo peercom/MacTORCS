@@ -10,8 +10,9 @@ final class ShaderLibraryTests: XCTestCase {
         // previous view-projections feed motion vectors for temporal upscaling.
         XCTAssertEqual(MemoryLayout<FrameUniforms>.size, 400)
         XCTAssertEqual(MemoryLayout<FrameUniforms>.stride, 400)
-        XCTAssertEqual(MemoryLayout<DrawUniforms>.size, 208)
-        XCTAssertEqual(MemoryLayout<DrawUniforms>.stride, 208)
+        XCTAssertEqual(MemoryLayout<DrawUniforms>.size, 224)
+        XCTAssertEqual(MemoryLayout<DrawUniforms>.offset(of: \.fade), 208)
+        XCTAssertEqual(MemoryLayout<DrawUniforms>.stride, 224)
         XCTAssertEqual(MemoryLayout<DrawUniforms>.offset(of: \.emissive), 192)
         XCTAssertEqual(MemoryLayout<FrameUniforms>.offset(of: \.cameraPosition), 320)
         XCTAssertEqual(MemoryLayout<DrawUniforms>.offset(of: \.baseColour), 128)

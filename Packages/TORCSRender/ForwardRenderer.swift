@@ -39,11 +39,12 @@ public final class SceneResources {
         let castsShadow: Bool
         let prepass: Bool
 
-        /// Whether this batch draws for a camera at `eye`, under `transform`.
-        func isVisible(from eye: SIMD3<Float>, transform: simd_float4x4) -> Bool {
-            guard let range = detailRange else { return true }
+        /// How this batch draws for a camera at `eye`, under `transform`:
+        /// fully, not at all, or dithered through a detail switch.
+        func fade(from eye: SIMD3<Float>, transform: simd_float4x4) -> LevelOfDetail.Fade {
+            guard let range = detailRange else { return .full }
             let centre = transform * SIMD4(worldCentre, 1)
-            return range.contains(simd_distance(eye, SIMD3(centre.x, centre.y, centre.z)))
+            return LevelOfDetail.fade(distance: simd_distance(eye, SIMD3(centre.x, centre.y, centre.z)), range: range)
         }
     }
 
@@ -554,7 +555,8 @@ public final class ForwardRenderer {
                                       aspect: aspect, count: settings.shadowCascades,
                                       resolution: shadows.resolution,
                                       shadowDistance: shadowDistance).cascades
-        shadows.encode(into: commands, resources: resources, instances: instances, cascades: cascades)
+        shadows.encode(into: commands, resources: resources, instances: instances, cascades: cascades,
+                       animationTime: Float(animationTime))
         encode(into: commands, targets: targets, resources: resources, instances: instances,
                camera: camera, lighting: lighting, cascades: cascades, aspect: aspect)
 
@@ -825,7 +827,8 @@ public final class ForwardRenderer {
 
             for (batchIndex, batch) in scene.batches.enumerated() {
                 if batch.isDriver && !instance.drawsDriver { continue }
-                if !batch.isVisible(from: camera.eye, transform: instance.transform) { continue }
+                let fade = batch.fade(from: camera.eye, transform: instance.transform)
+                if !fade.visible { continue }
                 // A batch the prepass skipped has no depth to match; it tests
                 // and writes depth here like a frame without a prepass.
                 if usesPrepass { encoder.setDepthStencilState(batch.prepass ? equalDepthState : depthState) }
@@ -835,7 +838,7 @@ public final class ForwardRenderer {
                                                  distance: simd_length(SIMD3(centre.x, centre.y, centre.z) - camera.eye)))
                     continue
                 }
-                draw(batch, on: encoder, blendOverride: nil, mirroredInstance: instanceMirrored)
+                draw(batch, on: encoder, blendOverride: nil, mirroredInstance: instanceMirrored, fade: fade)
             }
         }
 
@@ -908,12 +911,14 @@ public final class ForwardRenderer {
             for batch in scene.batches {
                 if batch.isDeferred { continue }
                 if batch.isDriver && !instance.drawsDriver { continue }
-                if !batch.isVisible(from: eye, transform: instance.transform) { continue }
+                let fade = batch.fade(from: eye, transform: instance.transform)
+                if !fade.visible { continue }
                 if !batch.prepass { continue }
                 encoder.setRenderPipelineState(batch.needsAlphaTest ? depthOnlyCutout : depthOnly)
                 let mirrored = batch.mirrored != instanceMirrored
                 encoder.setCullMode(batch.culls ? (mirrored ? .front : .back) : .none)
                 var draw = batch.draw
+                draw.setFade(fade)
                 if let albedo = batch.albedo { encoder.setFragmentTexture(albedo, index: 0) }
                 encoder.setVertexBuffer(batch.vertices, offset: 0, index: 0)
                 encoder.setVertexBytes(&draw, length: MemoryLayout<DrawUniforms>.stride, index: 2)
@@ -953,7 +958,8 @@ public final class ForwardRenderer {
     /// Submits one batch. Shared by the opaque and transparent phases so the
     /// two cannot drift apart in how they bind material state.
     private func draw(_ batch: SceneResources.Batch, on encoder: MTLRenderCommandEncoder,
-                      blendOverride: Bool?, mirroredInstance: Bool, forceTwoSided: Bool = false) {
+                      blendOverride: Bool?, mirroredInstance: Bool, forceTwoSided: Bool = false,
+                      fade: LevelOfDetail.Fade = .full) {
         let blends = blendOverride ?? batch.blends
         switch (blends, batch.needsAlphaTest) {
         case (false, false): encoder.setRenderPipelineState(opaque)
@@ -964,6 +970,7 @@ public final class ForwardRenderer {
         let mirrored = batch.mirrored != mirroredInstance
         encoder.setCullMode(forceTwoSided || !batch.culls ? .none : (mirrored ? .front : .back))
         var draw = batch.draw
+        draw.setFade(fade)
         if let albedo = batch.albedo { encoder.setFragmentTexture(albedo, index: 0) }
         if let normal = batch.normal { encoder.setFragmentTexture(normal, index: 1) }
         if let orm = batch.orm { encoder.setFragmentTexture(orm, index: 2) }

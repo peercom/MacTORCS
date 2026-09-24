@@ -41,6 +41,31 @@ vertex ShadowVarying shadowVertex(uint id [[vertex_id]],
     return out;
 }
 
+struct ShadowSwayUniforms {
+    float4x4 viewProjection;
+    float4x4 model;
+    float4 time;    // x animation time in seconds
+};
+
+/// Foliage: the forward vertex shader's sway, applied in world space before
+/// the cascade projection, so the shadow of a tree moves with the tree.
+/// The formula must stay identical to Forward.metal's.
+vertex ShadowVarying shadowSwayVertex(uint id [[vertex_id]],
+                                      const device PackedVertex *vertices [[buffer(0)]],
+                                      constant ShadowSwayUniforms &u [[buffer(1)]]) {
+    PackedVertex v = vertices[id];
+    float4 world = u.model * float4(float3(v.position), 1.0f);
+    float h = float(v.blend.x) * (1.0f / 255.0f);
+    float amplitude = float(v.blend.y) * (0.25f / 255.0f);
+    float t = u.time.x;
+    float2 sway = float2(sin(t * 1.1f + world.x * 0.05f + world.y * 0.07f),
+                         cos(t * 0.9f + world.y * 0.06f - world.x * 0.04f)) * (h * h * amplitude);
+    world.xy += sway;
+    ShadowVarying out;
+    out.position = u.viewProjection * world;
+    return out;
+}
+
 /// Selects the tightest cascade that still contains this fragment.
 inline uint selectCascade(constant ShadowUniforms &shadow, float viewDepth) {
     uint count = uint(shadow.parameters.x);

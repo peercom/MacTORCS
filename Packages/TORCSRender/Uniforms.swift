@@ -78,6 +78,10 @@ public struct DrawUniforms: Equatable, Sendable {
     /// 1 the brake command, 2 the headlight command, 3 any light command.
     /// Which channel is lit comes per instance, in `InstanceUniforms.lightState`.
     public var emissive: SIMD4<Float>
+    /// x coverage 0–1 of a detail cross-fade, y +1 when this build is
+    /// leaving (keeps noise < coverage) or −1 when arriving (keeps
+    /// noise ≥ 1 − coverage); see `LevelOfDetail`. zw unused.
+    public var fade: SIMD4<Float>
 
     public init(model: simd_float4x4, baseColour: SIMD4<Float>,
                 roughness: Float, metallic: Float,
@@ -92,6 +96,12 @@ public struct DrawUniforms: Equatable, Sendable {
         self.parameters = SIMD4(normalStrength, alphaThreshold, uvScale, uvPeriod)
         self.maps = maps
         self.emissive = SIMD4(emissive, emissiveChannel)
+        self.fade = SIMD4(1, 1, 0, 0)
+    }
+
+    /// Sets the detail cross-fade for this draw.
+    public mutating func setFade(_ fade: LevelOfDetail.Fade) {
+        self.fade = SIMD4(fade.coverage, fade.side == .leaving ? 1 : -1, 0, 0)
     }
 
     /// Inverse transpose of the upper 3x3, promoted back to 4x4.
