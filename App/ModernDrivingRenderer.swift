@@ -28,15 +28,29 @@ final class ModernDrivingRenderer {
     private(set) var lastTriangleCount = 0
     var lastError: String?
 
-    init(content: DrivingContent, settings: RenderSettings = .init()) throws {
+    init(content: DrivingContent, settings: RenderSettings = .init(), materials: URL? = nil) throws {
         renderer = try ForwardRenderer(settings: settings)
         resources = try SessionRenderResources(
             device: renderer.device,
             scenes: content.renderScenes,
             road: content.simulation.road.geometry,
-            terrain: TerrainParameters())
+            terrain: TerrainParameters(),
+            materials: materials)
         staticInstances = resources.staticInstances()
         lighting = Self.lighting(from: content.graphics)
+    }
+
+    /// The generated material sets for a session: a `materials` folder beside
+    /// the session's content, or the directory `TORCS_MATERIALS` names, or
+    /// none. None keeps the original artwork rather than failing the session.
+    static func materialsDirectory(beside directory: URL?) -> URL? {
+        let candidates = [directory?.appendingPathComponent("materials"),
+                          ProcessInfo.processInfo.environment["TORCS_MATERIALS"].map { URL(fileURLWithPath: $0) }]
+        for candidate in candidates.compactMap({ $0 })
+        where FileManager.default.fileExists(atPath: candidate.appendingPathComponent("materials.json").path) {
+            return candidate
+        }
+        return nil
     }
 
     /// Maps the track's own graphics section onto physical sun parameters.

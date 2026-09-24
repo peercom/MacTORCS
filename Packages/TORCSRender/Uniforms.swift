@@ -64,7 +64,8 @@ public struct DrawUniforms: Equatable, Sendable {
     public var baseColour: SIMD4<Float>
     /// x roughness, y metallic, z clearcoat, w clearcoat roughness.
     public var material: SIMD4<Float>
-    /// x normal-map strength, y alpha threshold, zw unused.
+    /// x normal-map strength, y alpha threshold, z uv0 scale, w metre-UV fold
+    /// period (zero for texture-space UVs).
     public var parameters: SIMD4<Float>
     /// Nonzero enables the corresponding texture: x albedo, y normal, z ORM.
     /// w nonzero means the surface receives screen-space occlusion.
@@ -74,12 +75,12 @@ public struct DrawUniforms: Equatable, Sendable {
                 roughness: Float, metallic: Float,
                 clearcoat: Float = 0, clearcoatRoughness: Float = 0.04,
                 normalStrength: Float = 1, alphaThreshold: Float = 0,
-                maps: SIMD4<UInt32> = .zero) {
+                maps: SIMD4<UInt32> = .zero, uvScale: Float = 1, uvPeriod: Float = 0) {
         self.model = model
         self.normalMatrix = Self.normalMatrix(for: model)
         self.baseColour = baseColour
         self.material = SIMD4(roughness, metallic, clearcoat, clearcoatRoughness)
-        self.parameters = SIMD4(normalStrength, alphaThreshold, 0, 0)
+        self.parameters = SIMD4(normalStrength, alphaThreshold, uvScale, uvPeriod)
         self.maps = maps
     }
 

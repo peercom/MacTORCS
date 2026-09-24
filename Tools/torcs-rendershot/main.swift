@@ -29,6 +29,10 @@ struct Options {
     var frames = 1
     var noCull = false
     var terrainOnly = false
+    var generateTrack = false
+    var roadCamera: Float? = nil
+    var listSegments = false
+    var roadCameraLateral: Float = 0.5
     var materials: String? = nil
     var depthPrepass = false
     var bloom: Bool? = nil
@@ -80,6 +84,10 @@ func parse() -> Options {
         case "--stats": options.stats = true
         case "--no-cull": options.noCull = true
         case "--terrain-only": options.terrainOnly = true
+        case "--generate-track": options.generateTrack = true
+        case "--road-camera": options.roadCamera = Float(next())
+        case "--list-segments": options.listSegments = true
+        case "--road-lateral": options.roadCameraLateral = Float(next()) ?? 0.5
         case "--materials": options.materials = next()
         case "--depth-prepass": options.depthPrepass = true
         case "--bloom": options.bloom = true
@@ -136,7 +144,7 @@ func writePNG(_ pixels: [UInt8], width: Int, height: Int, to path: String) throw
     }
 }
 
-let options = parse()
+var options = parse()
 guard !options.input.isEmpty, !options.output.isEmpty else {
     FileHandle.standardError.write(Data("""
     usage: torcs-rendershot <input.acc> <output.png> [options]
@@ -171,23 +179,75 @@ do {
         let document = try ParameterDocument.parse(Data(contentsOf: xml), entities: entities,
                                                    allowLegacyLatin1: true)
         let road = try TrackBuilder.buildRoad(parameters: document)
-        let terrainParameters = TerrainParameters(document: document)
-        let apron = TerrainGeneration.apron(road.geometry, parameters: terrainParameters)
-        if !apron.isEmpty {
-            let mesh = try RenderMesh.build(positions: apron.positions, normals: apron.normals,
-                                            uv0: apron.uv0, indices: apron.indices)
-            let material = ResolvedMaterial(baseColour: SIMD4(1, 1, 1, 1), roughness: 0.9, metallic: 0)
-            let state = ACRenderState(material: [0, 0, 0, 1, 0, 0, 0, 1, 0.2, 0.2, 0.2, 1, 0],
-                                      texture: terrainParameters.surface + ".rgb",
-                                      flags: 8, alphaClamp: 0)
-            if options.terrainOnly {
-                scene = RenderScene(batches: [], minimum: scene.minimum, maximum: scene.maximum)
+        if options.listSegments {
+            // Main segments with their borders, for placing cameras.
+            print("segment            start(m)  length  curve     surface              rborder            lborder")
+            for index in road.geometry.mainSegments {
+                let s = road.geometry.segments[index]
+                func border(_ side: Int?) -> String {
+                    guard let side, let b = Optional(road.geometry.segments[side]), b.role == .rightBorder || b.role == .leftBorder else { return "-" }
+                    return "\(b.style) \(b.surface.material)"
+                }
+                print(String(format: "%-18@ %8.1f %7.1f  %-8@  %-20@ %-18@ %@",
+                             s.name as NSString, s.distanceFromStart, s.length, "\(s.curve)" as NSString,
+                             s.surface.material as NSString, border(s.right) as NSString, border(s.left) as NSString))
+                // Side chains, with the quantities the road generator consumes.
+                for side in [TrackSide.right, .left] {
+                    var cursor = side == .right ? s.right : s.left
+                    var guardCount = 0
+                    while let index = cursor, guardCount < 8 {
+                        guardCount += 1
+                        let t = road.geometry.segments[index]
+                        let mid = TrackLocalPosition(segment: index, toStart: t.extent / 2, toRight: road.geometry.width(segment: index, toStart: t.extent / 2) / 2)
+                        let n = road.geometry.surfaceNormal(mid)
+                        print(String(format: "    %@ %-12@ len %6.2f ext %6.3f dfs %7.1f w %5.2f..%5.2f  n (%.2f %.2f %.2f) %@",
+                                     side == .right ? "R" : "L", "\(t.role)" as NSString, t.length, t.extent, t.distanceFromStart,
+                                     t.startWidth, t.endWidth, n.x, n.y, n.z, t.surface.material as NSString))
+                        cursor = side == .right ? t.right : t.left
+                    }
+                }
             }
-            scene = scene.adding([RenderBatch(mesh: mesh, baseTexture: state.texture,
-                                              blends: false, isDeferred: false, alphaTestThreshold: nil,
-                                              culls: true, isDriver: false,
-                                              sourceMaterial: state, material: material)])
-            print("terrain: \(apron.triangleCount) triangles, \(apron.positions.count) vertices, surface \(terrainParameters.surface)")
+            exit(0)
+        }
+        if let distance = options.roadCamera {
+            // Driver's-eye camera on the main road: `--road-camera D` puts the
+            // eye D metres from the start line at 1.2 m, looking 40 m ahead.
+            // `--road-lateral` is the fraction across the width, 0 = right edge.
+            func point(_ along: Float) -> SIMD3<Float> {
+                let total = road.length
+                var d = along.truncatingRemainder(dividingBy: total)
+                if d < 0 { d += total }
+                let mains = road.geometry.mainSegments
+                var index = mains[0]
+                for m in mains where road.geometry.segments[m].distanceFromStart <= d { index = m }
+                let segment = road.geometry.segments[index]
+                let fraction = min(max((d - segment.distanceFromStart) / max(segment.length, 1e-3), 0), 1)
+                let toStart = segment.extent * fraction
+                let width = road.geometry.width(segment: index, toStart: toStart)
+                let local = TrackLocalPosition(segment: index, toStart: toStart, toRight: width * options.roadCameraLateral)
+                let xy = road.geometry.localToGlobal(local)
+                return SIMD3(xy.x, xy.y, road.geometry.height(local))
+            }
+            let eye = point(distance) + SIMD3(0, 0, 1.2)
+            let ahead = point(distance + 40) + SIMD3(0, 0, 0.8)
+            options.eye = eye
+            options.target = ahead
+            print("road camera at \(distance) m: eye \(eye), target \(ahead)")
+        }
+        let terrainParameters = TerrainParameters(document: document)
+        if options.terrainOnly {
+            scene = RenderScene(batches: [], minimum: scene.minimum, maximum: scene.maximum)
+        }
+        if let ground = try TrackSurfaceAssembly.terrainBatch(road.geometry, parameters: terrainParameters) {
+            scene = scene.adding([ground])
+            print("terrain: \(ground.mesh.indices.count / 3) triangles, surface \(terrainParameters.surface)")
+        }
+        if options.generateTrack {
+            let before = scene.batches.count
+            scene = TrackSurfaceAssembly.strippingTrackgen(scene)
+            let generated = try TrackSurfaceAssembly.roadBatches(road.geometry)
+            scene = scene.adding(generated)
+            print("generated road: \(generated.count) materials, \(generated.reduce(0) { $0 + $1.mesh.indices.count / 3 }) triangles; \(before - (scene.batches.count - generated.count)) baked batches replaced")
         }
     }
     var settings = RenderSettings(preset: options.preset)

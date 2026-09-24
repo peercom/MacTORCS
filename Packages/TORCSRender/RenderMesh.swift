@@ -76,10 +76,22 @@ public struct RenderMesh: Sendable {
     /// bitangent. Folding that into the stored handedness keeps the shader free
     /// of a per-draw correction it would otherwise have to apply to every
     /// vertex, and mirrored nodes do occur in the original car meshes.
+    /// Period the metre UVs of generated geometry are folded by, see `build`.
+    public static let metresPeriod: Float = 8
+
+    /// - Parameter uvInMetres: `uv0` is world metres rather than texture space.
+    ///   A half holds 11 significant bits, so at 2,500 m along a lap its
+    ///   quantum is 2 m — every other one-metre row collapsed to a single
+    ///   texel column and the road behind the start line rendered as streaks.
+    ///   Metres are stored as `uv0 = u mod P`, `uv1 = floor(u / P)` with
+    ///   `P = metresPeriod`; both fit a half exactly enough (the remainder to a
+    ///   centimetre, the count as a small integer), and the vertex shader
+    ///   reconstructs `u` in float before interpolation, so no seam exists.
     public static func build(positions: [SIMD3<Float>], normals: [SIMD3<Float>],
                             uv0: [SIMD2<Float>], uv1: [SIMD2<Float>] = [],
                             blend: [SIMD4<UInt8>] = [], indices: [UInt32],
-                            transform: simd_float4x4 = matrix_identity_float4x4) throws -> RenderMesh {
+                            transform: simd_float4x4 = matrix_identity_float4x4,
+                            uvInMetres: Bool = false) throws -> RenderMesh {
         guard positions.count == normals.count else {
             throw ACError.invalid("RenderMesh needs one normal per position")
         }
@@ -90,13 +102,20 @@ public struct RenderMesh: Sendable {
         let frames = TangentGeneration.frames(positions: positions, normals: normals,
                                               uvs: uv0, indices: indices)
         let vertices = (0 ..< positions.count).map { i in
-            PackedVertex(position: positions[i],
-                         normal: normals[i],
-                         tangent: frames[i].tangent,
-                         handedness: mirrored ? -frames[i].handedness : frames[i].handedness,
-                         uv0: uv0.isEmpty ? .zero : uv0[i],
-                         uv1: i < uv1.count ? uv1[i] : .zero,
-                         blend: i < blend.count ? blend[i] : SIMD4(255, 0, 0, 0))
+            var base = uv0.isEmpty ? SIMD2<Float>.zero : uv0[i]
+            var extra = i < uv1.count ? uv1[i] : SIMD2<Float>.zero
+            if uvInMetres {
+                let count = SIMD2(base.x / metresPeriod, base.y / metresPeriod).rounded(.down)
+                base -= count * metresPeriod
+                extra = count
+            }
+            return PackedVertex(position: positions[i],
+                                normal: normals[i],
+                                tangent: frames[i].tangent,
+                                handedness: mirrored ? -frames[i].handedness : frames[i].handedness,
+                                uv0: base,
+                                uv1: extra,
+                                blend: i < blend.count ? blend[i] : SIMD4(255, 0, 0, 0))
         }
         return RenderMesh(vertices: vertices, indices: indices, transform: transform)
     }

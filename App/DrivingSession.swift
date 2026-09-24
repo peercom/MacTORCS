@@ -43,6 +43,8 @@ private actor DrivingWorker {
 }
 @MainActor @Observable final class DrivingSession {
     var content: DrivingContent?
+    /// Where the loaded session lives; generated materials are looked for beside it.
+    var contentDirectory: URL?
     var frame: DrivingFrame?
     var loading=false
     var selectedSessionKind: RaceSessionKind = .practice
@@ -125,7 +127,7 @@ private actor DrivingWorker {
                 let result=try await Task.detached(priority:.userInitiated) { try DrivingContent.load(directory) }.value
                 guard !Task.isCancelled,generation==token else { return }
                 let configuration=try RaceSessionConfiguration(kind:selectedSessionKind,laps:selectedLaps)
-                content=result;worker=try DrivingWorker(result.simulation,configuration:configuration)
+                content=result;contentDirectory=directory;worker=try DrivingWorker(result.simulation,configuration:configuration)
                 frame=try DrivingRuntime(simulation:result.simulation,configuration:configuration).frame
                 loading=false
             } catch { guard generation==token else { return };message=String(describing:error);loading=false }
@@ -498,7 +500,7 @@ struct DrivingMetalView: NSViewRepresentable {
                 context.coordinator.trackShadow=try CarTrackShadowMapping(trackBounds:track,carBounds:car)
             }
             if modernRenderer {
-                let modern=try ModernDrivingRenderer(content:content)
+                let modern=try ModernDrivingRenderer(content:content,materials:ModernDrivingRenderer.materialsDirectory(beside:session.contentDirectory))
                 modern.configure(view)
                 context.coordinator.modern=modern
             } else {

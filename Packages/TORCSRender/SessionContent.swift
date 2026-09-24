@@ -32,43 +32,54 @@ public final class SessionRenderResources {
     ///   - scenes: the loaded packages in `DrivingContent.renderScenes` order.
     ///   - road: track geometry used to generate terrain. Omitting it skips
     ///     terrain generation entirely rather than substituting a flat plane.
+    ///   - materials: directory of generated material sets (`torcs-matgen`
+    ///     output). Nil keeps the original artwork everywhere.
+    ///   - generateRoad: replace the baked trackgen surfaces with ones built
+    ///     from the segment model. Requires `road`.
     public init(device: MTLDevice, scenes: [LoadedScene],
-                road: TrackGeometry? = nil, terrain: TerrainParameters? = nil) throws {
+                road: TrackGeometry? = nil, terrain: TerrainParameters? = nil,
+                materials materialDirectory: URL? = nil, generateRoad: Bool = true) throws {
         let store = TextureStore(device: device, roots: [])
         textures = store
+        let library = try materialDirectory.map { try MaterialLibrary(device: device, directory: $0) }
+        self.materials = library
 
         var built: [SceneResources] = []
         var low = SIMD3<Float>(repeating: .infinity), high = SIMD3<Float>(repeating: -.infinity)
-        for loaded in scenes {
-            let flattened = try RenderScene(loaded.asset.scene)
-            built.append(try SceneResources(device: device, scene: flattened,
-                                            textures: store, compiled: loaded.textures))
+        for (index, loaded) in scenes.enumerated() {
+            var flattened = try RenderScene(loaded.asset.scene)
+            // The scenery package is first; only it carries trackgen output.
+            if index == Self.sceneryResource, road != nil, generateRoad {
+                flattened = TrackSurfaceAssembly.strippingTrackgen(flattened)
+            }
+            built.append(try SceneResources(device: device, scene: flattened, textures: store,
+                                            compiled: loaded.textures, materials: library,
+                                            materialDirectory: materialDirectory))
             low = simd_min(low, flattened.minimum)
             high = simd_max(high, flattened.maximum)
         }
         trackBounds = (low, high)
 
         if let road {
-            let parameters = terrain ?? TerrainParameters()
-            let apron = TerrainGeneration.apron(road, parameters: parameters)
-            if !apron.isEmpty {
-                let mesh = try RenderMesh.build(positions: apron.positions, normals: apron.normals,
-                                                uv0: apron.uv0, indices: apron.indices)
-                // Ground is a rough dielectric; the surface texture supplies the
-                // colour. Alpha testing is off, so it needs no cutout coverage.
-                let material = ResolvedMaterial(baseColour: SIMD4(1, 1, 1, 1), roughness: 0.92, metallic: 0)
-                let state = ACRenderState(material: [0, 0, 0, 1, 0, 0, 0, 1, 0.2, 0.2, 0.2, 1, 0],
-                                          texture: parameters.surface + ".rgb", flags: 8, alphaClamp: 0)
-                let batch = RenderBatch(mesh: mesh, baseTexture: state.texture, blends: false, isDeferred: false,
-                                        alphaTestThreshold: nil, culls: true, isDriver: false,
-                                        sourceMaterial: state, material: material)
-                let scene = RenderScene(batches: [batch], minimum: low, maximum: high)
+            var generated: [RenderBatch] = []
+            if let ground = try TrackSurfaceAssembly.terrainBatch(road, parameters: terrain ?? TerrainParameters()) {
+                generated.append(ground)
+            }
+            if generateRoad {
+                generated += try TrackSurfaceAssembly.roadBatches(road)
+            }
+            if !generated.isEmpty {
+                let scene = RenderScene(batches: generated, minimum: low, maximum: high)
                 terrainResource = built.count
-                built.append(try SceneResources(device: device, scene: scene, textures: store))
+                built.append(try SceneResources(device: device, scene: scene, textures: store,
+                                                materials: library, materialDirectory: materialDirectory))
             }
         }
         resources = built
     }
+
+    /// The generated material sets in use, if a directory was supplied.
+    public let materials: MaterialLibrary?
 
     /// The static instances present every frame regardless of vehicle state.
     public func staticInstances() -> [RenderInstance] {
@@ -84,8 +95,15 @@ public extension SceneResources {
     /// Builds resources binding textures from an already-decoded compiled
     /// package rather than from files on disk.
     convenience init(device: MTLDevice, scene: RenderScene, textures: TextureStore,
-                     compiled: [String: CompiledTexture]) throws {
-        try self.init(device: device, scene: scene) { name, isCutout in
+                     compiled: [String: CompiledTexture],
+                     materials: MaterialLibrary? = nil, materialDirectory: URL? = nil) throws {
+        try self.init(device: device, scene: scene, materials: materials, materialDirectory: materialDirectory,
+                      originalImage: { name in
+                          // The compiled package holds the decoded artwork, so
+                          // painted markings can still be composited over a
+                          // generated set.
+                          compiled[name]?.pyramid.levels.first
+                      }) { name, isCutout in
             guard let texture = compiled[name] else { return nil }
             return textures.albedo(compiled: texture, key: name, isCutout: isCutout)
         }

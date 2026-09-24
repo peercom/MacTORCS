@@ -23,7 +23,8 @@ import TORCSTrackMesh
         let renderer = try ForwardRenderer()
         let resources = try SessionRenderResources(
             device: renderer.device, scenes: content.renderScenes,
-            road: content.simulation.road.geometry, terrain: TerrainParameters())
+            road: content.simulation.road.geometry, terrain: TerrainParameters(),
+            materials: ModernDrivingRenderer.materialsDirectory(beside: session))
         let lighting = ModernDrivingRenderer.lighting(from: content.graphics)
         let pose = try VehiclePresentation(content.simulation.visualSnapshot)
         let world = try CameraWorld(bounds: content.simulation.road.bounds)

@@ -48,7 +48,7 @@ struct DrawUniforms {
     float4x4 normalMatrix;
     float4 baseColour;
     float4 material;            // x roughness, y metallic, z clearcoat, w clearcoat roughness
-    float4 parameters;          // x normal strength, y alpha threshold, zw unused
+    float4 parameters;          // x normal strength, y alpha threshold, z uv0 scale, w metre-UV fold period or 0
     uint4 maps;                 // x albedo, y normal, z ORM, w receives screen-space occlusion
 };
 
@@ -124,7 +124,10 @@ vertex ForwardVarying forwardVertex(uint id [[vertex_id]],
     // The tangent is a direction in the surface, so it transforms by the model
     // matrix, not the inverse transpose. Handedness rides along untouched.
     out.tangent = float4((instance.model * draw.model * float4(tangent.xyz, 0.0f)).xyz, tangent.w);
-    out.uv0 = float2(v.uv0);
+    // Generated geometry folds its metre UVs to fit a half (see
+    // RenderMesh.build); unfold in float before interpolation. Baked
+    // artwork has a zero period and passes through.
+    out.uv0 = float2(v.uv0) + float2(v.uv1) * draw.parameters.w;
     out.uv1 = float2(v.uv1);
     out.currentClip = frame.unjitteredViewProjection * world;
     out.previousClip = frame.previousViewProjection * instance.previousModel * draw.model
@@ -154,20 +157,20 @@ fragment ForwardOutput forwardFragment(ForwardVarying in [[stage_in]],
         // reconstruct: sampling at the render resolution would otherwise select
         // mips for that resolution and the upscaled image would just be a
         // blurry half-resolution one.
-        albedo *= albedoMap.sample(surfaceSampler, in.uv0, bias(frame.renderSize.z));
+        albedo *= albedoMap.sample(surfaceSampler, (in.uv0 * draw.parameters.z), bias(frame.renderSize.z));
     }
     if (forwardAlphaTest && albedo.a <= draw.parameters.y) { discard_fragment(); }
 
     float3x3 basis = tangentBasis(in.normal, in.tangent);
     float3 normal = basis[2];
     if (draw.maps.y != 0) {
-        float2 encoded = normalMap.sample(surfaceSampler, in.uv0, bias(frame.renderSize.z)).xy;
+        float2 encoded = normalMap.sample(surfaceSampler, (in.uv0 * draw.parameters.z), bias(frame.renderSize.z)).xy;
         normal = normalize(basis * unpackNormalMap(encoded, draw.parameters.x));
     }
 
     float roughness = draw.material.x, metallic = draw.material.y, occlusion = 1.0f;
     if (draw.maps.z != 0) {
-        float3 orm = ormMap.sample(surfaceSampler, in.uv0, bias(frame.renderSize.z)).xyz;
+        float3 orm = ormMap.sample(surfaceSampler, (in.uv0 * draw.parameters.z), bias(frame.renderSize.z)).xyz;
         occlusion = orm.x;
         roughness *= orm.y;
         metallic *= orm.z;
@@ -247,7 +250,7 @@ fragment void depthOnlyFragment(ForwardVarying in [[stage_in]],
                                 texture2d<float> albedoMap [[texture(0)]],
                                 sampler surfaceSampler [[sampler(0)]]) {
     float alpha = draw.baseColour.a;
-    if (draw.maps.x != 0) { alpha *= albedoMap.sample(surfaceSampler, in.uv0).a; }
+    if (draw.maps.x != 0) { alpha *= albedoMap.sample(surfaceSampler, (in.uv0 * draw.parameters.z)).a; }
     if (alpha <= draw.parameters.y) { discard_fragment(); }
 }
 

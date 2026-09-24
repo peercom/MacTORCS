@@ -24,7 +24,14 @@ public final class MaterialLibrary {
         public let albedo: MTLTexture
         public let normal: MTLTexture
         public let orm: MTLTexture
+        /// Metres one tile covers, from the generator's manifest. Geometry
+        /// whose UVs are in metres divides by this; a 2 m asphalt tile sampled
+        /// once per metre has its aggregate at half a millimetre and reads as
+        /// flat grey.
+        public let worldSize: Float
     }
+    /// Per-material tile size from `materials.json`, when the directory has one.
+    private var worldSizes: [String: Float] = [:]
 
     private let device: MTLDevice
     private var cache: [String: Binding] = [:]
@@ -42,6 +49,8 @@ public final class MaterialLibrary {
         ("curb", "kerb"), ("kerb", "kerb"),
         ("grass", "grass"), ("gazon", "grass"),
         ("concrete", "concrete"), ("beton", "concrete"),
+        // Track barriers are painted concrete walls in every TORCS circuit.
+        ("barrier", "concrete"), ("wall", "concrete"),
         ("gravel", "gravel"), ("sand", "gravel"),
         ("dirt", "dirt"), ("terre", "dirt"),
     ]
@@ -56,6 +65,15 @@ public final class MaterialLibrary {
 
     /// - Parameter directory: output of `torcs-matgen`.
     public init(device: MTLDevice, directory: URL) throws {
+        if let data = try? Data(contentsOf: directory.appendingPathComponent("materials.json")),
+           let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+           let entries = json["materials"] as? [[String: Any]] {
+            for entry in entries {
+                if let name = entry["name"] as? String, let size = entry["worldSize"] as? Double, size > 0 {
+                    worldSizes[name] = Float(size)
+                }
+            }
+        }
         self.device = device
         let manifest = directory.appendingPathComponent("materials.json")
         guard FileManager.default.fileExists(atPath: manifest.path) else {
@@ -80,7 +98,7 @@ public final class MaterialLibrary {
         guard let albedo = load("albedo", srgb: true),
               let normal = load("normal", srgb: false),
               let orm = load("orm", srgb: false) else { return nil }
-        let binding = Binding(albedo: albedo, normal: normal, orm: orm)
+        let binding = Binding(albedo: albedo, normal: normal, orm: orm, worldSize: worldSizes[material] ?? 1)
         cache[material] = binding
         return binding
     }
@@ -107,7 +125,7 @@ public final class MaterialLibrary {
                   TextureImage(width: size, height: size, channels: 4, pixels: merged),
                   preserveCutoutCoverage: false),
               let albedo = try? TextureLoading.upload(levels, device: device, srgb: true) else { return binding }
-        let result = Binding(albedo: albedo, normal: binding.normal, orm: binding.orm)
+        let result = Binding(albedo: albedo, normal: binding.normal, orm: binding.orm, worldSize: binding.worldSize)
         composited[texture] = result
         markingsPreserved.insert(texture)
         return result

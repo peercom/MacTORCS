@@ -14,8 +14,9 @@ import TORCSAssets
 public struct RenderBatch: Sendable {
     public init(mesh: RenderMesh, baseTexture: String?, blends: Bool, isDeferred: Bool,
                 alphaTestThreshold: Float?, culls: Bool, isDriver: Bool,
-                sourceMaterial: ACRenderState, material: ResolvedMaterial) {
+                sourceMaterial: ACRenderState, material: ResolvedMaterial, uvInMetres: Bool = false) {
         self.mesh = mesh
+        self.uvInMetres = uvInMetres
         self.baseTexture = baseTexture
         self.blends = blends
         self.isDeferred = isDeferred
@@ -28,6 +29,9 @@ public struct RenderBatch: Sendable {
 
     public let mesh: RenderMesh
     public let baseTexture: String?
+    /// Generated geometry authors `uv0` in world metres; the renderer divides
+    /// by the bound material's tile size. Baked artwork is in texture space.
+    public let uvInMetres: Bool
     /// Draw through the alpha-blending pipeline.
     ///
     /// Distinct from `isDeferred`, and the two are genuinely independent in the

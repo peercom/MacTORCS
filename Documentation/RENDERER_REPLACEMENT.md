@@ -516,6 +516,85 @@ Not done here, and worth doing: a depth mip chain for the outer samples,
 which is how XeGTAO keeps a wide radius cheap; and bent normals feeding the
 diffuse IBL, which the plan lists and this pass does not yet produce.
 
+## The road is generated, not read
+
+Phase 5 begins with the surface the cars drive on. `RoadGeneration.road`
+walks every segment of the parity-verified physics model — main road, side
+strips, curb borders — and emits a ribbon per segment: a grid of `rows ×
+spans` quads with positions from `localToGlobal`, heights from `height`
+(which already carries banking, longitudinal slope, curb ramps and the
+surface roughness sine), and normals from `surfaceNormal`, so adjacent
+segments shade continuously without welding. UVs are metres along and across
+the circuit. Barriers hang off the outermost strip on each hand as three
+faces: inner, top, outer.
+
+Output is grouped by surface material name. Aalborg becomes 17 groups,
+98,000 triangles, 71,000 vertices; the renderer binds one generated set per
+group and the 396 baked trackgen batches it replaces become 17 draws. Every
+baked `tr-*` texture is trackgen output from the same segment model, so
+stripping them loses nothing hand-authored.
+
+`TrackSurfaceAssembly` does the batch building for both the interactive
+session and `torcs-rendershot --generate-track`, so they cannot disagree.
+The session had also never been handed a material library — the app was
+still driving on original artwork after R6 — and now looks for a
+`materials` folder beside the session or the directory `TORCS_MATERIALS`
+names.
+
+### Three faults, two of a familiar kind
+
+**Winding reasoned, not derived.** The ribbon quads were ordered "forward,
+then left", whose cross product points down, and the whole road was culled
+from every camera on it. The aerial shot still showed a dark strip along the
+circuit, which was taken as the road and was not — the barriers and their
+shadows are enough to draw the outline from overhead, and that is what
+delayed noticing. The terrain generator hit the same fault in R2 and the fix
+is the same: derive the winding from the stored normals, per triangle.
+`testDrivableSurfacesWindUpward` pins it.
+
+**One tile per metre.** The first correct render was flat grey. The
+generated asphalt set is 2 m per tile, and sampled once per metre its
+aggregate sits at half a millimetre. The generator's manifest already
+recorded `worldSize` per material and nothing read it; the library now
+exposes it on the binding, a batch can declare its UVs are metres, and the
+draw carries the scale. The terrain had the same latent fault: grass at one
+tile per metre instead of three.
+
+**Metres in a half.** The app's chase camera showed the road behind the car
+as alternating one-metre bands of streaks and aggregate, and rendershot
+never did. The chase camera looks back from the start line, at the *end* of
+the lap, 2,500 m from the origin; `uv0` is stored as a half, whose quantum
+at 2,048–4,096 is 2 m. One row's two ends rounded to the same texel column
+and the next jumped a full quantum. Every rendershot camera had looked
+forward from low distances. The fix keeps the 32-byte vertex: metres are
+stored folded, `uv0 = u mod 8`, `uv1 = ⌊u / 8⌋`, both exact enough in a
+half, and the vertex shader unfolds in float before interpolation — so
+there is no seam, no duplicated rows, and no constraint tying the fold to
+material tile sizes. The terrain's world-metre UVs had the same fault at
+900 m and take the same path. `testMetreUVsSurviveHalfPrecisionPacking`
+checks that the naive packing really does lose it, so the test guards
+something.
+
+A correction to R6 falls out of this. The "aggregate" on the substituted
+baked road was never the generated material's; it was the original 256²
+tarmac texture's pattern leaking through the marking compositor as painted
+detail. The generated road, sampled at the right scale, shows what the
+material actually contains — finer, and closer to tarmac.
+
+### Tooling
+
+`torcs-rendershot --road-camera D` places a driver's-eye camera D metres
+from the start line on the main road, looking 40 m ahead; `--road-lateral`
+moves it across the width. `--list-segments` prints every main segment with
+its borders, which is how one finds a curb to look at. Both exist because
+the two hand-placed cameras used before this were, respectively, a strip on
+the horizon and a wall.
+
+Not done: decals (lane lines, the start grid, curb paint as paint rather
+than a material), the racing-line rubber mask, and profile geometry for
+curbs where a track declares a height. Aalborg's curbs are 2 m wide and
+0 m high — painted strips — and render exactly as such.
+
 ## Licensing
 
 No third-party artwork is imported by this work. New render source is
