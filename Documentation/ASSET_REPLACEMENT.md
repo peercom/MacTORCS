@@ -70,6 +70,40 @@ someone competent has looked at it.
 Affected content: `155-DTM` car body and textures, the four `trb1-3` wheels,
 the Aalborg track mesh and its textures.
 
+## Generation is working
+
+`torcs-matgen` produces complete physically based sets from project code:
+asphalt, worn asphalt, grass, concrete, kerb, gravel and dirt, each with
+albedo, normal and ORM maps, deterministic from a seed. Seven materials at
+1024 square take 5.7 seconds.
+
+These carry the project's own terms and can be bundled. Eighteen of Aalborg's
+texture references substitute against them today.
+
+The recipes describe what each surface is rather than filtering an image until
+it looks right, which is what makes the derived maps meaningful. Asphalt is
+cellular noise because it is stone aggregate in bitumen, and wear lifts the
+stones out of the binder — so a polished racing line comes out both smoother
+and lighter, as it is in reality. The kerb's painted and unpainted halves end up
+with genuinely different roughness because both derive from the same height
+field.
+
+### Substitution must not delete painted content
+
+Track textures carry more than surface: lane markings, pit-box outlines and
+lettering are painted into the same albedo. Replacing a road texture wholesale
+gains micro-detail and silently removes all of it, which reads as new tarmac
+with no markings.
+
+Painted content is separated without knowing what it depicts, by comparing each
+texel against a blurred copy of the same image and keeping what stands out. A
+white line against dark tarmac survives; the surface's own variation cancels.
+Sixteen of eighteen substituted textures keep their markings.
+
+This is a bridge. Markings belong to a decal layer generated from the track
+model, where they would be crisp at any resolution rather than limited by a
+256-square source.
+
 ## Replacement path
 
 The plan's asset generation phase is the answer to both categories at once.

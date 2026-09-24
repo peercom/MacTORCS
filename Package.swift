@@ -10,7 +10,8 @@ let package = Package(
         .executable(name: "torcs-reference", targets: ["TORCSReference"]),
         .executable(name: "torcs-sim", targets: ["TORCSSim"]),
         .executable(name: "torcs-diff", targets: ["TORCSDiff"]),
-        .executable(name: "torcs-rendershot", targets: ["TORCSRenderShot"])
+        .executable(name: "torcs-rendershot", targets: ["TORCSRenderShot"]),
+        .executable(name: "torcs-matgen", targets: ["TORCSMaterialGenerator"])
     ],
     targets: [
         .target(name: "TORCSAssets", path: "Packages/TORCSAssets"),
@@ -23,8 +24,9 @@ let package = Package(
         .target(name: "TORCSInput", dependencies: ["TORCSCore", "TORCSSimulation"], path: "Packages/TORCSInput"),
         .target(name: "TORCSRaceEngine", dependencies: ["TORCSRobots", "TORCSCore", "TORCSTelemetry", "TORCSSimulation", "TORCSTrack", "TORCSConfiguration", "TORCSAssets"], path: "Packages/TORCSRaceEngine"),
         .target(name: "TORCSTelemetry", dependencies: ["TORCSSimulation", "TORCSTrack"], path: "Packages/TORCSTelemetry"),
+        .target(name: "TORCSMaterials", dependencies: ["TORCSMath", "TORCSAssets"], path: "Packages/TORCSMaterials"),
         .target(name: "TORCSTrackMesh", dependencies: ["TORCSTrack", "TORCSMath", "TORCSConfiguration"], path: "Packages/TORCSTrackMesh"),
-        .target(name: "TORCSRender", dependencies: ["TORCSCore", "TORCSMath", "TORCSAssets", "TORCSTrack", "TORCSTrackMesh", "TORCSSimulation", "TORCSRaceEngine"], path: "Packages/TORCSRender", resources: [.copy("Shaders")]),
+        .target(name: "TORCSRender", dependencies: ["TORCSCore", "TORCSMath", "TORCSAssets", "TORCSTrack", "TORCSTrackMesh", "TORCSMaterials", "TORCSSimulation", "TORCSRaceEngine"], path: "Packages/TORCSRender", resources: [.copy("Shaders")]),
         .target(name: "TORCSMetal", dependencies: ["TORCSCore", "TORCSSimulation", "TORCSAssets", "TORCSTrack", "TORCSRaceEngine"], path: "Packages/TORCSMetal", resources: [.copy("Scene.metal")]),
         .target(name: "PNGReference", path: "Upstream/PNGReference", exclude: ["LICENSE"], publicHeadersPath: "include", cSettings: [.define("PNG_ARM_NEON_OPT", to: "0"), .unsafeFlags(["-ffp-contract=off"])], linkerSettings: [.linkedLibrary("z")]),
         .target(name: "CReference", dependencies: ["PNGReference"], path: "Upstream/Reference",
@@ -41,9 +43,10 @@ let package = Package(
         .executableTarget(name: "TORCSSim", dependencies: ["TORCSRaceEngine", "TORCSSimulation", "TORCSTelemetry", "TORCSConfiguration", "TORCSTrack"], path: "Tools/torcs-sim"),
         .executableTarget(name: "TORCSAssetCompiler", dependencies: ["TORCSAssets"], path: "Tools/torcs-assetc"),
         .executableTarget(name: "TORCSDiff", dependencies: ["TORCSTelemetry"], path: "Tools/torcs-diff"),
+        .executableTarget(name: "TORCSMaterialGenerator", dependencies: ["TORCSMaterials"], path: "Tools/torcs-matgen"),
         .executableTarget(name: "TORCSRenderShot", dependencies: ["TORCSRender", "TORCSAssets"], path: "Tools/torcs-rendershot"),
         .executableTarget(name: "TORCSMac", dependencies: ["TORCSCore", "TORCSSimulation", "TORCSMetal", "TORCSRender", "TORCSTrackMesh", "TORCSConfiguration", "TORCSTrack", "TORCSAssets", "TORCSRaceEngine", "TORCSTelemetry", "TORCSInput"], path: "App"),
-        .testTarget(name: "UnitTests", dependencies: ["TORCSRobots", "TORCSCore", "TORCSMath", "TORCSConfiguration", "TORCSSimulation", "TORCSTelemetry", "CReference", "TORCSReferenceSupport", "TORCSTrack", "TORCSRaceEngine", "TORCSAssets", "TORCSMetal", "TORCSRender", "TORCSTrackMesh", "TORCSInput"], path: "Tests/UnitTests", resources: [.copy("Fixtures")]),
+        .testTarget(name: "UnitTests", dependencies: ["TORCSRobots", "TORCSCore", "TORCSMath", "TORCSConfiguration", "TORCSSimulation", "TORCSTelemetry", "CReference", "TORCSReferenceSupport", "TORCSTrack", "TORCSRaceEngine", "TORCSAssets", "TORCSMetal", "TORCSRender", "TORCSTrackMesh", "TORCSMaterials", "TORCSInput"], path: "Tests/UnitTests", resources: [.copy("Fixtures")]),
         .testTarget(name: "PhysicsGoldenTests", dependencies: ["TORCSSimulation", "TORCSTelemetry", "CReference"], path: "Tests/PhysicsGoldenTests", resources: [.copy("Fixtures")])
     ], cxxLanguageStandard: .cxx17
 )

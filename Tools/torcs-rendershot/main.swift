@@ -29,6 +29,7 @@ struct Options {
     var frames = 1
     var noCull = false
     var terrainOnly = false
+    var materials: String? = nil
     var depthPrepass = false
     var upscale: Bool? = nil
     var comparePrepass = false
@@ -68,6 +69,7 @@ func parse() -> Options {
         case "--stats": options.stats = true
         case "--no-cull": options.noCull = true
         case "--terrain-only": options.terrainOnly = true
+        case "--materials": options.materials = next()
         case "--depth-prepass": options.depthPrepass = true
         case "--upscale": options.upscale = true
         case "--no-upscale": options.upscale = false
@@ -180,7 +182,19 @@ do {
                         sourceMaterial: $0.sourceMaterial, material: $0.material)
         }, minimum: scene.minimum, maximum: scene.maximum, warnings: scene.warnings)
     }
-    let resources = try SceneResources(device: renderer.device, scene: scene, textures: textures)
+    var library: MaterialLibrary? = nil
+    var materialDirectory: URL? = nil
+    if let path = options.materials {
+        materialDirectory = URL(fileURLWithPath: path)
+        library = try MaterialLibrary(device: renderer.device, directory: materialDirectory!)
+    }
+    let resources = try SceneResources(device: renderer.device, scene: scene, textures: textures,
+                                       materials: library, materialDirectory: materialDirectory)
+    if let library {
+        print("materials: \(library.substitutionCount) textures substituted, "
+              + "\(library.markingsPreserved.count) with markings preserved, "
+              + "using \(library.materialsUsed.sorted().joined(separator: ", "))")
+    }
 
     let camera: RenderCamera
     if let eye = options.eye, let target = options.target {

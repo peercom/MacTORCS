@@ -66,8 +66,13 @@ public enum TextureLoading {
     }
 
     /// Builds a complete mip chain, filtering colour in linear space.
+    /// - Parameter encodeAsColour: filter in linear space and re-encode to
+    ///   sRGB. True for albedo. False for data maps — a normal or a roughness
+    ///   value is not a colour, and passing it through a transfer function
+    ///   would bend it.
     public static func linearMipChain(_ image: TextureImage, preserveCutoutCoverage: Bool,
-                                      cutoutThreshold: Float = 0.5) throws -> [(width: Int, height: Int, pixels: [UInt8])] {
+                                      cutoutThreshold: Float = 0.5,
+                                      encodeAsColour: Bool = true) throws -> [(width: Int, height: Int, pixels: [UInt8])] {
         guard image.width > 0, image.height > 0 else {
             throw ACError.invalid("Cannot build mips for an empty image")
         }
@@ -87,9 +92,14 @@ public enum TextureLoading {
                     let y0 = min(y * 2, parent.height - 1), y1 = min(y * 2 + 1, parent.height - 1)
                     let corners = [(x0, y0), (x1, y0), (x0, y1), (x1, y1)].map { ($0.1 * parent.width + $0.0) * 4 }
                     for c in 0 ..< 3 {
-                        let sum = corners.reduce(Float(0)) { $0 + toLinear[Int(parent.pixels[$1 + c])] }
-                        pixels[(y * width + x) * 4 + c] =
-                            UInt8(max(0, min(255, (ColorSpace.srgb(fromLinear: sum / 4) * 255).rounded())))
+                        if encodeAsColour {
+                            let sum = corners.reduce(Float(0)) { $0 + toLinear[Int(parent.pixels[$1 + c])] }
+                            pixels[(y * width + x) * 4 + c] =
+                                UInt8(max(0, min(255, (ColorSpace.srgb(fromLinear: sum / 4) * 255).rounded())))
+                        } else {
+                            let sum = corners.reduce(0) { $0 + Int(parent.pixels[$1 + c]) }
+                            pixels[(y * width + x) * 4 + c] = UInt8(sum / 4)
+                        }
                     }
                     // Alpha is a coverage mask, not a colour: average it
                     // directly, never through the transfer function.
@@ -213,6 +223,14 @@ public final class TextureStore {
         cache[name] = texture
         uploadedBytes += levels.reduce(0) { $0 + $1.width * $1.height * 4 }
         return texture
+    }
+
+    /// Decoded source image, for callers that need the pixels rather than a
+    /// GPU texture — such as preserving painted markings when a generated
+    /// material replaces the artwork.
+    public func image(named name: String) -> TextureImage? {
+        guard let url = locate(name), let data = try? Data(contentsOf: url) else { return nil }
+        return try? TextureLoading.decode(data)
     }
 
     public var count: Int { cache.count }

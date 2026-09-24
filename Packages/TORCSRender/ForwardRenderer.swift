@@ -17,6 +17,9 @@ public final class SceneResources {
         let indexCount: Int
         let draw: DrawUniforms
         let needsAlphaTest: Bool
+        /// Generated physically based maps, when one was substituted.
+        let normal: MTLTexture?
+        let orm: MTLTexture?
         let culls: Bool
         let isDriver: Bool
         let blends: Bool
@@ -47,6 +50,8 @@ public final class SceneResources {
     ///   satisfied. Injected rather than fixed so the same builder serves both
     ///   loose artwork on disk and already-decoded compiled session packages.
     public init(device: MTLDevice, scene: RenderScene,
+                materials: MaterialLibrary? = nil, materialDirectory: URL? = nil,
+                originalImage: ((String) -> TextureImage?)? = nil,
                 resolveTexture: (String, Bool) -> MTLTexture?) throws {
         var built: [Batch] = []
         var bytes = 0
@@ -75,7 +80,16 @@ public final class SceneResources {
             // Only bind a base map when one actually resolved: a missing
             // texture must read as an obvious untextured surface, never as a
             // silently substituted stand-in.
-            let albedo = batch.baseTexture.flatMap {
+            // A generated set replaces all three maps together. Mixing a
+            // generated normal with an original albedo would light detail that
+            // is not in the colour.
+            var generated: MaterialLibrary.Binding? = nil
+            if let texture = batch.baseTexture, let materials, let materialDirectory,
+               batch.alphaTestThreshold == nil {
+                generated = materials.resolve(texture: texture, directory: materialDirectory,
+                                              original: originalImage?(texture))
+            }
+            let albedo = generated?.albedo ?? batch.baseTexture.flatMap {
                 resolveTexture($0, batch.alphaTestThreshold != nil)
             }
             built.append(Batch(
@@ -88,8 +102,12 @@ public final class SceneResources {
                                    clearcoatRoughness: material.clearcoatRoughness,
                                    normalStrength: material.normalStrength,
                                    alphaThreshold: batch.alphaTestThreshold ?? 0,
-                                   maps: SIMD4(albedo == nil ? 0 : 1, 0, 0, 0)),
+                                   maps: SIMD4(albedo == nil ? 0 : 1,
+                                               generated == nil ? 0 : 1,
+                                               generated == nil ? 0 : 1, 0)),
                 needsAlphaTest: batch.alphaTestThreshold != nil,
+                normal: generated?.normal,
+                orm: generated?.orm,
                 culls: batch.culls,
                 isDriver: batch.isDriver,
                 blends: batch.blends,
@@ -108,8 +126,11 @@ public final class SceneResources {
     }
 
     /// Resolves textures by name against a store's search roots.
-    public convenience init(device: MTLDevice, scene: RenderScene, textures: TextureStore? = nil) throws {
-        try self.init(device: device, scene: scene) { name, isCutout in
+    public convenience init(device: MTLDevice, scene: RenderScene, textures: TextureStore? = nil,
+                            materials: MaterialLibrary? = nil, materialDirectory: URL? = nil) throws {
+        try self.init(device: device, scene: scene, materials: materials,
+                      materialDirectory: materialDirectory,
+                      originalImage: { textures?.image(named: $0) }) { name, isCutout in
             textures?.albedo(named: name, isCutout: isCutout)
         }
     }
@@ -619,6 +640,8 @@ public final class ForwardRenderer {
         encoder.setCullMode(forceTwoSided || !batch.culls ? .none : (mirrored ? .front : .back))
         var draw = batch.draw
         if let albedo = batch.albedo { encoder.setFragmentTexture(albedo, index: 0) }
+        if let normal = batch.normal { encoder.setFragmentTexture(normal, index: 1) }
+        if let orm = batch.orm { encoder.setFragmentTexture(orm, index: 2) }
         encoder.setVertexBuffer(batch.vertices, offset: 0, index: 0)
         encoder.setVertexBytes(&draw, length: MemoryLayout<DrawUniforms>.stride, index: 2)
         encoder.setFragmentBytes(&draw, length: MemoryLayout<DrawUniforms>.stride, index: 2)
