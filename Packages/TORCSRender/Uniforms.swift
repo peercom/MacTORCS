@@ -68,7 +68,7 @@ public struct DrawUniforms: Equatable, Sendable {
     /// period (zero for texture-space UVs).
     public var parameters: SIMD4<Float>
     /// Nonzero enables the corresponding texture: x albedo, y normal, z ORM.
-    /// w nonzero means the surface receives screen-space occlusion.
+    /// w is a bitfield: 1 receives screen-space occlusion, 2 paints road markings.
     public var maps: SIMD4<UInt32>
 
     public init(model: simd_float4x4, baseColour: SIMD4<Float>,

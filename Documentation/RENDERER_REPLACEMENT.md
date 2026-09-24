@@ -595,6 +595,45 @@ than a material), the racing-line rubber mask, and profile geometry for
 curbs where a track declares a height. Aalborg's curbs are 2 m wide and
 0 m high — painted strips — and render exactly as such.
 
+## Road markings are painted, not textured
+
+The generated road arrived with no markings at all. The lines that had
+survived R6 lived in the baked 256² textures the marking compositor read,
+and those textures are gone with the trackgen batches. The plan's answer
+was a decal layer; what landed is cheaper and sharper.
+
+The ribbon already carries `(along, toRight)` in metres, and the packed
+vertex had an unused `uchar4` slot reserved for material blend weights. The
+road generator now writes there: lateral position across the segment,
+segment width in eighths of a metre, and the segment's role. From those
+three bytes the fragment shader knows how many metres it is from either
+edge, from the centre, and from the start line, and paints:
+
+- edge lines, 12 cm wide, 26 cm in from each edge;
+- a dashed centre line, 3 m on and 6 m off, phased by distance along the lap
+  so the dashes are continuous across segment boundaries;
+- the start line, half a metre across the road at the origin;
+- rubber: a soft band on the middle of the road, darkening albedo by up to
+  30 % and lowering roughness, with a slow variation along the lap so it
+  does not read as a stripe.
+
+Every edge is antialiased with `fwidth` of the lateral coordinate, so the
+lines are crisp at a metre and at four hundred, and the whole thing costs a
+few ALU per road pixel and no draws. Only role 0 (the main road) paints
+lines; sides and borders receive rubber only. `testAttributesEncodeLateralPositionWidthAndRole`
+pins the encoding, because a wrong lateral coordinate puts the edge line in
+the middle of the road.
+
+The rubber band is centred on the road rather than on the racing line. The
+racing line is the AI's, computed in the robot, and the renderer does not
+see it; a later increment can hand it across as a per-row lateral offset in
+the same attribute channel.
+
+Kerb paint is still a material rather than paint, and tracks whose surface
+names declare which edges carry lines (`asphalt-l-left`, `asphalt-l-both`)
+are not yet honoured — Aalborg's do not, and its original texture painted
+both edges and the centre, which is what this reproduces.
+
 ## Licensing
 
 No third-party artwork is imported by this work. New render source is

@@ -25,8 +25,9 @@ public enum TrackSurfaceAssembly {
         var batches: [RenderBatch] = []
         for group in RoadGeneration.road(geometry, parameters: parameters).groups where !group.geometry.isEmpty {
             let mesh = try RenderMesh.build(positions: group.geometry.positions, normals: group.geometry.normals,
-                                            uv0: group.geometry.uv0, indices: group.geometry.indices, uvInMetres: true)
-            batches.append(surfaceBatch(mesh: mesh, texture: group.material + ".rgb", roughness: 0.85))
+                                            uv0: group.geometry.uv0, blend: group.geometry.attributes,
+                                            indices: group.geometry.indices, uvInMetres: true)
+            batches.append(surfaceBatch(mesh: mesh, texture: group.material + ".rgb", roughness: 0.85, markings: true))
         }
         return batches
     }
@@ -44,13 +45,13 @@ public enum TrackSurfaceAssembly {
     /// A rough dielectric whose colour comes from the generated set bound by
     /// name; the source state mirrors what trackgen would have written so the
     /// batch reads like any other.
-    static func surfaceBatch(mesh: RenderMesh, texture: String, roughness: Float) -> RenderBatch {
+    static func surfaceBatch(mesh: RenderMesh, texture: String, roughness: Float, markings: Bool = false) -> RenderBatch {
         let state = ACRenderState(material: [0, 0, 0, 1, 0, 0, 0, 1, 0.2, 0.2, 0.2, 1, 0],
                                   texture: texture, flags: 8, alphaClamp: 0)
         return RenderBatch(mesh: mesh, baseTexture: texture, blends: false, isDeferred: false,
                            alphaTestThreshold: nil, culls: true, isDriver: false,
                            sourceMaterial: state,
                            material: ResolvedMaterial(baseColour: SIMD4(1, 1, 1, 1), roughness: roughness, metallic: 0),
-                           uvInMetres: true)
+                           uvInMetres: true, paintsRoadMarkings: markings)
     }
 }

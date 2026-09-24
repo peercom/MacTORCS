@@ -49,7 +49,7 @@ struct DrawUniforms {
     float4 baseColour;
     float4 material;            // x roughness, y metallic, z clearcoat, w clearcoat roughness
     float4 parameters;          // x normal strength, y alpha threshold, z uv0 scale, w metre-UV fold period or 0
-    uint4 maps;                 // x albedo, y normal, z ORM, w receives screen-space occlusion
+    uint4 maps;                 // x albedo, y normal, z ORM, w bits: 1 receives occlusion, 2 paints road markings
 };
 
 /// Places a whole scene in the world, on top of each batch's own node-local
@@ -76,6 +76,9 @@ struct ForwardVarying {
     float4 tangent;
     float2 uv0;
     float2 uv1;
+    /// Per-vertex attributes, 0..1. The road generator writes lateral
+    /// position, width and role here; see RoadGeneration.attributes.
+    float4 attributes;
     /// Unjittered clip positions, for the motion vector.
     float4 currentClip;
     float4 previousClip;
@@ -129,6 +132,7 @@ vertex ForwardVarying forwardVertex(uint id [[vertex_id]],
     // artwork has a zero period and passes through.
     out.uv0 = float2(v.uv0) + float2(v.uv1) * draw.parameters.w;
     out.uv1 = float2(v.uv1);
+    out.attributes = float4(v.blend) * (1.0f / 255.0f);
     out.currentClip = frame.unjitteredViewProjection * world;
     out.previousClip = frame.previousViewProjection * instance.previousModel * draw.model
                      * float4(float3(v.position), 1.0f);
@@ -176,6 +180,46 @@ fragment ForwardOutput forwardFragment(ForwardVarying in [[stage_in]],
         metallic *= orm.z;
     }
 
+    // Road markings, painted procedurally from the generator's lateral
+    // coordinate rather than baked into a 256² texture: crisp at every
+    // distance, and the racing line's rubber comes for free from the same
+    // coordinate. Only the main road paints; sides and borders carry role 1
+    // and 2 and get rubber alone.
+    if (draw.maps.w & 2u) {
+        float width = in.attributes.y * 255.0f / 8.0f;
+        float fromRight = in.attributes.x * width;
+        float fromLeft = width - fromRight;
+        float along = (in.uv0 * draw.parameters.z).x / max(draw.parameters.z, 1e-6f);  // metres
+        float role = in.attributes.z * 255.0f;
+        // Screen-space width of one metre, for antialiased edges.
+        float aa = max(fwidth(fromRight), 1e-4f);
+        float paint = 0.0f;
+        if (role < 0.5f) {
+            // Edge lines 12 cm wide, 20 cm in from the edge.
+            float edge = 0.06f, inset = 0.26f;
+            paint = max(paint, 1.0f - smoothstep(edge - aa, edge + aa, abs(fromRight - inset)));
+            paint = max(paint, 1.0f - smoothstep(edge - aa, edge + aa, abs(fromLeft - inset)));
+            // Dashed centre line: 3 m on, 6 m off.
+            float dash = step(fract(along / 9.0f) * 9.0f, 3.0f);
+            paint = max(paint, dash * (1.0f - smoothstep(0.05f - aa, 0.05f + aa, abs(fromRight - width * 0.5f))));
+            // Start line across the road at the origin.
+            paint = max(paint, 1.0f - smoothstep(0.0f, aa, along - 0.5f)) * step(-aa, along);
+        }
+        // Worn white paint: not quite white, and smoother than the tarmac.
+        albedo.rgb = mix(albedo.rgb, float3(0.78f, 0.78f, 0.74f), paint * 0.85f);
+        roughness = mix(roughness, 0.55f, paint);
+        // Rubber laid down on the racing line, approximated as a soft band on
+        // the middle of the road with a little low-frequency variation.
+        if (role < 1.5f) {
+            float offset = (fromRight - width * 0.5f) / max(width, 1e-3f);
+            float band = exp(-offset * offset * 18.0f);
+            float wander = 0.75f + 0.25f * sin(along * 0.037f) * sin(along * 0.011f + 1.7f);
+            float rubber = band * wander * 0.3f;
+            albedo.rgb *= 1.0f - rubber;
+            roughness *= 1.0f - rubber * 0.35f;
+        }
+    }
+
     SurfaceMaterial surface;
     surface.albedo = albedo.rgb;
     // Widen roughness where the normal varies fast within this pixel. This
@@ -204,7 +248,7 @@ fragment ForwardOutput forwardFragment(ForwardVarying in [[stage_in]],
     // visibility, green is sun visibility over the first few decimetres. Only
     // opaque geometry receives it — a transparent surface would pick up the
     // occlusion of whatever is behind it, which is not its own.
-    if (frame.renderSize.w > 0.0f && draw.maps.w != 0) {
+    if (frame.renderSize.w > 0.0f && (draw.maps.w & 1u)) {
         constexpr sampler occlusionSampler(coord::normalized, address::clamp_to_edge, filter::linear);
         float2 occluded = occlusionMap.sample(occlusionSampler, in.position.xy / frame.renderSize.xy).rg;
         visibility *= occluded.g;

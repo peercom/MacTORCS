@@ -14,9 +14,11 @@ import TORCSAssets
 public struct RenderBatch: Sendable {
     public init(mesh: RenderMesh, baseTexture: String?, blends: Bool, isDeferred: Bool,
                 alphaTestThreshold: Float?, culls: Bool, isDriver: Bool,
-                sourceMaterial: ACRenderState, material: ResolvedMaterial, uvInMetres: Bool = false) {
+                sourceMaterial: ACRenderState, material: ResolvedMaterial, uvInMetres: Bool = false,
+                paintsRoadMarkings: Bool = false) {
         self.mesh = mesh
         self.uvInMetres = uvInMetres
+        self.paintsRoadMarkings = paintsRoadMarkings
         self.baseTexture = baseTexture
         self.blends = blends
         self.isDeferred = isDeferred
@@ -32,6 +34,9 @@ public struct RenderBatch: Sendable {
     /// Generated geometry authors `uv0` in world metres; the renderer divides
     /// by the bound material's tile size. Baked artwork is in texture space.
     public let uvInMetres: Bool
+    /// The road shader paints edge lines, centre dashes, the start line and
+    /// rubber from the vertex attributes the road generator wrote.
+    public let paintsRoadMarkings: Bool
     /// Draw through the alpha-blending pipeline.
     ///
     /// Distinct from `isDeferred`, and the two are genuinely independent in the

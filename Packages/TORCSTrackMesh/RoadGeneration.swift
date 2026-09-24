@@ -78,6 +78,18 @@ public enum RoadGeneration {
         segment.extent * fraction
     }
 
+    /// Per-vertex attributes the road shader paints markings from:
+    /// x lateral position across the segment (0 = right edge, 255 = left),
+    /// y segment width in eighths of a metre, z role (0 main, 1 side,
+    /// 2 border), w unused. Width and lateral together give metres from either
+    /// edge, which is what an edge line or a centre dash is defined in.
+    public static func attributes(toRight: Float, width: Float, role: TrackRole) -> SIMD4<UInt8> {
+        let lateral = width > 0 ? toRight / width : 0
+        let roleCode: UInt8 = role == .main ? 0 : (role == .leftBorder || role == .rightBorder ? 2 : 1)
+        return SIMD4(UInt8(min(max(lateral, 0), 1) * 255 + 0.5),
+                     UInt8(min(max(width * 8, 0), 255) + 0.5), roleCode, 0)
+    }
+
     /// One segment as a grid of `rows` × `spans` quads, welded within itself.
     static func appendRibbon(_ geometry: TrackGeometry, segment index: Int, spans: Int,
                              parameters: Parameters, into out: inout GeneratedGeometry) {
@@ -98,6 +110,7 @@ public enum RoadGeneration {
                 out.positions.append(SIMD3(xy.x, xy.y, z))
                 out.normals.append(geometry.surfaceNormal(local))
                 out.uv0.append(SIMD2(along, toRight))
+                out.attributes.append(attributes(toRight: toRight, width: width, role: segment.role))
             }
         }
         let stride = UInt32(spans + 1)
@@ -169,6 +182,7 @@ public enum RoadGeneration {
             out.normals.append(contentsOf: [inwardNormal, inwardNormal, SIMD3(0, 0, 1), outwardNormal])
             out.uv0.append(contentsOf: [SIMD2(along, 0), SIMD2(along, barrier.height),
                                         SIMD2(along, barrier.height + thickness), SIMD2(along, 0)])
+            out.attributes.append(contentsOf: Array(repeating: SIMD4<UInt8>(0, 0, 3, 0), count: 4))
         }
         for row in 0 ..< UInt32(rowCount) {
             let a = base + row * 4, n = a + 4

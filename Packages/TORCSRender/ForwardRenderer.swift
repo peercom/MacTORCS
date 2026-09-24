@@ -105,7 +105,7 @@ public final class SceneResources {
                                    maps: SIMD4(albedo == nil ? 0 : 1,
                                                generated == nil ? 0 : 1,
                                                generated == nil ? 0 : 1,
-                                               batch.isDeferred ? 0 : 1),
+                                               (batch.isDeferred ? 0 : 1) | (batch.paintsRoadMarkings ? 2 : 0)),
                                    uvScale: batch.uvInMetres ? 1 / max(generated?.worldSize ?? 1, 1e-3) : 1,
                                    uvPeriod: batch.uvInMetres ? RenderMesh.metresPeriod : 0),
                 needsAlphaTest: batch.alphaTestThreshold != nil,

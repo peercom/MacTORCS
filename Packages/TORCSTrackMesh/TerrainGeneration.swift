@@ -15,13 +15,18 @@ public struct GeneratedGeometry: Sendable, Equatable {
     /// material rather than by how the mesh happens to be parameterized.
     public var uv0: [SIMD2<Float>]
     public var indices: [UInt32]
+    /// Optional per-vertex attributes, one per position when present. The
+    /// road generator writes its lateral coordinate here (see
+    /// `RoadGeneration.attributes`); terrain leaves it empty.
+    public var attributes: [SIMD4<UInt8>]
 
     public init(positions: [SIMD3<Float>] = [], normals: [SIMD3<Float>] = [],
-                uv0: [SIMD2<Float>] = [], indices: [UInt32] = []) {
+                uv0: [SIMD2<Float>] = [], indices: [UInt32] = [], attributes: [SIMD4<UInt8>] = []) {
         self.positions = positions
         self.normals = normals
         self.uv0 = uv0
         self.indices = indices
+        self.attributes = attributes
     }
 
     public var triangleCount: Int { indices.count / 3 }

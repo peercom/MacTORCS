@@ -130,6 +130,30 @@ final class RoadGenerationTests: XCTestCase {
         XCTAssertGreaterThan(abs(Float(naive.vertices[5].uv0.x) - along[5]), 0.2)
     }
 
+    /// The shader paints from these; a wrong lateral coordinate puts the edge
+    /// line in the middle of the road.
+    func testAttributesEncodeLateralPositionWidthAndRole() throws {
+        let road = try aalborg()
+        let generated = RoadGeneration.road(road.geometry)
+        let mains = Set(road.geometry.mainSegments.map { road.geometry.segments[$0].surface.material })
+        for group in generated.groups {
+            XCTAssertEqual(group.geometry.attributes.count, group.geometry.positions.count, group.material)
+        }
+        let main = try XCTUnwrap(generated.groups.first { mains.contains($0.material) })
+        let attributes = main.geometry.attributes
+        // Rows of nine across the main road: lateral climbs 0 → 255 within each row.
+        for row in stride(from: 0, to: min(attributes.count, 90), by: 9) {
+            XCTAssertEqual(attributes[row].x, 0)
+            XCTAssertEqual(attributes[row + 8].x, 255)
+            XCTAssertLessThan(attributes[row + 4].x, attributes[row + 5].x)
+            XCTAssertEqual(attributes[row].z, 0, "main road role")
+            // Aalborg's main road is 10 m wide: 80 eighths.
+            XCTAssertEqual(Int(attributes[row].y), 80, accuracy: 4)
+        }
+        XCTAssertEqual(RoadGeneration.attributes(toRight: 2.5, width: 10, role: .leftSide), SIMD4(64, 80, 1, 0))
+        XCTAssertEqual(RoadGeneration.attributes(toRight: 0, width: 2, role: .rightBorder).z, 2)
+    }
+
     func testGenerationIsDeterministic() throws {
         let road = try aalborg()
         XCTAssertEqual(RoadGeneration.road(road.geometry), RoadGeneration.road(road.geometry))
