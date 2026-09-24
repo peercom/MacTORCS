@@ -897,6 +897,49 @@ proportionate response. Whether it should have waited for the median is a
 tuning question for a longer run than four minutes; the tool for that run
 now exists.
 
+## Trees with volume
+
+Phase 6 begins with what was left of 1999 in every frame: TORCS places
+trees as pairs of crossed alpha-cutout cards, two sheets at right angles
+per tree, and from anywhere but the road they look like it. The classic
+path already carried the fix — a recovery of Aalborg's 169 placements by
+the cards' exact numerical signatures (three species by atlas column, card
+height and width), and a volumetric replacement built from the same atlas:
+trunk, branches, and a crown of small individually oriented leaf cards
+sampling a foliage-dense patch of the species' own region. That is ported
+here. The art is the track's own atlas, so nothing new needs a licence.
+
+Recovery runs during flattening, at float precision: the packed vertex's
+half UVs could not tell the atlas columns apart at the 2e-5 tolerance the
+signatures need. Each tree becomes two batches — the dense build within
+seventy metres of the camera, the lighter one beyond — switched by a
+per-batch distance range the draw loops now honour, and only the lighter
+one casts into the cascades. The leaves sway: a per-vertex height in the
+attribute channel, two slow sines phased by position, and a frame time in
+a uniform slot that verification renders leave at zero so they repeat.
+
+### Measured
+
+Road camera, generated track, 1280x832, thirty frames, on a chip drifting
+between runs (the cards' own baseline read 8.1 and then 4.1 ms):
+
+| Forest | Scene batches | Drawn | GPU |
+|---|---|---|---|
+| Original cards | 937 | 937 | 4.06–8.12 ms |
+| Merged near detail, everywhere | 264 | 264 | 13.0 ms |
+| Merged middle detail, everywhere | 264 | 264 | 4.22 ms |
+| Level of detail (default) | 599 | 430 | 5.08 ms |
+
+Near detail everywhere is 1.2 million triangles and unaffordable; it was
+the cascades as much as the crowns, four passes of alpha-tested leaves. The
+level-of-detail forest costs about a millisecond over the cards for dense
+trees beside the road and light ones behind them, and the trees now cast
+real shadows across the track, which the cards never did in either path.
+
+Not done: grass, trackside furniture and crowds from the plan's scatter
+list; a depth-sorted or dithered transition at the seventy-metre switch,
+which currently pops; and wind in the shadow pass, which is still.
+
 ## Licensing
 
 No third-party artwork is imported by this work. New render source is

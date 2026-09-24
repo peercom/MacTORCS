@@ -24,7 +24,8 @@ public struct FrameUniforms: Equatable, Sendable {
     public var sunDirection: SIMD4<Float>
     /// Linear RGB illuminance, w holds the exposure scale.
     public var sunIlluminance: SIMD4<Float>
-    /// Flat ambient standing in until real spherical-harmonic irradiance lands.
+    /// xyz flat ambient standing in until real spherical-harmonic irradiance
+    /// lands; w seconds of animation time, zero for verification renders.
     public var ambientIrradiance: SIMD4<Float>
     /// xy render size in pixels (motion vectors are in those pixels),
     /// z texture mip bias, w nonzero when a screen-space occlusion target is
@@ -38,7 +39,7 @@ public struct FrameUniforms: Equatable, Sendable {
                 unjitteredViewProjection: simd_float4x4? = nil,
                 previousViewProjection: simd_float4x4? = nil,
                 renderSize: SIMD2<Float> = SIMD2(1, 1),
-                mipBias: Float = 0) {
+                mipBias: Float = 0, animationTime: Float = 0) {
         self.viewProjection = viewProjection
         self.view = view
         self.inverseViewProjection = viewProjection.inverse
@@ -51,7 +52,7 @@ public struct FrameUniforms: Equatable, Sendable {
         self.cameraPosition = SIMD4(cameraPosition, 0)
         self.sunDirection = SIMD4(simd_normalize(sunDirection), 0)
         self.sunIlluminance = SIMD4(sunIlluminance, exposureScale)
-        self.ambientIrradiance = SIMD4(ambientIrradiance, 0)
+        self.ambientIrradiance = SIMD4(ambientIrradiance, animationTime)
     }
 
     public var exposureScale: Float { sunIlluminance.w }
@@ -68,7 +69,8 @@ public struct DrawUniforms: Equatable, Sendable {
     /// period (zero for texture-space UVs).
     public var parameters: SIMD4<Float>
     /// Nonzero enables the corresponding texture: x albedo, y normal, z ORM.
-    /// w is a bitfield: 1 receives screen-space occlusion, 2 paints road markings.
+    /// w is a bitfield: 1 receives screen-space occlusion, 2 paints road
+    /// markings, 4 sways in the wind and tints per leaf.
     public var maps: SIMD4<UInt32>
 
     public init(model: simd_float4x4, baseColour: SIMD4<Float>,

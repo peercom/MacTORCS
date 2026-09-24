@@ -33,7 +33,7 @@ struct FrameUniforms {
     float4 cameraPosition;      // w unused
     float4 sunDirection;        // xyz points toward the sun, w unused
     float4 sunIlluminance;      // linear RGB, w holds the exposure scale
-    float4 ambientIrradiance;   // flat ambient until real IBL lands, w unused
+    float4 ambientIrradiance;   // xyz flat ambient until real IBL lands, w animation time in seconds
     /// xy input render size in pixels (motion vectors are in those pixels),
     /// z texture mip bias, w nonzero when a screen-space occlusion target is
     /// bound for this frame.
@@ -49,7 +49,7 @@ struct DrawUniforms {
     float4 baseColour;
     float4 material;            // x roughness, y metallic, z clearcoat, w clearcoat roughness
     float4 parameters;          // x normal strength, y alpha threshold, z uv0 scale, w metre-UV fold period or 0
-    uint4 maps;                 // x albedo, y normal, z ORM, w bits: 1 receives occlusion, 2 paints road markings
+    uint4 maps;                 // x albedo, y normal, z ORM, w bits: 1 receives occlusion, 2 paints road markings, 4 foliage
 };
 
 /// Places a whole scene in the world, on top of each batch's own node-local
@@ -121,6 +121,16 @@ vertex ForwardVarying forwardVertex(uint id [[vertex_id]],
                                     constant InstanceUniforms &instance [[buffer(5)]]) {
     PackedVertex v = vertices[id];
     float4 world = instance.model * draw.model * float4(float3(v.position), 1.0f);
+    if (draw.maps.w & 4u) {
+        // Foliage sway: two slow sines phased by position so neighbouring
+        // trees do not move in step, scaled by the square of height so the
+        // trunk base stays put. Metres, at the top of a tall tree.
+        float h = float(v.blend.x) * (1.0f / 255.0f);
+        float t = frame.ambientIrradiance.w;
+        float2 sway = float2(sin(t * 1.1f + world.x * 0.05f + world.y * 0.07f),
+                             cos(t * 0.9f + world.y * 0.06f - world.x * 0.04f)) * (h * h * 0.18f);
+        world.xy += sway;
+    }
 
     ForwardVarying out;
     out.position = frame.viewProjection * world;
@@ -174,6 +184,9 @@ fragment ForwardOutput forwardFragment(ForwardVarying in [[stage_in]],
         float2 encoded = normalMap.sample(surfaceSampler, (in.uv0 * draw.parameters.z), bias(frame.renderSize.z)).xy;
         normal = normalize(basis * unpackNormalMap(encoded, draw.parameters.x));
     }
+
+    // Per-leaf tint from the tree builder, so a crown is not one flat colour.
+    if (draw.maps.w & 4u) { albedo.rgb *= mix(0.55f, 1.05f, in.attributes.w); }
 
     float roughness = draw.material.x, metallic = draw.material.y, occlusion = 1.0f;
     if (draw.maps.z != 0) {

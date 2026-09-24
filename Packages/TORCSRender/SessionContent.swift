@@ -50,8 +50,15 @@ public final class SessionRenderResources {
             // Everything but the scenery package is car: body, wheels, brakes.
             var flattened = try RenderScene(loaded.asset.scene, car: index != Self.sceneryResource)
             // The scenery package is first; only it carries trackgen output.
-            if index == Self.sceneryResource, road != nil, generateRoad {
-                flattened = TrackSurfaceAssembly.strippingTrackgen(flattened)
+            if index == Self.sceneryResource {
+                // Solid trees first, while the card faces' batch indices are
+                // still those of the flattened scene; then the trackgen strip.
+                if let atlas = loaded.textures[TreeForest.textureName]?.pyramid.levels.first {
+                    flattened = try TrackSurfaceAssembly.replacingTrees(flattened, atlas: atlas).scene
+                }
+                if road != nil, generateRoad {
+                    flattened = TrackSurfaceAssembly.strippingTrackgen(flattened)
+                }
             }
             built.append(try SceneResources(device: device, scene: flattened, textures: store,
                                             compiled: loaded.textures, materials: library,

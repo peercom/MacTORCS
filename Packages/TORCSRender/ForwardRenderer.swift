@@ -35,6 +35,15 @@ public final class SceneResources {
         /// original wheel meshes are mirrored, which is why they vanished
         /// entirely once back-face culling was correct for everything else.
         let mirrored: Bool
+        let detailRange: ClosedRange<Float>?
+        let castsShadow: Bool
+
+        /// Whether this batch draws for a camera at `eye`, under `transform`.
+        func isVisible(from eye: SIMD3<Float>, transform: simd_float4x4) -> Bool {
+            guard let range = detailRange else { return true }
+            let centre = transform * SIMD4(worldCentre, 1)
+            return range.contains(simd_distance(eye, SIMD3(centre.x, centre.y, centre.z)))
+        }
     }
 
     let batches: [Batch]
@@ -105,7 +114,8 @@ public final class SceneResources {
                                    maps: SIMD4(albedo == nil ? 0 : 1,
                                                generated == nil ? 0 : 1,
                                                generated == nil ? 0 : 1,
-                                               (batch.isDeferred ? 0 : 1) | (batch.paintsRoadMarkings ? 2 : 0)),
+                                               (batch.isDeferred ? 0 : 1) | (batch.paintsRoadMarkings ? 2 : 0)
+                                                   | (batch.swaysInWind ? 4 : 0)),
                                    uvScale: batch.uvInMetres ? 1 / max(generated?.worldSize ?? 1, 1e-3) : 1,
                                    uvPeriod: batch.uvInMetres ? RenderMesh.metresPeriod : 0),
                 needsAlphaTest: batch.alphaTestThreshold != nil,
@@ -118,7 +128,9 @@ public final class SceneResources {
                 albedo: albedo,
                 worldCentre: worldCentre,
                 worldRadius: worldRadius,
-                mirrored: simd_determinant(transform) < 0))
+                mirrored: simd_determinant(transform) < 0,
+                detailRange: batch.detailRange,
+                castsShadow: batch.castsShadow))
         }
         guard !built.isEmpty else { throw RenderError.unavailable("Scene has no drawable batches") }
         batches = built
@@ -212,6 +224,9 @@ public final class ForwardRenderer {
     let sampler: MTLSamplerState
     /// Mutable so a benchmark can alternate configurations within one process.
     public var settings: RenderSettings
+    /// Seconds driving vertex animation (foliage). Presentation advances it;
+    /// offscreen renders leave it at zero so they repeat.
+    public var animationTime: Double = 0
     private var cachedTargets: FrameTargets?
 
     public private(set) var lastGPUTime: Double = 0
@@ -607,7 +622,8 @@ public final class ForwardRenderer {
             renderSize: SIMD2(Float(targets.renderWidth), Float(targets.renderHeight)),
             mipBias: settings.upscaling
                 ? RenderCamera.mipBias(renderWidth: targets.renderWidth, outputWidth: targets.outputWidth)
-                : 0)
+                : 0,
+            animationTime: Float(animationTime))
 
         let scenePass = MTLRenderPassDescriptor()
         scenePass.colorAttachments[0].texture = targets.colour
@@ -662,7 +678,7 @@ public final class ForwardRenderer {
                 encoder.setVertexBytes(&frame, length: MemoryLayout<FrameUniforms>.stride, index: 1)
                 encoder.setFragmentBytes(&frame, length: MemoryLayout<FrameUniforms>.stride, index: 1)
                 encoder.setFragmentSamplerState(sampler, index: 0)
-                encodePrepassDraws(on: encoder, resources: resources, instances: instances)
+                encodePrepassDraws(on: encoder, resources: resources, instances: instances, eye: camera.eye)
                 encoder.endEncoding()
             }
             occlusion.encode(into: commands, depth: targets.depth, projection: projection,
@@ -685,7 +701,7 @@ public final class ForwardRenderer {
         // Optional depth-only prepass. Everything that will shade writes depth
         // first, so the shading pass touches each visible pixel once.
         if usesPrepass && !wantsOcclusion {
-            encodePrepassDraws(on: encoder, resources: resources, instances: instances)
+            encodePrepassDraws(on: encoder, resources: resources, instances: instances, eye: camera.eye)
         }
 
         encoder.setDepthStencilState(usesPrepass ? equalDepthState : depthState)
@@ -729,6 +745,7 @@ public final class ForwardRenderer {
 
             for (batchIndex, batch) in scene.batches.enumerated() {
                 if batch.isDriver && !instance.drawsDriver { continue }
+                if !batch.isVisible(from: camera.eye, transform: instance.transform) { continue }
                 if batch.isDeferred {
                     let centre = instance.transform * SIMD4(batch.worldCentre, 1)
                     deferred.append(DeferredDraw(instance: instanceIndex, batch: batchIndex,
@@ -782,7 +799,8 @@ public final class ForwardRenderer {
     /// the in-encoder prepass and the standalone one so the two write the
     /// same depth.
     private func encodePrepassDraws(on encoder: MTLRenderCommandEncoder,
-                                    resources: [SceneResources], instances: [RenderInstance]) {
+                                    resources: [SceneResources], instances: [RenderInstance],
+                                    eye: SIMD3<Float>) {
         encoder.setDepthStencilState(prepassDepthState)
         encoder.setFrontFacing(.counterClockwise)
         for instance in instances {
@@ -794,6 +812,7 @@ public final class ForwardRenderer {
             for batch in scene.batches {
                 if batch.isDeferred { continue }
                 if batch.isDriver && !instance.drawsDriver { continue }
+                if !batch.isVisible(from: eye, transform: instance.transform) { continue }
                 encoder.setRenderPipelineState(batch.needsAlphaTest ? depthOnlyCutout : depthOnly)
                 let mirrored = batch.mirrored != instanceMirrored
                 encoder.setCullMode(batch.culls ? (mirrored ? .front : .back) : .none)

@@ -15,10 +15,14 @@ public struct RenderBatch: Sendable {
     public init(mesh: RenderMesh, baseTexture: String?, blends: Bool, isDeferred: Bool,
                 alphaTestThreshold: Float?, culls: Bool, isDriver: Bool,
                 sourceMaterial: ACRenderState, material: ResolvedMaterial, uvInMetres: Bool = false,
-                paintsRoadMarkings: Bool = false) {
+                paintsRoadMarkings: Bool = false, swaysInWind: Bool = false,
+                detailRange: ClosedRange<Float>? = nil, castsShadow: Bool = true) {
         self.mesh = mesh
         self.uvInMetres = uvInMetres
         self.paintsRoadMarkings = paintsRoadMarkings
+        self.swaysInWind = swaysInWind
+        self.detailRange = detailRange
+        self.castsShadow = castsShadow
         self.baseTexture = baseTexture
         self.blends = blends
         self.isDeferred = isDeferred
@@ -37,6 +41,16 @@ public struct RenderBatch: Sendable {
     /// The road shader paints edge lines, centre dashes, the start line and
     /// rubber from the vertex attributes the road generator wrote.
     public let paintsRoadMarkings: Bool
+    /// Foliage: the vertex shader sways it by its height attribute, and the
+    /// fragment shader applies the per-leaf tint.
+    public let swaysInWind: Bool
+    /// Camera distance to the batch's centre, in metres, within which it is
+    /// drawn. Nil draws always. Two batches of the same object with abutting
+    /// ranges are a level-of-detail pair.
+    public let detailRange: ClosedRange<Float>?
+    /// Whether the shadow cascades draw it. A near-detail batch leaves the
+    /// casting to its lighter partner.
+    public let castsShadow: Bool
     /// Draw through the alpha-blending pipeline.
     ///
     /// Distinct from `isDeferred`, and the two are genuinely independent in the
@@ -61,6 +75,8 @@ public struct RenderBatch: Sendable {
 /// Flattened scene ready for the modern render path.
 public struct RenderScene: Sendable {
     public let batches: [RenderBatch]
+    /// Triangles of tree cards, for `TreeForest`. Empty for scenes without them.
+    public var treeFaces: [TreeForest.Face] = []
     public let minimum: SIMD3<Float>, maximum: SIMD3<Float>
     public let warnings: [String]
 
@@ -84,7 +100,9 @@ public struct RenderScene: Sendable {
                 high = simd_max(high, SIMD3(world.x, world.y, world.z))
             }
         }
-        return RenderScene(batches: batches + extra, minimum: low, maximum: high, warnings: warnings)
+        var result = RenderScene(batches: batches + extra, minimum: low, maximum: high, warnings: warnings)
+        result.treeFaces = treeFaces
+        return result
     }
 
     public var triangleCount: Int { batches.reduce(0) { $0 + $1.mesh.indices.count / 3 } }
@@ -123,6 +141,7 @@ public struct RenderScene: Sendable {
         // geometry child, so a mesh's name is its nearest named ancestor's.
         var names: [String] = []
         var collected: [Int: RenderBatch] = [:]
+        var faces: [TreeForest.Face] = []
         var warnings = Set(scene.warnings ?? [])
         var low = SIMD3<Float>(repeating: .infinity), high = SIMD3<Float>(repeating: -.infinity)
 
@@ -176,6 +195,12 @@ public struct RenderScene: Sendable {
             uv0 = layer(0)
             uv1 = layer(1)
 
+            // Tree cards are kept at float precision for placement recovery;
+            // the packed vertex's half UVs cannot tell the atlas ranges apart.
+            if material.texture == TreeForest.textureName, count == 3, uv0.count == 3 {
+                let world = positions.map { p -> SIMD3<Float> in let q = transform * SIMD4(p, 1); return SIMD3(q.x, q.y, q.z) }
+                faces.append(TreeForest.Face(batch: index, positions: world, uvs: uv0))
+            }
             let render = try RenderMesh.build(positions: positions, normals: normals,
                                               uv0: uv0, uv1: uv1, indices: indices, transform: transform)
             // AC stores diffuse RGBA per vertex; the loader writes the surface
@@ -207,6 +232,12 @@ public struct RenderScene: Sendable {
         }
 
         guard !collected.isEmpty else { throw ACError.invalid("Scene has no drawable triangles") }
+        // Faces carry node indices; convert to batch positions in `batches`.
+        let batchOrder = order.filter { collected[$0] != nil }
+        let position = Dictionary(uniqueKeysWithValues: batchOrder.enumerated().map { ($1, $0) })
+        treeFaces = faces.compactMap { face in
+            position[face.batch].map { TreeForest.Face(batch: $0, positions: face.positions, uvs: face.uvs) }
+        }
         batches = order.compactMap { collected[$0] }
         minimum = low
         maximum = high

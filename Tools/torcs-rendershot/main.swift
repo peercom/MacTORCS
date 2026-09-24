@@ -30,6 +30,10 @@ struct Options {
     var noCull = false
     var terrainOnly = false
     var generateTrack = false
+    var trees = false
+    var treeDetail = TrackSurfaceAssembly.TreeDetail.levelOfDetail
+    var cascades: Int? = nil
+    var animationTime: Float = 0
     var roadCamera: Float? = nil
     var listSegments = false
     var roadCameraLateral: Float = 0.5
@@ -96,6 +100,13 @@ func parse() -> Options {
         case "--no-cull": options.noCull = true
         case "--terrain-only": options.terrainOnly = true
         case "--generate-track": options.generateTrack = true
+        case "--trees": options.trees = true
+        case "--tree-detail":
+            switch next() { case "near": options.treeDetail = .merged(middle: false)
+                            case "middle": options.treeDetail = .merged(middle: true)
+                            default: options.treeDetail = .levelOfDetail }
+        case "--cascades": options.cascades = Int(next())
+        case "--time": options.animationTime = Float(next()) ?? 0
         case "--road-camera": options.roadCamera = Float(next())
         case "--list-segments": options.listSegments = true
         case "--road-lateral": options.roadCameraLateral = Float(next()) ?? 0.5
@@ -285,7 +296,9 @@ do {
     if let contact = options.contactShadows { settings.contactShadows = contact }
     if let ssr = options.reflections { settings.screenSpaceReflections = ssr }
     if let blur = options.motionBlur { settings.motionBlur = blur }
+    if let cascades = options.cascades { settings.shadowCascades = max(0, min(4, cascades)) }
     let renderer = try ForwardRenderer(settings: settings)
+    renderer.animationTime = Double(options.animationTime)
     if let radius = options.aoRadius { renderer.occlusion.ambientRadius = radius }
     if let power = options.aoPower { renderer.occlusion.ambientPower = power }
     // Default to the scene file's own directory, which is where the original
@@ -299,6 +312,16 @@ do {
                         alphaTestThreshold: $0.alphaTestThreshold, culls: false, isDriver: $0.isDriver,
                         sourceMaterial: $0.sourceMaterial, material: $0.material)
         }, minimum: scene.minimum, maximum: scene.maximum, warnings: scene.warnings)
+    }
+    if options.trees {
+        if let atlas = textures.image(named: TreeForest.textureName) {
+            let before = scene.batches.count
+            let (replaced, forest) = try TrackSurfaceAssembly.replacingTrees(scene, atlas: atlas, detail: options.treeDetail)
+            scene = replaced
+            print("trees: \(forest.placements.count) placements, \(before) -> \(scene.batches.count) batches")
+        } else {
+            print("trees: atlas \(TreeForest.textureName) not found in the texture roots")
+        }
     }
     var library: MaterialLibrary? = nil
     var materialDirectory: URL? = nil

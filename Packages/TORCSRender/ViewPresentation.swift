@@ -2,6 +2,7 @@
 import Foundation
 import Metal
 import MetalKit
+import QuartzCore
 import simd
 
 public extension ForwardRenderer {
@@ -39,6 +40,7 @@ public extension ForwardRenderer {
                 "Drawable is \(drawable.texture.pixelFormat); the renderer needs \(Self.drawableFormat). Call configure(_:) first.")
         }
 
+        animationTime = CACurrentMediaTime()
         // Last frame's measured cost decides this frame's render scale.
         let measured = gpuTime
         if measured > 0 { recordDynamicResolution(gpuTime: measured) }

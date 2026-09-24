@@ -137,6 +137,7 @@ public final class ShadowRenderer {
                     // shadow is the most obvious way to make a windscreen read
                     // as painted metal.
                     if batch.isDeferred { continue }
+                    if !batch.castsShadow { continue }
                     // Cull against the batch's world bounds. A moving instance
                     // carries its own transform, so its cached bounds no longer
                     // describe where it is; those are left in rather than
