@@ -177,6 +177,9 @@ public final class ForwardRenderer {
     public let bloom: BloomRenderer
     public let occlusion: OcclusionRenderer
     public let reflections: ReflectionRenderer
+    public let motionBlur: MotionBlurRenderer
+    /// Whether motion blur wrote the post-colour target this frame.
+    private var postProduced = false
     /// Bound at the occlusion slot when the pass is off, so the shader never
     /// samples an unbound texture. White: nothing occluded.
     private let neutralOcclusion: MTLTexture
@@ -309,6 +312,7 @@ public final class ForwardRenderer {
         bloom = try BloomRenderer(device: device, library: library)
         occlusion = try OcclusionRenderer(device: device, library: library)
         reflections = try ReflectionRenderer(device: device, library: library)
+        motionBlur = try MotionBlurRenderer(device: device, library: library)
         let neutral = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: OcclusionRenderer.format,
                                                                 width: 1, height: 1, mipmapped: false)
         neutral.usage = .shaderRead
@@ -392,12 +396,13 @@ public final class ForwardRenderer {
         let reflections = settings.screenSpaceReflections != .off
         if let existing = cachedTargets, existing.matches(renderWidth: renderWidth, renderHeight: renderHeight,
                                                     outputWidth: outputWidth, outputHeight: outputHeight,
-                                                    upscaling: upscaling, reflections: reflections) {
+                                                    upscaling: upscaling, reflections: reflections,
+                                                    motionBlur: settings.motionBlur) {
             return existing
         }
         let fresh = try FrameTargets(device: device, renderWidth: renderWidth, renderHeight: renderHeight,
                                      outputWidth: outputWidth, outputHeight: outputHeight, upscaling: upscaling,
-                                     reflections: reflections)
+                                     reflections: reflections, motionBlur: settings.motionBlur)
         cachedTargets = fresh
         // Resolution changes invalidate the accumulated history.
         upscaler = nil
@@ -465,6 +470,7 @@ public final class ForwardRenderer {
                             camera: RenderCamera, lighting: SunLighting, aspect: Float) {
         currentJitter = settings.temporalUpscaling ? jitterSequence.next() : SIMD2(0, 0)
         upscaleProduced = false
+        postProduced = false
         atmosphere.update(into: commands, lighting: lighting, cameraAltitude: camera.eye.z)
         let cascades = ShadowCascades(camera: camera, sunDirection: lighting.direction,
                                       aspect: aspect, count: settings.shadowCascades,
@@ -496,6 +502,15 @@ public final class ForwardRenderer {
                 upscaler = nil
                 lastUpscalerError = String(describing: error)
             }
+        }
+
+        // Motion blur after the upscaler and before bloom: the glow should
+        // streak with the object, and the tonemapper should see the blur.
+        if settings.motionBlur, targets.velocity != nil, targets.postColour != nil {
+            let source = upscaleProduced ? (targets.upscaled ?? targets.colour) : targets.colour
+            postProduced = motionBlur.encode(into: commands, targets: targets, source: source) != nil
+        } else {
+            motionBlur.discard()
         }
 
         // After the upscaler, so the pyramid is built at output resolution from
@@ -800,7 +815,8 @@ public final class ForwardRenderer {
     /// The texture the resolve should tonemap: the upscaler's output when it
     /// ran this frame, otherwise the render-resolution scene colour.
     public func tonemapSource(_ targets: FrameTargets) -> MTLTexture {
-        upscaleProduced ? (targets.upscaled ?? targets.colour) : targets.colour
+        if postProduced, let post = targets.postColour { return post }
+        return upscaleProduced ? (targets.upscaled ?? targets.colour) : targets.colour
     }
 
     /// Tonemaps HDR scene colour into a display-format target.

@@ -41,7 +41,7 @@ final class ReflectionTests: XCTestCase {
         let renderer = try makeRenderer { $0.screenSpaceReflections = .full }
         _ = try render(renderer)
         let targets = try renderer.targets(outputWidth: width, outputHeight: height)
-        XCTAssertNil(targets.velocity, "upscaling is off")
+        XCTAssertNil(targets.upscaled, "upscaling is off")
         XCTAssertTrue(targets.reflections)
         let raw = try renderer.readback(targets.reflectionSurface, bytesPerPixel: 8)
         var covered = 0, coated = 0, badRange = 0, maxWeight: Float = 0

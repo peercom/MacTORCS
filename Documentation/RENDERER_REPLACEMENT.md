@@ -754,6 +754,44 @@ Rough surfaces get no reflection, by design, and glass traces
 from the depth of what is behind it, since the prepass is opaque-only —
 visually a few tens of centimetres off, and acceptable.
 
+## Motion blur
+
+The last Phase 3 pass. The velocity the forward pass writes for the
+upscaler — the offset in render pixels from a pixel to where it was last
+frame, camera motion for static geometry and the car's own on top — is
+integrated along, half a shutter each side of the current position, eight
+jittered taps, after the upscaler and before bloom so the glow streaks with
+the object and the tonemapper sees the blur. A 180° shutter, the film
+convention, so motion reads as motion without the frame going to soup; the
+radius is capped at three percent of the frame height, because a wheel or a
+close barrier can exceed a whole frame of travel and past that cap it
+smears rather than reads faster.
+
+Velocity is now stored whenever motion blur is on, not only under
+upscaling — which is also what fixed the unbound-attachment fault in R12,
+since the attachment now always exists. The blurred image lands in a
+post-colour target the tonemap source switches to; nothing else in the
+frame moves.
+
+It is the cheap form: one gather along the centre pixel's velocity. It
+smears silhouettes slightly, which at racing speeds is invisible and at
+rest does not happen — a still camera gives zero velocity everywhere, and
+`testStillFramesAreUnblurredAndRepeatable` pins that a still frame is
+byte-identical with the pass on. The tile-max form that keeps silhouettes
+crisp is the known upgrade.
+
+`torcs-rendershot --orbit-speed D` turns the framing camera D degrees per
+frame, so a still tool can show what only exists between frames.
+
+Measured interleaved on a throttling chip (baselines of 8 and 18 ms where a
+cool run gives 2.2 and 6): +0.25 ms at 1280x832 and about +2 ms at
+2560x1664. At native the pass touches every output pixel eight times and
+writes a second 34 MB colour target, and that is what two milliseconds
+buys. The default preset renders native, so this is the first post pass
+whose cost is not negligible there; it goes on the Phase 8 list next to
+the upscaler question, since at half render resolution it would cost a
+quarter.
+
 ## Licensing
 
 No third-party artwork is imported by this work. New render source is

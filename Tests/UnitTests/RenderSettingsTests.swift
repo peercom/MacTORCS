@@ -213,7 +213,12 @@ final class EffectAvailabilityTests: XCTestCase {
     func testUnimplementedEffectsAreInertInEveryPreset() {
         for preset in RenderSettings.Preset.allCases {
             let settings = RenderSettings(preset: preset)
-            XCTAssertFalse(settings.motionBlur, "\(preset): motion blur is not implemented")
+        }
+    }
+
+    func testMotionBlurIsOnInEveryPreset() {
+        for preset in RenderSettings.Preset.allCases {
+            XCTAssertTrue(RenderSettings(preset: preset).motionBlur, "\(preset)")
         }
     }
 

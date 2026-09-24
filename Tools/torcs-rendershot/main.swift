@@ -46,6 +46,9 @@ struct Options {
     var compareReflections = false
     var reflectionView: String? = nil
     var surfaceView: String? = nil
+    var motionBlur: Bool? = nil
+    var compareMotionBlur = false
+    var orbitSpeed: Float = 0
     var aoRadius: Float? = nil
     var aoPower: Float? = nil
     var upscale: Bool? = nil
@@ -112,6 +115,10 @@ func parse() -> Options {
         case "--compare-ssr": options.compareReflections = true
         case "--reflection-view": options.reflectionView = next()
         case "--surface-view": options.surfaceView = next()
+        case "--motion-blur": options.motionBlur = true
+        case "--no-motion-blur": options.motionBlur = false
+        case "--compare-motion-blur": options.compareMotionBlur = true
+        case "--orbit-speed": options.orbitSpeed = Float(next()) ?? 0
         case "--ao-radius": options.aoRadius = Float(next())
         case "--ao-power": options.aoPower = Float(next())
         case "--frames": options.frames = Int(next()) ?? options.frames
@@ -267,6 +274,7 @@ do {
     if let ao = options.ambientOcclusion { settings.ambientOcclusion = ao }
     if let contact = options.contactShadows { settings.contactShadows = contact }
     if let ssr = options.reflections { settings.screenSpaceReflections = ssr }
+    if let blur = options.motionBlur { settings.motionBlur = blur }
     let renderer = try ForwardRenderer(settings: settings)
     if let radius = options.aoRadius { renderer.occlusion.ambientRadius = radius }
     if let power = options.aoPower { renderer.occlusion.ambientPower = power }
@@ -373,6 +381,7 @@ do {
         print(String(format: "  delta       %+.3f ms (%+.1f%%)", on - off, (on - off) / off * 100))
         exit(0)
     }
+    if options.compareMotionBlur { try compare("motion blur") { $0.motionBlur = $1 } }
     if options.compareReflections {
         let quality = settings.screenSpaceReflections == .off ? .half : settings.screenSpaceReflections
         try compare("reflections") { $0.screenSpaceReflections = $1 ? quality : .off }
@@ -389,7 +398,15 @@ do {
     var pixels: [UInt8] = []
     let warmups = options.frames > 1 ? min(10, options.frames) : 0
     for frame in 0 ..< (warmups + options.frames) {
-        pixels = try renderer.render(scene: resources, camera: camera, lighting: lighting,
+        // `--orbit-speed D` turns the framing camera D degrees per frame, so a
+        // still tool can show what depends on motion.
+        var frameCamera = camera
+        if options.orbitSpeed != 0, options.eye == nil {
+            frameCamera = RenderCamera(framing: scene.minimum, scene.maximum,
+                                       azimuth: (options.azimuth + options.orbitSpeed * Float(frame)) * radians,
+                                       elevation: options.elevation * radians)
+        }
+        pixels = try renderer.render(scene: resources, camera: frameCamera, lighting: lighting,
                                      width: options.width, height: options.height)
         if frame >= warmups { samples.append(renderer.lastGPUTime * 1000) }
     }
@@ -527,6 +544,7 @@ do {
       scalerBuilds  \(renderer.upscalerBuildCount)\(renderer.lastUpscalerError.map { " error: " + $0 } ?? "")
       bloom         \(settings.bloom ? "on, strength \(settings.bloomStrength), threshold \(settings.bloomThreshold) exposed, \(renderer.bloom.levelCount) levels" : "off")
       occlusion     ao \(["off","half","full"][settings.ambientOcclusion.rawValue]), contact \(settings.contactShadows ? "on" : "off")\(renderer.occlusion.result.map { ", \($0.width)x\($0.height)" } ?? "")
+      motion blur   \(settings.motionBlur ? "on" : "off")\(renderer.motionBlur.result != nil ? ", applied" : "")
       reflections   \(["off","half","full"][settings.screenSpaceReflections.rawValue])\(renderer.reflections.result.map { ", \($0.width)x\($0.height)" } ?? "")
       upscaling     \(settings.temporalUpscaling ? "on, render \(settings.renderSize(output: (options.width, options.height)).width)x\(settings.renderSize(output: (options.width, options.height)).height)" : "off")
       textures      \(textures.count) uploaded, \(String(format: "%.1f", Double(textures.uploadedBytes) / 1_048_576)) MiB

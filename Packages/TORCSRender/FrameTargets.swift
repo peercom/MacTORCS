@@ -19,8 +19,12 @@ public final class FrameTargets {
     public let colour: MTLTexture
     public let depth: MTLTexture
     /// Per-pixel offset to where this pixel was last frame, in render pixels.
-    /// Only allocated when temporal upscaling is on.
+    /// Allocated when temporal upscaling or motion blur is on; both read it.
     public let velocity: MTLTexture?
+    /// Post-processed colour at output resolution, written by motion blur and
+    /// read by bloom and the resolve in its place. Nil when motion blur is off.
+    public let postColour: MTLTexture?
+    public let motionBlur: Bool
     /// What the scene pass binds at attachment 1: `velocity`, or a memoryless
     /// stand-in when upscaling is off. Every scene pipeline declares the
     /// attachment, and a pass that omits one the pipeline declares is
@@ -47,8 +51,10 @@ public final class FrameTargets {
     public static let reflectionSurfaceFormat: MTLPixelFormat = .rgba16Float
 
     init(device: MTLDevice, renderWidth: Int, renderHeight: Int,
-         outputWidth: Int, outputHeight: Int, upscaling: Bool, reflections: Bool = false) throws {
+         outputWidth: Int, outputHeight: Int, upscaling: Bool, reflections: Bool = false,
+         motionBlur: Bool = false) throws {
         self.reflections = reflections
+        self.motionBlur = motionBlur
         let rw = max(1, renderWidth), rh = max(1, renderHeight)
         let ow = max(1, outputWidth), oh = max(1, outputHeight)
         self.renderWidth = rw; self.renderHeight = rh
@@ -73,8 +79,11 @@ public final class FrameTargets {
         // Private rather than memoryless: the upscaler reads depth, as will
         // ambient occlusion, reflections and contact shadows.
         depth = try make(Self.depthFormat, rw, rh, usage: [.renderTarget, .shaderRead], storage: .private)
-        velocity = upscaling
+        velocity = upscaling || motionBlur
             ? try make(Self.velocityFormat, rw, rh, usage: [.renderTarget, .shaderRead], storage: .private)
+            : nil
+        postColour = motionBlur
+            ? try make(Self.colourFormat, ow, oh, usage: [.renderTarget, .shaderRead], storage: .private)
             : nil
         velocityAttachment = try velocity ?? make(Self.velocityFormat, rw, rh, usage: .renderTarget, storage: .memoryless)
         upscaled = upscaling
@@ -89,16 +98,17 @@ public final class FrameTargets {
     }
 
     func matches(renderWidth: Int, renderHeight: Int, outputWidth: Int, outputHeight: Int,
-                 upscaling: Bool, reflections: Bool = false) -> Bool {
+                 upscaling: Bool, reflections: Bool = false, motionBlur: Bool = false) -> Bool {
         self.renderWidth == max(1, renderWidth) && self.renderHeight == max(1, renderHeight)
             && self.outputWidth == max(1, outputWidth) && self.outputHeight == max(1, outputHeight)
-            && (velocity != nil) == upscaling && self.reflections == reflections
+            && (upscaled != nil) == upscaling && (velocity != nil) == (upscaling || motionBlur)
+            && self.reflections == reflections && self.motionBlur == motionBlur
     }
 
     /// Bytes the targets occupy, for the memory budget check.
     public var byteCount: Int {
         let render = renderWidth * renderHeight * (8 + 4 + (velocity != nil ? 4 : 0) + (reflections ? 8 : 0))
-        let output = outputWidth * outputHeight * (4 + (upscaled != nil ? 8 : 0))
+        let output = outputWidth * outputHeight * (4 + (upscaled != nil ? 8 : 0) + (postColour != nil ? 8 : 0))
         return render + output
     }
 }

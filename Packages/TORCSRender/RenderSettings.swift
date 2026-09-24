@@ -100,7 +100,7 @@ public struct RenderSettings: Sendable, Equatable {
             bloom = true
             bloomStrength = 0.06
             bloomThreshold = 1.0
-            motionBlur = false
+            motionBlur = true
             depthPrepass = false
             mirrorScale = 0.5
             textureMemoryBudgetBytes = 1_500_000_000
@@ -118,7 +118,7 @@ public struct RenderSettings: Sendable, Equatable {
             bloom = true
             bloomStrength = 0.06
             bloomThreshold = 1.0
-            motionBlur = false
+            motionBlur = true
             depthPrepass = false
             mirrorScale = 0.67
             textureMemoryBudgetBytes = 3_000_000_000
@@ -136,7 +136,7 @@ public struct RenderSettings: Sendable, Equatable {
             bloom = true
             bloomStrength = 0.06
             bloomThreshold = 1.0
-            motionBlur = false
+            motionBlur = true
             depthPrepass = false
             mirrorScale = 1
             textureMemoryBudgetBytes = 6_000_000_000
