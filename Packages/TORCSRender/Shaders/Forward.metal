@@ -35,7 +35,8 @@ struct FrameUniforms {
     float4 sunIlluminance;      // linear RGB, w holds the exposure scale
     float4 ambientIrradiance;   // flat ambient until real IBL lands, w unused
     /// xy input render size in pixels (motion vectors are in those pixels),
-    /// z texture mip bias, w unused.
+    /// z texture mip bias, w nonzero when a screen-space occlusion target is
+    /// bound for this frame.
     float4 renderSize;
 };
 
@@ -48,7 +49,7 @@ struct DrawUniforms {
     float4 baseColour;
     float4 material;            // x roughness, y metallic, z clearcoat, w clearcoat roughness
     float4 parameters;          // x normal strength, y alpha threshold, zw unused
-    uint4 maps;                 // x albedo, y normal, z ORM, w reserved
+    uint4 maps;                 // x albedo, y normal, z ORM, w receives screen-space occlusion
 };
 
 /// Places a whole scene in the world, on top of each batch's own node-local
@@ -143,6 +144,7 @@ fragment ForwardOutput forwardFragment(ForwardVarying in [[stage_in]],
                                 constant SkyIrradiance &skyIrradiance [[buffer(3)]],
                                 constant ShadowUniforms &shadow [[buffer(4)]],
                                 depth2d_array<float> shadowMap [[texture(6)]],
+                                texture2d<float> occlusionMap [[texture(7)]],
                                 sampler surfaceSampler [[sampler(0)]],
                                 sampler shadowSampler [[sampler(1)]]) {
     float4 albedo = draw.baseColour;
@@ -194,6 +196,17 @@ fragment ForwardOutput forwardFragment(ForwardVarying in [[stage_in]],
     float viewDepth = -(frame.view * float4(in.worldPosition, 1.0f)).z;
     float visibility = sampleShadow(shadow, shadowMap, shadowSampler, in.worldPosition,
                                     basis[2], sunDirection, viewDepth, in.position.xy);
+
+    // Screen-space occlusion, computed from the depth prepass: red is sky
+    // visibility, green is sun visibility over the first few decimetres. Only
+    // opaque geometry receives it — a transparent surface would pick up the
+    // occlusion of whatever is behind it, which is not its own.
+    if (frame.renderSize.w > 0.0f && draw.maps.w != 0) {
+        constexpr sampler occlusionSampler(coord::normalized, address::clamp_to_edge, filter::linear);
+        float2 occluded = occlusionMap.sample(occlusionSampler, in.position.xy / frame.renderSize.xy).rg;
+        visibility *= occluded.g;
+        surface.ambientOcclusion *= occluded.r;
+    }
 
     float3 colour = evaluateLight(surface, view, sunDirection, frame.sunIlluminance.rgb) * visibility;
 

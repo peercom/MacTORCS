@@ -213,11 +213,18 @@ final class EffectAvailabilityTests: XCTestCase {
     func testUnimplementedEffectsAreInertInEveryPreset() {
         for preset in RenderSettings.Preset.allCases {
             let settings = RenderSettings(preset: preset)
-            XCTAssertFalse(settings.contactShadows, "\(preset): contact shadows are not implemented")
-            XCTAssertEqual(settings.ambientOcclusion, .off, "\(preset): GTAO is not implemented")
             XCTAssertEqual(settings.screenSpaceReflections, .off, "\(preset): SSR is not implemented")
             XCTAssertFalse(settings.motionBlur, "\(preset): motion blur is not implemented")
         }
+    }
+
+    func testScreenSpaceOcclusionIsOnInEveryPreset() {
+        for preset in RenderSettings.Preset.allCases {
+            let settings = RenderSettings(preset: preset)
+            XCTAssertTrue(settings.contactShadows, "\(preset)")
+            XCTAssertNotEqual(settings.ambientOcclusion, .off, "\(preset)")
+        }
+        XCTAssertEqual(RenderSettings(preset: .m2Air).ambientOcclusion, .half, "the Air pays half the pixels")
     }
 
     func testBloomIsOnWithSaneParametersInEveryPreset() {

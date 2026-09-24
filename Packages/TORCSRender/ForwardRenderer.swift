@@ -104,7 +104,8 @@ public final class SceneResources {
                                    alphaThreshold: batch.alphaTestThreshold ?? 0,
                                    maps: SIMD4(albedo == nil ? 0 : 1,
                                                generated == nil ? 0 : 1,
-                                               generated == nil ? 0 : 1, 0)),
+                                               generated == nil ? 0 : 1,
+                                               batch.isDeferred ? 0 : 1)),
                 needsAlphaTest: batch.alphaTestThreshold != nil,
                 normal: generated?.normal,
                 orm: generated?.orm,
@@ -172,6 +173,13 @@ public final class ForwardRenderer {
     let skyDepthState: MTLDepthStencilState
     public let atmosphere: AtmosphereResources
     public let bloom: BloomRenderer
+    public let occlusion: OcclusionRenderer
+    /// Bound at the occlusion slot when the pass is off, so the shader never
+    /// samples an unbound texture. White: nothing occluded.
+    private let neutralOcclusion: MTLTexture
+    /// Whether the last frame ran a depth prepass, whether from the setting or
+    /// because screen-space occlusion required one.
+    public private(set) var lastFrameUsedDepthPrepass = false
     private var upscaler: TemporalUpscaler?
     /// Whether the upscaler actually wrote its output this frame. The fallback
     /// on upscaler failure cannot be expressed by which textures exist — the
@@ -289,6 +297,16 @@ public final class ForwardRenderer {
         sky = try device.makeRenderPipelineState(descriptor: skyDescriptor)
         atmosphere = try AtmosphereResources(device: device, library: library)
         bloom = try BloomRenderer(device: device, library: library)
+        occlusion = try OcclusionRenderer(device: device, library: library)
+        let neutral = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: OcclusionRenderer.format,
+                                                                width: 1, height: 1, mipmapped: false)
+        neutral.usage = .shaderRead
+        guard let neutralOcclusion = device.makeTexture(descriptor: neutral) else {
+            throw RenderError.unavailable("Could not allocate the neutral occlusion texture")
+        }
+        var white: [UInt8] = [255, 255]
+        neutralOcclusion.replace(region: MTLRegionMake2D(0, 0, 1, 1), mipmapLevel: 0, withBytes: &white, bytesPerRow: 2)
+        self.neutralOcclusion = neutralOcclusion
         shadows = try ShadowRenderer(device: device, library: library,
                                      resolution: settings.shadowResolution,
                                      cascadeCount: settings.shadowCascades)
@@ -400,6 +418,11 @@ public final class ForwardRenderer {
         guard let commands = queue.makeCommandBuffer() else {
             throw RenderError.unavailable("Could not create a command buffer")
         }
+        // A verification render is one frame from a cold state, so the
+        // per-frame noise rotation starts over: two calls with the same inputs
+        // produce the same pixels, which the repeat-render discipline needs.
+        // Interactive frames go through encodeFrame directly and keep rotating.
+        occlusion.resetNoise()
         encodeFrame(into: commands, targets: targets, resources: resources, instances: instances,
                     camera: camera, lighting: lighting, aspect: Float(width) / Float(max(height, 1)))
         encodeResolve(into: commands, source: tonemapSource(targets), destination: targets.display,
@@ -521,49 +544,70 @@ public final class ForwardRenderer {
             scenePass.colorAttachments[1].clearColor = MTLClearColor(red: 0, green: 0, blue: 0, alpha: 0)
         }
         scenePass.depthAttachment.texture = targets.depth
-        scenePass.depthAttachment.loadAction = .clear
         // Reversed depth clears to 0, the far plane.
         scenePass.depthAttachment.clearDepth = 0
         scenePass.depthAttachment.storeAction = .store
 
         lastDrawCount = 0
         lastTriangleCount = 0
+
+        // Screen-space occlusion reads the opaque depth of this frame before
+        // anything shades, which means the prepass has to finish — as its own
+        // encoder, stored — before the scene pass begins. Without occlusion the
+        // prepass stays inside the scene encoder, where the tile memory never
+        // leaves the chip.
+        let wantsOcclusion = settings.ambientOcclusion != .off || settings.contactShadows
+        let usesPrepass = settings.depthPrepass || wantsOcclusion
+        lastFrameUsedDepthPrepass = usesPrepass
+        if wantsOcclusion {
+            let prepass = MTLRenderPassDescriptor()
+            // The depth-only pipelines declare the scene's colour formats with
+            // an empty write mask; the attachments are listed to match and
+            // discarded, not written.
+            prepass.colorAttachments[0].texture = targets.colour
+            prepass.colorAttachments[0].loadAction = .dontCare
+            prepass.colorAttachments[0].storeAction = .dontCare
+            if let velocity = targets.velocity {
+                prepass.colorAttachments[1].texture = velocity
+                prepass.colorAttachments[1].loadAction = .dontCare
+                prepass.colorAttachments[1].storeAction = .dontCare
+            }
+            prepass.depthAttachment.texture = targets.depth
+            prepass.depthAttachment.loadAction = .clear
+            prepass.depthAttachment.clearDepth = 0
+            prepass.depthAttachment.storeAction = .store
+            if let encoder = commands.makeRenderCommandEncoder(descriptor: prepass) {
+                encoder.label = "Depth prepass"
+                encoder.setVertexBytes(&frame, length: MemoryLayout<FrameUniforms>.stride, index: 1)
+                encoder.setFragmentBytes(&frame, length: MemoryLayout<FrameUniforms>.stride, index: 1)
+                encoder.setFragmentSamplerState(sampler, index: 0)
+                encodePrepassDraws(on: encoder, resources: resources, instances: instances)
+                encoder.endEncoding()
+            }
+            occlusion.encode(into: commands, depth: targets.depth, projection: projection,
+                             view: camera.view(), sunDirection: lighting.direction,
+                             ambient: settings.ambientOcclusion, contact: settings.contactShadows)
+            scenePass.depthAttachment.loadAction = .load
+        } else {
+            occlusion.discard()
+            scenePass.depthAttachment.loadAction = .clear
+        }
+        frame.renderSize.w = occlusion.result == nil ? 0 : 1
+
         guard let encoder = commands.makeRenderCommandEncoder(descriptor: scenePass) else { return }
         encoder.label = "Sky and forward opaque"
         encoder.setVertexBytes(&frame, length: MemoryLayout<FrameUniforms>.stride, index: 1)
         encoder.setFragmentBytes(&frame, length: MemoryLayout<FrameUniforms>.stride, index: 1)
         encoder.setFragmentSamplerState(sampler, index: 0)
+        encoder.setFragmentTexture(occlusion.result ?? neutralOcclusion, index: 7)
 
         // Optional depth-only prepass. Everything that will shade writes depth
         // first, so the shading pass touches each visible pixel once.
-        if settings.depthPrepass {
-            encoder.setDepthStencilState(prepassDepthState)
-            encoder.setFrontFacing(.counterClockwise)
-            for instance in instances {
-                guard resources.indices.contains(instance.resource) else { continue }
-                let scene = resources[instance.resource]
-                var instanceUniforms = InstanceUniforms(model: instance.transform)
-                encoder.setVertexBytes(&instanceUniforms, length: MemoryLayout<InstanceUniforms>.stride, index: 5)
-                let instanceMirrored = simd_determinant(instance.transform) < 0
-                for batch in scene.batches {
-                    if batch.isDeferred { continue }
-                    if batch.isDriver && !instance.drawsDriver { continue }
-                    encoder.setRenderPipelineState(batch.needsAlphaTest ? depthOnlyCutout : depthOnly)
-                    let mirrored = batch.mirrored != instanceMirrored
-                    encoder.setCullMode(batch.culls ? (mirrored ? .front : .back) : .none)
-                    var draw = batch.draw
-                    if let albedo = batch.albedo { encoder.setFragmentTexture(albedo, index: 0) }
-                    encoder.setVertexBuffer(batch.vertices, offset: 0, index: 0)
-                    encoder.setVertexBytes(&draw, length: MemoryLayout<DrawUniforms>.stride, index: 2)
-                    encoder.setFragmentBytes(&draw, length: MemoryLayout<DrawUniforms>.stride, index: 2)
-                    encoder.drawIndexedPrimitives(type: .triangle, indexCount: batch.indexCount,
-                                                  indexType: .uint32, indexBuffer: batch.indices,
-                                                  indexBufferOffset: 0)
-                }
-            }
+        if usesPrepass && !wantsOcclusion {
+            encodePrepassDraws(on: encoder, resources: resources, instances: instances)
         }
 
-        encoder.setDepthStencilState(settings.depthPrepass ? equalDepthState : depthState)
+        encoder.setDepthStencilState(usesPrepass ? equalDepthState : depthState)
         // AC/TORCS geometry comes from OpenGL, whose front face is
         // counter-clockwise. Metal defaults to clockwise, so without this
         // every culled mesh keeps its back faces and discards its front ones.
@@ -643,6 +687,62 @@ public final class ForwardRenderer {
             }
         }
         encoder.endEncoding()
+    }
+
+    /// Depth-only draws of everything opaque that will later shade. Shared by
+    /// the in-encoder prepass and the standalone one so the two write the
+    /// same depth.
+    private func encodePrepassDraws(on encoder: MTLRenderCommandEncoder,
+                                    resources: [SceneResources], instances: [RenderInstance]) {
+        encoder.setDepthStencilState(prepassDepthState)
+        encoder.setFrontFacing(.counterClockwise)
+        for instance in instances {
+            guard resources.indices.contains(instance.resource) else { continue }
+            let scene = resources[instance.resource]
+            var instanceUniforms = InstanceUniforms(model: instance.transform)
+            encoder.setVertexBytes(&instanceUniforms, length: MemoryLayout<InstanceUniforms>.stride, index: 5)
+            let instanceMirrored = simd_determinant(instance.transform) < 0
+            for batch in scene.batches {
+                if batch.isDeferred { continue }
+                if batch.isDriver && !instance.drawsDriver { continue }
+                encoder.setRenderPipelineState(batch.needsAlphaTest ? depthOnlyCutout : depthOnly)
+                let mirrored = batch.mirrored != instanceMirrored
+                encoder.setCullMode(batch.culls ? (mirrored ? .front : .back) : .none)
+                var draw = batch.draw
+                if let albedo = batch.albedo { encoder.setFragmentTexture(albedo, index: 0) }
+                encoder.setVertexBuffer(batch.vertices, offset: 0, index: 0)
+                encoder.setVertexBytes(&draw, length: MemoryLayout<DrawUniforms>.stride, index: 2)
+                encoder.setFragmentBytes(&draw, length: MemoryLayout<DrawUniforms>.stride, index: 2)
+                encoder.drawIndexedPrimitives(type: .triangle, indexCount: batch.indexCount,
+                                              indexType: .uint32, indexBuffer: batch.indices,
+                                              indexBufferOffset: 0)
+            }
+        }
+    }
+
+    /// Copies a private texture back to the CPU, for verification tools. Not
+    /// a frame-path operation: it waits for the GPU.
+    public func readback(_ texture: MTLTexture, bytesPerPixel: Int) throws -> [UInt8] {
+        let descriptor = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: texture.pixelFormat,
+                                                                  width: texture.width, height: texture.height,
+                                                                  mipmapped: false)
+        descriptor.storageMode = .shared
+        descriptor.usage = .shaderRead
+        guard let staging = device.makeTexture(descriptor: descriptor),
+              let commands = queue.makeCommandBuffer(),
+              let blit = commands.makeBlitCommandEncoder() else {
+            throw RenderError.unavailable("Could not stage a readback")
+        }
+        blit.copy(from: texture, to: staging)
+        blit.endEncoding()
+        commands.commit()
+        commands.waitUntilCompleted()
+        var bytes = [UInt8](repeating: 0, count: texture.width * texture.height * bytesPerPixel)
+        bytes.withUnsafeMutableBytes { raw in
+            staging.getBytes(raw.baseAddress!, bytesPerRow: texture.width * bytesPerPixel,
+                             from: MTLRegionMake2D(0, 0, texture.width, texture.height), mipmapLevel: 0)
+        }
+        return bytes
     }
 
     /// Submits one batch. Shared by the opaque and transparent phases so the

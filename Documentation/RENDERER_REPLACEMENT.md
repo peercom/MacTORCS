@@ -408,6 +408,100 @@ written that way rendered 1280x832 three times and labelled them 640, 1280 and
 2560, and the "cool native 4.3 ms" it produced was wrong. Sweeps go in a
 `#!/bin/bash` script now.
 
+## Screen-space occlusion: GTAO and contact shadows
+
+One pass, one `rg8` target, two answers to the same question — is this
+pixel's surroundings blocking light from reaching it — for two lights. Red
+is the fraction of the sky hemisphere visible (ground-truth ambient occlusion,
+Jimenez et al. 2016); green is the fraction of the sun visible over the first
+35 cm toward it, from a short march through the depth buffer, for the gap
+between a tyre and the tarmac that a cascade spanning hundreds of metres
+cannot resolve. Both come from the same depth fetches and the same
+reconstructed normal, so they share a pass; a depth-aware 4×4 blur follows.
+
+The depth prepass becomes a prerequisite: the pass reads the frame's opaque
+depth before anything shades, so the prepass runs as its own encoder, stored,
+and the scene pass loads it. Without occlusion the prepass stays inside the
+scene encoder where tile memory never leaves the chip. The prepass measured
+neutral, so making it mandatory for the effect costs nothing.
+
+The forward pass multiplies its sun term by green and the surface's ambient
+occlusion by red. Only opaque geometry receives either: a window would
+otherwise pick up the occlusion of the seat behind it.
+
+### Four faults, in the order they were found
+
+The first render was almost entirely white, and it took four distinct fixes
+to arrive at a correct image. Each is the kind of thing that survives in a
+codebase as "AO looks a bit weak" if the intermediate texture is never
+looked at directly, which is why `torcs-rendershot --occlusion-view` now
+dumps both channels.
+
+**Horizons started at the view plane.** For a surface seen at a grazing
+angle — every road at distance — half of its hemisphere lies behind the
+screen. Initialising the horizon search at −1 counted all of that as
+occluded, and the road came out a uniform grey. The search now starts at the
+hemisphere's own edge, `cos(n ± π/2)`, as XeGTAO does; a sample can only
+raise a horizon from there.
+
+**Linear falloff from zero.** A sample at half the radius had half the weight
+and contributed almost nothing. Full weight to 0.4 of the radius, then a fade.
+
+**Raw GTAO is faint.** One horizon at 45° on one side of one slice removes a
+quarter of that slice's light, and most cavities present exactly that. Every
+shipping implementation applies a final exponent (XeGTAO's default is 2.2);
+this one uses 2, and it is what made wheel arches read as wheel arches.
+
+**A sub-pixel first step.** With the exponent on, every flat panel carried a
+diagonal hatch. The first sample's offset could be under half a pixel, which
+snapped to the pixel's *own* texel: a zero-length horizon vector has a cosine
+of zero, which reads as an occluder at 90° on any surface whose real horizon
+sits lower. It fired at noise-dependent pixels, hence the hatch. The offset
+now has a one-pixel floor.
+
+Contact shadows had their own version: a 0.5 m thickness let a ray passing
+*behind* the body count as occluded, and the whole shadowed side of the car
+went black in the map. Thickness is 8 cm now, surfaces facing away from the
+sun are skipped outright (the cosine term already gives zero there and
+marching only adds speckle along the terminator), and the ray starts a short
+way off the surface, further at distance.
+
+### A test that was measuring the wrong thing
+
+`testAmbientOcclusionDarkensWithoutBrightening` kept failing with a few
+hundred pixels three levels *brighter* with AO on. AO only multiplies by a
+value at most one, and the tonemapper simulated monotonic for the colour in
+question, so this was chased for a while. It was neither: the occlusion
+target's resolution was keyed on `ambientOcclusion == .full`, so the "off"
+baseline — which still had contact shadows on — ran contact at *half*
+resolution, and its blurrier edges were the difference. Contact resolution
+now follows only the `.half` setting. The lesson is the usual one: when an
+A/B differs by more than the thing being toggled, the toggle is not what you
+think it is.
+
+### Measured
+
+Interleaved A/B, no bloom, sixty pairs after twenty warmups. "Off" also
+skips the prepass, so this is the whole cost of enabling the feature:
+
+| Scene | Resolution | Quality | Off | On | Delta |
+|---|---|---|---|---|---|
+| Aalborg | 1280x832 | half + contact | 2.238 ms | 2.260 ms | +0.02 ms |
+| Aalborg | 1280x832 | full + contact | 2.140 ms | 2.785 ms | +0.65 ms |
+| Car | 1280x832 | half + contact | 1.358 ms | 1.538 ms | +0.18 ms |
+| Car | 1280x832 | full + contact | 1.251 ms | 2.201 ms | +0.95 ms |
+| Aalborg | 2560x1664 | half + contact | 5.324 ms | 5.539 ms | +0.22 ms |
+
+The default preset runs half + contact: about 0.2 ms at native. The first
+version, before the radius clamp came down from 256 to 96 pixels, cost 5.9 ms
+on the car scene — samples scattered across hundreds of pixels of near
+ground missed the cache on every fetch. That clamp is the cost control, and
+it is why the pass is affordable at all.
+
+Not done here, and worth doing: a depth mip chain for the outer samples,
+which is how XeGTAO keeps a wide radius cheap; and bent normals feeding the
+diffuse IBL, which the plan lists and this pass does not yet produce.
+
 ## Licensing
 
 No third-party artwork is imported by this work. New render source is

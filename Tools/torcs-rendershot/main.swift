@@ -34,6 +34,12 @@ struct Options {
     var bloom: Bool? = nil
     var bloomStrength: Float? = nil
     var bloomThreshold: Float? = nil
+    var ambientOcclusion: RenderSettings.Quality? = nil
+    var contactShadows: Bool? = nil
+    var compareOcclusion = false
+    var occlusionView: String? = nil
+    var aoRadius: Float? = nil
+    var aoPower: Float? = nil
     var upscale: Bool? = nil
     var comparePrepass = false
     var compareBloom = false
@@ -83,6 +89,13 @@ func parse() -> Options {
         case "--no-upscale": options.upscale = false
         case "--compare-prepass": options.comparePrepass = true
         case "--compare-bloom": options.compareBloom = true
+        case "--compare-occlusion": options.compareOcclusion = true
+        case "--ao": options.ambientOcclusion = ["off": .off, "half": .half, "full": .full][next()]
+        case "--contact": options.contactShadows = true
+        case "--no-contact": options.contactShadows = false
+        case "--occlusion-view": options.occlusionView = next()
+        case "--ao-radius": options.aoRadius = Float(next())
+        case "--ao-power": options.aoPower = Float(next())
         case "--frames": options.frames = Int(next()) ?? options.frames
         case "--track-xml": options.trackXML = next()
         case "--textures": options.textureRoots.append(next())
@@ -181,7 +194,11 @@ do {
     if let bloom = options.bloom { settings.bloom = bloom }
     if let strength = options.bloomStrength { settings.bloomStrength = strength }
     if let threshold = options.bloomThreshold { settings.bloomThreshold = threshold }
+    if let ao = options.ambientOcclusion { settings.ambientOcclusion = ao }
+    if let contact = options.contactShadows { settings.contactShadows = contact }
     let renderer = try ForwardRenderer(settings: settings)
+    if let radius = options.aoRadius { renderer.occlusion.ambientRadius = radius }
+    if let power = options.aoPower { renderer.occlusion.ambientPower = power }
     // Default to the scene file's own directory, which is where the original
     // per-track artwork sits. Extra roots are explicit, never implicit.
     var roots = options.textureRoots.map { URL(fileURLWithPath: $0) }
@@ -257,6 +274,10 @@ do {
     }
     if options.comparePrepass { try compare("depth prepass") { $0.depthPrepass = $1 } }
     if options.compareBloom { try compare("bloom") { $0.bloom = $1 } }
+    if options.compareOcclusion {
+        let quality = settings.ambientOcclusion == .off ? .half : settings.ambientOcclusion
+        try compare("occlusion") { $0.ambientOcclusion = $1 ? quality : .off; $0.contactShadows = $1 }
+    }
 
     // Repeat-render methodology matching the classic path's benchmarks:
     // discard warmups, then report median and p95. The first frame builds the
@@ -273,6 +294,24 @@ do {
     let median = samples.isEmpty ? 0 : samples[samples.count / 2]
     let p95 = samples.isEmpty ? 0 : samples[min(samples.count - 1, Int(Double(samples.count) * 0.95))]
     try writePNG(pixels, width: options.width, height: options.height, to: options.output)
+    if let view = options.occlusionView {
+        if let texture = renderer.occlusion.result {
+            // Two greyscale images: ambient visibility, and sun visibility.
+            let raw = try renderer.readback(texture, bytesPerPixel: 2)
+            var ambient = [UInt8](repeating: 255, count: texture.width * texture.height * 4)
+            var contact = ambient
+            for i in 0 ..< texture.width * texture.height {
+                ambient[i * 4] = raw[i * 2]; ambient[i * 4 + 1] = raw[i * 2]; ambient[i * 4 + 2] = raw[i * 2]
+                contact[i * 4] = raw[i * 2 + 1]; contact[i * 4 + 1] = raw[i * 2 + 1]; contact[i * 4 + 2] = raw[i * 2 + 1]
+            }
+            try writePNG(ambient, width: texture.width, height: texture.height, to: view)
+            let contactPath = view.replacingOccurrences(of: ".png", with: "-contact.png")
+            try writePNG(contact, width: texture.width, height: texture.height, to: contactPath)
+            print("occlusion view: \(texture.width)x\(texture.height) -> \(view), \(contactPath)")
+        } else {
+            print("occlusion view: no occlusion target this frame")
+        }
+    }
 
     if options.stats {
         let cascades = ShadowCascades(camera: camera, sunDirection: lighting.direction,
@@ -324,6 +363,7 @@ do {
       geometry      \(String(format: "%.2f", megabytes)) MiB
       scalerBuilds  \(renderer.upscalerBuildCount)\(renderer.lastUpscalerError.map { " error: " + $0 } ?? "")
       bloom         \(settings.bloom ? "on, strength \(settings.bloomStrength), threshold \(settings.bloomThreshold) exposed, \(renderer.bloom.levelCount) levels" : "off")
+      occlusion     ao \(["off","half","full"][settings.ambientOcclusion.rawValue]), contact \(settings.contactShadows ? "on" : "off")\(renderer.occlusion.result.map { ", \($0.width)x\($0.height)" } ?? "")
       upscaling     \(settings.temporalUpscaling ? "on, render \(settings.renderSize(output: (options.width, options.height)).width)x\(settings.renderSize(output: (options.width, options.height)).height)" : "off")
       textures      \(textures.count) uploaded, \(String(format: "%.1f", Double(textures.uploadedBytes) / 1_048_576)) MiB
       textured      \(resources.texturedBatches) of \(resources.batchCount) batches

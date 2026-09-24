@@ -27,7 +27,8 @@ public struct FrameUniforms: Equatable, Sendable {
     /// Flat ambient standing in until real spherical-harmonic irradiance lands.
     public var ambientIrradiance: SIMD4<Float>
     /// xy render size in pixels (motion vectors are in those pixels),
-    /// z texture mip bias, w unused.
+    /// z texture mip bias, w nonzero when a screen-space occlusion target is
+    /// bound for this frame.
     public var renderSize: SIMD4<Float>
 
     public init(viewProjection: simd_float4x4, view: simd_float4x4,
@@ -66,6 +67,7 @@ public struct DrawUniforms: Equatable, Sendable {
     /// x normal-map strength, y alpha threshold, zw unused.
     public var parameters: SIMD4<Float>
     /// Nonzero enables the corresponding texture: x albedo, y normal, z ORM.
+    /// w nonzero means the surface receives screen-space occlusion.
     public var maps: SIMD4<UInt32>
 
     public init(model: simd_float4x4, baseColour: SIMD4<Float>,

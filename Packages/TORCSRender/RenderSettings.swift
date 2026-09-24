@@ -93,11 +93,11 @@ public struct RenderSettings: Sendable, Equatable {
             shadowCascades = 4
             shadowResolution = 2048
             staticShadowRefreshInterval = 3
+            contactShadows = true
+            ambientOcclusion = .half
             // Not implemented yet. Left at their inert values rather than
             // claiming a feature the frame does not have; each flips on in the
             // commit that lands the pass.
-            contactShadows = false
-            ambientOcclusion = .off
             screenSpaceReflections = .off
             reflectionRoughnessCutoff = 0.45
             bloom = true
@@ -114,11 +114,11 @@ public struct RenderSettings: Sendable, Equatable {
             shadowCascades = 4
             shadowResolution = 2048
             staticShadowRefreshInterval = 2
+            contactShadows = true
+            ambientOcclusion = .half
             // Not implemented yet. Left at their inert values rather than
             // claiming a feature the frame does not have; each flips on in the
             // commit that lands the pass.
-            contactShadows = false
-            ambientOcclusion = .off
             screenSpaceReflections = .off
             reflectionRoughnessCutoff = 0.6
             bloom = true
@@ -135,8 +135,8 @@ public struct RenderSettings: Sendable, Equatable {
             shadowCascades = 4
             shadowResolution = 4096
             staticShadowRefreshInterval = 1
-            contactShadows = false
-            ambientOcclusion = .off
+            contactShadows = true
+            ambientOcclusion = .full
             screenSpaceReflections = .off
             reflectionRoughnessCutoff = 0.8
             bloom = true
