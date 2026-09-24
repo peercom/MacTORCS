@@ -8,18 +8,77 @@
 #include "Bloom.metal"
 using namespace metal;
 
+struct GlareUniforms {
+    float4 sun;         // xy sun position in uv space, z aspect (width / height), w strength (0 = off)
+    float4 colour;      // rgb exposed sun colour, w unused
+};
+
+/// Whether the sun is unoccluded: the fraction of a small disc of depth
+/// taps around its position that see sky. The depth is reversed and
+/// infinite, so sky is exactly zero.
+inline float sunVisibility(texture2d<float> depth, float2 sunUV, float aspect) {
+    constexpr sampler pointSampler(coord::normalized, address::clamp_to_edge, filter::nearest);
+    float visible = 0.0f;
+    float radius = 0.012f;
+    for (int i = 0; i < 12; ++i) {
+        float a = float(i) * (2.0f * M_PI_F / 12.0f);
+        float2 uv = sunUV + float2(cos(a) / aspect, sin(a)) * radius;
+        if (uv.x < 0.0f || uv.x > 1.0f || uv.y < 0.0f || uv.y > 1.0f) { continue; }
+        visible += depth.sample(pointSampler, uv).x <= 0.0f ? 1.0f : 0.0f;
+    }
+    return visible / 12.0f;
+}
+
+/// A halo, an anamorphic streak and a six-point starburst around the sun.
+inline float3 sunGlare(float2 uv, constant GlareUniforms &g, float visibility) {
+    float2 d = (uv - g.sun.xy) * float2(g.sun.z, 1.0f);
+    float r = length(d);
+    // Nothing reaches further than this; skip the transcendentals.
+    if (r > 1.3f) { return float3(0.0f); }
+    float halo = exp(-r * 7.0f) * 0.6f;
+    float streak = exp(-abs(d.y) * 70.0f) * exp(-abs(d.x) * 2.2f) * 0.7f;
+    float theta = atan2(d.y, d.x);
+    // Six soft rays, faint: a hint of a starburst, not a drawn asterisk.
+    float star = pow(max(cos(theta * 3.0f), 0.0f), 14.0f) * exp(-r * 5.0f) * 0.12f;
+    return g.colour.rgb * (halo + streak + star) * g.sun.w * visibility;
+}
+
+struct ResolveVarying {
+    float4 position [[position]];
+    float2 uv;
+    /// The sun's visibility, decided once per triangle rather than once per
+    /// pixel: twelve depth taps at three vertices instead of at four
+    /// million fragments, which is what made the first version cost 0.4 ms.
+    float sunVisibility [[flat]];
+};
+
+vertex ResolveVarying resolveVertex(uint id [[vertex_id]],
+                                    texture2d<float> depth [[texture(2)]],
+                                    constant GlareUniforms &glare [[buffer(2)]]) {
+    float2 uv = float2((id << 1) & 2, id & 2);
+    ResolveVarying out;
+    out.position = float4(uv * float2(2.0f, -2.0f) + float2(-1.0f, 1.0f), 0.0f, 1.0f);
+    out.uv = uv;
+    out.sunVisibility = glare.sun.w > 0.0f ? sunVisibility(depth, glare.sun.xy, glare.sun.z) : 0.0f;
+    return out;
+}
+
 /// Maps the HDR scene target to the display. Bloom, motion blur and temporal
 /// upscaling insert themselves ahead of this in later phases.
-fragment float4 resolveFragment(FullscreenVarying in [[stage_in]],
+fragment float4 resolveFragment(ResolveVarying in [[stage_in]],
                                 texture2d<float> scene [[texture(0)]],
                                 texture2d<float> bloom [[texture(1)]],
                                 constant float &exposureScale [[buffer(0)]],
-                                constant float &bloomStrength [[buffer(1)]]) {
+                                constant float &bloomStrength [[buffer(1)]],
+                                constant GlareUniforms &glare [[buffer(2)]]) {
     constexpr sampler pointSampler(coord::normalized, address::clamp_to_edge, filter::nearest);
     constexpr sampler linearSampler(coord::normalized, address::clamp_to_edge, filter::linear);
     // The pyramid was built from exposed values (see bloomPrefilter), so the
     // scene is exposed here to match and the tonemapper is given unit scale.
     float3 radiance = scene.sample(pointSampler, in.uv).rgb * exposureScale;
+    if (glare.sun.w > 0.0f && in.sunVisibility > 0.0f) {
+        radiance += sunGlare(in.uv, glare, in.sunVisibility);
+    }
     if (bloomStrength > 0.0f) {
         // Added rather than mixed. Mixing with a *thresholded* pyramid would
         // darken the entire frame by the blend weight, since most pixels

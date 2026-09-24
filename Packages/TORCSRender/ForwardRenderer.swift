@@ -371,7 +371,7 @@ public final class ForwardRenderer {
                                      cascadeCount: settings.shadowCascades)
 
         let resolveDescriptor = MTLRenderPipelineDescriptor()
-        resolveDescriptor.vertexFunction = library.makeFunction(name: "fullscreenVertex")
+        resolveDescriptor.vertexFunction = library.makeFunction(name: "resolveVertex")
         resolveDescriptor.fragmentFunction = library.makeFunction(name: "resolveFragment")
         resolveDescriptor.colorAttachments[0].pixelFormat = FrameTargets.displayFormat
         resolve = try device.makeRenderPipelineState(descriptor: resolveDescriptor)
@@ -648,6 +648,11 @@ public final class ForwardRenderer {
     public private(set) var upscalerBuildCount = 0
     /// Whether the shaders came from a prebuilt library rather than source.
     public private(set) var shadersPrebuilt = false
+    /// The sun's position in uv space for the last encoded frame, when it is
+    /// in front of the camera; the resolve draws the glare there.
+    public private(set) var sunScreenPosition: SIMD2<Float>?
+    /// The depth target of the last encoded frame, for the glare's occlusion.
+    private var lastDepth: MTLTexture?
     /// Spatial scalers by render size, kept so a dynamic-resolution step
     /// never constructs one mid-race; `prewarmSpatialScalers` fills it.
     private var spatialUpscalers: [SIMD2<Int>: SpatialUpscaler] = [:]
@@ -688,6 +693,15 @@ public final class ForwardRenderer {
         let projection = RenderCamera.jittered(camera.projection(aspect: aspect), jitter: currentJitter,
                                                renderWidth: targets.renderWidth,
                                                renderHeight: targets.renderHeight)
+        // Where the sun is on screen, for the glare. A direction, so w = 0.
+        let sunClip = unjittered * SIMD4(lighting.direction, 0)
+        if sunClip.w > 1e-4 {
+            let ndc = SIMD2(sunClip.x, sunClip.y) / sunClip.w
+            sunScreenPosition = SIMD2(ndc.x * 0.5 + 0.5, 0.5 - ndc.y * 0.5)
+        } else {
+            sunScreenPosition = nil
+        }
+        lastDepth = targets.depth
         var frame = FrameUniforms(
             viewProjection: projection * camera.view(),
             view: camera.view(),
@@ -1083,8 +1097,28 @@ public final class ForwardRenderer {
                 encoder.setFragmentTexture(source, index: 1)
             }
             encoder.setFragmentBytes(&strength, length: MemoryLayout<Float>.stride, index: 1)
+            // Sun glare: only when the setting is on, the sun is in front of
+            // the camera and within a frame's width of the view. Occlusion is
+            // decided in the shader from the depth around the sun.
+            var glare = GlareUniforms(sun: .zero, colour: .zero)
+            if settings.sunGlare, settings.sunGlareStrength > 0, let sun = sunScreenPosition, let depth = lastDepth,
+               sun.x > -0.5, sun.x < 1.5, sun.y > -0.5, sun.y < 1.5 {
+                glare.sun = SIMD4(sun.x, sun.y, Float(destination.width) / Float(max(destination.height, 1)), settings.sunGlareStrength)
+                glare.colour = SIMD4(lighting.illuminance * lighting.exposureScale, 0)
+                encoder.setVertexTexture(depth, index: 2)
+            } else {
+                encoder.setVertexTexture(source, index: 2)
+            }
+            encoder.setVertexBytes(&glare, length: MemoryLayout<GlareUniforms>.stride, index: 2)
+            encoder.setFragmentBytes(&glare, length: MemoryLayout<GlareUniforms>.stride, index: 2)
             encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
             encoder.endEncoding()
         }
     }
+}
+
+/// Mirrors `GlareUniforms` in `Resolve.metal`.
+struct GlareUniforms {
+    var sun: SIMD4<Float>
+    var colour: SIMD4<Float>
 }

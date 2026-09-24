@@ -1399,6 +1399,63 @@ document are always paired with the window they came from.
 The p95 spikes in the early windows are the material and atlas uploads and
 the first pipeline uses; they are gone by the third minute.
 
+## Sun glare
+
+The sun is a disc in the sky pass and a bloom around it; what was missing
+is what a lens does with a sun in frame. The resolve now adds a glare —
+a halo, an anamorphic horizontal streak and six faint rays — around the
+sun's screen position, in the sun's exposed colour, scaled by
+`RenderSettings.sunGlareStrength` (0.35 on every preset). The renderer
+projects the sun direction with the frame's unjittered view-projection and
+keeps the result as `sunScreenPosition`; the resolve draws only when the
+sun is in front of the camera and within half a frame of the view.
+
+Occlusion comes from the depth buffer: twelve taps in a small disc around
+the sun's position, counting the ones that see sky, which in a reversed
+infinite depth is exactly zero because the sky writes none. A wall across
+the sun gives zero visibility and no glare, which
+`testGlareIsOccludedByGeometry` checks by rendering with and without the
+setting and requiring identical images; `testGlareAppearsOnlyWithTheSunInFrame`
+requires identical images with the sun behind the camera and a brighter,
+never darker, image with it ahead. The mirror renderer has the glare off.
+
+The first version took those twelve taps per fragment and cost **0.39 ms**
+at 2560×1664. They now happen in the resolve's vertex shader — three
+vertices, thirty-six taps — and reach the fragment as a flat varying; with
+an early-out beyond the streak's reach the pass costs **+0.16–0.19 ms**
+native with the sun in frame and nothing measurable with it out of frame.
+The first shape drew a single hard ray that read as a drawn line; the rays
+are now soft and faint and the streak carries the effect.
+
+Not done: lens dirt, which the plan mentioned with bloom, and a glare for
+headlights at night, which needs a night first.
+
+## Where the plan stands
+
+Against the plan's phases, after twenty-nine increments on the
+`modern-renderer` branch (25 September 2026):
+
+| Phase | Delivered | Deferred |
+|---|---|---|
+| 0 Foundations | TORCSRender, linear HDR, packed 32-byte vertex with tangents, generated mip chains, BC5/BC7 caches | — |
+| 1 Light | Hillaire atmosphere, physical sun and exposure, AgX, four-cascade CSM + contact shadows, SH + prefiltered sky IBL | clustered punctual lights (no night to light) |
+| 2 Upscaling | jitter, motion vectors, MetalFX temporal (measured a net loss) and spatial scalers, dynamic resolution, **classic path deleted** | reactive mask (spatial path needs none) |
+| 3 Screen space | GTAO, SSR with a depth-aware filter, motion blur, bloom | SSR temporal reuse, local probe |
+| 4 Materials | `torcs-matgen` sets, stochastic tiling, car paint/glass/lens materials | AI-sourced base maps, the full ~30-material list, BC7-vs-ASTC comparison |
+| 5 Track | generated road, curbs, barriers, terrain, markings, racing-line rubber, skid marks | pit buildings, road detail atlas |
+| 6 Scatter | volumetric trees with dithered detail pairs, grass cards, wind (in the shadows too) | impostors, furniture, crowds, GPU-driven culling |
+| 7 Effects | smoke, dust, spray, wet weather with puddles, sun glare | heat haze, rain itself, replay/photo depth of field |
+| 8 Hardening | prebuilt shaders, pre-warmed scalers, memory budget test, sustained runs, app bundle fixed | binary archive for the first launch, ICB culling and batch merging, the remaining signposts |
+
+The measured state of the default preset on the target machine is the
+sustained table above: 8.7 ms at native with the whole session drawn, no
+throttle in four minutes, the resolution controller idle. Everything in the
+deferred column is polish or content; nothing in it is needed for the game
+to look and run as the plan intended. The next steps with the most visible
+return are the material list and a higher-polygon hero car, both content
+rather than renderer work, and Speed Dreams' content remains waiting on the
+user supplying it.
+
 ## Licensing
 
 No third-party artwork is imported by this work. New render source is

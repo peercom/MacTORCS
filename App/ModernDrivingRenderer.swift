@@ -40,6 +40,7 @@ final class ModernDrivingRenderer {
         settings.contactShadows = false
         settings.bloom = false
         settings.motionBlur = false
+        settings.sunGlare = false
         settings.depthPrepass = false
         settings.shadowCascades = 2
         return settings

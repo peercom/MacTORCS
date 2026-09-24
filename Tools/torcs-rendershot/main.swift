@@ -66,6 +66,8 @@ struct Options {
     /// Scene wetness, 0 dry to 1 soaked.
     var wetness: Float = 0
     var compareWet = false
+    var sunGlare: Bool? = nil
+    var compareGlare = false
     /// Report startup costs: shader library, renderer construction, scaler pre-warm.
     var startup = false
     /// Report the device's allocated memory after the frames.
@@ -163,6 +165,9 @@ func parse() -> Options {
         case "--skid": options.skid = true
         case "--wet": options.wetness = Float(next()) ?? 1
         case "--compare-wet": options.compareWet = true
+        case "--glare": options.sunGlare = true
+        case "--no-glare": options.sunGlare = false
+        case "--compare-glare": options.compareGlare = true
         case "--startup": options.startup = true
         case "--memory": options.memory = true
         case "--smoke": options.smokeFrames = Int(next()) ?? 45
@@ -336,6 +341,7 @@ do {
     if let contact = options.contactShadows { settings.contactShadows = contact }
     if let ssr = options.reflections { settings.screenSpaceReflections = ssr }
     if let blur = options.motionBlur { settings.motionBlur = blur }
+    if let glare = options.sunGlare { settings.sunGlare = glare }
     if let cascades = options.cascades { settings.shadowCascades = max(0, min(4, cascades)) }
     let startupClock = DispatchTime.now()
     if options.startup, let device = MTLCreateSystemDefaultDevice() {
@@ -540,6 +546,7 @@ do {
         print("skid marks: \(renderer.skidMarks.quadCount) quads")
     }
     if options.compareSkid { try compare("skid marks") { $0.skidMarks = $1 } }
+    if options.compareGlare { try compare("sun glare") { $0.sunGlare = $1 } }
     if options.compareWet {
         // Wetness is a scene condition, not a setting: toggle it on the renderer.
         let wet = options.wetness > 0 ? options.wetness : 1
