@@ -188,6 +188,10 @@ public final class ForwardRenderer {
     public private(set) var lastFrameUsedDepthPrepass = false
     private var upscaler: TemporalUpscaler?
     private var spatialUpscaler: SpatialUpscaler?
+    /// Drives the render scale from measured GPU time when the settings ask
+    /// for it. Only presentation records into it; offscreen renders stay at
+    /// the settings' scale so they are repeatable.
+    public private(set) var dynamicResolution = DynamicResolutionController(initialScale: 1.0)
     /// Whether the upscaler actually wrote its output this frame. The fallback
     /// on upscaler failure cannot be expressed by which textures exist — the
     /// output texture is still allocated — so the tonemap source is chosen from
@@ -389,9 +393,29 @@ public final class ForwardRenderer {
 
     /// Allocates or reuses targets for an output size, deriving the render
     /// size from the current settings.
+    /// The render scale in force: the settings' scale, lowered by dynamic
+    /// resolution when that is on.
+    public var effectiveRenderScale: Float {
+        guard settings.upscaling else { return 1 }
+        return settings.dynamicResolution ? min(dynamicResolution.scale, settings.renderScale) : settings.renderScale
+    }
+
+    /// Feeds one frame's GPU time to the dynamic resolution controller.
+    /// Presentation calls this with the previous frame's measured time.
+    @discardableResult
+    public func recordDynamicResolution(gpuTime: Double) -> Bool {
+        guard settings.dynamicResolution, settings.upscaling else { return false }
+        return dynamicResolution.record(gpuTime: gpuTime)
+    }
+
+    /// Returns to native and forgets the history, for a settings change.
+    public func resetDynamicResolution() { dynamicResolution = DynamicResolutionController(initialScale: 1.0) }
+
     public func targets(outputWidth: Int, outputHeight: Int) throws -> FrameTargets {
-        let upscaling = settings.temporalUpscaling
-        let render = settings.renderSize(output: (outputWidth, outputHeight))
+        let scale = effectiveRenderScale
+        // At full scale the scaler has nothing to do and is bypassed entirely.
+        let upscaling = settings.upscaling && scale < 0.999
+        let render = settings.renderSize(output: (outputWidth, outputHeight), scale: scale)
         let renderWidth = upscaling ? render.width : outputWidth
         let renderHeight = upscaling ? render.height : outputHeight
         let reflections = settings.screenSpaceReflections != .off
@@ -471,7 +495,7 @@ public final class ForwardRenderer {
     public func encodeFrame(into commands: MTLCommandBuffer, targets: FrameTargets,
                             resources: [SceneResources], instances: [RenderInstance],
                             camera: RenderCamera, lighting: SunLighting, aspect: Float) {
-        currentJitter = settings.temporalUpscaling && settings.upscalingMode == .temporal
+        currentJitter = targets.upscaled != nil && settings.upscalingMode == .temporal
             ? jitterSequence.next() : SIMD2(0, 0)
         upscaleProduced = false
         postProduced = false
@@ -484,7 +508,7 @@ public final class ForwardRenderer {
         encode(into: commands, targets: targets, resources: resources, instances: instances,
                camera: camera, lighting: lighting, cascades: cascades, aspect: aspect)
 
-        if settings.temporalUpscaling && settings.upscalingMode == .spatial {
+        if targets.upscaled != nil && settings.upscalingMode == .spatial {
             // Blur before the scaler: a quarter of the pixels, and the scaler
             // keeps no history the blur could corrupt.
             if settings.motionBlur, targets.postAtRenderResolution, targets.velocity != nil, targets.postColour != nil {
@@ -505,7 +529,7 @@ public final class ForwardRenderer {
                 spatialUpscaler = nil
                 lastUpscalerError = String(describing: error)
             }
-        } else if settings.temporalUpscaling {
+        } else if targets.upscaled != nil {
             do {
                 if upscaler == nil || upscaler?.matches(renderWidth: targets.renderWidth,
                                                         renderHeight: targets.renderHeight,
@@ -581,7 +605,7 @@ public final class ForwardRenderer {
             // transform yields zero motion, which is what a cold history wants.
             previousViewProjection: previousViewProjection ?? unjittered,
             renderSize: SIMD2(Float(targets.renderWidth), Float(targets.renderHeight)),
-            mipBias: settings.temporalUpscaling
+            mipBias: settings.upscaling
                 ? RenderCamera.mipBias(renderWidth: targets.renderWidth, outputWidth: targets.outputWidth)
                 : 0)
 

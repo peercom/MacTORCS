@@ -8,22 +8,24 @@ import Metal
 final class RenderSettingsTests: XCTestCase {
     let retina = (width: 2560, height: 1664)
 
-    /// The default preset renders natively. Upscaling is implemented but off:
-    /// the renderer is submission-bound, so a lower render resolution saves
-    /// nothing while the upscaler costs a fixed amount. The half-resolution
-    /// scale is retained for when that ceases to be true.
-    func testDefaultPresetRendersNativelyWithUpscalingAvailable() {
+    /// The default preset renders natively at rest, with the spatial scaler
+    /// available for dynamic resolution to step down into under sustained
+    /// load. The temporal scaler measured as a net loss twice and is not the
+    /// default mode.
+    func testDefaultPresetRendersNativelyWithTheSpatialScalerAvailable() {
         let settings = RenderSettings(preset: .m2Air)
-        XCTAssertEqual(settings.renderScale, 0.5, "the scale to use once upscaling pays for itself")
-        XCTAssertFalse(settings.temporalUpscaling)
+        XCTAssertEqual(settings.renderScale, 1.0)
+        XCTAssertTrue(settings.upscaling)
+        XCTAssertEqual(settings.upscalingMode, .spatial)
+        XCTAssertTrue(settings.dynamicResolution)
         let size = settings.renderSize(output: retina)
-        XCTAssertEqual(size.width, retina.width, "upscaling off means rendering at output resolution")
+        XCTAssertEqual(size.width, retina.width, "scale 1 renders at output resolution")
         XCTAssertEqual(size.height, retina.height)
     }
 
-    func testEnablingUpscalingHalvesTheRenderSize() {
+    func testHalfScaleHalvesTheRenderSize() {
         var settings = RenderSettings(preset: .m2Air)
-        settings.temporalUpscaling = true
+        settings.renderScale = 0.5
         let size = settings.renderSize(output: retina)
         XCTAssertEqual(size.width, 1280)
         XCTAssertEqual(size.height, 832)
@@ -123,6 +125,31 @@ final class DynamicResolutionControllerTests: XCTestCase {
         XCTAssertLessThan(controller.scale, 1.0, "should have given up some resolution")
     }
 
+    /// What a throttling chip actually delivers: a median well under target
+    /// with bursts of frames at twice it. The scale must not move.
+    func testSpikeBurstsUnderAComfortableMedianDoNotMoveTheScale() {
+        var controller = DynamicResolutionController(targetGPUTime: target, initialScale: 1.0)
+        var changes = 0
+        for frame in 0 ..< 3000 {
+            let burst = (frame % 60) < 8
+            if controller.record(gpuTime: target * (burst ? 1.3 : 0.55)) { changes += 1 }
+        }
+        XCTAssertEqual(changes, 0, "scale moved \(changes) times on spike bursts")
+        XCTAssertEqual(controller.scale, 1.0)
+    }
+
+    /// A step reallocates the targets, and the frame that does is slow. That
+    /// frame must not seed the next decision, or one legitimate step cascades.
+    func testTheHitchAfterAStepDoesNotCascade() {
+        var controller = DynamicResolutionController(targetGPUTime: target, initialScale: 1.0)
+        drive(&controller, gpuTime: target * 1.3, frames: 120)
+        let afterFirst = controller.scale
+        XCTAssertLessThan(afterFirst, 1.0, "sustained over budget should step down once")
+        controller.record(gpuTime: target * 4)  // the reallocation hitch
+        drive(&controller, gpuTime: target * 0.6, frames: 60)
+        XCTAssertEqual(controller.scale, afterFirst, "the hitch after a step cascaded")
+    }
+
     func testDegenerateMeasurementsAreIgnored() {
         var controller = DynamicResolutionController(targetGPUTime: target, initialScale: 0.5)
         let start = controller.scale
@@ -143,6 +170,8 @@ final class DynamicResolutionControllerTests: XCTestCase {
 }
 
 final class TemporalUpscalingTests: XCTestCase {
+    let retina = (width: 2560, height: 1664)
+
     /// Halton is low-discrepancy: a short sequence must cover the pixel evenly
     /// rather than clustering, or temporal accumulation converges to a biased
     /// result instead of the true image.
@@ -204,7 +233,7 @@ final class TemporalUpscalingTests: XCTestCase {
     func testSpatialModeRendersWithoutJitterAndRepeats() throws {
         guard MTLCreateSystemDefaultDevice() != nil else { throw XCTSkip("Metal device unavailable") }
         var settings = RenderSettings()
-        settings.temporalUpscaling = true
+        settings.upscaling = true
         settings.upscalingMode = .spatial
         settings.renderScale = 0.5
         settings.bloom = false
@@ -225,13 +254,36 @@ final class TemporalUpscalingTests: XCTestCase {
         XCTAssertNotNil(targets.upscaled)
     }
 
-    /// Off by default because it measured as a net loss: the renderer is
-    /// submission-bound, not pixel-bound.
-    func testUpscalingIsOffInEveryPreset() {
+    /// Every preset renders native at rest; the temporal scaler, which
+    /// measured as a net loss twice, is nobody's default.
+    func testEveryPresetRendersNativeAtRestAndNoneDefaultsToTemporal() {
         for preset in RenderSettings.Preset.allCases {
-            XCTAssertFalse(RenderSettings(preset: preset).temporalUpscaling,
-                           "\(preset) enables upscaling; measurement says it costs more than it saves")
+            let settings = RenderSettings(preset: preset)
+            XCTAssertEqual(settings.renderSize(output: retina).width, retina.width, "\(preset)")
+            XCTAssertNotEqual(settings.upscalingMode, .temporal, "\(preset)")
         }
+    }
+
+    /// The valve: under sustained load the render scale steps down and the
+    /// scaler engages; at rest the scaler is bypassed, not run at 1:1.
+    func testDynamicResolutionEngagesTheScalerOnlyUnderLoad() throws {
+        guard MTLCreateSystemDefaultDevice() != nil else { throw XCTSkip("Metal device unavailable") }
+        let renderer = try ForwardRenderer(settings: RenderSettings(preset: .m2Air))
+        let rest = try renderer.targets(outputWidth: 512, outputHeight: 320)
+        XCTAssertEqual(rest.renderWidth, 512)
+        XCTAssertNil(rest.upscaled, "at scale 1 the scaler is bypassed")
+        // Two hundred frames well over budget, as a throttling chip delivers.
+        for _ in 0 ..< 200 { renderer.recordDynamicResolution(gpuTime: 0.020) }
+        XCTAssertLessThan(renderer.effectiveRenderScale, 1)
+        let loaded = try renderer.targets(outputWidth: 512, outputHeight: 320)
+        XCTAssertLessThan(loaded.renderWidth, 512)
+        XCTAssertNotNil(loaded.upscaled)
+        renderer.resetDynamicResolution()
+        XCTAssertEqual(renderer.effectiveRenderScale, 1)
+        // Offscreen renders never record, so a verification render at rest
+        // is native whatever presentation was doing.
+        let settings = RenderSettings(preset: .m2Air)
+        XCTAssertEqual(settings.renderSize(output: retina, scale: renderer.effectiveRenderScale).width, retina.width)
     }
 }
 

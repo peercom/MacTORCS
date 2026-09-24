@@ -42,12 +42,19 @@ public struct DynamicResolutionController: Sendable, Equatable {
     /// Exponential moving average of GPU time; a single slow frame from a
     /// hitch or a window resize should not move the scale on its own.
     private var averageGPUTime: Double?
+    /// Frames still to ignore after a step. Changing scale reallocates the
+    /// render targets, and the frame that does so is slow for that reason
+    /// alone; measured, it seeded the next decision and cascaded the scale
+    /// down three steps in a second.
+    private var cooldown = 0
+    /// Frames ignored after a step.
+    public static let cooldownFrames = 12
 
     public init(targetGPUTime: Double = 1.0 / 60.0 * 0.66,
                 minimumScale: Float = 0.4, maximumScale: Float = 1.0,
                 initialScale: Float = 0.5,
-                framesBeforeDecrease: Int = 4, framesBeforeIncrease: Int = 45,
-                increaseThreshold: Double = 0.80) {
+                framesBeforeDecrease: Int = 30, framesBeforeIncrease: Int = 180,
+                increaseThreshold: Double = 0.70) {
         let ladder = Self.ladder
         func nearest(_ value: Float) -> Int {
             ladder.indices.min { abs(ladder[$0] - value) < abs(ladder[$1] - value) } ?? 0
@@ -67,8 +74,14 @@ public struct DynamicResolutionController: Sendable, Equatable {
     @discardableResult
     public mutating func record(gpuTime: Double) -> Bool {
         guard gpuTime.isFinite, gpuTime > 0 else { return false }
-        // Weighted toward history; 0.2 settles in roughly 15 frames.
-        averageGPUTime = averageGPUTime.map { $0 * 0.8 + gpuTime * 0.2 } ?? gpuTime
+        if cooldown > 0 { cooldown -= 1; return false }
+        // Weighted toward history; 0.2 settles in roughly 15 frames. Each
+        // sample is clamped to twice the running average first: a clock
+        // transition on a throttling chip delivers bursts of frames at double
+        // the median, and unclamped they walked the average over the target
+        // while the median never came near it.
+        let sample = averageGPUTime.map { min(gpuTime, $0 * 2) } ?? gpuTime
+        averageGPUTime = averageGPUTime.map { $0 * 0.8 + sample * 0.2 } ?? gpuTime
         guard let average = averageGPUTime else { return false }
 
         if average > targetGPUTime {
@@ -94,8 +107,10 @@ public struct DynamicResolutionController: Sendable, Equatable {
         guard index != previous else { return false }
         scale = Self.ladder[index]
         // Reset the average so the next decision is made on the new cost, not
-        // on times measured at the old resolution.
+        // on times measured at the old resolution, and skip the frames that
+        // pay for the change.
         averageGPUTime = nil
+        cooldown = Self.cooldownFrames
         return true
     }
 
@@ -104,5 +119,6 @@ public struct DynamicResolutionController: Sendable, Equatable {
         overBudgetRun = 0
         underBudgetRun = 0
         averageGPUTime = nil
+        cooldown = 0
     }
 }

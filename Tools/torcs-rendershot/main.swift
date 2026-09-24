@@ -50,6 +50,7 @@ struct Options {
     var compareMotionBlur = false
     var orbitSpeed: Float = 0
     var sustainSeconds: Double = 0
+    var dynamic = false
     var upscalingMode: RenderSettings.UpscalingMode? = nil
     var renderScale: Float? = nil
     var aoRadius: Float? = nil
@@ -123,6 +124,7 @@ func parse() -> Options {
         case "--compare-motion-blur": options.compareMotionBlur = true
         case "--orbit-speed": options.orbitSpeed = Float(next()) ?? 0
         case "--sustain": options.sustainSeconds = Double(next()) ?? 0
+        case "--dynamic": options.dynamic = true
         case "--upscale-mode": options.upscalingMode = RenderSettings.UpscalingMode(rawValue: next())
         case "--render-scale": options.renderScale = Float(next())
         case "--ao-radius": options.aoRadius = Float(next())
@@ -273,7 +275,7 @@ do {
     }
     var settings = RenderSettings(preset: options.preset)
     settings.depthPrepass = options.depthPrepass
-    if let upscale = options.upscale { settings.temporalUpscaling = upscale }
+    if let upscale = options.upscale { settings.upscaling = upscale }
     if let mode = options.upscalingMode { settings.upscalingMode = mode }
     if let scale = options.renderScale { settings.renderScale = scale }
     if let bloom = options.bloom { settings.bloom = bloom }
@@ -369,7 +371,7 @@ do {
         var samples: [Bool: [Double]] = [false: [], true: []]
         for block in 0 ..< 8 {
             let on = block.isMultiple(of: 2)
-            renderer.settings.temporalUpscaling = on
+            renderer.settings.upscaling = on
             for frame in 0 ..< 30 {
                 _ = try renderer.render(scene: resources, camera: camera, lighting: lighting,
                                         width: options.width, height: options.height)
@@ -406,13 +408,16 @@ do {
             _ = try renderer.render(scene: resources, camera: frameCamera, lighting: lighting,
                                     width: options.width, height: options.height)
             window.append(renderer.lastGPUTime * 1000)
+            // `--dynamic` lets the resolution controller act, as presentation
+            // would, so the valve can be watched opening.
+            if options.dynamic { renderer.recordDynamicResolution(gpuTime: renderer.lastGPUTime) }
             frame += 1
             if Date().timeIntervalSince(windowStart) >= 15 {
                 let sorted = window.sorted()
                 let median = sorted[sorted.count / 2], p95 = sorted[min(sorted.count - 1, Int(Double(sorted.count) * 0.95))]
                 windows.append((Date().timeIntervalSince(start), median, p95))
-                print(String(format: "  t=%4.0f s  median %6.3f ms  p95 %6.3f ms  (%d frames)",
-                             Date().timeIntervalSince(start), median, p95, sorted.count))
+                print(String(format: "  t=%4.0f s  median %6.3f ms  p95 %6.3f ms  (%d frames)  scale %.2f",
+                             Date().timeIntervalSince(start), median, p95, sorted.count, renderer.effectiveRenderScale))
                 window.removeAll(); windowStart = Date()
             }
         }
@@ -587,7 +592,7 @@ do {
       occlusion     ao \(["off","half","full"][settings.ambientOcclusion.rawValue]), contact \(settings.contactShadows ? "on" : "off")\(renderer.occlusion.result.map { ", \($0.width)x\($0.height)" } ?? "")
       motion blur   \(settings.motionBlur ? "on" : "off")\(renderer.motionBlur.result != nil ? ", applied" : "")
       reflections   \(["off","half","full"][settings.screenSpaceReflections.rawValue])\(renderer.reflections.result.map { ", \($0.width)x\($0.height)" } ?? "")
-      upscaling     \(settings.temporalUpscaling ? "\(settings.upscalingMode.rawValue), render \(settings.renderSize(output: (options.width, options.height)).width)x\(settings.renderSize(output: (options.width, options.height)).height)" : "off")
+      upscaling     \(settings.upscaling ? "\(settings.upscalingMode.rawValue), render \(settings.renderSize(output: (options.width, options.height)).width)x\(settings.renderSize(output: (options.width, options.height)).height)" : "off")
       textures      \(textures.count) uploaded, \(String(format: "%.1f", Double(textures.uploadedBytes) / 1_048_576)) MiB
       textured      \(resources.texturedBatches) of \(resources.batchCount) batches
       missing       \(textures.missing.count)\(textures.missing.isEmpty ? "" : ": " + textures.missing.sorted().prefix(6).joined(separator: ", "))

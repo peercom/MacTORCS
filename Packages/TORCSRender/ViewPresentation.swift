@@ -39,6 +39,9 @@ public extension ForwardRenderer {
                 "Drawable is \(drawable.texture.pixelFormat); the renderer needs \(Self.drawableFormat). Call configure(_:) first.")
         }
 
+        // Last frame's measured cost decides this frame's render scale.
+        let measured = gpuTime
+        if measured > 0 { recordDynamicResolution(gpuTime: measured) }
         let targets = try targets(outputWidth: width, outputHeight: height)
         guard let commands = queue.makeCommandBuffer() else {
             throw RenderError.unavailable("Could not create a command buffer")

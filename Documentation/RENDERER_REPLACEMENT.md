@@ -852,6 +852,51 @@ preset's half-resolution occlusion had been faintly banded all along. The
 reflection trace at half resolution had the same origin error. Both snap
 now.
 
+## Dynamic resolution, driven at last
+
+The controller existed since R2 and nothing drove it. Presentation now
+feeds it the previous frame's measured GPU time, and the default preset is
+native at rest with the spatial scaler available: `renderScale` 1.0,
+`upscaling` on, `upscalingMode` spatial, `dynamicResolution` on. At scale
+1.0 the scaler is bypassed — a native frame is not scaled to itself — so
+at rest the frame is exactly what it was. `upscaling` replaced
+`temporalUpscaling` as the setting's name, since it no longer means the
+temporal scaler.
+
+### The controller oscillated
+
+The first dynamic run stepped 1.0 → 0.60 in its opening seconds, climbed
+back, and then swung between 0.60 and 1.00 every half minute while the
+median GPU time sat at 6.4 ms against an 11 ms target. Two causes, both in
+the controller: it discarded its average after every step, so the next
+frame — which reallocates the render targets and is slow for that reason
+alone — seeded the next decision; and four over-budget frames sufficed to
+step, which the bursts a throttling chip delivers at clock transitions
+supply routinely. So each legitimate step cascaded, and each recovery met
+the same bursts.
+
+Now: each sample is clamped to twice the running average before it enters,
+twelve frames after a step are ignored, a step down takes half a second
+over budget, and a step up takes three seconds below seventy percent of
+it. Two tests pin the spike bursts and the post-step hitch.
+
+### The valve, watched opening
+
+Default preset, dynamic, 2560x1664, four minutes:
+
+| Window | Median | p95 | Scale |
+|---|---|---|---|
+| 15–195 s | 6.34–6.43 ms | 7.5–8.9 ms | 1.00 |
+| 210 s | 6.66 ms | 14.5 ms | 0.85 |
+| 225 s | 7.83 ms | 11.4 ms | 0.85 |
+
+Native for three and a half minutes, one step down as throttling begins,
+no oscillation. The step was taken on the spikes rather than the median —
+a p95 of 14.5 ms is what the onset looks like — and one notch is the
+proportionate response. Whether it should have waited for the median is a
+tuning question for a longer run than four minutes; the tool for that run
+now exists.
+
 ## Licensing
 
 No third-party artwork is imported by this work. New render source is

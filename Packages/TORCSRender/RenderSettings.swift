@@ -27,8 +27,10 @@ public struct RenderSettings: Sendable, Equatable {
         public static func < (a: Quality, b: Quality) -> Bool { a.rawValue < b.rawValue }
     }
 
-    /// Fraction of output resolution the scene is rendered at before temporal
-    /// upscaling. Ignored when `temporalUpscaling` is off.
+    /// Fraction of output resolution the scene is rendered at, at rest.
+    /// Dynamic resolution lowers it from here under load and never raises it
+    /// above it. Ignored when `upscaling` is off, and at 1.0 the scaler is
+    /// bypassed: a native frame is not scaled to itself.
     public var renderScale: Float
 
     /// MetalFX temporal upscaling. Implemented, working, and off by default.
@@ -44,8 +46,8 @@ public struct RenderSettings: Sendable, Equatable {
     /// batches, argument buffers, indirect command buffers — and the fragment
     /// shader is carrying real work. At that point it becomes the largest lever
     /// available, which is why it is built rather than deferred.
-    public var temporalUpscaling: Bool
-    /// Which MetalFX scaler `temporalUpscaling` engages. The temporal scaler
+    public var upscaling: Bool
+    /// Which MetalFX scaler `upscaling` engages. The temporal scaler
     /// reconstructs from history and needs jitter and motion vectors; the
     /// spatial one is a single-frame sharpening upsample at a fraction of the
     /// cost, for when the frame must be cheaper and the history is not worth
@@ -97,9 +99,13 @@ public struct RenderSettings: Sendable, Equatable {
     public init(preset: Preset = .m2Air) {
         switch preset {
         case .m2Air:
-            renderScale = 0.5
-            temporalUpscaling = false
-            upscalingMode = .temporal
+            // Native at rest. The spatial scaler is the thermal valve: dynamic
+            // resolution steps the render scale down the ladder as sustained
+            // GPU time rises, which on a fanless chip it does after a few
+            // minutes, and back up when it falls.
+            renderScale = 1.0
+            upscaling = true
+            upscalingMode = .spatial
             dynamicResolution = true
             shadowCascades = 4
             shadowResolution = 2048
@@ -116,9 +122,9 @@ public struct RenderSettings: Sendable, Equatable {
             mirrorScale = 0.5
             textureMemoryBudgetBytes = 1_500_000_000
         case .balanced:
-            renderScale = 0.67
-            temporalUpscaling = false
-            upscalingMode = .temporal
+            renderScale = 1.0
+            upscaling = true
+            upscalingMode = .spatial
             dynamicResolution = true
             shadowCascades = 4
             shadowResolution = 2048
@@ -136,8 +142,8 @@ public struct RenderSettings: Sendable, Equatable {
             textureMemoryBudgetBytes = 3_000_000_000
         case .high:
             renderScale = 1
-            temporalUpscaling = false
-            upscalingMode = .temporal
+            upscaling = false
+            upscalingMode = .spatial
             dynamicResolution = false
             shadowCascades = 4
             shadowResolution = 4096
@@ -159,7 +165,7 @@ public struct RenderSettings: Sendable, Equatable {
     /// Render resolution for a given output size, rounded to even pixels so
     /// half-resolution passes tile exactly and motion vectors stay aligned.
     public func renderSize(output: (width: Int, height: Int), scale: Float? = nil) -> (width: Int, height: Int) {
-        let effective = temporalUpscaling ? min(max(scale ?? renderScale, 0.25), 1) : 1
+        let effective = upscaling ? min(max(scale ?? renderScale, 0.25), 1) : 1
         func round(_ value: Int) -> Int {
             let scaled = Int((Float(value) * effective).rounded())
             return max(16, scaled + (scaled % 2))
