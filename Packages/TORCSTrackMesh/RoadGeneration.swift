@@ -47,11 +47,12 @@ public enum RoadGeneration {
     /// Builds the drivable surfaces and the barriers.
     public static func road(_ geometry: TrackGeometry, parameters: Parameters = .init()) -> Road {
         var groups: [String: GeneratedGeometry] = [:]
+        let line = RacingLine(geometry)
 
         for index in geometry.segments.indices {
             let segment = geometry.segments[index]
             let spans = segment.role == .main ? parameters.mainSpans : parameters.sideSpans
-            appendRibbon(geometry, segment: index, spans: max(1, spans), parameters: parameters,
+            appendRibbon(geometry, segment: index, spans: max(1, spans), parameters: parameters, line: line,
                          into: &groups[segment.surface.material, default: GeneratedGeometry()])
         }
 
@@ -81,18 +82,20 @@ public enum RoadGeneration {
     /// Per-vertex attributes the road shader paints markings from:
     /// x lateral position across the segment (0 = right edge, 255 = left),
     /// y segment width in eighths of a metre, z role (0 main, 1 side,
-    /// 2 border), w unused. Width and lateral together give metres from either
+    /// 2 border), w the racing line's lateral position on the same scale as
+    /// x, for the rubber. Width and lateral together give metres from either
     /// edge, which is what an edge line or a centre dash is defined in.
-    public static func attributes(toRight: Float, width: Float, role: TrackRole) -> SIMD4<UInt8> {
+    public static func attributes(toRight: Float, width: Float, role: TrackRole, line: Float = 0.5) -> SIMD4<UInt8> {
         let lateral = width > 0 ? toRight / width : 0
         let roleCode: UInt8 = role == .main ? 0 : (role == .leftBorder || role == .rightBorder ? 2 : 1)
         return SIMD4(UInt8(min(max(lateral, 0), 1) * 255 + 0.5),
-                     UInt8(min(max(width * 8, 0), 255) + 0.5), roleCode, 0)
+                     UInt8(min(max(width * 8, 0), 255) + 0.5), roleCode,
+                     UInt8(min(max(line, 0), 1) * 255 + 0.5))
     }
 
     /// One segment as a grid of `rows` × `spans` quads, welded within itself.
     static func appendRibbon(_ geometry: TrackGeometry, segment index: Int, spans: Int,
-                             parameters: Parameters, into out: inout GeneratedGeometry) {
+                             parameters: Parameters, line: RacingLine, into out: inout GeneratedGeometry) {
         let segment = geometry.segments[index]
         let rowCount = rows(segment, step: parameters.step)
         let base = UInt32(out.positions.count)
@@ -102,6 +105,7 @@ public enum RoadGeneration {
             let width = geometry.width(segment: index, toStart: s)
             // Metres along the circuit, for tiling.
             let along = segment.distanceFromStart + fraction * segment.length
+            let lineLateral = line.lateral(at: along)
             for span in 0 ... spans {
                 let toRight = width * Float(span) / Float(spans)
                 let local = TrackLocalPosition(segment: index, toStart: s, toRight: toRight)
@@ -110,7 +114,7 @@ public enum RoadGeneration {
                 out.positions.append(SIMD3(xy.x, xy.y, z))
                 out.normals.append(geometry.surfaceNormal(local))
                 out.uv0.append(SIMD2(along, toRight))
-                out.attributes.append(attributes(toRight: toRight, width: width, role: segment.role))
+                out.attributes.append(attributes(toRight: toRight, width: width, role: segment.role, line: lineLateral))
             }
         }
         let stride = UInt32(spans + 1)

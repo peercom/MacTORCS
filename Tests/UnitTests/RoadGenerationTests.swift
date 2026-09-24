@@ -150,7 +150,8 @@ final class RoadGenerationTests: XCTestCase {
             // Aalborg's main road is 10 m wide: 80 eighths.
             XCTAssertEqual(Int(attributes[row].y), 80, accuracy: 4)
         }
-        XCTAssertEqual(RoadGeneration.attributes(toRight: 2.5, width: 10, role: .leftSide), SIMD4(64, 80, 1, 0))
+        XCTAssertEqual(RoadGeneration.attributes(toRight: 2.5, width: 10, role: .leftSide), SIMD4(64, 80, 1, 128))
+        XCTAssertEqual(RoadGeneration.attributes(toRight: 2.5, width: 10, role: .main, line: 0.25).w, 64)
         XCTAssertEqual(RoadGeneration.attributes(toRight: 0, width: 2, role: .rightBorder).z, 2)
     }
 
@@ -166,5 +167,67 @@ final class RoadGenerationTests: XCTestCase {
         let a = RoadGeneration.road(road.geometry, parameters: coarse).triangleCount
         let b = RoadGeneration.road(road.geometry, parameters: fine).triangleCount
         XCTAssertGreaterThan(b, a * 4)
+    }
+}
+
+final class RacingLineTests: XCTestCase {
+    /// Outside on the approach, inside at the apex, outside on the exit: the
+    /// shape every line has, checked on Aalborg's tightest corner.
+    func testLineGoesInsideAtTheApexAndOutsideOnTheApproach() throws {
+        let road = try RoadGenerationTests().aalborg()
+        let g = road.geometry
+        let line = RacingLine(g)
+        XCTAssertEqual(line.lateral.count, Int(line.lapLength.rounded(.up)))
+        let tightest = try XCTUnwrap(g.mainSegments.filter { g.segments[$0].curve != .straight }
+            .min { g.segments[$0].radius < g.segments[$1].radius })
+        let s = g.segments[tightest]
+        // TORCS splits a corner into many short arcs; the apex is the middle
+        // of the run of same-hand arcs containing the tightest one.
+        var first = tightest, last = tightest
+        while g.segments[g.segments[first].previous].curve == s.curve { first = g.segments[first].previous }
+        while g.segments[g.segments[last].next].curve == s.curve { last = g.segments[last].next }
+        let start = g.segments[first].distanceFromStart
+        let end = g.segments[last].distanceFromStart + g.segments[last].length
+        let apex = (start + end) / 2
+        let inside = line.lateral(at: apex)
+        let before = line.lateral(at: start - 40), after = line.lateral(at: end + 40)
+        // Right-handers pull toward the right edge (lateral 0), left-handers
+        // toward the left (1). Approach and exit sit on the other side.
+        if s.curve == .right {
+            XCTAssertLessThan(inside, 0.4); XCTAssertGreaterThan(before, inside); XCTAssertGreaterThan(after, inside)
+        } else {
+            XCTAssertGreaterThan(inside, 0.6); XCTAssertLessThan(before, inside); XCTAssertLessThan(after, inside)
+        }
+    }
+
+    /// The band must never leave the road, must have no kinks, and must
+    /// close on itself at the start line.
+    func testLineStaysOnTheRoadAndIsContinuous() throws {
+        let road = try RoadGenerationTests().aalborg()
+        let line = RacingLine(road.geometry)
+        var worstStep: Float = 0
+        for i in line.lateral.indices {
+            XCTAssertGreaterThanOrEqual(line.lateral[i], 0.1); XCTAssertLessThanOrEqual(line.lateral[i], 0.9)
+            worstStep = max(worstStep, abs(line.lateral[(i + 1) % line.lateral.count] - line.lateral[i]))
+        }
+        // Crossing the road in under ten metres would be a swerve, not a line.
+        XCTAssertLessThan(worstStep, 0.05, "worst per-metre change \(worstStep)")
+        XCTAssertEqual(line.lateral(at: 0), line.lateral(at: line.lapLength), accuracy: 1e-4)
+        // Not the centre line: the whole point.
+        XCTAssertGreaterThan(line.lateral.map { abs($0 - 0.5) }.max() ?? 0, 0.25)
+    }
+
+    /// The generator carries the line per row in the fourth attribute.
+    func testRoadRowsCarryTheLine() throws {
+        let road = try RoadGenerationTests().aalborg()
+        let generated = RoadGeneration.road(road.geometry)
+        let mains = Set(road.geometry.mainSegments.map { road.geometry.segments[$0].surface.material })
+        let main = try XCTUnwrap(generated.groups.first { mains.contains($0.material) })
+        let w = main.geometry.attributes.map(\.w)
+        XCTAssertGreaterThan(Set(w).count, 20, "the line varies along the lap")
+        // Constant across a row of nine.
+        for row in stride(from: 0, to: min(w.count, 900), by: 9) {
+            XCTAssertEqual(Set(w[row ..< row + 9]).count, 1)
+        }
     }
 }

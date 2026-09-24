@@ -41,6 +41,8 @@ struct Options {
     var roadCamera: Float? = nil
     var listSegments = false
     var roadCameraLateral: Float = 0.5
+    /// With `--road-camera`, raise the eye this far and look down the road.
+    var roadAerial: Float = 0
     var materials: String? = nil
     var depthPrepass = false
     var bloom: Bool? = nil
@@ -118,6 +120,7 @@ func parse() -> Options {
         case "--road-camera": options.roadCamera = Float(next())
         case "--list-segments": options.listSegments = true
         case "--road-lateral": options.roadCameraLateral = Float(next()) ?? 0.5
+        case "--road-aerial": options.roadAerial = Float(next()) ?? 40
         case "--materials": options.materials = next()
         case "--depth-prepass": options.depthPrepass = true
         case "--bloom": options.bloom = true
@@ -270,8 +273,8 @@ do {
                 let xy = road.geometry.localToGlobal(local)
                 return SIMD3(xy.x, xy.y, road.geometry.height(local))
             }
-            let eye = point(distance) + SIMD3(0, 0, 1.2)
-            let ahead = point(distance + 40) + SIMD3(0, 0, 0.8)
+            let eye = point(distance) + SIMD3(0, 0, 1.2 + options.roadAerial)
+            let ahead = point(distance + 40 + options.roadAerial) + SIMD3(0, 0, 0.8)
             options.eye = eye
             options.target = ahead
             print("road camera at \(distance) m: eye \(eye), target \(ahead)")

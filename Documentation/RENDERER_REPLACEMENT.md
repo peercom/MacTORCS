@@ -629,10 +629,9 @@ lines; sides and borders receive rubber only. `testAttributesEncodeLateralPositi
 pins the encoding, because a wrong lateral coordinate puts the edge line in
 the middle of the road.
 
-The rubber band is centred on the road rather than on the racing line. The
-racing line is the AI's, computed in the robot, and the renderer does not
-see it; a later increment can hand it across as a per-row lateral offset in
-the same attribute channel.
+The rubber band was first centred on the road; it now follows a racing line
+derived from the segment model, carried per row in the fourth attribute
+channel. See "Rubber on the racing line" below.
 
 Kerb paint is still a material rather than paint, and tracks whose surface
 names declare which edges carry lines (`asphalt-l-left`, `asphalt-l-both`)
@@ -1074,6 +1073,59 @@ The suite fell from 420 tests to 354, all passing; the app builds and the
 modern smoke still produces its 29 cameras and the mirror. Nothing that
 survives asserts anything about rasterization, which is the narrowing the top
 of this document announced.
+
+## Rubber on the racing line
+
+The rubber band had been centred on the road, which is where no car ever
+runs. `RacingLine` in `TORCSTrackMesh` now derives a line from the segment
+model — the same parity-verified segments the cars drive on — and the road
+generator writes its lateral position per row into the fourth attribute
+channel, alongside the lateral coordinate, width and role the markings
+already used. The shader lays the rubber around that line instead of the
+centre.
+
+The line is geometric, not optimal, and makes no claim to be fast. Every
+driver's line has the same shape — outside on the approach, inside at the
+apex, outside on the exit — and that shape falls out of curvature alone. Each
+metre of the lap gets a target pull toward the inside of its corner,
+proportional to `70 m / radius` and saturating at one; a wide blur of that
+target says where the corners are, and the line sits opposite to it on the
+approaches (`1.6·target − 1.4·blur`, clamped), then a short blur removes the
+kinks at segment joins. The line never comes within 12 % of the width of an
+edge.
+
+The filter widths matter more than the formula. The first version blurred
+over 140 m and smoothed over 25 m, tuned by intuition for a circuit with long
+corners. Aalborg's corners are 17–50 m long and 50–100 m apart, and at those
+widths the smoothing flattened a corner's inside plateau to almost nothing
+while the blur folded neighbouring corners of opposite hand into each
+other: the apex of the tightest right-hander came out at 0.58 of the width,
+barely off centre. At 60 m and 8 m the same corner reads 0.25, with the
+approach and exit at 0.45–0.49. The test that caught it,
+`testLineGoesInsideAtTheApexAndOutsideOnTheApproach`, also caught the sign:
+lateral 0 is the right edge, so a right-hander's inside is *negative*, and
+the first pass had the line hugging the outside wall of every corner.
+
+TORCS splits a corner into many short arcs, so the test finds the apex as the
+middle of the run of same-hand arcs around the tightest one, not the middle
+of the tightest arc. `testLineStaysOnTheRoadAndIsContinuous` bounds the line
+to the road, caps its per-metre change at a twentieth of the width (crossing
+the road in under ten metres is a swerve, not a line), checks that it closes
+on itself at the start line and that it is not the centre line.
+`testRoadRowsCarryTheLine` checks the attribute is constant across a row
+and varies along the lap.
+
+In the shader the rubber is a metre-wide core where the tyres actually run
+in a wider halo of lighter deposits, laid in longitudinal streaks rather than
+as a wash. The first render darkened by 35 % and was invisible: the generated
+asphalt is already dark, and a fifth less of dark is nothing. Rubbered tarmac
+is near-black and glossy against the grey of the exposed aggregate around it,
+so the core now takes the albedo to 28 % and the roughness to 60 %. The
+first streak pattern wobbled along the road and read as ripples on water;
+the wobble is now slow enough to be invisible. The cost is a dozen ALU per
+road pixel, no draws and no textures. `--road-aerial H` on the render tool
+raises the road camera to look down on the line; from 45 m the band visibly
+crosses to the inside of the hairpin and back.
 
 ## Licensing
 

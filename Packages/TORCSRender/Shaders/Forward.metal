@@ -210,9 +210,9 @@ fragment ForwardOutput forwardFragment(ForwardVarying in [[stage_in]],
 
     // Road markings, painted procedurally from the generator's lateral
     // coordinate rather than baked into a 256² texture: crisp at every
-    // distance, and the racing line's rubber comes for free from the same
-    // coordinate. Only the main road paints; sides and borders carry role 1
-    // and 2 and get rubber alone.
+    // distance, and the racing line's rubber comes from the same coordinate
+    // and the line the generator wrote. Only the main road paints; sides and
+    // borders carry role 1 and 2 and stay clean.
     if (draw.maps.w & 2u) {
         float width = in.attributes.y * 255.0f / 8.0f;
         float fromRight = in.attributes.x * width;
@@ -236,15 +236,28 @@ fragment ForwardOutput forwardFragment(ForwardVarying in [[stage_in]],
         // Worn white paint: not quite white, and smoother than the tarmac.
         albedo.rgb = mix(albedo.rgb, float3(0.78f, 0.78f, 0.74f), paint * 0.85f);
         roughness = mix(roughness, 0.55f, paint);
-        // Rubber laid down on the racing line, approximated as a soft band on
-        // the middle of the road with a little low-frequency variation.
-        if (role < 1.5f) {
-            float offset = (fromRight - width * 0.5f) / max(width, 1e-3f);
-            float band = exp(-offset * offset * 18.0f);
-            float wander = 0.75f + 0.25f * sin(along * 0.037f) * sin(along * 0.011f + 1.7f);
-            float rubber = band * wander * 0.3f;
-            albedo.rgb *= 1.0f - rubber;
-            roughness *= 1.0f - rubber * 0.35f;
+        // Rubber laid down on the racing line. The generator wrote the
+        // line's lateral position per row; the band is a metre or so wide
+        // either side of it, heavier than the surrounding tarmac and
+        // glossier, with a slow variation along the lap so it does not read
+        // as a painted stripe. Only the main road carries it.
+        if (role < 0.5f) {
+            float lineFromRight = in.attributes.w * width;
+            float offset = fromRight - lineFromRight;
+            // A metre-wide core where the tyres actually run, in a wider
+            // halo of lighter deposits.
+            float core = exp(-offset * offset * 1.4f);
+            float halo = exp(-offset * offset * 0.25f);
+            float wander = 0.8f + 0.2f * sin(along * 0.037f) * sin(along * 0.011f + 1.7f);
+            // Rubber goes down in streaks along the road, not as a wash:
+            // fine lateral variation, stretched longitudinally.
+            float streaks = 0.75f + 0.25f * sin(fromRight * 23.0f + sin(along * 0.13f) * 0.8f)
+                                  * sin(fromRight * 7.3f + along * 0.02f);
+            float rubber = saturate((core * 0.6f + halo * 0.25f) * wander * streaks);
+            // Rubbered tarmac is near-black and glossy against the grey of
+            // the exposed aggregate around it.
+            albedo.rgb = mix(albedo.rgb, albedo.rgb * 0.28f, rubber);
+            roughness = mix(roughness, roughness * 0.6f, rubber);
         }
     }
 
