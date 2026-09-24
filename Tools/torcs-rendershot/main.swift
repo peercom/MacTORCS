@@ -31,6 +31,8 @@ struct Options {
     var terrainOnly = false
     var generateTrack = false
     var trees = false
+    var grass = false
+    var grassEverywhere = false
     var treeDetail = TrackSurfaceAssembly.TreeDetail.levelOfDetail
     var cascades: Int? = nil
     var animationTime: Float = 0
@@ -101,6 +103,8 @@ func parse() -> Options {
         case "--terrain-only": options.terrainOnly = true
         case "--generate-track": options.generateTrack = true
         case "--trees": options.trees = true
+        case "--grass": options.grass = true
+        case "--grass-everywhere": options.grass = true; options.grassEverywhere = true
         case "--tree-detail":
             switch next() { case "near": options.treeDetail = .merged(middle: false)
                             case "middle": options.treeDetail = .merged(middle: true)
@@ -279,7 +283,14 @@ do {
         if options.generateTrack {
             let before = scene.batches.count
             scene = TrackSurfaceAssembly.strippingTrackgen(scene)
-            let generated = try TrackSurfaceAssembly.roadBatches(road.geometry)
+            var generated = try TrackSurfaceAssembly.roadBatches(road.geometry)
+            if options.grass {
+                var grassParameters = GrassGeneration.Parameters()
+                if options.grassEverywhere { grassParameters.skipBehindBarriersTallerThan = .infinity }
+                let grass = try TrackSurfaceAssembly.grassBatches(road.geometry, parameters: grassParameters)
+                print("grass: \(grass.count) chunks, \(grass.reduce(0) { $0 + $1.mesh.indices.count / 6 }) cards")
+                generated += grass
+            }
             scene = scene.adding(generated)
             print("generated road: \(generated.count) materials, \(generated.reduce(0) { $0 + $1.mesh.indices.count / 3 }) triangles; \(before - (scene.batches.count - generated.count)) baked batches replaced")
         }
@@ -305,6 +316,8 @@ do {
     // per-track artwork sits. Extra roots are explicit, never implicit.
     var roots = options.textureRoots.map { URL(fileURLWithPath: $0) }
     roots.append(URL(fileURLWithPath: options.input).deletingLastPathComponent())
+    // Generated atlases are resolved by name from the materials directory.
+    if let materials = options.materials { roots.append(URL(fileURLWithPath: materials)) }
     let textures = TextureStore(device: renderer.device, roots: roots)
     if options.noCull {
         scene = RenderScene(batches: scene.batches.map {

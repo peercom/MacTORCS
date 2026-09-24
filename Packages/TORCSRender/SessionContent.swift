@@ -39,7 +39,9 @@ public final class SessionRenderResources {
     public init(device: MTLDevice, scenes: [LoadedScene],
                 road: TrackGeometry? = nil, terrain: TerrainParameters? = nil,
                 materials materialDirectory: URL? = nil, generateRoad: Bool = true) throws {
-        let store = TextureStore(device: device, roots: [])
+        // Generated atlases (grass cards) live beside the materials and are
+        // resolved by name; baked artwork comes from the compiled packages.
+        let store = TextureStore(device: device, roots: materialDirectory.map { [$0] } ?? [])
         textures = store
         let library = try materialDirectory.map { try MaterialLibrary(device: device, directory: $0) }
         self.materials = library
@@ -75,6 +77,9 @@ public final class SessionRenderResources {
             }
             if generateRoad {
                 generated += try TrackSurfaceAssembly.roadBatches(road)
+                if materialDirectory != nil {
+                    generated += try TrackSurfaceAssembly.grassBatches(road)
+                }
             }
             if !generated.isEmpty {
                 let scene = RenderScene(batches: generated, minimum: low, maximum: high)
@@ -112,7 +117,7 @@ public extension SceneResources {
                           // generated set.
                           compiled[name]?.pyramid.levels.first
                       }) { name, isCutout in
-            guard let texture = compiled[name] else { return nil }
+            guard let texture = compiled[name] else { return textures.albedo(named: name, isCutout: isCutout) }
             return textures.albedo(compiled: texture, key: name, isCutout: isCutout)
         }
     }

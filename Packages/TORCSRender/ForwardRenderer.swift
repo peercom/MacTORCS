@@ -37,6 +37,7 @@ public final class SceneResources {
         let mirrored: Bool
         let detailRange: ClosedRange<Float>?
         let castsShadow: Bool
+        let prepass: Bool
 
         /// Whether this batch draws for a camera at `eye`, under `transform`.
         func isVisible(from eye: SIMD3<Float>, transform: simd_float4x4) -> Bool {
@@ -130,7 +131,8 @@ public final class SceneResources {
                 worldRadius: worldRadius,
                 mirrored: simd_determinant(transform) < 0,
                 detailRange: batch.detailRange,
-                castsShadow: batch.castsShadow))
+                castsShadow: batch.castsShadow,
+                prepass: batch.prepass))
         }
         guard !built.isEmpty else { throw RenderError.unavailable("Scene has no drawable batches") }
         batches = built
@@ -746,6 +748,9 @@ public final class ForwardRenderer {
             for (batchIndex, batch) in scene.batches.enumerated() {
                 if batch.isDriver && !instance.drawsDriver { continue }
                 if !batch.isVisible(from: camera.eye, transform: instance.transform) { continue }
+                // A batch the prepass skipped has no depth to match; it tests
+                // and writes depth here like a frame without a prepass.
+                if usesPrepass { encoder.setDepthStencilState(batch.prepass ? equalDepthState : depthState) }
                 if batch.isDeferred {
                     let centre = instance.transform * SIMD4(batch.worldCentre, 1)
                     deferred.append(DeferredDraw(instance: instanceIndex, batch: batchIndex,
@@ -813,6 +818,7 @@ public final class ForwardRenderer {
                 if batch.isDeferred { continue }
                 if batch.isDriver && !instance.drawsDriver { continue }
                 if !batch.isVisible(from: eye, transform: instance.transform) { continue }
+                if !batch.prepass { continue }
                 encoder.setRenderPipelineState(batch.needsAlphaTest ? depthOnlyCutout : depthOnly)
                 let mirrored = batch.mirrored != instanceMirrored
                 encoder.setCullMode(batch.culls ? (mirrored ? .front : .back) : .none)

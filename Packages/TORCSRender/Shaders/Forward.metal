@@ -123,12 +123,15 @@ vertex ForwardVarying forwardVertex(uint id [[vertex_id]],
     float4 world = instance.model * draw.model * float4(float3(v.position), 1.0f);
     if (draw.maps.w & 4u) {
         // Foliage sway: two slow sines phased by position so neighbouring
-        // trees do not move in step, scaled by the square of height so the
-        // trunk base stays put. Metres, at the top of a tall tree.
+        // plants do not move in step, scaled by the square of height so the
+        // base stays put. The amplitude at the top comes from the geometry
+        // (blend.y, 255 = a quarter metre): a tree top moves decimetres, a
+        // grass tip centimetres.
         float h = float(v.blend.x) * (1.0f / 255.0f);
+        float amplitude = float(v.blend.y) * (0.25f / 255.0f);
         float t = frame.ambientIrradiance.w;
         float2 sway = float2(sin(t * 1.1f + world.x * 0.05f + world.y * 0.07f),
-                             cos(t * 0.9f + world.y * 0.06f - world.x * 0.04f)) * (h * h * 0.18f);
+                             cos(t * 0.9f + world.y * 0.06f - world.x * 0.04f)) * (h * h * amplitude);
         world.xy += sway;
     }
 

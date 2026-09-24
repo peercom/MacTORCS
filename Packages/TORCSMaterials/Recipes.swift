@@ -11,7 +11,7 @@ import simd
 /// texel. Building them that way is what makes the roughness and occlusion maps
 /// meaningful instead of decorative.
 public enum MaterialRecipes {
-    public static let all = ["asphalt", "asphalt-worn", "grass", "concrete", "kerb", "gravel", "dirt"]
+    public static let all = ["asphalt", "asphalt-worn", "grass", "concrete", "kerb", "gravel", "dirt", "grass-cards"]
 
     public static func generate(_ name: String, size: Int = 1024, seed: UInt32 = 1) throws -> GeneratedMaterial {
         switch name {
@@ -22,6 +22,7 @@ public enum MaterialRecipes {
         case "kerb": return kerb(size: size, seed: seed)
         case "gravel": return gravel(size: size, seed: seed)
         case "dirt": return dirt(size: size, seed: seed)
+        case "grass-cards": return grassCards(size: size, seed: seed)
         default: throw MaterialError.unknown(name)
         }
     }
@@ -130,6 +131,65 @@ public enum MaterialRecipes {
                                  normal: MaterialPacking.normal(normals),
                                  orm: MaterialPacking.orm(occlusion: occlusion, roughness: roughness, metalness: 0),
                                  worldSize: 3)
+    }
+
+    // MARK: - Grass cards
+
+    /// An atlas of four blade clumps for the roadside cards, with coverage in
+    /// alpha. Each clump is a few dozen tapered blades leaning from a common
+    /// base, darker at the root than the tip as real grass is when lit from
+    /// above. Not a tiling texture: `worldSize` is nominal.
+    static func grassCards(size: Int, seed: UInt32) -> GeneratedMaterial {
+        var colour = [SIMD3<Float>](repeating: SIMD3(0, 0, 0), count: size * size)
+        var alpha = [Float](repeating: 0, count: size * size)
+        let half = size / 2
+        var state = seed &* 2_654_435_761 &+ 12345
+        func random() -> Float {
+            state = state &* 1_664_525 &+ 1_013_904_223
+            return Float(state >> 8) / Float(1 << 24)
+        }
+        for quadrant in 0 ..< 4 {
+            let ox = (quadrant % 2) * half, oy = (quadrant / 2) * half
+            let blades = 44 + quadrant * 6
+            for _ in 0 ..< blades {
+                // Base along the bottom of the cell, leaning either way, height
+                // in cell fractions, width in pixels at the root.
+                let baseX = 0.15 + random() * 0.7
+                let lean = (random() - 0.5) * 0.9
+                let height = 0.45 + random() * 0.5
+                let width = 1.2 + random() * 2.2
+                let dry = random()
+                let tint = 0.75 + random() * 0.4
+                let steps = Int(Float(half) * height)
+                for step in 0 ..< steps {
+                    let t = Float(step) / Float(max(steps - 1, 1))
+                    // A gentle curve: lean grows with height squared.
+                    let x = (baseX + lean * t * t * 0.6) * Float(half)
+                    let y = Float(half) - 1 - t * height * Float(half)
+                    let w = width * (1 - t * 0.85) + 0.4
+                    let lush = SIMD3<Float>(0.06, 0.13, 0.03), parched = SIMD3<Float>(0.15, 0.14, 0.05)
+                    let base = (lush + (parched - lush) * dry) * tint
+                    let shade = 0.45 + 0.55 * t  // dark root, lit tip
+                    for dx in stride(from: -w, through: w, by: 1) {
+                        let px = Int(x + dx), py = Int(y)
+                        guard px >= 0, px < half, py >= 0, py < half else { continue }
+                        let coverage = max(0, 1 - abs(dx) / w)
+                        let index = (oy + py) * size + ox + px
+                        if coverage > alpha[index] {
+                            alpha[index] = min(1, alpha[index] + coverage)
+                            colour[index] = base * shade
+                        }
+                    }
+                }
+            }
+        }
+        let flat = [SIMD3<Float>](repeating: SIMD3(0, 0, 1), count: size * size)
+        return GeneratedMaterial(name: "grass-cards", size: size,
+                                 albedo: MaterialPacking.albedo(colour, alpha: alpha),
+                                 normal: MaterialPacking.normal(flat),
+                                 orm: MaterialPacking.orm(occlusion: ScalarField(size: size, repeating: 1),
+                                                          roughness: ScalarField(size: size, repeating: 0.9), metalness: 0),
+                                 worldSize: 1)
     }
 
     // MARK: - Concrete, kerb, gravel, dirt

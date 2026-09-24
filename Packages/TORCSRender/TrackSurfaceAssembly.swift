@@ -142,6 +142,32 @@ public enum TrackSurfaceAssembly {
         return surfaceBatch(mesh: mesh, texture: parameters.surface + ".rgb", roughness: 0.92)
     }
 
+    /// Beyond this the verge's cards are not drawn; at sixty metres a
+    /// forty-centimetre clump is a few pixels and the terrain texture carries it.
+    public static let grassDistance: Float = 60
+    public static let grassTexture = "grass-cards-albedo.png"
+
+    /// Grass clumps along both verges, one batch per hundred metres of track.
+    /// The atlas is `torcs-matgen`'s `grass-cards`, resolved by name from the
+    /// texture roots — the materials directory must be one of them.
+    public static func grassBatches(_ geometry: TrackGeometry,
+                                    parameters: GrassGeneration.Parameters = .init()) throws -> [RenderBatch] {
+        var batches: [RenderBatch] = []
+        for chunk in GrassGeneration.chunks(geometry, parameters: parameters) where !chunk.geometry.isEmpty {
+            let g = chunk.geometry
+            let mesh = try RenderMesh.build(positions: g.positions, normals: g.normals, uv0: g.uv0,
+                                            blend: g.attributes, indices: g.indices)
+            let state = ACRenderState(material: [0, 0, 0, 1, 0, 0, 0, 1, 0.2, 0.2, 0.2, 1, 0],
+                                      texture: grassTexture, flags: 16, alphaClamp: 0.5)
+            batches.append(RenderBatch(mesh: mesh, baseTexture: grassTexture, blends: false, isDeferred: false,
+                                       alphaTestThreshold: 0.5, culls: false, isDriver: false, sourceMaterial: state,
+                                       material: ResolvedMaterial(baseColour: SIMD4(1, 1, 1, 1), roughness: 0.9, metallic: 0),
+                                       swaysInWind: true, detailRange: 0 ... grassDistance, castsShadow: false,
+                                       prepass: false))
+        }
+        return batches
+    }
+
     /// A rough dielectric whose colour comes from the generated set bound by
     /// name; the source state mirrors what trackgen would have written so the
     /// batch reads like any other.

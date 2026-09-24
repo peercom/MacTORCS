@@ -14,7 +14,8 @@ import TORCSTrackMesh
 /// cutout, the cascades see leaves, not sheets.
 ///
 /// Per-vertex attributes: x is height in the tree (0 at the base, 1 at the
-/// top), which the vertex shader sways by; w is a leaf tint.
+/// top), which the vertex shader sways by; y the sway amplitude at the top
+/// in quarter-millimetres over 255 (see Forward.metal); w a leaf tint.
 public enum TreeMeshes {
     /// - Parameter middle: a lighter build for distant trees.
     public static func mesh(family: Int, variant: Int, middle: Bool, atlas: TextureImage) -> GeneratedGeometry {
@@ -59,7 +60,7 @@ public enum TreeMeshes {
             out.positions.append(position)
             out.normals.append(normal)
             out.uv0.append(uv)
-            out.attributes.append(SIMD4(UInt8(min(max(position.z, 0), 1) * 255), 0, 0, UInt8(min(max(tint, 0), 1) * 255)))
+            out.attributes.append(SIMD4(UInt8(min(max(position.z, 0), 1) * 255), 184, 0, UInt8(min(max(tint, 0), 1) * 255)))
         }
         // Bark: the atlas's trunk column, a narrow strip at the base of the region.
         let barkUV = SIMD2((range.x + range.y) * 0.5, descriptor.top * 0.97)

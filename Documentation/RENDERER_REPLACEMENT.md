@@ -940,6 +940,45 @@ Not done: grass, trackside furniture and crowds from the plan's scatter
 list; a depth-sorted or dithered transition at the seventy-metre switch,
 which currently pops; and wind in the shadow pass, which is still.
 
+## Grass on the verges
+
+The terrain is a textured plane, and at driver height its edge against
+the road was the flattest thing left in the frame. Clumps of crossed
+blade cards now line both verges: scattered outward from the outermost
+strip on each hand in two-metre rows, dense at the edge and thinning to
+eight metres out, standing on the same height the terrain grid uses, in
+batches a hundred metres long that stop drawing at sixty. The blades are
+a generated atlas — `torcs-matgen`'s `grass-cards`, four clumps of
+tapered blades with coverage in alpha — so nothing new needs a licence.
+They sway with the trees' wind at a fraction of the amplitude, which the
+geometry now carries per vertex rather than the shader assuming a tree.
+
+### Two things the first render taught
+
+**Cards as black blocks.** The atlas's alpha never reached the alpha
+test: `torcs-matgen` wrote its PNGs with `noneSkipLast`, discarding the
+fourth channel. It keeps straight alpha now. Every material's albedo was
+written that way; only the cutout ever needed the channel.
+
+**Aalborg has no verges.** The clumps appeared behind the barrier walls,
+because the barrier stands at exactly the edge the grass scatters from,
+and Aalborg is walled at 0.6 m for the whole lap — taller than any clump.
+Grass behind a wall taller than itself is invisible from the road and
+pure cost, so a side whose barrier is at least clump height gets none.
+On Aalborg that is every side, and `testWalledVergesGetNoGrass` pins
+zero clumps; the feature exists for open circuits, which the content
+inventory says are most of them.
+
+### Measured
+
+Forced everywhere on Aalborg, road camera at a walled corner, 1280x832:
+36,000 cards at the first density cost +5 ms even after the cards were
+taken out of the depth prepass (an alpha-tested cutout pays for its
+discard twice if it is in it; grass now depth-tests in the forward pass
+instead, forgoing occlusion and reflection on itself). At the shipped
+density — 17,600 cards, eight metres of reach, drawn to sixty — the
+frame with grass measured 5.16 ms against 5.14 without.
+
 ## Licensing
 
 No third-party artwork is imported by this work. New render source is

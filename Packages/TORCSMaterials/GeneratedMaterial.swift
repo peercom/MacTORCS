@@ -54,6 +54,13 @@ public enum MaterialPacking {
         return bytes
     }
 
+    /// Linear colour and coverage to sRGB bytes with alpha, for cutouts.
+    public static func albedo(_ colour: [SIMD3<Float>], alpha: [Float]) -> [UInt8] {
+        var bytes = albedo(colour)
+        for (index, a) in alpha.enumerated() where index < colour.count { bytes[index * 4 + 3] = byte(a) }
+        return bytes
+    }
+
     public static func normal(_ vectors: [SIMD3<Float>]) -> [UInt8] {
         var bytes = [UInt8](repeating: 255, count: vectors.count * 4)
         for (index, n) in vectors.enumerated() {

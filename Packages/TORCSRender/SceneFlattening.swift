@@ -16,13 +16,14 @@ public struct RenderBatch: Sendable {
                 alphaTestThreshold: Float?, culls: Bool, isDriver: Bool,
                 sourceMaterial: ACRenderState, material: ResolvedMaterial, uvInMetres: Bool = false,
                 paintsRoadMarkings: Bool = false, swaysInWind: Bool = false,
-                detailRange: ClosedRange<Float>? = nil, castsShadow: Bool = true) {
+                detailRange: ClosedRange<Float>? = nil, castsShadow: Bool = true, prepass: Bool = true) {
         self.mesh = mesh
         self.uvInMetres = uvInMetres
         self.paintsRoadMarkings = paintsRoadMarkings
         self.swaysInWind = swaysInWind
         self.detailRange = detailRange
         self.castsShadow = castsShadow
+        self.prepass = prepass
         self.baseTexture = baseTexture
         self.blends = blends
         self.isDeferred = isDeferred
@@ -51,6 +52,11 @@ public struct RenderBatch: Sendable {
     /// Whether the shadow cascades draw it. A near-detail batch leaves the
     /// casting to its lighter partner.
     public let castsShadow: Bool
+    /// Whether the depth prepass draws it. Dense alpha-tested cutouts pay
+    /// for their discard twice if it does; grass skips it and depth-tests in
+    /// the forward pass instead, at the price of no occlusion or reflection
+    /// on it.
+    public let prepass: Bool
     /// Draw through the alpha-blending pipeline.
     ///
     /// Distinct from `isDeferred`, and the two are genuinely independent in the

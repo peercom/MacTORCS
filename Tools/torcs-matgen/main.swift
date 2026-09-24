@@ -30,7 +30,8 @@ func writePNG(_ bytes: [UInt8], size: Int, to url: URL) throws {
     guard let provider = CGDataProvider(data: Data(bytes) as CFData),
           let image = CGImage(width: size, height: size, bitsPerComponent: 8, bitsPerPixel: 32,
                               bytesPerRow: size * 4, space: space,
-                              bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.noneSkipLast.rawValue),
+                              // Straight alpha, kept: cutout atlases carry their coverage here.
+                              bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.last.rawValue),
                               provider: provider, decode: nil, shouldInterpolate: false,
                               intent: .defaultIntent),
           let destination = CGImageDestinationCreateWithURL(url as CFURL, UTType.png.identifier as CFString, 1, nil)
@@ -98,7 +99,8 @@ do {
             if let provider = CGDataProvider(data: Data(sheet) as CFData),
                let image = CGImage(width: sheetWidth, height: material.size, bitsPerComponent: 8,
                                    bitsPerPixel: 32, bytesPerRow: sheetWidth * 4, space: space,
-                                   bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.noneSkipLast.rawValue),
+                                   // Straight alpha, kept: cutout atlases carry their coverage here.
+                              bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.last.rawValue),
                                    provider: provider, decode: nil, shouldInterpolate: false, intent: .defaultIntent),
                let destination = CGImageDestinationCreateWithURL(
                    options.output.appendingPathComponent("\(material.name)-sheet.png") as CFURL,
