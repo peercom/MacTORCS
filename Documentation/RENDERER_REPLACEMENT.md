@@ -124,6 +124,47 @@ BC1 quality was measured on `tarmac-wall-1-g2`, `tr-asphalt-aa-l_n`, `grass-aa`
 and `driver`. 30 dB is the conventional floor for visually acceptable BC1 on
 photographic source.
 
+### AgX output is display-encoded and must be decoded before an sRGB target
+
+The first textured frames came out pale and flat. AgX's sigmoid produces
+display-encoded values by construction, so writing them straight into an
+`rgba8Unorm_srgb` render target applies the transfer function twice. The
+reference chain ends with a 2.2 decode; without it, middle grey landed near 0.68
+instead of 0.46.
+
+Isolated by rendering with sun and ambient intensity at zero: the geometry came
+back pure black, which ruled out a light leak and placed the fault in the
+tonemapper rather than the lighting.
+
+### Multiple-scattering compensation has to be bounded
+
+`1 + f0 * (1 / dfg.y - 1)` is the standard multi-scatter term, but the bias
+component of the environment BRDF approaches zero on smooth surfaces. Measured
+at perceptual roughness 0.05 it reached a **7x** specular gain on a plain
+dielectric, which is invented energy, not a correction. Now clamped at 2x, which
+retains the genuine rough-metal recovery.
+
+Both faults passed every unit test. They were found by looking at rendered
+frames, which is the argument for `torcs-rendershot` existing at all.
+
+## First measurements
+
+Offscreen, 1280x832, Apple M2, against a ~10.5 ms per-frame budget:
+
+| Scene | Batches | Triangles | GPU |
+|---|---|---|---|
+| Aalborg, textured | 1,315 | 12,305 | 1.005 ms |
+| 155-DTM, textured | 18 | 5,698 | 0.718 ms |
+
+Twenty-two textures resolve for Aalborg; five do not. Those five —
+`concrete.rgb`, `concrete2.rgb`, `pylon1.rgb`, `pylon2.rgb`, `pylon3.rgb` — are
+exactly the shared files `ASSET_LICENSES.md` excludes for unresolved per-file
+attribution. They render as obviously untextured rather than being substituted,
+per the asset package's rule never to silently replace a missing dependency.
+
+This is a correct pipeline, not yet a good-looking one: no shadows, no
+atmosphere, no ambient occlusion, no reflections, and 256-square source art.
+
 ## Licensing
 
 No third-party artwork is imported by this work. New render source is

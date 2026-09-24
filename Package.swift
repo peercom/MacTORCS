@@ -9,7 +9,8 @@ let package = Package(
         .executable(name: "TORCSMac", targets: ["TORCSMac"]),
         .executable(name: "torcs-reference", targets: ["TORCSReference"]),
         .executable(name: "torcs-sim", targets: ["TORCSSim"]),
-        .executable(name: "torcs-diff", targets: ["TORCSDiff"])
+        .executable(name: "torcs-diff", targets: ["TORCSDiff"]),
+        .executable(name: "torcs-rendershot", targets: ["TORCSRenderShot"])
     ],
     targets: [
         .target(name: "TORCSAssets", path: "Packages/TORCSAssets"),
@@ -39,6 +40,7 @@ let package = Package(
         .executableTarget(name: "TORCSSim", dependencies: ["TORCSRaceEngine", "TORCSSimulation", "TORCSTelemetry", "TORCSConfiguration", "TORCSTrack"], path: "Tools/torcs-sim"),
         .executableTarget(name: "TORCSAssetCompiler", dependencies: ["TORCSAssets"], path: "Tools/torcs-assetc"),
         .executableTarget(name: "TORCSDiff", dependencies: ["TORCSTelemetry"], path: "Tools/torcs-diff"),
+        .executableTarget(name: "TORCSRenderShot", dependencies: ["TORCSRender", "TORCSAssets"], path: "Tools/torcs-rendershot"),
         .executableTarget(name: "TORCSMac", dependencies: ["TORCSCore", "TORCSSimulation", "TORCSMetal", "TORCSConfiguration", "TORCSTrack", "TORCSAssets", "TORCSRaceEngine", "TORCSTelemetry", "TORCSInput"], path: "App"),
         .testTarget(name: "UnitTests", dependencies: ["TORCSRobots", "TORCSCore", "TORCSMath", "TORCSConfiguration", "TORCSSimulation", "TORCSTelemetry", "CReference", "TORCSReferenceSupport", "TORCSTrack", "TORCSRaceEngine", "TORCSAssets", "TORCSMetal", "TORCSRender", "TORCSInput"], path: "Tests/UnitTests", resources: [.copy("Fixtures")]),
         .testTarget(name: "PhysicsGoldenTests", dependencies: ["TORCSSimulation", "TORCSTelemetry", "CReference"], path: "Tests/PhysicsGoldenTests", resources: [.copy("Fixtures")])

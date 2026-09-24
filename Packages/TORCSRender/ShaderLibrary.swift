@@ -16,17 +16,31 @@ public enum RenderError: Error, CustomStringConvertible {
 /// Loads and compiles the render path's Metal sources.
 ///
 /// `makeLibrary(source:)` does not resolve filesystem `#include` directives, so
-/// the sources are concatenated in dependency order instead. Every shader file
-/// carries an include guard, which makes the concatenation order-tolerant and
-/// keeps each file independently compilable with `xcrun metal` for quick checks.
+/// the sources are concatenated in dependency order and their *local* includes
+/// are stripped. System includes such as `<metal_stdlib>` are left alone.
+///
+/// Keeping the `#include "..."` lines in the files themselves is deliberate: it
+/// means any single shader can still be compiled standalone with
+/// `xcrun metal -I Shaders`, which is a much faster way to find a syntax error
+/// than a full package build. Every file also carries an include guard, so the
+/// concatenation tolerates duplication.
 ///
 /// This compiles at runtime, matching the classic path. Phase 8 replaces it
 /// with a prebuilt `.metallib` plus an `MTLBinaryArchive`, because
 /// PORT_SPECIFICATION.md section 24 requires that no pipeline compiles during a
 /// race.
 public struct ShaderLibrary {
-    /// Dependency order: shared decoding first, then the BRDF that uses it.
-    public static let sourceOrder = ["Common", "BRDF"]
+    /// Dependency order: shared decoding, the BRDF that uses it, tonemapping,
+    /// then the passes that draw on all three.
+    public static let sourceOrder = ["Common", "BRDF", "Post", "Forward", "Resolve"]
+
+    /// Drops `#include "local.metal"` while preserving `#include <system>`.
+    static func strippingLocalIncludes(_ source: String) -> String {
+        source.split(separator: "\n", omittingEmptySubsequences: false).filter { line in
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            return !(trimmed.hasPrefix("#include") && trimmed.contains("\""))
+        }.joined(separator: "\n")
+    }
 
     public let library: MTLLibrary
 
@@ -38,7 +52,7 @@ public struct ShaderLibrary {
                 ?? bundle.url(forResource: name, withExtension: "metal") else {
                 throw RenderError.unavailable("Missing shader source \(name).metal in \(bundle.bundlePath)")
             }
-            combined += try String(contentsOf: url, encoding: .utf8) + "\n"
+            combined += Self.strippingLocalIncludes(try String(contentsOf: url, encoding: .utf8)) + "\n"
         }
         try self.init(device: device, source: combined)
     }
@@ -67,7 +81,7 @@ public struct ShaderLibrary {
                 ?? bundle.url(forResource: name, withExtension: "metal") else {
                 throw RenderError.unavailable("Missing shader source \(name).metal")
             }
-            combined += try String(contentsOf: url, encoding: .utf8) + "\n"
+            combined += strippingLocalIncludes(try String(contentsOf: url, encoding: .utf8)) + "\n"
         }
         return combined
     }

@@ -87,7 +87,12 @@ inline float2 environmentBRDF(float perceptualRoughness, float NoV) {
 /// energy at high roughness, leaving rough metals — brushed trim, worn armco —
 /// noticeably too dark. This restores it for the cost of one multiply.
 inline float3 energyCompensation(float3 f0, float2 dfg) {
-    return 1.0f + f0 * (1.0f / max(dfg.y, 1e-4f) - 1.0f);
+    // The bias term approaches zero on smooth surfaces, so the reciprocal has
+    // to be bounded or a near-mirror dielectric picks up a several-fold
+    // specular gain that is pure energy invention. Clamping at 2x keeps the
+    // genuine rough-metal correction while ruling that out.
+    float3 gain = 1.0f + f0 * (1.0f / max(dfg.y, 1e-2f) - 1.0f);
+    return min(gain, float3(2.0f));
 }
 
 /// Geometric specular antialiasing (Kaplanyan et al.). Widens roughness where

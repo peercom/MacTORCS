@@ -23,6 +23,8 @@ public struct RenderBatch: Sendable {
     /// The driver subtree, hidden in cockpit views.
     public let isDriver: Bool
     public let sourceMaterial: ACRenderState
+    /// Physically based stand-in derived from the original material state.
+    public let material: ResolvedMaterial
 }
 
 /// Flattened scene ready for the modern render path.
@@ -114,6 +116,13 @@ public struct RenderScene: Sendable {
 
             let render = try RenderMesh.build(positions: positions, normals: normals,
                                               uv0: uv0, uv1: uv1, indices: indices, transform: transform)
+            // AC stores diffuse RGBA per vertex; the loader writes the surface
+            // material's colour to every vertex of the batch, so the first is
+            // representative. Absent colours mean untinted white.
+            let diffuse: SIMD4<Float> = mesh.colors.count >= 4
+                ? SIMD4(mesh.colors[0], mesh.colors[1], mesh.colors[2], mesh.colors[3])
+                : SIMD4(1, 1, 1, 1)
+
             // AC flags: bit 0 blend, bit 4 alpha test, bit 5 translucent.
             let alphaTested = material.flags & 16 != 0
             collected[index] = RenderBatch(
@@ -123,7 +132,8 @@ public struct RenderScene: Sendable {
                 alphaTestThreshold: alphaTested ? material.alphaClamp : nil,
                 culls: mesh.cull,
                 isDriver: isDriver,
-                sourceMaterial: material)
+                sourceMaterial: material,
+                material: MaterialResolution.resolve(state: material, diffuse: diffuse))
         }
 
         guard !collected.isEmpty else { throw ACError.invalid("Scene has no drawable triangles") }

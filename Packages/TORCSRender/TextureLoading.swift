@@ -1,0 +1,168 @@
+// SPDX-License-Identifier: GPL-2.0-only
+import Foundation
+import Metal
+import simd
+import TORCSMath
+import TORCSAssets
+
+/// Texture loading for the modern path.
+///
+/// Two things differ from the classic loader, both deliberate:
+///
+/// - Albedo is uploaded as `rgba8Unorm_srgb`, so sampling returns linear
+///   radiance. The classic path uploaded `rgba8Unorm` and did its arithmetic on
+///   the stored sRGB bytes, which is only correct if you never light anything.
+/// - Mips are generated in **linear** space. `TexturePyramid` averages stored
+///   sRGB bytes with integer arithmetic to reproduce upstream exactly; that is
+///   right for parity and wrong for shading, because averaging gamma-encoded
+///   values darkens every mip. On a road surface, where almost every pixel
+///   samples a mip, the error is a visible darkening with distance.
+public enum TextureLoading {
+    /// Decodes SGI or PNG by content, matching `torcs-assetc`.
+    public static func decode(_ data: Data) throws -> TextureImage {
+        // PNG magic; anything else is treated as SGI, which fails explicitly.
+        let isPNG = data.count >= 8 && data.prefix(8).elementsEqual([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A])
+        return isPNG ? try TextureImage.decodePNG(data) : try TextureImage.decodeSGI(data)
+    }
+
+    /// Fraction of texels that survive an alpha cutout at `threshold`.
+    static func coverage(_ rgba: [UInt8], threshold: Float) -> Float {
+        let cutoff = UInt8(max(0, min(255, threshold * 255)))
+        var passing = 0
+        for i in stride(from: 3, to: rgba.count, by: 4) where rgba[i] > cutoff { passing += 1 }
+        return Float(passing) / Float(max(rgba.count / 4, 1))
+    }
+
+    /// Rescales alpha so a mip keeps its parent's cutout coverage.
+    ///
+    /// Without this, averaging alpha across a foliage mip chain steadily erodes
+    /// coverage and distant trees dissolve into nothing — the classic reason
+    /// alpha-tested vegetation looks broken at range. Upstream avoided the
+    /// problem only by disabling mips on `_n` textures entirely, which trades
+    /// dissolving leaves for aliasing ones.
+    static func matchCoverage(_ rgba: inout [UInt8], target: Float, threshold: Float) {
+        guard target > 0, target < 1 else { return }
+        var low: Float = 0, high: Float = 4, scale: Float = 1
+        for _ in 0 ..< 12 {
+            scale = (low + high) * 0.5
+            var scaled = rgba
+            for i in stride(from: 3, to: scaled.count, by: 4) {
+                scaled[i] = UInt8(max(0, min(255, Float(rgba[i]) * scale)))
+            }
+            if coverage(scaled, threshold: threshold) < target { low = scale } else { high = scale }
+        }
+        for i in stride(from: 3, to: rgba.count, by: 4) {
+            rgba[i] = UInt8(max(0, min(255, Float(rgba[i]) * scale)))
+        }
+    }
+
+    /// Builds a complete mip chain, filtering colour in linear space.
+    public static func linearMipChain(_ image: TextureImage, preserveCutoutCoverage: Bool,
+                                      cutoutThreshold: Float = 0.5) throws -> [(width: Int, height: Int, pixels: [UInt8])] {
+        guard image.width > 0, image.height > 0 else {
+            throw ACError.invalid("Cannot build mips for an empty image")
+        }
+        var levels: [(width: Int, height: Int, pixels: [UInt8])] = [(image.width, image.height, image.rgba8)]
+        let baseCoverage = preserveCutoutCoverage ? coverage(levels[0].pixels, threshold: cutoutThreshold) : 0
+
+        // Precomputed sRGB decode; a pow() per channel per texel is the whole
+        // cost of this function otherwise.
+        let toLinear = (0 ... 255).map { ColorSpace.linear(fromSRGB: Float($0) / 255) }
+
+        while let parent = levels.last, parent.width > 1 || parent.height > 1 {
+            let width = max(1, parent.width / 2), height = max(1, parent.height / 2)
+            var pixels = [UInt8](repeating: 0, count: width * height * 4)
+            for y in 0 ..< height {
+                for x in 0 ..< width {
+                    let x0 = min(x * 2, parent.width - 1), x1 = min(x * 2 + 1, parent.width - 1)
+                    let y0 = min(y * 2, parent.height - 1), y1 = min(y * 2 + 1, parent.height - 1)
+                    let corners = [(x0, y0), (x1, y0), (x0, y1), (x1, y1)].map { ($0.1 * parent.width + $0.0) * 4 }
+                    for c in 0 ..< 3 {
+                        let sum = corners.reduce(Float(0)) { $0 + toLinear[Int(parent.pixels[$1 + c])] }
+                        pixels[(y * width + x) * 4 + c] =
+                            UInt8(max(0, min(255, (ColorSpace.srgb(fromLinear: sum / 4) * 255).rounded())))
+                    }
+                    // Alpha is a coverage mask, not a colour: average it
+                    // directly, never through the transfer function.
+                    let alpha = corners.reduce(0) { $0 + Int(parent.pixels[$1 + 3]) } / 4
+                    pixels[(y * width + x) * 4 + 3] = UInt8(alpha)
+                }
+            }
+            if preserveCutoutCoverage {
+                matchCoverage(&pixels, target: baseCoverage, threshold: cutoutThreshold)
+            }
+            levels.append((width, height, pixels))
+        }
+        return levels
+    }
+
+    public static func upload(_ levels: [(width: Int, height: Int, pixels: [UInt8])],
+                              device: MTLDevice, srgb: Bool) throws -> MTLTexture {
+        guard let base = levels.first else { throw ACError.invalid("No mip levels to upload") }
+        let descriptor = MTLTextureDescriptor.texture2DDescriptor(
+            pixelFormat: srgb ? .rgba8Unorm_srgb : .rgba8Unorm,
+            width: base.width, height: base.height, mipmapped: levels.count > 1)
+        descriptor.mipmapLevelCount = levels.count
+        descriptor.usage = .shaderRead
+        descriptor.storageMode = .shared
+        guard let texture = device.makeTexture(descriptor: descriptor) else {
+            throw ACError.invalid("Could not allocate a \(base.width)x\(base.height) texture")
+        }
+        for (level, mip) in levels.enumerated() {
+            mip.pixels.withUnsafeBytes { raw in
+                texture.replace(region: MTLRegionMake2D(0, 0, mip.width, mip.height),
+                                mipmapLevel: level, withBytes: raw.baseAddress!,
+                                bytesPerRow: mip.width * 4)
+            }
+        }
+        return texture
+    }
+}
+
+/// Resolves texture references against explicit roots and caches uploads.
+///
+/// Explicit roots only, with no implicit current-directory or network fallback,
+/// matching `ContentSearchPath`'s rule in the asset package. A missing texture
+/// is reported, never silently replaced with something that looks plausible.
+public final class TextureStore {
+    private let device: MTLDevice
+    private let roots: [URL]
+    private var cache: [String: MTLTexture] = [:]
+    public private(set) var missing: Set<String> = []
+    public private(set) var uploadedBytes = 0
+
+    public init(device: MTLDevice, roots: [URL]) {
+        self.device = device
+        self.roots = roots
+    }
+
+    /// Case-insensitive search by basename, because AC files reference textures
+    /// with inconsistent casing and the original loader compared case-insensitively.
+    func locate(_ name: String) -> URL? {
+        let basename = (name as NSString).lastPathComponent.lowercased()
+        for root in roots {
+            let direct = root.appendingPathComponent(basename)
+            if FileManager.default.fileExists(atPath: direct.path) { return direct }
+            guard let entries = try? FileManager.default.contentsOfDirectory(at: root, includingPropertiesForKeys: nil) else { continue }
+            if let match = entries.first(where: { $0.lastPathComponent.lowercased() == basename }) { return match }
+        }
+        return nil
+    }
+
+    public func albedo(named name: String, isCutout: Bool) -> MTLTexture? {
+        if let cached = cache[name] { return cached }
+        if missing.contains(name) { return nil }
+        guard let url = locate(name), let data = try? Data(contentsOf: url),
+              let image = try? TextureLoading.decode(data),
+              let levels = try? TextureLoading.linearMipChain(image, preserveCutoutCoverage: isCutout),
+              let texture = try? TextureLoading.upload(levels, device: device, srgb: true) else {
+            missing.insert(name)
+            return nil
+        }
+        cache[name] = texture
+        uploadedBytes += levels.reduce(0) { $0 + $1.width * $1.height * 4 }
+        return texture
+    }
+
+    public var count: Int { cache.count }
+}
