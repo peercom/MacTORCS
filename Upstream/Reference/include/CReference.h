@@ -468,6 +468,12 @@ int ref_world_race_configure(RefWorld *world,unsigned int rules,unsigned int rac
 // The original total speed (pub.speed). The corner-cutting time penalty uses it,
 // while the pit speed limit uses the longitudinal speed the sample carries.
 int ref_world_race_public_speed(RefWorld *world,int car,float speed);
+// Original qualifying ranking. Each entry is one finished single-driver run, in
+// the order the runs happened; the result is the ranked list the original builds
+// by inserting each run into place. Times are seconds; zero means no time set.
+typedef struct { char name[64]; float bestLapTime; int index; } RefQualifRun;
+int ref_race_qualif_rank(const char *fixtures,const RefQualifRun *runs,int count,
+                         RefQualifRun *output,int capacity);
 int ref_world_bt_car_status(RefWorld *world,int car,RefRobotRaceState *output);
 int ref_world_bt_car_input(RefWorld *world,int car,double *values,int capacity);
 int ref_world_bt_car_observation(RefWorld *world,int car,RefBTObservation *output);

@@ -51,6 +51,14 @@ end = race.index(b"\nstatic void\ninitPits(void)", start)
 assert (root / "Upstream/Reference/race/starting-grid.inc").read_bytes() == race[:race.index(b"#include")] + race[start:end]
 print("Verified verbatim original initStartingGrid excerpt.")
 
+# The qualifying ranking oracle is a verbatim excerpt of the pinned results code.
+qualif = (root / "Upstream/Reference/race/raceresults.cpp").read_bytes()
+start = qualif.index(b"\t\tcase RM_TYPE_QUALIF:")
+end = qualif.index(b"\n\t\t\tGfParmReleaseHandle(carparam);\n\t\t\tbreak;", start)
+assert (root / "Upstream/Reference/race/qualif-rank.inc").read_bytes() == \
+    qualif[:qualif.index(b"#include")] + qualif[start:end] + b"\n"
+print("Verified verbatim original qualifying ranking excerpt.")
+
 # Image oracle uses the complete unmodified original read function.
 img = (root / "Upstream/Reference/textures/img.cpp").read_bytes()
 start = img.index(b"unsigned char *\nGfImgReadPng")

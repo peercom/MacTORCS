@@ -41,6 +41,36 @@ public struct ReferenceStartingGrid: Sendable, Equatable {
 /// Original tSituation race types.
 public enum ReferenceRaceType: UInt32, Sendable { case practice=0, qualifying=1, race=2 }
 
+/// The original qualifying ranking, run over a sequence of finished single-driver
+/// runs. Needs the staged fixture directory, because the original reads each
+/// car's own XML to record its display name.
+public enum ReferenceQualifying {
+    public static func rank(_ runs: [(name: String,bestLapTime: Float,index: Int)],
+                            fixtures: URL) throws -> [(name: String,bestLapTime: Float,index: Int)] {
+        var input=runs.map { run -> RefQualifRun in
+            var value=RefQualifRun()
+            withUnsafeMutableBytes(of:&value.name) { buffer in
+                let bytes=Array(run.name.utf8.prefix(63))
+                for (offset,byte) in bytes.enumerated() { buffer[offset]=byte }
+                buffer[bytes.count]=0
+            }
+            value.bestLapTime=run.bestLapTime;value.index=Int32(run.index)
+            return value
+        }
+        var output=[RefQualifRun](repeating:RefQualifRun(),count:runs.count)
+        let ranked=ref_race_qualif_rank(fixtures.path,&input,Int32(input.count),&output,Int32(output.count))
+        guard ranked>0 else { throw TelemetryError.invalid("The original qualifying ranking failed") }
+        return output.prefix(Int(ranked)).map { entry in
+            var value=entry
+            let name=withUnsafeBytes(of:&value.name) { buffer -> String in
+                let bytes=buffer.prefix { $0 != 0 }
+                return String(decoding:bytes,as:UTF8.self)
+            }
+            return (name,entry.bestLapTime,Int(entry.index))
+        }
+    }
+}
+
 /// Native gameplay targets must never depend on this module.
 public final class ReferenceWorld {
     private var handle: OpaquePointer?

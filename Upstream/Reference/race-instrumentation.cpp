@@ -28,6 +28,72 @@ void glutPostRedisplay() { abort(); }
 double GfTimeClock() { abort(); }
 void ref_race_assign_original(tRmInfo *info) { ReInfo=info; initPits(); }
 void ref_race_starting_grid_original(tRmInfo *info) { ReInfo=info; initStartingGrid(); }
+
+// The original qualifying ranking, compiled verbatim from the pinned results
+// code. The excerpt is a switch case body, so this supplies exactly the names
+// ReStoreRaceResults has in scope and nothing else.
+#include <filesystem>
+// Declared where world.cpp declares them: params.cpp defines these, and the
+// race headers reachable here do not declare them.
+extern void GfParmInit(void);
+extern void GfParmShutdown(void);
+extern void *GfParmReadBuf(char *buffer);
+static void refQualifInsert(tCarElt *car,tSituation *s,void *results,void *params) {
+    const int BUFSIZE=1024;
+    char path[BUFSIZE],path2[BUFSIZE],buf[BUFSIZE];
+    const char *race=ReInfo->_reRaceName;
+    int i,nCars;
+    void *carparam;const char *carName;
+    switch (ReInfo->s->_raceType) {
+#include "race/qualif-rank.inc"
+        GfParmReleaseHandle(carparam);
+        break;
+    default: break;
+    }
+    (void)path2;(void)buf;
+}
+int ref_race_qualif_rank(const char *fixtures,const RefQualifRun *runs,int count,
+                         RefQualifRun *output,int capacity) {
+    if (!fixtures || !runs || !output || count<1 || count>64 || capacity<count) return 0;
+    std::error_code ec;auto previous=std::filesystem::current_path(ec);
+    if (ec) return 0;
+    std::filesystem::current_path(fixtures,ec);
+    if (ec) return 0;
+    GfParmInit();
+    std::string emptyResults="<params name='results'></params>";
+    std::string emptyParams="<params name='race'></params>";
+    void *results=GfParmReadBuf(emptyResults.data());
+    void *params=GfParmReadBuf(emptyParams.data());
+    tTrack track{};track.name=(char*)"aalborg";
+    tSituation situation{};situation._raceType=RM_TYPE_QUALIF;
+    tRmInfo info{};info.track=&track;info.s=&situation;info.results=results;info.params=params;
+    info._reRaceName=(char*)"Qualifying";
+    auto saved=ReInfo;ReInfo=&info;
+    for (int run=0;run<count;++run) {
+        tCarElt car{};
+        snprintf(car.info.name,sizeof car.info.name,"%s",runs[run].name);
+        car._bestLapTime=runs[run].bestLapTime;
+        car._driverIndex=runs[run].index;
+        snprintf(car.info.carName,sizeof car.info.carName,"155-DTM");
+        snprintf(car.priv.modName,sizeof car.priv.modName,"bt");
+        tCarElt *cars[]={&car};situation.cars=cars;situation._ncars=1;
+        refQualifInsert(&car,&situation,results,params);
+    }
+    char path[1024];
+    snprintf(path,sizeof path,"%s/%s/%s/%s","aalborg",RE_SECT_RESULTS,"Qualifying",RE_SECT_RANK);
+    int ranked=GfParmGetEltNb(results,path);
+    if (ranked>capacity) ranked=capacity;
+    for (int i=0;i<ranked;++i) {
+        snprintf(path,sizeof path,"%s/%s/%s/%s/%d","aalborg",RE_SECT_RESULTS,"Qualifying",RE_SECT_RANK,i+1);
+        snprintf(output[i].name,sizeof output[i].name,"%s",GfParmGetStr(results,path,RE_ATTR_NAME,""));
+        output[i].bestLapTime=GfParmGetNum(results,path,RE_ATTR_BEST_LAP_TIME,NULL,0);
+        output[i].index=(int)GfParmGetNum(results,path,RE_ATTR_IDX,NULL,-1);
+    }
+    ReInfo=saved;
+    GfParmReleaseHandle(results);GfParmReleaseHandle(params);GfParmShutdown();
+    std::filesystem::current_path(previous,ec);
+    return ranked;
+}
 void ref_race_manage_original(tRmInfo *info,tCarElt *car) { ReInfo=info; ReManage(car); }
 void ref_race_time_original(tRmInfo *info,tCarElt *car) { ReInfo=info; ReUpdtPitTime(car); }
 void ref_race_clear_original() { ReInfo=nullptr; menuCar=nullptr; menuCallback=nullptr; }

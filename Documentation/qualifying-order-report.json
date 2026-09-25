@@ -1,0 +1,42 @@
+{
+ "date": "2026-09-25",
+ "evidence": {
+  "g7-qualifying-tests.log": "9028c8e53bd7a79a2ca18c515f8a01f067527984cc8b2e45bb94f65c6efa8b48"
+ },
+ "increment": "G7a qualifying ranking and starting order",
+ "limits": [
+  "The starting order is ported and tested but nothing calls it yet: a race still starts with its entries in the order the caller supplies.",
+  "racemain.cpp and raceresults.cpp are pinned for provenance and the qualifying excerpt is compiled; the rest of those files is not built.",
+  "Championship points and results-file handling around this code are not ported.",
+  "The original's qualifying flow, one driver per session cycling the field, is not yet driven by the window, which runs a single solo qualifying session.",
+  "The plan assumed qualifying times order the grid directly; the original instead ranks single-driver runs and lets a race read that ranking through its starting order."
+ ],
+ "measurements": {
+  "newTests": 3,
+  "newlyPinned": [
+   "src/libs/raceengineclient/raceresults.cpp",
+   "src/libs/raceengineclient/racemain.cpp"
+  ],
+  "pinnedFiles": 231,
+  "rankingCases": 10,
+  "rankingMatched": true,
+  "releaseSuite": "461 tests, 0 failures, 164.777 s",
+  "startingOrderValues": [
+   "drivers list",
+   "last race",
+   "last race reversed"
+  ]
+ },
+ "schema": 1,
+ "scope": "Semantic port of the original qualifying ranking and the starting order a race selects, compared against a verbatim excerpt of the newly pinned results code",
+ "sources": {
+  "Packages/TORCSRaceEngine/QualifyingRanking.swift": "bd2f3a4562978376e23d02c449fbb0908ca62d687d142aff9a3db59fad0217c3",
+  "Scripts/verify-provenance.py": "539f2bacae041d7bf54086beec33dfca5639e4913ec50d5bdc4dc473a1532ba3",
+  "Tests/UnitTests/QualifyingRankingTests.swift": "c1966ed59ca886f8cb1fd0b8d4d846505da7f0407007461c775a71c71b2d0c02",
+  "Tools/TORCSReferenceSupport/ReferenceWorld.swift": "497f99bb7adabe9422884fcf34ee5fc8f21646fbff533aace1ac5489db79b437",
+  "Upstream/Reference/include/CReference.h": "7e48d30629a1b15279f6ab348bf2e3818a95f6f47b3154314d972d73caeed089",
+  "Upstream/Reference/race-instrumentation.cpp": "9a457f139fec1234a832eec81ec1fc83241c468a0d76bbb3b13aa096e380c875",
+  "Upstream/Reference/race/qualif-rank.inc": "be9c672ba888ffb12080dd7e34ed465023f961c657667734ad17a2be93f26a91",
+  "Upstream/source-manifest.json": "4f05715444ad1da4ce629ecb84a8d7ddfbe80cf19faf6e6128dabcd1734a6308"
+ }
+}
