@@ -16,7 +16,42 @@ public enum TrackSurfaceAssembly {
     /// the same segment model the generator reads, so nothing authored by hand
     /// is lost: trees, buildings and furniture use other names.
     public static func strippingTrackgen(_ scene: RenderScene) -> RenderScene {
-        removing(from: scene) { ($0.baseTexture ?? "").lowercased().hasPrefix("tr-") }
+        removing(from: scene) { batch in
+            let texture = (batch.baseTexture ?? "").lowercased()
+            // Road, sides and barriers carry trackgen's `tr-` prefix; the pit
+            // building and its walls carry the pit wall surface's own name.
+            // Both are trackgen output and both are generated here instead.
+            return texture.hasPrefix("tr-") || texture.contains("tarmac-wall")
+        }
+    }
+
+    /// Removes the baked pit complex: trackgen extrudes the pit building
+    /// from the same pit model the garages come from, under the pit wall
+    /// surface's texture, so any baked batch whose bounds overlap a garage
+    /// footprint is that building or its walls. Lamp posts beside the lane
+    /// stand in front of the footprints and survive.
+    public static func strippingPitComplex(_ scene: RenderScene, garages: [PitGeneration.Garage]) -> RenderScene {
+        guard !garages.isEmpty else { return scene }
+        let boxes = garages.map { g -> (SIMD2<Float>, SIMD2<Float>) in
+            let xs = g.floor.map(\.x), ys = g.floor.map(\.y)
+            return (SIMD2(xs.min()! - 0.5, ys.min()! - 0.5), SIMD2(xs.max()! + 0.5, ys.max()! + 0.5))
+        }
+        return removing(from: scene) { batch in
+            guard !batch.swaysInWind, !batch.paintsRoadMarkings else { return false }
+            let t = batch.mesh.transform
+            let c4 = t * SIMD4(batch.mesh.center, 1)
+            let c = SIMD2(c4.x, c4.y)
+            let r = batch.mesh.radius
+            // A batch whose centre lies inside a footprint, or whose bounding
+            // circle is mostly inside one: the building's long walls have
+            // centres between garages, so the circle test is needed too.
+            return boxes.contains { box in
+                let inside = c.x >= box.0.x && c.x <= box.1.x && c.y >= box.0.y && c.y <= box.1.y
+                if inside { return true }
+                let nearest = simd_clamp(c, box.0, box.1)
+                return simd_distance(nearest, c) < r * 0.5
+            }
+        }
     }
 
     /// Removes batches, keeping the tree faces' batch indices valid.
@@ -128,6 +163,22 @@ public enum TrackSurfaceAssembly {
                                             uv0: group.geometry.uv0, blend: group.geometry.attributes,
                                             indices: group.geometry.indices, uvInMetres: true)
             batches.append(surfaceBatch(mesh: mesh, texture: group.material + ".rgb", roughness: 0.85, markings: true))
+        }
+        return batches
+    }
+
+    /// Pit garages along the pit lane, one per stall, grouped by material.
+    public static func pitBatches(_ geometry: TrackGeometry, pits: TrackPits,
+                                  parameters: PitGeneration.Parameters = .init()) throws -> [RenderBatch] {
+        var batches: [RenderBatch] = []
+        for (material, geometry) in PitGeneration.garages(geometry, pits: pits, parameters: parameters) {
+            let mesh = try RenderMesh.build(positions: geometry.positions, normals: geometry.normals,
+                                            uv0: geometry.uv0, indices: geometry.indices, uvInMetres: true)
+            // Named so no original artwork file matches: the library
+            // composites the painted content of an original of the same name
+            // over a generated albedo, which for the circuit's `concrete.rgb`
+            // turned the garage roofs black.
+            batches.append(surfaceBatch(mesh: mesh, texture: "pit-" + material + ".rgb", roughness: 0.8))
         }
         return batches
     }

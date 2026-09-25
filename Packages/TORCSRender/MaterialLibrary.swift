@@ -58,7 +58,7 @@ public final class MaterialLibrary {
         ("armco", "armco"), ("guardrail", "armco"), ("rail", "armco"),
         ("tyre", "tyre-wall"), ("tire", "tyre-wall"), ("pneu", "tyre-wall"),
         // Wood before fence: a wooden fence is wood.
-        ("wood", "wood"), ("bois", "wood"), ("poutre", "painted-steel"), ("pylon", "painted-steel"),
+        ("wood", "wood"), ("bois", "wood"), ("painted-steel", "painted-steel"), ("poutre", "painted-steel"), ("pylon", "painted-steel"),
         ("fence", "chain-link"), ("grillage", "chain-link"),
         ("brick", "brick"), ("brique", "brick"),
         // Track barriers are painted concrete walls in every TORCS circuit.

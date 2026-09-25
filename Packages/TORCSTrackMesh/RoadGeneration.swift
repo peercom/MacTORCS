@@ -26,6 +26,10 @@ public enum RoadGeneration {
         public var mainSpans: Int = 8
         /// Lateral spans across side and border strips.
         public var sideSpans: Int = 2
+        /// Extrude barriers the track marks as pit buildings. Off: the pit
+        /// generator builds garages there instead of a solid block the
+        /// height and depth of the whole pit complex.
+        public var pitBuildings: Bool = false
         public init() {}
     }
 
@@ -60,6 +64,7 @@ public enum RoadGeneration {
             let segment = geometry.segments[index]
             for (side, barrier) in [(TrackSide.right, segment.rightBarrier), (.left, segment.leftBarrier)] {
                 guard let barrier, barrier.height > 0 else { continue }
+                if barrier.style == .pitBuilding, !parameters.pitBuildings { continue }
                 appendBarrier(geometry, main: index, side: side, barrier: barrier, parameters: parameters,
                               into: &groups[barrier.surface.material, default: GeneratedGeometry()])
             }

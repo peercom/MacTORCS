@@ -77,7 +77,7 @@ final class ModernDrivingRenderer {
         resources = try SessionRenderResources(
             device: renderer.device,
             scenes: content.renderScenes,
-            road: content.simulation.road.geometry,
+            road: content.simulation.road.geometry, pits: content.simulation.road.pits,
             terrain: TerrainParameters(),
             materials: materials)
         staticInstances = resources.staticInstances()

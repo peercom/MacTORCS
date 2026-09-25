@@ -1598,6 +1598,53 @@ Not done: reusing the history to trace fewer steps, which is the other
 half of the usual reason for the pass and would turn it from a cost into a
 saving.
 
+## Pit garages
+
+Phase 5's last unbuilt item. `PitGeneration` builds one garage per stall
+from the parity-verified pit model — the stall positions, the stall length
+and the pit side — against the outer edge of the pit lane: a box one stall
+long less a gap, seven metres deep, 4.2 m high, with a painted-steel roller
+door on the lane side under a brick lintel, brick side and back walls and
+a concrete roof, each face with metre UVs so the sets tile. The footprint
+is built from the stall's centre, the track tangent there and the outward
+direction across the strip, because building from the stall's two ends
+clamped a stall that straddled a segment join to a fraction of its length;
+every wall faces away from the box's own centre and the orient pass winds
+it to match, so no wall faces inward on either side of a circuit.
+
+The track model already knew about the building. TORCS marks the pit-side
+barrier segments `pitBuilding`, and trackgen extrudes them into a block the
+length of the complex under the pit wall's texture. Three things had to
+give way for the garages to be seen:
+
+- the road generator no longer extrudes a `pitBuilding` barrier
+  (`Parameters.pitBuildings`, off);
+- the trackgen strip also drops the pit wall surface's batches
+  (`tarmac-wall`), which are trackgen output like the `tr-` ones;
+- `strippingPitComplex` removes any baked batch whose bounds overlap a
+  garage footprint — Aalborg's baked building is ten `concrete.rgb`
+  batches, and the lane's lamp posts stand inside the footprints and go
+  too, which is right, since they would pierce the roofs.
+
+The last of those took an afternoon to find: the block stayed after each
+of the first two, dark and smooth, and every probe of the garages
+themselves — normals, packing, the roof quad rendered alone — came back
+clean, until a render of the baked scene with no generation at all showed
+the same block. Along the way a second fault surfaced and was fixed:
+painted content from an original texture was composited over the generated
+set for *every* substituted batch, and for a plain grey wall texture the
+extraction read the grey as paint and darkened the wall. Compositing now
+happens only for a road that paints markings, which is what it was for.
+
+`testOneGaragePerStallAgainstTheLaneEdge` pins the count, the dimensions,
+the level floor and the distance from each stall;
+`testPitBuildingBarriersAreLeftToTheGarages` that the road's own geometry
+stops standing where the garages do (counted, then asserted once: an
+assertion per vertex per garage took twenty minutes);
+`testBakedPitComplexIsStrippedAndLampPostsStay` that the baked building
+goes and the trees and road stay. The batches are named `pit-…` so no
+original artwork file can match them.
+
 ## Licensing
 
 No third-party artwork is imported by this work. New render source is

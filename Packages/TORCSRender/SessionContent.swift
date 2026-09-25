@@ -39,7 +39,7 @@ public final class SessionRenderResources {
     ///   - generateRoad: replace the baked trackgen surfaces with ones built
     ///     from the segment model. Requires `road`.
     public init(device: MTLDevice, scenes: [LoadedScene],
-                road: TrackGeometry? = nil, terrain: TerrainParameters? = nil,
+                road: TrackGeometry? = nil, pits: TrackPits? = nil, terrain: TerrainParameters? = nil,
                 materials materialDirectory: URL? = nil, generateRoad: Bool = true) throws {
         // Generated atlases (grass cards) live beside the materials and are
         // resolved by name; baked artwork comes from the compiled packages.
@@ -64,8 +64,13 @@ public final class SessionRenderResources {
                 if let atlas = loaded.textures[TreeForest.textureName]?.pyramid.levels.first {
                     flattened = try TrackSurfaceAssembly.replacingTrees(flattened, atlas: atlas).scene
                 }
-                if road != nil, generateRoad {
+                if let road, generateRoad {
                     flattened = TrackSurfaceAssembly.strippingTrackgen(flattened)
+                    // The garages replace trackgen's pit building as well.
+                    if let pits {
+                        flattened = TrackSurfaceAssembly.strippingPitComplex(
+                            flattened, garages: PitGeneration.footprints(road, pits: pits))
+                    }
                 }
             }
             built.append(try SceneResources(device: device, scene: flattened, textures: store,
@@ -83,6 +88,7 @@ public final class SessionRenderResources {
             }
             if generateRoad {
                 generated += try TrackSurfaceAssembly.roadBatches(road)
+                if let pits { generated += try TrackSurfaceAssembly.pitBatches(road, pits: pits) }
                 if materialDirectory != nil {
                     generated += try TrackSurfaceAssembly.grassBatches(road)
                 }

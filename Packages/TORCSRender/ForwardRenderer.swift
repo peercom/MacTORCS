@@ -99,8 +99,11 @@ public final class SceneResources {
             var generated: MaterialLibrary.Binding? = nil
             if let texture = batch.baseTexture, let materials, let materialDirectory,
                batch.alphaTestThreshold == nil {
+                // Painted content is composited over a generated set only for
+                // a road that paints markings. Compositing a wall's original
+                // artwork treated its grey as paint and turned the wall dark.
                 generated = materials.resolve(texture: texture, directory: materialDirectory,
-                                              original: originalImage?(texture))
+                                              original: batch.paintsRoadMarkings ? originalImage?(texture) : nil)
             }
             // A car part takes a detail set — normal and ORM only — under its
             // own painted atlas, tiled across the atlas at the part's scale.

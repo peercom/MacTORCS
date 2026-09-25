@@ -326,6 +326,8 @@ do {
             let before = scene.batches.count
             scene = TrackSurfaceAssembly.strippingTrackgen(scene)
             var generated = try TrackSurfaceAssembly.roadBatches(road.geometry)
+            generated += try TrackSurfaceAssembly.pitBatches(road.geometry, pits: road.pits)
+            scene = TrackSurfaceAssembly.strippingPitComplex(scene, garages: PitGeneration.footprints(road.geometry, pits: road.pits))
             if options.grass {
                 var grassParameters = GrassGeneration.Parameters()
                 if options.grassEverywhere { grassParameters.skipBehindBarriersTallerThan = .infinity }
