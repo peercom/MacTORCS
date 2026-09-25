@@ -1447,14 +1447,18 @@ Against the plan's phases, after twenty-nine increments on the
 | 7 Effects | smoke, dust, spray, wet weather with puddles, rain and drops on the windscreen, sun glare, heat haze, a lens for the television view | — |
 | 8 Hardening | prebuilt shaders, pre-warmed scalers, memory budget test, sustained runs, the seven signposts, app bundle fixed, hero car subdivided in place, per-pass GPU timer, near-field aerial perspective in closed form, detail-map anisotropy per preset, occlusion at a quarter on the Air, view-frustum batch culling (driver's-eye 15.2 → 9.2 ms, under budget at native, sustained 9.3 ms native for 90 s), a pipelined and a paced measurement loop (busy GPU: 6.8 ms/frame; paced 60 Hz: 85–96% of frames on time), the resolution controller made deadline-aware and self-checking (native held, 93–96% on time), pipelines archived between launches (604 → 44 ms, proven with fail-on-miss) | — |
 
-The measured state of the default preset on the target machine is the
-sustained table above: 8.7 ms at native with the whole session drawn, no
-throttle in four minutes, the resolution controller idle. Everything in the
-deferred column is polish or content; nothing in it is needed for the game
-to look and run as the plan intended. The next steps with the most visible
-return are the material list and a higher-polygon hero car, both content
-rather than renderer work, and Speed Dreams' content remains waiting on the
-user supplying it.
+The measured state of the default preset on the target machine, after the
+increments the later sections record, in the three regimes the tool can
+measure: the driver's-eye view at native 2560×1664 costs 9.2 ms in the
+render-and-wait loop, 6.8 ms of throughput with the GPU kept busy, and
+paced at 60 Hz with dynamic resolution holds native with 93–96% of frames
+inside the interval, the late remainder waiting on the CPU or on other
+processes rather than on pixels. The full session sits at 214 MB of
+device memory, compiled pipelines are archived between launches, and no
+shader or pipeline compiles during a race. Everything in the deferred
+column is content or outside what exists on this machine: AI-sourced
+base maps need a model, BC7 and ASTC need an encoder, and Speed Dreams'
+content remains waiting on the user supplying it.
 
 ## The material list
 
