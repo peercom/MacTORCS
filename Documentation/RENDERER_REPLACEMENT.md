@@ -1441,7 +1441,7 @@ Against the plan's phases, after twenty-nine increments on the
 | 1 Light | Hillaire atmosphere, physical sun and exposure, AgX, four-cascade CSM + contact shadows, SH + prefiltered sky IBL, a drifting cloud layer and the overcast day | clustered punctual lights (no night to light) |
 | 2 Upscaling | jitter, motion vectors, MetalFX temporal (measured a net loss) and spatial scalers, dynamic resolution, **classic path deleted** | reactive mask (spatial path needs none) |
 | 3 Screen space | GTAO, SSR with a depth-aware filter and temporal reuse, motion blur, bloom | local probe |
-| 4 Materials | 26 `torcs-matgen` sets incl. metals, car detail sets under the atlas, stochastic tiling, car paint/glass/lens, maps and original art uploaded BC1/BC3/BC5 with a sidecar encode (full session 372 → 214 MB) | AI-sourced base maps; BC7 and ASTC have no encoder here |
+| 4 Materials | 26 `torcs-matgen` sets incl. metals, car detail sets under the atlas, stochastic tiling, car paint/glass/lens, maps and original art uploaded BC1/BC3/BC5 with a sidecar encode (full session 372 → 214 MB), sets derived from any colour image with a provenance manifest | the image model itself (the derivation, manifest and verifier are in); BC7 and ASTC have no encoder here |
 | 5 Track | generated road, curbs, barriers, terrain, markings, racing-line rubber, skid marks, pit garages, painted starting grid | road detail atlas beyond the markings |
 | 6 Scatter | volumetric trees with dithered detail pairs, grass cards, wind (in the shadows too), tyre walls on the corners | impostors, crowds, GPU-driven culling (about 290 draws a frame: not needed) |
 | 7 Effects | smoke, dust, spray, wet weather with puddles, rain and drops on the windscreen, sun glare, heat haze, a lens for the television view | — |
@@ -2612,6 +2612,48 @@ the number reported. The test uploads a cutout and an opaque fixture
 through a temporary cache, checks the formats, that a second store is
 served from the cache, that the compiled-package route shares the same
 encode, and that RGBA8 is several times the bytes.
+
+## A material from a picture
+
+Section 7b of the plan put AI-generated base maps in scope on one
+condition: that they enter the same derivation chain as the procedural
+sets, so the two are interchangeable inputs and the build never depends
+on the AI step. The image model itself is outside this repository — it
+needs a service or a local model the user chooses — but everything from
+the image onward is here now, and it works on any colour image, a
+photograph included.
+
+`ImageSourcedMaterial.derive` takes an albedo and produces a set by the
+recipes' own functions. A recipe authors a height field; an image has
+none, so one is estimated: the image's luminance with its large-scale
+shading removed — the blur over a sixteenth of the tile, divided out —
+taken as relief. The same division delights the albedo, so the lighting
+baked into a photograph is not lit a second time by the renderer. From
+the height come normals and occlusion by the functions the recipes use,
+and roughness from the image's local contrast over an authored base.
+
+One thing a luminance cannot know is which way is down: mortar is
+lighter than brick and recessed, a stone is lighter than the tar around
+it and raised. The sign is a parameter — `--image-invert` in the tool —
+and the test measures both against the recipe that authored the image,
+which is the one case where the true height is known:
+
+| set (recipe's albedo as the "photograph") | better sign | mean angle to authored normals | flat map | tilt agreement | wrong sign |
+|---|---|---|---|---|---|
+| brick | lighter is deeper | 11.8° | 15.5° | 97% | 21.5°, 3% |
+| asphalt | darker is deeper | 6.6° | 7.0° | 75% | 8.6°, 25% |
+| concrete | darker is deeper | 4.1° | 4.6° | 90% | 7.9°, 10% |
+
+An estimate, not a measurement: it beats a flat map and points the
+right way where the surface is structured, and it is what a picture can
+give. `torcs-matgen --from-image name=file.png` writes the set beside
+the recipes' and records the source's SHA-256 with `--source-model`,
+`--source-prompt` and `--source-seed` — required, since the tool cannot
+know them — and the date in `generated-asset-manifest.json`;
+`Scripts/verify-provenance.py --generated DIR` refuses a record with
+any field missing or a map absent. `ASSET_LICENSES.md` says what such a
+record documents and what it cannot, and why the project ships none of
+these sets itself.
 
 ## Licensing
 

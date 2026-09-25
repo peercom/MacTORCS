@@ -14,6 +14,30 @@ for entry in entries:
         raise SystemExit('Provenance mismatch: ' + entry['path'])
 print(f'Verified {len(entries)} pinned source/content files.')
 
+# Sets derived from images (photographs, or an image model's output) carry a
+# provenance record the artwork manifest cannot: model, prompt, seed, date and
+# the source's hash. The repository's own copy, if any, and any directory
+# named with --generated are checked the same way: every field present and
+# non-empty, every derived map present with its recorded hash.
+import sys
+def verify_generated(manifest_path):
+    directory = manifest_path.parent
+    records = json.loads(manifest_path.read_text()).get('generated', [])
+    for record in records:
+        for field in ('name', 'source', 'sourceSHA256', 'model', 'prompt', 'seed', 'date', 'albedo', 'normal', 'orm'):
+            if not str(record.get(field, '')).strip():
+                raise SystemExit(f"Generated-asset manifest {manifest_path}: '{record.get('name', '?')}' lacks {field}")
+        for suffix in ('albedo', 'normal', 'orm'):
+            path = directory / f"{record['name']}-{suffix}.png"
+            if not path.exists():
+                raise SystemExit(f'Generated-asset manifest: missing {path}')
+    print(f'Verified {len(records)} image-sourced material records in {manifest_path}.')
+repo_generated = root / 'Resources/generated-asset-manifest.json'
+if repo_generated.exists():
+    verify_generated(repo_generated)
+if '--generated' in sys.argv:
+    verify_generated(Path(sys.argv[sys.argv.index('--generated') + 1]) / 'generated-asset-manifest.json')
+
 # The assignment oracle is a verbatim function from the pinned source.
 race = (root / "Upstream/Reference/race/raceinit.cpp").read_bytes()
 start = race.index(b"static void\ninitPits(void)")

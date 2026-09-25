@@ -23,6 +23,11 @@ struct Options {
     var seed: UInt32 = 1
     var names: [String] = MaterialRecipes.all
     var preview = false
+    /// Sets derived from images: name and the image file, with the
+    /// provenance the caller states for the manifest.
+    var fromImages: [(name: String, path: String)] = []
+    var sourceModel = "", sourcePrompt = "", sourceSeed = ""
+    var imageWorldSize: Float = 2, imageRoughness: Float = 0.75, imageMetal = false, imageInvert = false
 }
 
 func writePNG(_ bytes: [UInt8], size: Int, to url: URL) throws {
@@ -42,7 +47,29 @@ func writePNG(_ bytes: [UInt8], size: Int, to url: URL) throws {
     }
 }
 
+/// Decodes an image and resamples it to a square of `size`, straight alpha, sRGB bytes.
+func readRGBA(_ data: Data, size: Int) throws -> [UInt8] {
+    guard let source = CGImageSourceCreateWithData(data as CFData, nil),
+          let image = CGImageSourceCreateImageAtIndex(source, 0, nil) else {
+        throw MaterialError.unknown("Could not decode the source image")
+    }
+    var bytes = [UInt8](repeating: 0, count: size * size * 4)
+    let space = CGColorSpace(name: CGColorSpace.sRGB)!
+    let drawn = bytes.withUnsafeMutableBytes { raw -> Bool in
+        guard let context = CGContext(data: raw.baseAddress, width: size, height: size, bitsPerComponent: 8,
+                                      bytesPerRow: size * 4, space: space,
+                                      bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return false }
+        context.interpolationQuality = .high
+        context.draw(image, in: CGRect(x: 0, y: 0, width: size, height: size))
+        return true
+    }
+    guard drawn else { throw MaterialError.unknown("Could not resample the source image") }
+    for i in stride(from: 3, to: bytes.count, by: 4) { bytes[i] = 255 }
+    return bytes
+}
+
 var options = Options()
+var onlyGiven = false
 var arguments = Array(CommandLine.arguments.dropFirst())
 while let argument = arguments.first {
     arguments.removeFirst()
@@ -51,14 +78,31 @@ while let argument = arguments.first {
     case "--out": options.output = URL(fileURLWithPath: next())
     case "--size": options.size = Int(next()) ?? options.size
     case "--seed": options.seed = UInt32(next()) ?? options.seed
-    case "--only": options.names = next().split(separator: ",").map(String.init)
+    case "--only": options.names = next().split(separator: ",").map(String.init); onlyGiven = true
     case "--preview": options.preview = true
     case "--all": break
+    case "--from-image":
+        let spec = next()
+        if let equals = spec.firstIndex(of: "=") {
+            options.fromImages.append((String(spec[..<equals]), String(spec[spec.index(after: equals)...])))
+        }
+    case "--source-model": options.sourceModel = next()
+    case "--source-prompt": options.sourcePrompt = next()
+    case "--source-seed": options.sourceSeed = next()
+    case "--image-world": options.imageWorldSize = Float(next()) ?? options.imageWorldSize
+    case "--image-roughness": options.imageRoughness = Float(next()) ?? options.imageRoughness
+    case "--image-metal": options.imageMetal = true
+    case "--image-invert": options.imageInvert = true
     default:
         FileHandle.standardError.write(Data("""
         usage: torcs-matgen [--all] [--only a,b] [--out dir] [--size N] [--seed N] [--preview]
+                            [--from-image name=file.png --source-model M --source-prompt P --source-seed S
+                             [--image-world metres] [--image-roughness R] [--image-metal] [--image-invert]]
 
-          --preview  also write a side-by-side albedo/normal/ORM sheet per material
+          --preview     also write a side-by-side albedo/normal/ORM sheet per material
+          --from-image  derive a set from a colour image (a photograph or an image model's
+                        output) by the recipes' own chain; the source's model, prompt and seed
+                        are recorded in generated-asset-manifest.json and --source-model is required
 
         """.utf8))
         exit(2)
@@ -71,8 +115,8 @@ do {
     var total = 0
     let clock = Date()
 
-    for name in options.names {
-        let material = try MaterialRecipes.generate(name, size: options.size, seed: options.seed)
+    /// Writes a set's three maps and its preview, and records it in the manifest.
+    func emit(_ material: GeneratedMaterial, extra: [String: Any] = [:]) throws -> [String: Any] {
         var entry: [String: Any] = ["name": material.name, "size": material.size,
                                     "worldSize": material.worldSize, "seed": Int(options.seed),
                                     "metal": material.isMetal]
@@ -100,8 +144,7 @@ do {
             if let provider = CGDataProvider(data: Data(sheet) as CFData),
                let image = CGImage(width: sheetWidth, height: material.size, bitsPerComponent: 8,
                                    bitsPerPixel: 32, bytesPerRow: sheetWidth * 4, space: space,
-                                   // Straight alpha, kept: cutout atlases carry their coverage here.
-                              bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.last.rawValue),
+                                   bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.last.rawValue),
                                    provider: provider, decode: nil, shouldInterpolate: false, intent: .defaultIntent),
                let destination = CGImageDestinationCreateWithURL(
                    options.output.appendingPathComponent("\(material.name)-sheet.png") as CFURL,
@@ -110,9 +153,46 @@ do {
                 _ = CGImageDestinationFinalize(destination)
             }
         }
+        for (key, value) in extra { entry[key] = value }
         manifest.append(entry)
         print("  \(material.name.padding(toLength: 14, withPad: " ", startingAt: 0)) "
               + "\(material.size)x\(material.size)  \(String(format: "%.1f", material.worldSize)) m tile")
+        return entry
+    }
+
+    // Image-sourced sets alone when only they were asked for.
+    let recipeNames = (!options.fromImages.isEmpty && !onlyGiven) ? [] : options.names
+    for name in recipeNames {
+        _ = try emit(try MaterialRecipes.generate(name, size: options.size, seed: options.seed))
+    }
+
+    var provenance: [[String: Any]] = []
+    if !options.fromImages.isEmpty {
+        // The source's origin is the one thing this tool cannot know; it is
+        // required so no derived set ships without it.
+        guard !options.sourceModel.isEmpty else {
+            throw MaterialError.unknown("--from-image needs --source-model (and --source-prompt, --source-seed) for the manifest")
+        }
+        let stamp = ISO8601DateFormatter().string(from: Date())
+        for (name, path) in options.fromImages {
+            let url = URL(fileURLWithPath: path)
+            let data = try Data(contentsOf: url)
+            let rgba = try readRGBA(data, size: options.size)
+            var parameters = ImageSourcedMaterial.Parameters()
+            parameters.worldSize = options.imageWorldSize
+            parameters.roughness = options.imageRoughness
+            parameters.isMetal = options.imageMetal
+            parameters.invertRelief = options.imageInvert
+            let material = try ImageSourcedMaterial.derive(name: name, albedo: rgba, size: options.size, parameters: parameters)
+            let sourceHash = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
+            let entry = try emit(material, extra: ["source": url.lastPathComponent, "sourceSHA256": sourceHash])
+            provenance.append(["name": name, "source": url.lastPathComponent, "sourceSHA256": sourceHash,
+                               "model": options.sourceModel, "prompt": options.sourcePrompt, "seed": options.sourceSeed,
+                               "date": stamp, "albedo": entry["albedo"]!, "normal": entry["normal"]!, "orm": entry["orm"]!,
+                               "size": options.size, "derivation": "ImageSourcedMaterial.derive", "invertRelief": options.imageInvert])
+        }
+        try JSONSerialization.data(withJSONObject: ["generated": provenance], options: [.prettyPrinted, .sortedKeys])
+            .write(to: options.output.appendingPathComponent("generated-asset-manifest.json"))
     }
 
     try JSONSerialization.data(withJSONObject: ["materials": manifest, "seed": Int(options.seed),

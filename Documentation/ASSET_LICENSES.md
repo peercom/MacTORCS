@@ -60,3 +60,24 @@ Newly prepared 155-DTM sessions record its source path and SHA-256 in
 `local-light-sources.json`. This brings unresolved shared track/environment/light
 textures in the selected session to eight. No new artwork is imported into the
 pinned fixtures or bundled in the Light preview.
+
+## Image-sourced material sets
+
+`torcs-matgen --from-image` derives a material set from a single colour
+image — a photograph, or an image model's output — by the same chain the
+procedural recipes use. The tool cannot know where such an image came
+from, so it requires the caller to state it: `--source-model`,
+`--source-prompt` and `--source-seed` are recorded with the date and the
+source's SHA-256 in `generated-asset-manifest.json` beside the output,
+and `Scripts/verify-provenance.py --generated DIR` refuses a record with
+any of them missing.
+
+What that record can and cannot document, plainly: it establishes what
+was done to which bytes with which tool on which day. It does not
+establish the rights in an image model's output, whose training data is
+not documentable file by file and whose output may not be copyrightable
+in some jurisdictions. A set derived from such an image therefore does
+not meet the per-file terms this document requires for bundled content,
+and the build never depends on one: every material slot has a procedural
+recipe under the project's own terms. Image-sourced sets are an upgrade
+a user may choose to install, not content the project ships.
