@@ -1444,8 +1444,8 @@ Against the plan's phases, after twenty-nine increments on the
 | 4 Materials | 26 `torcs-matgen` sets incl. metals, car detail sets under the atlas, stochastic tiling, car paint/glass/lens | AI-sourced base maps, BC7-vs-ASTC comparison |
 | 5 Track | generated road, curbs, barriers, terrain, markings, racing-line rubber, skid marks, pit garages, painted starting grid | road detail atlas beyond the markings |
 | 6 Scatter | volumetric trees with dithered detail pairs, grass cards, wind (in the shadows too), tyre walls on the corners | impostors, crowds, GPU-driven culling (about 290 draws a frame: not needed) |
-| 7 Effects | smoke, dust, spray, wet weather with puddles, sun glare, heat haze | rain itself, replay/photo depth of field |
-| 8 Hardening | prebuilt shaders, pre-warmed scalers, memory budget test, sustained runs, the seven signposts, app bundle fixed, hero car subdivided in place, per-pass GPU timer, near-field aerial perspective in closed form, detail-map anisotropy per preset, occlusion at a quarter on the Air, view-frustum batch culling (driver's-eye 15.2 → 9.2 ms, under budget at native) | binary archive for the first launch |
+| 7 Effects | smoke, dust, spray, wet weather with puddles, rain, sun glare, heat haze, a lens for the television view | — |
+| 8 Hardening | prebuilt shaders, pre-warmed scalers, memory budget test, sustained runs, the seven signposts, app bundle fixed, hero car subdivided in place, per-pass GPU timer, near-field aerial perspective in closed form, detail-map anisotropy per preset, occlusion at a quarter on the Air, view-frustum batch culling (driver's-eye 15.2 → 9.2 ms, under budget at native, sustained 9.3 ms native for 90 s) | binary archive for the first launch; a pipelined measurement harness |
 
 The measured state of the default preset on the target machine is the
 sustained table above: 8.7 ms at native with the whole session drawn, no
@@ -2154,6 +2154,47 @@ forty lines and no shader. It leaves the driver's-eye frame at 9.2 ms
 at native. The vertex stage that remains is the trees in view, which is
 where the plan's impostors would go if they were ever needed; at these
 numbers they are not.
+
+## Sustained, a fourth time: under budget at native
+
+Four increments took the driver's-eye frame from 15.2 ms to 9.2 at
+native; the sustained protocol says whether that survives the chip's
+steady state. Same protocol as the third run — the default preset, the
+whole generated session, orbiting at 2560×1664 with dynamic resolution
+for four minutes — on a machine with nothing else of mine running,
+after a first attempt was thrown away because a build ran beside it and
+halved the frame rate.
+
+| window | median | p95 | scale |
+|---|---|---|---|
+| 0–15 s | 9.34 ms | 11.1 ms | 1.00 |
+| 30–75 s | 9.20–9.36 ms | 10.4–10.8 ms | 1.00 |
+| 90 s | 9.91 ms | 14.1 ms | 0.75 |
+| 105–195 s | 9.57–9.82 ms | 10.5–12.8 ms | 0.75 |
+| 210–225 s | 8.54–8.79 ms | 10.6–12.5 ms | 0.67 |
+
+Native for the first ninety seconds at 9.3 ms, under the plan's 10.5;
+then the controller stepped to 0.75 as the chip warmed and the median
+held under 10 through the rest, stepping once more at the end. The
+third run, before the four cuts, had opened at 8.7 ms already at
+scale 0.67 and settled around 7 ms at 0.60–0.75. The frame is now
+cheaper at native than it was then at two thirds of it.
+
+Two caveats the run itself exposed. The harness renders a frame and
+waits for it, so the GPU idles between frames — 600 frames a window
+here against 850 in the third run, the CPU side having grown with the
+scene — and an idle GPU lowers its clock: the 1280×832 control run,
+which sat flat at 3.2 ms in the third run, drifted from 3.4 to 7.5 ms
+over ninety seconds with the GPU busy a third of the time, and a photo
+frame measured *faster* with the lens than without because the heavier
+frame kept the clock up (every other pass in it ran at half the time).
+Per-pass medians within one frame stay comparable; frame medians
+across runs with different loads are not, and a run's frame count is
+the tell. The app's presentation pipelines frames and does not have
+this problem; the harness should, and that is the next measurement
+increment. The fixed driver's-eye run, 8.6 ms opening, wandered to 11.4
+and back to 9.8 over two minutes with a window server taking a third
+of a core throughout: reported, not relied on.
 
 ## Licensing
 
