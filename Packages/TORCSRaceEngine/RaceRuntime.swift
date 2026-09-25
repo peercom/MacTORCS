@@ -74,7 +74,7 @@ public struct RaceRuntime: Sendable {
     public let configuration: RaceSessionConfiguration
     public let kinds: [RaceDriverKind]
     public let profiles: [RaceDriverProfile]
-    public private(set) var drivers: [BTSoloDriver?]
+    public private(set) var drivers: [BTDriver?]
     public private(set) var commands: [DriverCommand]
     public private(set) var lastRobotTime: Double = -1
     public private(set) var lastRobotDelta: Double = 0
@@ -114,11 +114,12 @@ public struct RaceRuntime: Sendable {
         let stalls=try RacePitController(road:road,registrations:registrations,parameters:entries.map(\.parameters))
         // initTrack's GfParmSetNum then the category/car/setup merge: a BT driver
         // asks for its starting fuel before physics is configured.
-        var configured: [ParameterDocument]=[],built: [BTSoloDriver?]=[]
+        var configured: [ParameterDocument]=[],built: [BTDriver?]=[]
         for (index,entry) in entries.enumerated() {
             guard entry.kind == .bt else { configured.append(entry.parameters);built.append(nil);continue }
-            let driver=try BTSoloDriver(road:road,parameters:entry.parameters,setup:entry.setup,
-                totalLaps:configuration.laps,driverIndex:index,pitStall:stalls.cars[index].stall,karma:entry.karma)
+            let driver=try BTDriver(road:road,parameters:entry.parameters,setup:entry.setup,
+                totalLaps:configuration.laps,driverIndex:index,pitStall:stalls.cars[index].stall,karma:entry.karma,
+                fieldSize:entries.count)
             let fuel=try ParameterDocument.parse(Data("<params name=\"fuel\"><section name=\"Car\"><attnum name=\"initial fuel\" val=\"\(driver.initialFuel)\"/></section></params>".utf8))
             configured.append(try entry.parameters.merging(fuel));built.append(driver)
         }
@@ -150,6 +151,20 @@ public struct RaceRuntime: Sendable {
         BTObservation(published:simulation.lifecycle[car],laps:progress.timing[car].laps,
             remainingLaps:progress.timing[car].remainingLaps,distanceFromStart:progress.timing[car].distanceFromStart)
     }
+    /// One car's published state as the original opponent model reads it. Team
+    /// membership is not configured: the original reads a team mate name from the
+    /// driver setup, and these entries name none.
+    public func carState(_ car: Int) -> BTCarState {
+        let life=simulation.lifecycle[car]
+        let dimensions=simulation.cars[car].definition.chassis.runningGear.mass.dimensions
+        return BTCarState(position:life.trackPosition,
+            worldPosition:SIMD2(life.publicWorld.position.x,life.publicWorld.position.y),
+            worldVelocity:SIMD2(life.publicWorld.velocity.x,life.publicWorld.velocity.y),
+            corners:(0..<4).map { SIMD2(life.publishedCorners[$0].x,life.publishedCorners[$0].y) },
+            yaw:life.publicBody.orientation.z,length:dimensions.x,width:dimensions.y,
+            distanceFromStart:progress.timing[car].distanceFromStart,laps:progress.timing[car].laps,
+            damage:life.publishedDamage,flags:life.flags,teamMate:false)
+    }
     public func presentationCar(_ car: Int) -> RacePresentationCar {
         RacePresentationCar(index:car,visual:simulation.visualSnapshot(car:car),
             trackPosition:simulation.lifecycle[car].trackPosition,remainingLaps:progress.timing[car].remainingLaps,
@@ -175,7 +190,10 @@ public struct RaceRuntime: Sendable {
                 case .human:commands[car]=humanCommand
                 case .bt:
                     guard drivers[car] != nil else { continue }
-                    let decision=try drivers[car]!.drive(observation(car:car))
+                    // The original keeps one Opponent per other car, in the order
+                    // the field had when the race started.
+                    let field=simulation.cars.indices.filter { $0 != car }.map { carState($0) }
+                    let decision=try drivers[car]!.drive(observation(car:car),field:field,deltaTime:lastRobotDelta)
                     commands[car]=decision.command;pitRequests[car]=decision.pitRequested
                     try pits.setCommand(car:car,raceCommand:decision.pitRequested ? 1:0,service:pits.cars[car].command)
                 }

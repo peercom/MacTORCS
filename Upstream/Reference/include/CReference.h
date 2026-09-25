@@ -472,6 +472,14 @@ int ref_world_bt_car_status(RefWorld *world,int car,RefRobotRaceState *output);
 int ref_world_bt_car_input(RefWorld *world,int car,double *values,int capacity);
 int ref_world_bt_car_observation(RefWorld *world,int car,RefBTObservation *output);
 int ref_world_bt_car_pit_decision(RefWorld *world,int car,RefBTPitDecision *output);
+// Every car's public state at one drive callback, which is what the original
+// opponent model reads. Captured before the original driver runs.
+typedef struct {
+    int segment, laps, remainingLaps, lapsBehindLeader, gear, damage, state, pitFree;
+    float toStart, toRight, toMiddle, toLeft, x, y, vx, vy, yaw, length, width, distance, fuel, rpm;
+    float spin[4], cornerX[4], cornerY[4];
+} RefBTFieldCar;
+int ref_world_bt_field(RefWorld *world,int car,RefBTFieldCar *output,int capacity);
 typedef struct { float baseTime,fuelFlow,repairFactor,tireFactor,tireChangeTime; } RefRacePitRules;
 typedef struct {
     unsigned int flags,raceCommand; int stops,stall,occupant,stopType,services,menuRequests;

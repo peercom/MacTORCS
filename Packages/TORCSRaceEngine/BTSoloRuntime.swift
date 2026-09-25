@@ -13,7 +13,7 @@ import TORCSRobots
 /// separate work. All commands, physics, timing and pit service execute in Swift.
 public struct BTSoloRuntime: Sendable {
     public private(set) var simulation: MultiVehicleSimulation
-    public private(set) var driver: BTSoloDriver
+    public private(set) var driver: BTDriver
     public private(set) var timing: RaceLapTiming
     public private(set) var pits: RacePitController
     public private(set) var clock=RaceStartClock(countdown:true)
@@ -29,7 +29,7 @@ public struct BTSoloRuntime: Sendable {
         let dimensions=try VehicleDynamicsDefinition(parameters:parameters).chassis.runningGear.mass.dimensions
         let registration=PitRegistration(team:"bt",length:dimensions.x,width:dimensions.y,skill:3)
         var pits=try RacePitController(road:road,registrations:[registration],parameters:[parameters])
-        let driver=try BTSoloDriver(road:road,parameters:parameters,totalLaps:laps,pitStall:pits.cars[0].stall,karma:karma)
+        let driver=try BTDriver(road:road,parameters:parameters,totalLaps:laps,pitStall:pits.cars[0].stall,karma:karma)
         // Mirrors initTrack's GfParmSetNum then category/car/setup merge.
         let fuel=try ParameterDocument.parse(Data("<params name=\"BT fuel\"><section name=\"Car\"><attnum name=\"initial fuel\" val=\"\(driver.initialFuel)\"/></section></params>".utf8))
         let configured=try parameters.merging(fuel)

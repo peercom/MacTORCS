@@ -7,7 +7,7 @@ import TORCSSimulation
 import TORCSTrack
 @testable import TORCSRobots
 
-final class BTSoloDriverTests: XCTestCase {
+final class BTDriverTests: XCTestCase {
     func parameters(_ content: ReferenceContent) throws -> ParameterDocument {
         try ParameterDocument.parse(Data(contentsOf:content.category)).merging(ParameterDocument.parse(Data(contentsOf:content.car)))
     }
@@ -23,7 +23,7 @@ final class BTSoloDriverTests: XCTestCase {
         let world=try ReferenceWorld(track:content.track,car:content.car,category:content.category,btDirectory:content.directory,laps:1)
         defer { world.close() }
         let road=try ChassisTestContext.road()
-        var driver=try BTSoloDriver(road:road,parameters:parameters(content),totalLaps:1,pitStall:0)
+        var driver=try BTDriver(road:road,parameters:parameters(content),totalLaps:1,pitStall:0)
         XCTAssertEqual(driver.initialFuel,try world.parameterNumber(section:"Car",key:"initial fuel"))
         var callbacks: UInt64=0,maxError:Float=0,exact=0,terminal=false
         for _ in 0..<60000 {
@@ -68,7 +68,7 @@ final class BTSoloDriverTests: XCTestCase {
 
 import TORCSRaceEngine
 import TORCSTelemetry
-extension BTSoloDriverTests {
+extension BTDriverTests {
     func testNativePhysicsCompletesAutonomousLapAndRepeats() throws {
         let content=try ReferenceContent(fixtures:XCTUnwrap(Bundle.module.url(forResource:"Fixtures",withExtension:nil)),bt:true)
         let road=try ChassisTestContext.road(),p=try parameters(content)
@@ -94,13 +94,13 @@ extension BTSoloDriverTests {
     }
 }
 
-extension BTSoloDriverTests {
+extension BTDriverTests {
     func testOriginalPitRunCommandsAndRefuelling() throws {
         let content=try ReferenceContent(fixtures:XCTUnwrap(Bundle.module.url(forResource:"Fixtures",withExtension:nil)),bt:true)
         let world=try ReferenceWorld(track:content.track,car:content.car,category:content.category,btDirectory:content.directory,laps:3)
         defer { world.close() }
         let road=try ChassisTestContext.road()
-        var driver=try BTSoloDriver(road:road,parameters:parameters(content),totalLaps:3,pitStall:0)
+        var driver=try BTDriver(road:road,parameters:parameters(content),totalLaps:3,pitStall:0)
         var callbacks:UInt64=0,pits:Int32=0,finished=false,requested=false,maxError:Float=0
         for tick in 1...180000 {
             if tick==8000 { try world.updateCarStatus(car:0,fuel:2.5,maximumDamage:10000) }

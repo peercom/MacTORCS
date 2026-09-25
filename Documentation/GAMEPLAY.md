@@ -39,8 +39,9 @@ This is not yet an integrated human-versus-AI race. Remaining gameplay work:
    the original grid, race loop, rules and sorting with per-car capture and
    exact repeatability. See [race oracle](RACE_ORACLE.md). Everything below is
    compared against it.
-1. Extend the working native BT single-car driver/runtime with original opponent
-   handling, and resolve the measured native/reference trajectory difference.
+1. Original opponent handling is **done** and matches the original exactly on
+   captured inputs; see [BT traffic](BT_TRAFFIC.md). The measured native/reference
+   trajectory difference remains open.
    See [native BT](NATIVE_BT.md): ten native laps repeat exactly and a five-lap
    forced-pit run completes with two services. All driving/pit commands match
    the captured-input reference cases; full physical trajectory parity is open.

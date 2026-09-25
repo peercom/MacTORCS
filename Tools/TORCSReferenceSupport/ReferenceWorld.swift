@@ -147,6 +147,15 @@ public final class ReferenceWorld {
         }
         return value
     }
+    /// The whole field as the original opponent model saw it at this callback.
+    public func robotField(car: Int) throws -> [RefBTFieldCar] {
+        var values=[RefBTFieldCar](repeating:RefBTFieldCar(),count:carCount)
+        guard (0..<carCount).contains(car),let handle,
+              ref_world_bt_field(handle,Int32(car),&values,Int32(values.count))==carCount else {
+            throw TelemetryError.invalid("No BT field captured for car \(car)")
+        }
+        return values
+    }
     public func gridSlot(car: Int) throws -> RefGridSlot {
         var value=RefGridSlot()
         guard (0..<carCount).contains(car),let handle,ref_world_grid_slot(handle,Int32(car),&value)==1 else {

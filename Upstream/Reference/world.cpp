@@ -48,6 +48,7 @@ struct RefWorld {
     std::vector<std::vector<double>> btInputs;
     std::vector<RefBTObservation> btObservations;
     std::vector<RefBTPitDecision> btPitDecisions;
+    std::vector<std::vector<RefBTFieldCar>> btFields;
     std::vector<char> btInputValid;
     RefStartingGrid grid{};
     bool gridPlaced=false;
@@ -134,8 +135,30 @@ static void captureBTObservation(tCarElt *car,RefBTObservation &o) {
     o.gear=car->_gear;o.laps=car->_laps;o.remainingLaps=car->_remainingLaps;o.lapsBehindLeader=car->_lapsBehindLeader;
     o.damage=car->_dammage;o.pitFree=car->_pit && car->_pit->pitCarIndex==TR_PIT_STATE_FREE;
 }
+// The whole field as the original opponent model reads it, at this callback.
+static void captureBTField(RefWorld *w,int id) {
+    auto &field=w->btFields[id];
+    field.resize(w->cars.size());
+    for (size_t i=0;i<w->cars.size();++i) {
+        auto *c=&w->cars[i];auto &o=field[i];o={};
+        o.segment=c->_trkPos.seg->id;
+        o.toStart=c->_trkPos.toStart;o.toRight=c->_trkPos.toRight;
+        o.toMiddle=c->_trkPos.toMiddle;o.toLeft=c->_trkPos.toLeft;
+        o.x=c->_pos_X;o.y=c->_pos_Y;o.vx=c->_speed_X;o.vy=c->_speed_Y;o.yaw=c->_yaw;
+        o.length=c->_dimension_x;o.width=c->_dimension_y;o.distance=c->_distFromStartLine;
+        o.fuel=c->_fuel;o.rpm=c->_enginerpm;o.gear=c->_gear;
+        o.laps=c->_laps;o.remainingLaps=c->_remainingLaps;o.lapsBehindLeader=c->_lapsBehindLeader;
+        o.damage=c->_dammage;o.state=c->_state;
+        o.pitFree=c->_pit && c->_pit->pitCarIndex==TR_PIT_STATE_FREE;
+        for (int j=0;j<4;++j) {
+            o.spin[j]=c->_wheelSpinVel(j);
+            o.cornerX[j]=c->_corner_x(j);o.cornerY[j]=c->_corner_y(j);
+        }
+    }
+}
 static void btDrive(int index,tCarElt *car,tSituation *s) {
     auto *w=activeWorld;const int id=car->index;
+    captureBTField(w,id);
     w->btInputs[id].resize(ref_world_field_count());
     w->btInputValid[id]=ref_world_read(w,id,w->btInputs[id].data(),int(w->btInputs[id].size()))==ref_world_field_count();
     captureBTObservation(car,w->btObservations[id]);
@@ -242,6 +265,7 @@ static RefWorld *createWorld(const char *trackPath,const char *carPath,const cha
         world->situation._totLaps=totalLaps;world->situation._raceType=RM_TYPE_RACE;
         world->btOriginals.resize(count);world->btStates.resize(count);world->btInputs.resize(count);
         world->btObservations.resize(count);world->btPitDecisions.resize(count);world->btInputValid.assign(count,1);
+        world->btFields.resize(count);
         // Grid placement and initPits both read the race-manager parameters.
         if (!initializeRaceParameters(world,1,startingGrid)) return fail("Could not create reference race parameters");
     }
@@ -1547,3 +1571,10 @@ int ref_world_bt_car_pit_decision(RefWorld *w,int car,RefBTPitDecision *out) {
     *out=w->btPitDecisions[car];return 1;
 }
 int ref_world_bt_pit_decision(RefWorld *w,RefBTPitDecision *out) { return ref_world_bt_car_pit_decision(w,0,out); }
+
+int ref_world_bt_field(RefWorld *w,int car,RefBTFieldCar *out,int capacity) {
+    if (!w||w!=activeWorld||!out||!w->btNewRace||car<0||car>=int(w->cars.size())) return 0;
+    const auto &field=w->btFields[car];
+    if (field.empty()||capacity<int(field.size())) return 0;
+    std::copy(field.begin(),field.end(),out);return int(field.size());
+}

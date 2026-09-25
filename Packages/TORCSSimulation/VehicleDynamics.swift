@@ -217,6 +217,7 @@ extension VehicleDynamicsState {
             let p=d.initialRelativePosition
             s.publishedWheelPose[i]=WheelVisualPose(position:SIMD3(p.x,p.y,wheel.forces?.relativeHeight ?? p.z),
                 orientation:SIMD3(wheel.forces?.relativeCamber ?? 0,wheel.rotation.angle,wheel.forces?.relativeYaw ?? 0))
+            s.publishedCorners[i] = chassis.corners[i].position
             s.publishedBrakeTemperature[i] = wheel.ride.brake.temperature
             s.publishedTirePressure[i] = wheel.thermal.pressure; s.publishedTireTemperature[i] = wheel.thermal.temperature
             s.publishedTireGraining[i] = wheel.thermal.graining; s.publishedTireWear[i] = Float(wheel.thermal.wear)

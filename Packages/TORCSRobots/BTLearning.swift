@@ -42,10 +42,13 @@ public struct BTLearning: Sendable {
     }
     /// The session owner controls paths and shutdown persistence; no global IO.
     public func save(to url: URL) throws { try encodedKarma().write(to:url,options:.atomic) }
-    mutating func update(_ car: BTObservation,geometry g: TrackGeometry,offset: Float,outside: Float,base: [Float]) {
+    /// `alone` is the original gate: a car in traffic does not learn a radius,
+    /// because its line is not its own choice.
+    mutating func update(_ car: BTObservation,geometry g: TrackGeometry,offset: Float,outside: Float,base: [Float],
+                         alone: Bool = true) {
         let s=g.segments[car.position.segment]
         if s.curve==lastTurn || s.curve == .straight {
-            if abs(offset)<0.2,check {
+            if abs(offset)<0.2,check,alone {
                 let dr: Float=lastTurn == .right ? outside-car.position.toMiddle:lastTurn == .left ? outside+car.position.toMiddle:0
                 minimum=min(dr,minimum)
             } else { check=false }

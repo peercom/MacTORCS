@@ -16,19 +16,24 @@ public struct BTObservation: Sendable {
     public var gear,laps,remainingLaps,lapsBehindLeader: Int
     public var damage: Int32
     public var pitFree: Bool
+    /// Original pub.corner world positions: front right, front left, rear right,
+    /// rear left. Only the opponent model reads them, so the solo path may omit.
+    public var corners: [SIMD2<Float>]
     public init(position: TrackLocalPosition,worldPosition: SIMD2<Float>,worldVelocity: SIMD2<Float>,yaw: Float,speed: Float,
         fuel: Float,rpm: Float,wheelSpin: SIMD4<Float>,gear: Int,laps: Int,remainingLaps: Int,distanceFromStart: Float,
-        lapsBehindLeader: Int=0,damage: Int32=0,pitFree: Bool=true) {
+        lapsBehindLeader: Int=0,damage: Int32=0,pitFree: Bool=true,corners: [SIMD2<Float>]=[]) {
         self.position=position;self.worldPosition=worldPosition;self.worldVelocity=worldVelocity;self.yaw=yaw;self.speed=speed
         self.fuel=fuel;self.rpm=rpm;self.wheelSpin=wheelSpin;self.gear=gear;self.laps=laps;self.remainingLaps=remainingLaps
         self.distanceFromStart=distanceFromStart;self.lapsBehindLeader=lapsBehindLeader;self.damage=damage;self.pitFree=pitFree
+        self.corners=corners
     }
     public init(published car: VehicleRemovalState,laps: Int,remainingLaps: Int,distanceFromStart: Float) {
         self.init(position:car.trackPosition,worldPosition:SIMD2(car.publicWorld.position.x,car.publicWorld.position.y),
             worldVelocity:SIMD2(car.publicWorld.velocity.x,car.publicWorld.velocity.y),yaw:car.publicBody.orientation.z,
             speed:car.publicBody.velocity.x,fuel:car.publishedFuel,rpm:car.publishedRPM,wheelSpin:car.publishedSpin,
             gear:Int(car.publishedGear),laps:laps,remainingLaps:remainingLaps,distanceFromStart:distanceFromStart,
-            damage:car.publishedDamage,pitFree:car.pitOccupant == -1)
+            damage:car.publishedDamage,pitFree:car.pitOccupant == -1,
+            corners:(0..<4).map { SIMD2(car.publishedCorners[$0].x,car.publishedCorners[$0].y) })
     }
 }
 public struct BTDecision: Sendable {
@@ -36,26 +41,44 @@ public struct BTDecision: Sendable {
     public let pitRequested: Bool
 }
 
-/// Original BT policy for a field containing this car only. The name deliberately
-/// excludes opponent avoidance: a race engine must not use this as a traffic AI.
-/// Own one value per session; restarting requires a fresh value (and karma input).
-public struct BTSoloDriver: Sendable {
+/// The original BT policy, including its opponent handling: classification,
+/// overtaking offsets, collision braking and steering, and letting a faster car
+/// through. Own one value per session per car; restarting requires a fresh value
+/// (and karma input). Call `drive` with the other cars' published states; the
+/// single-argument form is the solo case.
+public struct BTDriver: Sendable {
     public let road: TrackRoad
     public let initialFuel: Float
     public private(set) var learning: BTLearning
     public private(set) var calls: UInt64=0
     var strategy: BTStrategy,pit: BTPit
-    let mass,ca,cw,tireMu,muFactor,width,steerLock,redline,tank: Float
+    let mass,ca,cw,tireMu,muFactor,width,redline,tank: Float
+    public let steerLock: Float
+    /// The original _dimension_x, which the opponent model compares lengths with.
+    public let length: Float
+    /// One entry per other car, in the order the caller supplies them. The
+    /// original keeps these for the whole race because the overlap timer is
+    /// stateful.
+    public internal(set) var opponents: [BTOpponent]
+    public internal(set) var alone=true
     let radii: [Float],wheelRadius: SIMD4<Float>,ratios: [Float],layout: DriveLayout
-    var offset: Float=0,oldLookahead: Float=0,clutchTime: Float=0
+    /// The original myoffset: the lateral offset from the track middle the
+    /// overtaking and collision logic steers to. Readable for diagnostics.
+    public internal(set) var offset: Float=0
+    var oldLookahead: Float=0,clutchTime: Float=0
     var stuck=0
+    /// `fieldSize` is the number of cars in the race, including this one. The
+    /// original builds one Opponent per other car when the race starts.
     public init(road: TrackRoad,parameters p: ParameterDocument,setup: ParameterDocument?=nil,totalLaps: Int,
-        driverIndex: Int=0,pitStall: Int?=nil,karma: Data?=nil) throws {
-        guard (1...10000).contains(totalLaps),(0..<10).contains(driverIndex),road.length>0 else { throw BTError.invalid("Invalid BT race configuration") }
+        driverIndex: Int=0,pitStall: Int?=nil,karma: Data?=nil,fieldSize: Int=1) throws {
+        guard (1...10000).contains(totalLaps),(0..<10).contains(driverIndex),road.length>0,
+              (1...16).contains(fieldSize) else { throw BTError.invalid("Invalid BT race configuration") }
         self.road=road
         let definition=try VehicleDynamicsDefinition(parameters:p)
         func n(_ section: String,_ key: String,_ fallback: Float) -> Float { p.section(section)?.number(key,default:fallback) ?? fallback }
         mass=n("Car","mass",1000);width=definition.chassis.runningGear.mass.dimensions.y
+        length=definition.chassis.runningGear.mass.dimensions.x
+        opponents=Array(repeating:BTOpponent(),count:max(0,fieldSize-1))
         steerLock=definition.controls.steeringLock;redline=definition.engine.limiter;tank=definition.chassis.runningGear.mass.tankCapacity
         layout=definition.transmission.layout;ratios=definition.transmission.gears.map(\.ratio)
         wheelRadius=SIMD4(definition.chassis.runningGear.wheels[0].force.radius,definition.chassis.runningGear.wheels[1].force.radius,
@@ -98,7 +121,11 @@ public struct BTSoloDriver: Sendable {
         } while i != last
         return result
     }
-    public mutating func drive(_ car: BTObservation) throws -> BTDecision {
+    /// `field` is every other car's published state, in a stable order the caller
+    /// keeps for the whole race. The defaults are the solo case, which leaves the
+    /// opponent paths inert.
+    public mutating func drive(_ car: BTObservation,field: [BTCarState] = [],
+                               deltaTime: Double = 0.02) throws -> BTDecision {
         let p=car.position,g=road.geometry
         guard g.segments.indices.contains(p.segment),g.segments[p.segment].role == .main,(-1...8).contains(car.gear),
             [p.toStart,p.toMiddle,car.yaw,car.speed,car.fuel,car.rpm,car.distanceFromStart,car.worldPosition.x,car.worldPosition.y,
@@ -106,19 +133,22 @@ public struct BTSoloDriver: Sendable {
         calls += 1
         let segment=g.segments[p.segment],angle=btNormalized(g.tangent(p)-car.yaw)
         let speedAngle=btNormalized(g.tangent(p)-atan2(car.worldVelocity.y,car.worldVelocity.x))
+        try updateOpponents(car,field:field,deltaTime:Float(deltaTime))
         strategy.update(car,id:segment.upstreamID,tank:tank)
         if !pit.requested { pit.setRequested(strategy.needsPit(car,assigned:pit.stall != nil),distance:car.distanceFromStart) }
         pit.update(distance:car.distanceFromStart)
-        learning.update(car,geometry:g,offset:offset,outside:segment.width/3-0.5,base:radii)
+        learning.update(car,geometry:g,offset:offset,outside:segment.width/3-0.5,base:radii,alone:alone)
         if abs(angle)>Float(Double(Float(15)/180)*Double.pi),car.speed<5,abs(p.toMiddle)>3 {
             if stuck>100,p.toMiddle*angle<0 { return BTDecision(command:.init(throttle:1,steering:-angle/steerLock,gear:-1),pitRequested:pit.requested) }
             stuck += 1
         } else { stuck=0 }
         let target=targetPoint(car)
-        let steering=btNormalized(atan2(target.y-car.worldPosition.y,target.x-car.worldPosition.x)-car.yaw)/steerLock
+        var steering=btNormalized(atan2(target.y-car.worldPosition.y,target.x-car.worldPosition.x)-car.yaw)/steerLock
+        steering=filterSteerCollision(steering,car)
         let gear=gear(car)
         var brake=brake(car)
         brake=try pitBrake(brake,car)
+        brake=filterBrakeCollision(brake,car)
         let weight=(mass+car.fuel)*9.81
         brake=brake*(weight+ca*(car.speed*car.speed))/(weight+ca*84*84)
         if car.speed>=3 {
@@ -131,6 +161,7 @@ public struct BTSoloDriver: Sendable {
         if brake==0 {
             let allowed=allowedSpeed(segment,car)
             throttle=car.gear<=0 || allowed>car.speed+1 ? 1:allowed/wheelRadius.z*ratios[car.gear+1]/redline
+            throttle=filterOverlap(throttle)
             if !(car.speed<5 || pit.inLane || p.toMiddle*speedAngle>0) {
                 if segment.curve == .straight { if abs(p.toMiddle)>(segment.width-width)/2 { throttle=0 } }
                 else if p.toMiddle*(segment.curve == .right ? -1:1)<=0,abs(p.toMiddle)>segment.width/3 { throttle=0 }
@@ -200,7 +231,7 @@ public struct BTSoloDriver: Sendable {
     mutating func targetPoint(_ car: BTObservation) -> SIMD2<Float> {
         let g=road.geometry
         var length=distanceToEnd(car),i=car.position.segment
-        if offset>0.1 { offset -= 0.1 } else if offset < -0.1 { offset += 0.1 } else { offset=0 }
+        offset=trafficOffset(car)
         var lookahead: Float
         if pit.inLane { lookahead=car.speed*car.speed>pit.speedLimit*pit.speedLimit ? 6+car.speed*0.33:6 }
         else { lookahead=max(17+car.speed*0.33,Float(Double(oldLookahead)-Double(car.speed)*0.02)) }

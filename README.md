@@ -58,6 +58,10 @@ It rejects schema, field and tick mismatches. Exit codes: 0 pass, 1 divergence,
 capture-size limit; see [telemetry comparison](Documentation/TELEMETRY_COMPARISON.md).
 Full race telemetry is not implemented.
 
+The native BT driver now handles opponents — classification, overtaking offsets,
+collision braking and steering — matching the original's commands exactly on
+captured inputs; see [BT traffic](Documentation/BT_TRAFFIC.md).
+
 A native multi-car race now runs in the original ReOneStep order, with the race
 clock, robot scheduling, pit management, timing, rules, sorting and results; see
 [race runtime](Documentation/RACE_RUNTIME.md).

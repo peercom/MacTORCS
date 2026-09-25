@@ -20,6 +20,9 @@ public struct VehicleRemovalState: Sendable {
     public var engineRPM: Float = 0, publishedRPM: Float = 0
     public var collision: UInt32 = 0, publishedCollision: UInt32 = 0, publishedSimCollision: UInt32 = 0
     public var publishedWheelPose = FourWheels(WheelVisualPose(),WheelVisualPose(),WheelVisualPose(),WheelVisualPose())
+    /// Original pub.corner world positions, in the original wheel order: front
+    /// right, front left, rear right, rear left. A robot reads these.
+    public var publishedCorners = FourWheels(SIMD3<Float>.zero,SIMD3<Float>.zero,SIMD3<Float>.zero,SIMD3<Float>.zero)
     public var publishedSkid = SIMD4<Float>.zero, publishedSpin = SIMD4<Float>.zero, publishedBrakeTemperature = SIMD4<Float>.zero
     public var publishedTirePressure = SIMD4<Float>.zero, publishedTireTemperature = SIMD4<Float>.zero
     public var publishedTireGraining = SIMD4<Float>.zero, publishedTireWear = SIMD4<Float>.zero

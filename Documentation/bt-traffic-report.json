@@ -1,0 +1,81 @@
+{
+ "date": "2026-09-25",
+ "evidence": {
+  "bt-traffic-tests.log": "9a9f2723506ade09abb92d57216bf635b26c8bcd7fc7f0edaaa9c185d9e8b40e",
+  "native-race-g5-repeat.json": "573f9b656c45ae3f3b9a4df55a04425e10c43aa9a5b84bd31b2f45788808dfce",
+  "native-race-g5.json": "573f9b656c45ae3f3b9a4df55a04425e10c43aa9a5b84bd31b2f45788808dfce"
+ },
+ "increment": "G5 native BT opponent handling",
+ "limits": [
+  "Team behaviour is reachable but not exercised: the original reads a team mate name from the driver setup and these entries name none, so the team-order offset branch is ported but untested.",
+  "Control parity is measured on captured original inputs; native physics still diverges over a full race, so a native race is not a replay of an original one.",
+  "The comparison covers three cars on Aalborg for 20,000 ticks. Larger fields, other tracks, pit traffic and lapping are not separately measured, and the let-pass path needs a car a lap down, which a two-lap race does not produce.",
+  "The original filterSColl computes its blending distance from the last side opponent iterated while acting on the nearest one; with more than one car alongside that upstream quirk and this port may differ.",
+  "Opponent order must stay stable for a driver's life because the overlap timer is per-opponent state; the runtime supplies ascending car index order, which is the original array order.",
+  "Two porting bugs found and fixed during this increment came from Swift silently discarding a line continuation that began with an operator; both are covered by the exact comparison now."
+ ],
+ "measurements": {
+  "callbacksPerCar": 1848,
+  "classifiedCallbacks": 4914,
+  "comparedControlValues": 22176,
+  "comparisonCars": 3,
+  "comparisonTicks": 20000,
+  "exactControlValues": 22176,
+  "firstLapSecondsWithOpponents": [
+   88.138,
+   90.958,
+   99.098
+  ],
+  "firstLapSecondsWithoutOpponents": [
+   147.874,
+   157.644,
+   159.266
+  ],
+  "maxAbsolute": 0.0,
+  "newTests": 2,
+  "offsetCallbacks": 1969,
+  "raceDamage": [
+   262,
+   761,
+   47
+  ],
+  "raceGapsSeconds": [
+   0.0,
+   11.372,
+   3.776
+  ],
+  "raceRepeatIdentical": true,
+  "raceTicksWithOpponents": 91797,
+  "raceTicksWithoutOpponents": 124468,
+  "releaseSuite": "457 tests, 0 failures, 93.490 s",
+  "secondLapSecondsWithOpponents": [
+   82.084,
+   83.04,
+   82.496
+  ],
+  "soloCapturedInputControls": 21055,
+  "soloCapturedInputMaxAbsolute": 0.0,
+  "soloForcedPitTicks": 240464,
+  "soloNativeLapSeconds": 87.22399999997812,
+  "soloNativeLapTick": 44612
+ },
+ "priority": "Gameplay; foliage and new graphical work deferred",
+ "schema": 1,
+ "scope": "Semantic port of cardata.cpp, opponent.cpp and the opponent-aware driver.cpp paths, compared control by control against the original with a full-field callback capture",
+ "sources": {
+  "Packages/TORCSRaceEngine/RaceRuntime.swift": "61ff352e55b270654153d6baa6c6b10228dd4fc0cab9ddd6b5cc78ef6586cb51",
+  "Packages/TORCSRobots/BTDriver.swift": "be0832fe1141e3498b2a58e09c137d848743e352c3ccb800ead14313a394786f",
+  "Packages/TORCSRobots/BTLearning.swift": "22a79db901273f50f4d51cbac30833b126275f60fc936ffa7fb68930e9fda716",
+  "Packages/TORCSRobots/BTOpponents.swift": "a0ea81f85a460b99b352511cdcdbe4952fd6e7cafeb274d0284c8288256c28a7",
+  "Packages/TORCSRobots/BTTraffic.swift": "2c732fe2d5db0f452c86f1149aa902bbc0a72f4f708ee92af0207dc66f0ea495",
+  "Packages/TORCSSimulation/VehicleDynamics.swift": "fb09ed57470a8ba056f8635f7d096095992411497bdb4be56ad2c533574362a2",
+  "Packages/TORCSSimulation/VehicleRemoval.swift": "6b7b737c6204b08bb10d3aef740d70e3b64b564e8ba8e663558bdfc920d89aa5",
+  "Tests/UnitTests/BTTrafficTests.swift": "d8fa761a7e08d5bf0117a6b1e850d103cc5caa70f20a7d9e4cbae3ac4ee81c74",
+  "Upstream/Reference/include/CReference.h": "8365262141c3d7e5eeb5383d85c909401408321aa8bd5bcedacb6a62100c8491",
+  "Upstream/Reference/world.cpp": "28e77999d46c502d87035f77c0ac7f08c7a4cfaf8db8e64fac829f78eb7b5273"
+ },
+ "verification": {
+  "gating": "Release suite gated on the three-digit total line with no runtime-failure, Fatal, failed-case or signal markers",
+  "oracle": "ref_world_bt_field captures every car's public state at each drive callback, which is what the original opponent model reads"
+ }
+}
