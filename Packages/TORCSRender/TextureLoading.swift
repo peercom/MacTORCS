@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 import Foundation
+import CryptoKit
 import Metal
 import simd
 import TORCSMath
@@ -205,10 +206,55 @@ public final class TextureStore {
     private var cache: [String: MTLTexture] = [:]
     public private(set) var missing: Set<String> = []
     public private(set) var uploadedBytes = 0
+    /// Upload the original artwork block-compressed — BC1, or BC3 where it
+    /// is a cutout — with the encode kept in `blockCache`. Process-wide,
+    /// for measurement, like `MaterialLibrary.compressesMaps`.
+    nonisolated(unsafe) public static var compressesUploads = true
+    /// Where the encodes are kept, named by the source's SHA-256 and the
+    /// format. Nil compresses without keeping, paying the encode each load.
+    public var blockCache: URL?
+    /// Encodes served from `blockCache` rather than done.
+    public private(set) var sidecarHits = 0
 
-    public init(device: MTLDevice, roots: [URL]) {
+    /// The cache the app and the tool share: the user's caches directory.
+    public static func defaultBlockCache() -> URL? {
+        try? FileManager.default.url(for: .cachesDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
+            .appendingPathComponent("TORCSMac", isDirectory: true)
+            .appendingPathComponent("texture-blocks", isDirectory: true)
+    }
+
+    public init(device: MTLDevice, roots: [URL], blockCache: URL? = TextureStore.defaultBlockCache()) {
         self.device = device
         self.roots = roots
+        self.blockCache = blockCache
+    }
+
+    /// Uploads a linear mip chain, block-compressed when the store is asked
+    /// to, serving the encode from the block cache when it holds one for
+    /// this source. `sourceHash` is the source's SHA-256; `isCutout` picks
+    /// BC3 so the alpha survives.
+    private func uploadChain(_ levels: [(width: Int, height: Int, pixels: [UInt8])],
+                             sourceHash: [UInt8], isCutout: Bool) throws -> MTLTexture {
+        guard Self.compressesUploads else {
+            uploadedBytes += levels.reduce(0) { $0 + $1.width * $1.height * 4 }
+            return try TextureLoading.upload(levels, device: device, srgb: true)
+        }
+        let format: BlockCompression.Format = isCutout ? .bc3 : .bc1
+        let name = sourceHash.map { String(format: "%02x", $0) }.joined() + ".\(format.rawValue).torcsbc"
+        let sidecar = blockCache?.appendingPathComponent(name)
+        let chain: TextureLoading.CompressedChain
+        if let sidecar, let kept = MapSidecar.read(sidecar, sourceHash: sourceHash, format: format) {
+            chain = kept
+            sidecarHits += 1
+        } else {
+            chain = try TextureLoading.compress(levels, format: format)
+            if let sidecar {
+                try? FileManager.default.createDirectory(at: sidecar.deletingLastPathComponent(), withIntermediateDirectories: true)
+                MapSidecar.write(chain, to: sidecar, sourceHash: sourceHash)
+            }
+        }
+        uploadedBytes += chain.byteCount
+        return try TextureLoading.upload(chain, device: device, srgb: true)
     }
 
     /// Case-insensitive search by basename, because AC files reference textures
@@ -239,13 +285,26 @@ public final class TextureStore {
         if missing.contains(key) { return nil }
         guard let base = compiled.pyramid.levels.first,
               let levels = try? TextureLoading.linearMipChain(base, preserveCutoutCoverage: isCutout),
-              let texture = try? TextureLoading.upload(levels, device: device, srgb: true) else {
+              let hash = Self.bytes(ofHex: compiled.sourceSHA256),
+              let texture = try? uploadChain(levels, sourceHash: hash, isCutout: isCutout) else {
             missing.insert(key)
             return nil
         }
         cache[key] = texture
-        uploadedBytes += levels.reduce(0) { $0 + $1.width * $1.height * 4 }
         return texture
+    }
+
+    static func bytes(ofHex hex: String) -> [UInt8]? {
+        guard hex.count == 64 else { return nil }
+        var out: [UInt8] = []
+        var index = hex.startIndex
+        while index < hex.endIndex {
+            let next = hex.index(index, offsetBy: 2)
+            guard let byte = UInt8(hex[index ..< next], radix: 16) else { return nil }
+            out.append(byte)
+            index = next
+        }
+        return out
     }
 
     /// Loads from an explicit file, bypassing the search roots. Used for
@@ -257,12 +316,11 @@ public final class TextureStore {
         guard let data = try? Data(contentsOf: url),
               let image = try? TextureLoading.decode(data),
               let levels = try? TextureLoading.linearMipChain(image, preserveCutoutCoverage: isCutout),
-              let texture = try? TextureLoading.upload(levels, device: device, srgb: true) else {
+              let texture = try? uploadChain(levels, sourceHash: Array(SHA256.hash(data: data)), isCutout: isCutout) else {
             missing.insert(key)
             return nil
         }
         cache[key] = texture
-        uploadedBytes += levels.reduce(0) { $0 + $1.width * $1.height * 4 }
         return texture
     }
 
@@ -272,12 +330,11 @@ public final class TextureStore {
         guard let url = locate(name), let data = try? Data(contentsOf: url),
               let image = try? TextureLoading.decode(data),
               let levels = try? TextureLoading.linearMipChain(image, preserveCutoutCoverage: isCutout),
-              let texture = try? TextureLoading.upload(levels, device: device, srgb: true) else {
+              let texture = try? uploadChain(levels, sourceHash: Array(SHA256.hash(data: data)), isCutout: isCutout) else {
             missing.insert(name)
             return nil
         }
         cache[name] = texture
-        uploadedBytes += levels.reduce(0) { $0 + $1.width * $1.height * 4 }
         return texture
     }
 

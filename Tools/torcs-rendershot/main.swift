@@ -466,6 +466,7 @@ do {
     roots.append(URL(fileURLWithPath: options.input).deletingLastPathComponent())
     // Generated atlases are resolved by name from the materials directory.
     if let materials = options.materials { roots.append(URL(fileURLWithPath: materials)) }
+    TextureStore.compressesUploads = !options.noCompression
     let textures = TextureStore(device: renderer.device, roots: roots)
     if options.noCull {
         scene = RenderScene(batches: scene.batches.map {

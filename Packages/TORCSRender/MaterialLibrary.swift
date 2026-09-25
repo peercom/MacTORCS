@@ -233,6 +233,10 @@ enum MapSidecar {
     static let version: UInt32 = 1
 
     static func read(_ url: URL, source: Data, format: BlockCompression.Format) -> TextureLoading.CompressedChain? {
+        read(url, sourceHash: Array(SHA256.hash(data: source)), format: format)
+    }
+
+    static func read(_ url: URL, sourceHash: [UInt8], format: BlockCompression.Format) -> TextureLoading.CompressedChain? {
         guard let data = try? Data(contentsOf: url), data.count > 64 else { return nil }
         let payload = data.dropLast(32)
         guard Array(SHA256.hash(data: payload)) == Array(data.suffix(32)) else { return nil }
@@ -245,7 +249,7 @@ enum MapSidecar {
         }
         func u32() -> Int? { take(4).map { Int($0[0]) | Int($0[1]) << 8 | Int($0[2]) << 16 | Int($0[3]) << 24 } }
         guard take(8) == magic, u32() == Int(version),
-              take(32) == Array(SHA256.hash(data: source)),
+              take(32) == sourceHash,
               let formatLength = u32(), let formatBytes = take(formatLength),
               String(decoding: formatBytes, as: UTF8.self) == format.rawValue,
               let count = u32(), count > 0, count <= 16 else { return nil }
@@ -262,10 +266,14 @@ enum MapSidecar {
     }
 
     static func write(_ chain: TextureLoading.CompressedChain, to url: URL, source: Data) {
+        write(chain, to: url, sourceHash: Array(SHA256.hash(data: source)))
+    }
+
+    static func write(_ chain: TextureLoading.CompressedChain, to url: URL, sourceHash: [UInt8]) {
         var bytes = magic
         func u32(_ value: Int) { for shift in [0, 8, 16, 24] { bytes.append(UInt8((value >> shift) & 0xff)) } }
         u32(Int(version))
-        bytes += Array(SHA256.hash(data: source))
+        bytes += sourceHash
         let name = Array(chain.format.rawValue.utf8)
         u32(name.count); bytes += name
         u32(chain.levels.count)

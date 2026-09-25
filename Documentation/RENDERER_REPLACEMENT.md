@@ -1441,7 +1441,7 @@ Against the plan's phases, after twenty-nine increments on the
 | 1 Light | Hillaire atmosphere, physical sun and exposure, AgX, four-cascade CSM + contact shadows, SH + prefiltered sky IBL, a drifting cloud layer and the overcast day | clustered punctual lights (no night to light) |
 | 2 Upscaling | jitter, motion vectors, MetalFX temporal (measured a net loss) and spatial scalers, dynamic resolution, **classic path deleted** | reactive mask (spatial path needs none) |
 | 3 Screen space | GTAO, SSR with a depth-aware filter and temporal reuse, motion blur, bloom | local probe |
-| 4 Materials | 26 `torcs-matgen` sets incl. metals, car detail sets under the atlas, stochastic tiling, car paint/glass/lens, maps uploaded BC1/BC5 with a sidecar encode (293 → 185 MB) | AI-sourced base maps; BC7 and ASTC have no encoder here, original art still RGBA8 |
+| 4 Materials | 26 `torcs-matgen` sets incl. metals, car detail sets under the atlas, stochastic tiling, car paint/glass/lens, maps and original art uploaded BC1/BC3/BC5 with a sidecar encode (full session 372 → 214 MB) | AI-sourced base maps; BC7 and ASTC have no encoder here |
 | 5 Track | generated road, curbs, barriers, terrain, markings, racing-line rubber, skid marks, pit garages, painted starting grid | road detail atlas beyond the markings |
 | 6 Scatter | volumetric trees with dithered detail pairs, grass cards, wind (in the shadows too), tyre walls on the corners | impostors, crowds, GPU-driven culling (about 290 draws a frame: not needed) |
 | 7 Effects | smoke, dust, spray, wet weather with puddles, rain and drops on the windscreen, sun glare, heat haze, a lens for the television view | — |
@@ -2576,6 +2576,38 @@ Left undone, and worth saying: the original artwork — the car, the
 atlases, the track's remaining baked textures — still goes up as RGBA8
 through the texture store. The same sidecar would serve it; it is the
 next step on this path if the budget ever tightens.
+
+## The original art, compressed too
+
+The previous section left the original artwork — the car's atlases, the
+wheels, what remains of the track's baked textures — going up as RGBA8
+through the texture store, and said the same sidecar would serve it. It
+does now. The store uploads BC1, or BC3 where the batch is a cutout so
+the alpha survives, and keeps each encode in the user's caches directory
+under the source's SHA-256 — the compiled session packages are read-only
+and already carry that hash, so a texture is one encode whichever way it
+arrives, by file or by package. `TextureStore.compressesUploads` and the
+same `--no-compression` keep the RGBA8 path for measurement; the app's
+smoke run reports what it uploaded and takes `TORCS_NO_COMPRESSION=1`.
+
+The full session in the app, both stores:
+
+| | RGBA8 | block-compressed |
+|---|---|---|
+| original art uploaded | 25.8 MiB | 3.4 MiB |
+| generated maps uploaded | 160.0 MiB | 26.7 MiB |
+| device memory after load | 372 MB | 214 MB |
+| load | 7.0 s | 9.8 s the first time (encode), 3.7 s after |
+
+A hundred and fifty-eight megabytes on an 8 GB machine, and a load that
+is half of what it was once the encodes exist. The driver's-eye forward
+fragment measures the same as in the previous section, 4.13 → 3.75 ms;
+the tool's generated-track scene has only four original textures and
+shows the store's share as small, which is why the session in the app is
+the number reported. The test uploads a cutout and an opaque fixture
+through a temporary cache, checks the formats, that a second store is
+served from the cache, that the compiled-package route shares the same
+encode, and that RGBA8 is several times the bytes.
 
 ## Licensing
 

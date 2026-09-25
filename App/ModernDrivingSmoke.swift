@@ -22,6 +22,12 @@ import TORCSTrackMesh
             throw ACError.invalid("Visual output directory already exists")
         }
         let content = try DrivingContent.load(session)
+        // TORCS_NO_COMPRESSION=1 uploads every texture as RGBA8, to measure
+        // what the block formats save on a full session.
+        if ProcessInfo.processInfo.environment["TORCS_NO_COMPRESSION"] != nil {
+            TextureStore.compressesUploads = false
+            MaterialLibrary.compressesMaps = false
+        }
         let renderer = try ForwardRenderer()
         let resources = try SessionRenderResources(
             device: renderer.device, scenes: content.renderScenes,
@@ -141,6 +147,10 @@ import TORCSTrackMesh
         try JSONSerialization.data(withJSONObject: summary, options: [.prettyPrinted, .sortedKeys])
             .write(to: output.appendingPathComponent("report.json"))
         print("modern driving smoke: \(report.count) cameras, \(resources.textures.count) textures, \(resources.textures.missing.count) missing")
+        let materialBytes = resources.materials?.uploadedBytes ?? 0
+        print(String(format: "modern driving smoke: textures %.1f MiB + materials %.1f MiB uploaded, device %.1f MB allocated, %d texture encodes served from the block cache",
+                     Double(resources.textures.uploadedBytes) / 1_048_576, Double(materialBytes) / 1_048_576,
+                     Double(renderer.device.currentAllocatedSize) / 1_048_576, resources.textures.sidecarHits))
     }
 }
 
