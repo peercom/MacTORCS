@@ -1437,11 +1437,11 @@ Against the plan's phases, after twenty-nine increments on the
 
 | Phase | Delivered | Deferred |
 |---|---|---|
-| 0 Foundations | TORCSRender, linear HDR, packed 32-byte vertex with tangents, generated mip chains, BC5/BC7 caches | — |
+| 0 Foundations | TORCSRender, linear HDR, packed 32-byte vertex with tangents, generated mip chains, BC1/BC3/BC4/BC5 encoders in the asset package (no BC7; uploaded RGBA8 until R54) | — |
 | 1 Light | Hillaire atmosphere, physical sun and exposure, AgX, four-cascade CSM + contact shadows, SH + prefiltered sky IBL, a drifting cloud layer and the overcast day | clustered punctual lights (no night to light) |
 | 2 Upscaling | jitter, motion vectors, MetalFX temporal (measured a net loss) and spatial scalers, dynamic resolution, **classic path deleted** | reactive mask (spatial path needs none) |
 | 3 Screen space | GTAO, SSR with a depth-aware filter and temporal reuse, motion blur, bloom | local probe |
-| 4 Materials | 26 `torcs-matgen` sets incl. metals, car detail sets under the atlas, stochastic tiling, car paint/glass/lens | AI-sourced base maps, BC7-vs-ASTC comparison |
+| 4 Materials | 26 `torcs-matgen` sets incl. metals, car detail sets under the atlas, stochastic tiling, car paint/glass/lens, maps uploaded BC1/BC5 with a sidecar encode (293 → 185 MB) | AI-sourced base maps; BC7 and ASTC have no encoder here, original art still RGBA8 |
 | 5 Track | generated road, curbs, barriers, terrain, markings, racing-line rubber, skid marks, pit garages, painted starting grid | road detail atlas beyond the markings |
 | 6 Scatter | volumetric trees with dithered detail pairs, grass cards, wind (in the shadows too), tyre walls on the corners | impostors, crowds, GPU-driven culling (about 290 draws a frame: not needed) |
 | 7 Effects | smoke, dust, spray, wet weather with puddles, rain and drops on the windscreen, sun glare, heat haze, a lens for the television view | — |
@@ -2516,6 +2516,66 @@ Not shipped in the bundle: an archive holds binaries for one GPU
 family, and a file built here would serve an M2 and no other. Built on
 the first launch and kept, it makes every launch after it — and every
 race — compile nothing, which is what the specification asked.
+
+## The compression that never reached the GPU
+
+Section 7c of the plan called texture compression mandatory — "unshippable
+on an 8 GB machine" without it — and the block-compression work of Phase 0
+built BC1, BC3, BC4 and BC5 encoders with decoders to test them against.
+What it did not do, and what the status table above claimed until this
+section corrected it, was upload anything compressed: every texture the
+modern path put on the GPU, original art and generated map alike, went up
+as RGBA8. The encoders lived in the asset package; the loader never
+called them. The memory budget test passed because the budget was
+generous and the maps few.
+
+The generated material sets now go up block-compressed: albedo in BC1
+(the sets are opaque), the normal's two channels in BC5, the ORM triple
+in BC1. Encoding a 2048² map on the CPU takes the better part of a
+second, so the encode is kept beside its source — `<map>.<format>.torcsbc`,
+keyed inside by the PNG's SHA-256 so a regenerated map is never served
+stale blocks, and checksummed so a truncated file is ignored and
+rewritten — and every launch after the first reads blocks. A
+process-wide switch, `MaterialLibrary.compressesMaps`, and the tool's
+`--no-compression` keep the RGBA8 path for measurement.
+
+The measurements, full generated session, driver's-eye view:
+
+| | RGBA8 | block-compressed |
+|---|---|---|
+| device memory after load | 293 MB | 185 MB |
+| material load, PNG decode and mips | 3.2 s | 5.4 s first time (encode), 0.5 s after (sidecars) |
+| forward fragment, native | 4.12–4.24 ms | 3.75–3.76 ms |
+| frame, native | 9.5–9.7 ms | 9.0–9.2 ms |
+| the picture, 1280×832 | — | max 20/255, mean 0.35, 0.08% of channels over 4 |
+
+The circuit view, which samples few material texels, is unchanged. The
+quality, measured by encoding and decoding the generated maps themselves
+(a test that prints its figures):
+
+| set | albedo BC1 | ORM BC1 | of which occlusion | roughness | normal BC5, mean |
+|---|---|---|---|---|---|
+| asphalt | 42.6 dB | 32.8 dB | 28.4 dB | 38.8 dB | 0.97° |
+| grass | 43.8 dB | 34.6 dB | 29.9 dB | 45.6 dB | 1.00° |
+| kerb | 36.8 dB | 34.9 dB | 32.5 dB | 33.9 dB | 0.69° |
+| brushed metal | 42.8 dB | 41.7 dB | 39.6 dB | 40.2 dB | 0.00° |
+
+Albedo and roughness are comfortably above the 30 dB floor the Phase 0
+work set for BC1. The weak channel is the occlusion, which sits in BC1's
+five-bit red and shows it at 28–33 dB: smooth, low-frequency data is
+what BC1's two-endpoint palette serves worst. That is precisely what the
+plan had BC7 in mind for, and BC7 has no encoder here; ASTC 6×6, the
+other half of the comparison the plan asked for before committing,
+has none either — Metal encodes neither at runtime. So the comparison
+the plan wanted cannot be made with what exists, and the honest record
+is: BC1 costs the occlusion channel a few decibels that do not show in
+the frame (the picture differs from RGBA8 by a third of a value on
+average), and buys 108 MB and half a millisecond.
+
+Left undone, and worth saying: the original artwork — the car, the
+atlases, the track's remaining baked textures — still goes up as RGBA8
+through the texture store. The same sidecar would serve it; it is the
+next step on this path if the budget ever tightens.
 
 ## Licensing
 

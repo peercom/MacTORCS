@@ -115,6 +115,62 @@ public enum TextureLoading {
         return levels
     }
 
+    /// A mip chain block-compressed for upload: one encoded level per source
+    /// level, in the given BC format.
+    public struct CompressedChain: Sendable {
+        public let format: BlockCompression.Format
+        public let levels: [(width: Int, height: Int, blocks: [UInt8])]
+        public var byteCount: Int { levels.reduce(0) { $0 + $1.blocks.count } }
+        public init(format: BlockCompression.Format, levels: [(width: Int, height: Int, blocks: [UInt8])]) {
+            self.format = format
+            self.levels = levels
+        }
+    }
+
+    /// Encodes every level of a chain. CPU work of the order of a second for
+    /// a 2048² map, which is why `MaterialLibrary` keeps the result beside
+    /// the source and only encodes once.
+    public static func compress(_ levels: [(width: Int, height: Int, pixels: [UInt8])],
+                                format: BlockCompression.Format) throws -> CompressedChain {
+        CompressedChain(format: format, levels: try levels.map {
+            ($0.width, $0.height, try BlockCompression.encode($0.pixels, width: $0.width, height: $0.height, format: format))
+        })
+    }
+
+    /// The Metal format for a block-compressed chain: BC1 and BC3 carry
+    /// colour and may be sRGB; BC4 and BC5 are data.
+    public static func pixelFormat(for format: BlockCompression.Format, srgb: Bool) -> MTLPixelFormat {
+        switch format {
+        case .bc1: return srgb ? .bc1_rgba_srgb : .bc1_rgba
+        case .bc3: return srgb ? .bc3_rgba_srgb : .bc3_rgba
+        case .bc4: return .bc4_rUnorm
+        case .bc5: return .bc5_rgUnorm
+        }
+    }
+
+    /// Uploads a block-compressed chain. Metal takes a level smaller than a
+    /// block as one block, which is how the encoder padded it.
+    public static func upload(_ chain: CompressedChain, device: MTLDevice, srgb: Bool) throws -> MTLTexture {
+        guard let base = chain.levels.first else { throw ACError.invalid("No mip levels to upload") }
+        let descriptor = MTLTextureDescriptor.texture2DDescriptor(
+            pixelFormat: pixelFormat(for: chain.format, srgb: srgb),
+            width: base.width, height: base.height, mipmapped: chain.levels.count > 1)
+        descriptor.mipmapLevelCount = chain.levels.count
+        descriptor.usage = .shaderRead
+        descriptor.storageMode = .shared
+        guard let texture = device.makeTexture(descriptor: descriptor) else {
+            throw ACError.invalid("Could not allocate a \(base.width)x\(base.height) compressed texture")
+        }
+        for (level, mip) in chain.levels.enumerated() {
+            let bytesPerRow = BlockCompression.blocksWide(mip.width) * chain.format.bytesPerBlock
+            mip.blocks.withUnsafeBytes { raw in
+                texture.replace(region: MTLRegionMake2D(0, 0, mip.width, mip.height),
+                                mipmapLevel: level, withBytes: raw.baseAddress!, bytesPerRow: bytesPerRow)
+            }
+        }
+        return texture
+    }
+
     public static func upload(_ levels: [(width: Int, height: Int, pixels: [UInt8])],
                               device: MTLDevice, srgb: Bool) throws -> MTLTexture {
         guard let base = levels.first else { throw ACError.invalid("No mip levels to upload") }

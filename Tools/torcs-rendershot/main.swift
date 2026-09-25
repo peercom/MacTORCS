@@ -106,6 +106,8 @@ struct Options {
     var archivePath: String?
     /// Fail construction on any pipeline the archive does not hold.
     var archiveStrict = false
+    /// Upload the generated material maps as RGBA8 instead of block-compressed, to measure.
+    var noCompression = false
     /// Report the device's allocated memory after the frames.
     var memory = false
     /// Frames of tyre smoke to emit at the rear wheels before rendering.
@@ -227,6 +229,7 @@ func parse() -> Options {
         case "--startup": options.startup = true
         case "--archive": options.archivePath = next()
         case "--archive-strict": options.archiveStrict = true
+        case "--no-compression": options.noCompression = true
         case "--memory": options.memory = true
         case "--smoke": options.smokeFrames = Int(next()) ?? 45
         case "--orbit-speed": options.orbitSpeed = Float(next()) ?? 0
@@ -485,6 +488,7 @@ do {
     var materialDirectory: URL? = nil
     if let path = options.materials {
         materialDirectory = URL(fileURLWithPath: path)
+        MaterialLibrary.compressesMaps = !options.noCompression
         library = try MaterialLibrary(device: renderer.device, directory: materialDirectory!)
     }
     let resources = try SceneResources(device: renderer.device, scene: scene, textures: textures,

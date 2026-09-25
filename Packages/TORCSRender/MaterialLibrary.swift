@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 import Foundation
+import CryptoKit
 import Metal
 import simd
 import TORCSAssets
@@ -107,18 +108,56 @@ public final class MaterialLibrary {
         }
     }
 
+    /// Upload the maps block-compressed — BC1 for albedo and ORM, BC5 for
+    /// normals — a quarter to an eighth of the memory and bandwidth of RGBA8.
+    /// Process-wide, for measurement: the render tool's `--no-compression`.
+    nonisolated(unsafe) public static var compressesMaps = true
+    /// Bytes of texture uploaded by this library, for the record.
+    public private(set) var uploadedBytes = 0
+    /// Maps whose encode was read from a sidecar rather than done.
+    public private(set) var sidecarHits = 0
+
+    /// The block format a map takes: colour in BC1 (opaque, 4 bits a texel),
+    /// a normal's two channels in BC5, the ORM triple in BC1. BC7 would suit
+    /// the ORM's smooth channels better and there is no encoder for it; the
+    /// measured quality is in RENDERER_REPLACEMENT.md.
+    public static func format(forMap suffix: String) -> BlockCompression.Format {
+        suffix == "normal" ? .bc5 : .bc1
+    }
+
     /// Loads a generated set on first use, decoding its three maps.
     private func binding(_ material: String, directory: URL) -> Binding? {
         if let cached = cache[material] { return cached }
         func load(_ suffix: String, srgb: Bool) -> MTLTexture? {
             let url = directory.appendingPathComponent("\(material)-\(suffix).png")
-            guard let data = try? Data(contentsOf: url),
-                  let image = try? TextureLoading.decode(data),
+            guard let data = try? Data(contentsOf: url) else { return nil }
+            if Self.compressesMaps {
+                let format = Self.format(forMap: suffix)
+                let sidecar = directory.appendingPathComponent("\(material)-\(suffix).\(format.rawValue).torcsbc")
+                let chain: TextureLoading.CompressedChain
+                if let cached = MapSidecar.read(sidecar, source: data, format: format) {
+                    chain = cached
+                    sidecarHits += 1
+                } else {
+                    guard let image = try? TextureLoading.decode(data),
+                          let levels = try? TextureLoading.linearMipChain(image, preserveCutoutCoverage: false,
+                                                                         encodeAsColour: srgb),
+                          let encoded = try? TextureLoading.compress(levels, format: format) else { return nil }
+                    chain = encoded
+                    // Best effort: a directory that cannot be written to
+                    // costs the encode again next time, nothing more.
+                    MapSidecar.write(chain, to: sidecar, source: data)
+                }
+                uploadedBytes += chain.byteCount
+                return try? TextureLoading.upload(chain, device: device, srgb: srgb)
+            }
+            guard let image = try? TextureLoading.decode(data),
                   // Normal and ORM are data, not colour: filtering their mips
                   // in linear space would be wrong, and so would an sRGB
                   // decode on the way in.
                   let levels = try? TextureLoading.linearMipChain(image, preserveCutoutCoverage: false,
                                                                  encodeAsColour: srgb) else { return nil }
+            uploadedBytes += levels.reduce(0) { $0 + $1.width * $1.height * 4 }
             return try? TextureLoading.upload(levels, device: device, srgb: srgb)
         }
         guard let albedo = load("albedo", srgb: true),
@@ -182,4 +221,58 @@ public final class MaterialLibrary {
 
     public var substitutionCount: Int { substitutions.count }
     public var materialsUsed: Set<String> { Set(substitutions.values) }
+}
+
+/// A block-compressed mip chain kept beside its source map, so the encode —
+/// a second or two of CPU per 2048² map — is paid once per source, not per
+/// launch. Named by the map and format, keyed inside by the source's SHA-256
+/// so a regenerated map is never served stale blocks, and checksummed so a
+/// truncated file is ignored rather than uploaded.
+enum MapSidecar {
+    static let magic = Array("TORCSBC1".utf8)
+    static let version: UInt32 = 1
+
+    static func read(_ url: URL, source: Data, format: BlockCompression.Format) -> TextureLoading.CompressedChain? {
+        guard let data = try? Data(contentsOf: url), data.count > 64 else { return nil }
+        let payload = data.dropLast(32)
+        guard Array(SHA256.hash(data: payload)) == Array(data.suffix(32)) else { return nil }
+        var bytes = Array(payload)
+        var cursor = 0
+        func take(_ n: Int) -> [UInt8]? {
+            guard cursor + n <= bytes.count else { return nil }
+            defer { cursor += n }
+            return Array(bytes[cursor ..< cursor + n])
+        }
+        func u32() -> Int? { take(4).map { Int($0[0]) | Int($0[1]) << 8 | Int($0[2]) << 16 | Int($0[3]) << 24 } }
+        guard take(8) == magic, u32() == Int(version),
+              take(32) == Array(SHA256.hash(data: source)),
+              let formatLength = u32(), let formatBytes = take(formatLength),
+              String(decoding: formatBytes, as: UTF8.self) == format.rawValue,
+              let count = u32(), count > 0, count <= 16 else { return nil }
+        var levels: [(width: Int, height: Int, blocks: [UInt8])] = []
+        for _ in 0 ..< count {
+            guard let width = u32(), let height = u32(), let size = u32(),
+                  size == BlockCompression.encodedSize(width: width, height: height, format: format),
+                  let blocks = take(size) else { return nil }
+            levels.append((width, height, blocks))
+        }
+        guard cursor == bytes.count else { return nil }
+        bytes.removeAll()
+        return TextureLoading.CompressedChain(format: format, levels: levels)
+    }
+
+    static func write(_ chain: TextureLoading.CompressedChain, to url: URL, source: Data) {
+        var bytes = magic
+        func u32(_ value: Int) { for shift in [0, 8, 16, 24] { bytes.append(UInt8((value >> shift) & 0xff)) } }
+        u32(Int(version))
+        bytes += Array(SHA256.hash(data: source))
+        let name = Array(chain.format.rawValue.utf8)
+        u32(name.count); bytes += name
+        u32(chain.levels.count)
+        for level in chain.levels {
+            u32(level.width); u32(level.height); u32(level.blocks.count); bytes += level.blocks
+        }
+        bytes += Array(SHA256.hash(data: Data(bytes)))
+        try? Data(bytes).write(to: url, options: .atomic)
+    }
 }
