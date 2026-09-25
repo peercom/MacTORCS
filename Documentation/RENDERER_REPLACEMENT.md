@@ -1445,7 +1445,7 @@ Against the plan's phases, after twenty-nine increments on the
 | 5 Track | generated road, curbs, barriers, terrain, markings, racing-line rubber, skid marks, pit garages, painted starting grid | road detail atlas beyond the markings |
 | 6 Scatter | volumetric trees with dithered detail pairs, grass cards, wind (in the shadows too), tyre walls on the corners | impostors, crowds, GPU-driven culling (about 290 draws a frame: not needed) |
 | 7 Effects | smoke, dust, spray, wet weather with puddles, sun glare, heat haze | rain itself, replay/photo depth of field |
-| 8 Hardening | prebuilt shaders, pre-warmed scalers, memory budget test, sustained runs, the seven signposts, app bundle fixed, hero car subdivided in place, per-pass GPU timer, near-field aerial perspective in closed form, detail-map anisotropy per preset (driver's-eye 15.2 → 11.2 ms) | binary archive for the first launch |
+| 8 Hardening | prebuilt shaders, pre-warmed scalers, memory budget test, sustained runs, the seven signposts, app bundle fixed, hero car subdivided in place, per-pass GPU timer, near-field aerial perspective in closed form, detail-map anisotropy per preset, occlusion at a quarter on the Air (driver's-eye 15.2 → 10.0 ms, under budget at native) | binary archive for the first launch |
 
 The measured state of the default preset on the target machine is the
 sustained table above: 8.7 ms at native with the whole session drawn, no
@@ -2057,6 +2057,63 @@ not there used to fall back to compiling the sources without a word,
 which measured one shader change against itself for a whole series.
 It is an error now, and it takes precedence over a bundled library, so
 a measurement means what it says.
+
+## Occlusion at a quarter
+
+After the forward pass the occlusion pass was the driver's-eye view's
+next two milliseconds. Taken apart the same way — each candidate
+removed into its own library and alternated with the current one — at
+its half resolution of 1280×832:
+
+| removed | saving |
+|---|---|
+| the ambient (GTAO) term | 1.4 ms |
+| contact shadows | 0.45 ms |
+| the bilateral blur | 0.32 ms (measured directly) |
+| horizon steps 4 → 2 | 0.5 ms |
+| slices 3 → 2 | 0.45 ms |
+| contact steps 8 → 4 | 0.15 ms |
+| the 96-pixel radius clamp → 48 | nothing |
+
+So the cost is the sample count times the pixel count, and there is no
+one sample doing nothing. Fewer samples make the term noisier under the
+same blur; fewer pixels do not, because the term is low-frequency by
+construction — a horizon integral over a metre of world, blurred 4×4 and
+then sampled bilinearly by the forward pass. `RenderSettings.Quality`
+already had a `quarter` level from the reflection trace's null result,
+and the occlusion renderer already keyed its target size on it.
+
+The M2 Air preset's `ambientOcclusion` is now `.quarter`; balanced stays
+at half and high at full. Same binary, the two levels alternated with
+`--ao` (the pass's own stage medians, then the frame):
+
+| view | half | quarter |
+|---|---|---|
+| driver's-eye, occlusion + blur | 1.94 + 0.32 ms | 0.68 + 0.17 ms |
+| driver's-eye frame | 11.1 ms | 10.0 ms |
+| circuit overview, occlusion + blur | 0.84 + 0.18 ms | 0.33 + 0.09 ms |
+| circuit overview frame | 6.9 ms | 6.5 ms |
+
+What it does to the picture, at 1280×832 output (so the occlusion is
+computed at 320×208): the driver's-eye frame differs from the
+half-resolution one by more than 8 of 255 in 0.1% of its channels
+(against 5.1% for switching occlusion off altogether); a car at
+three-quarter view with the sun at 40° differs in 0.1% of channels
+(3.7% for off). The raw ambient buffer is visibly blockier at a quarter
+— a wheel arch's shading resolves in 4-pixel steps — and none of that
+survives the blur, the bilinear sample and the multiplication into a
+sky term that is itself a small part of a sunlit pixel. The contact
+term, which is the sharper of the two, comes out of the quarter target
+nearly identical to the half one, because its edges are where the depth
+buffer's are and the bilateral blur keeps them there.
+
+Two increments ago the driver's-eye frame was 15.2 ms at native; it is
+now 10.0, under the plan's 10.5 ms budget for the first time at full
+resolution, with the resolution controller still holding native. The
+occlusion at a quarter costs what the plan budgeted for it at half
+(0.7 ms), and the forward pass is a millimetre from its own line
+(4.1 + 2.0 ms against 3.2 — the vertex stage of the trees is what
+remains above it).
 
 ## Licensing
 

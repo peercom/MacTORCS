@@ -136,7 +136,11 @@ public struct RenderSettings: Sendable, Equatable {
             shadowResolution = 2048
             staticShadowRefreshInterval = 1
             contactShadows = true
-            ambientOcclusion = .half
+            // Quarter: the occlusion is a low-frequency term under a bilateral
+            // blur and a bilinear sample, and the driver's-eye frame differs
+            // from half by a tenth of a percent of its channels while the
+            // pass costs a third (R45 in RENDERER_REPLACEMENT.md).
+            ambientOcclusion = .quarter
             screenSpaceReflections = .half
             reflectionRoughnessCutoff = 0.45
             reflectionTemporal = true

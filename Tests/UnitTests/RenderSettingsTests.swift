@@ -349,7 +349,7 @@ final class EffectAvailabilityTests: XCTestCase {
             XCTAssertTrue(settings.contactShadows, "\(preset)")
             XCTAssertNotEqual(settings.ambientOcclusion, .off, "\(preset)")
         }
-        XCTAssertEqual(RenderSettings(preset: .m2Air).ambientOcclusion, .half, "the Air pays half the pixels")
+        XCTAssertEqual(RenderSettings(preset: .m2Air).ambientOcclusion, .quarter, "the Air pays a sixteenth of the pixels")
     }
 
     func testBloomIsOnWithSaneParametersInEveryPreset() {

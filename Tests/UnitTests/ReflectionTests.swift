@@ -128,6 +128,11 @@ extension ReflectionTests {
         settings.bloom = false; settings.motionBlur = false; settings.upscaling = false
         settings.screenSpaceReflections = .full
         settings.reflectionTemporal = true
+        // The occlusion's noise phase rotates every frame too, and at the
+        // Air preset's quarter resolution on a 256x160 frame its change
+        // between frames outweighs the reflections' convergence. Only the
+        // reflections are under test.
+        settings.ambientOcclusion = .off; settings.contactShadows = false
         let renderer = try ForwardRenderer(settings: settings)
         let scene = try SceneResources(device: renderer.device, scene: MotionBlurTests().fixtureScene())
         let camera = RenderCamera(eye: SIMD3(6, -5, 2), target: SIMD3(0, 0, 0.5))
