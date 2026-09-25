@@ -76,6 +76,14 @@ struct Options {
     var shadowRefresh: Int? = nil
     /// Per-pass GPU timing over the frames, from the GPU's timestamp counter.
     var passes = false
+    /// Frames submitted before waiting, for the timing and sustained loops.
+    /// One renders and waits like a verification render; three keeps the GPU
+    /// busy the way presentation does.
+    var framesInFlight = 1
+    /// Submit one frame per display interval, as presentation does, with at
+    /// most two in flight; report the share of frames that finished within
+    /// the interval. This is the app's regime; the other loops are not.
+    var paceHertz: Double = 0
     /// A television lens: focus distance in metres turns the depth of field on.
     var focusDistance: Float?
     var fNumber: Float = 2.8
@@ -193,6 +201,8 @@ func parse() -> Options {
         case "--rain": options.rain = Float(next()) ?? 1
         case "--shadow-refresh": options.shadowRefresh = Int(next())
         case "--passes": options.passes = true
+        case "--pace": options.paceHertz = Double(next()) ?? 60
+        case "--in-flight": options.framesInFlight = min(max(Int(next()) ?? 1, 1), ForwardRenderer.maximumFramesInFlight)
         case "--dof": options.focusDistance = Float(next())
         case "--fstop": options.fNumber = Float(next()) ?? options.fNumber
         case "--focal": options.focalLength = Float(next()) ?? options.focalLength
@@ -548,27 +558,94 @@ do {
         let start = Date()
         var window: [Double] = [], windows: [(Double, Double, Double)] = []
         var windowStart = start, frame = 0
-        print("sustained run, \(options.width)x\(options.height), \(Int(options.sustainSeconds)) s")
+        // With frames in flight the samples arrive on completion threads;
+        // the window is drained under a lock when it is reported.
+        let inFlight = DispatchSemaphore(value: options.framesInFlight)
+        let paced = DispatchSemaphore(value: 2)
+        let completed = SampleCollector(), latencies = SampleCollector(), lateGPUFits = SampleCollector()
+        var windowLatency: [Double] = [], windowLateFits: [Double] = []
+        print("sustained run, \(options.width)x\(options.height), \(Int(options.sustainSeconds)) s"
+              + (options.paceHertz > 0 ? String(format: ", paced at %.0f Hz", options.paceHertz)
+                 : options.framesInFlight > 1 ? ", \(options.framesInFlight) frames in flight" : ""))
         while Date().timeIntervalSince(start) < options.sustainSeconds {
             let frameCamera = RenderCamera(framing: scene.minimum, scene.maximum,
                                            azimuth: (options.azimuth + 0.5 * Float(frame)) * radians,
                                            elevation: options.elevation * radians)
-            _ = try renderer.render(scene: resources, camera: frameCamera, lighting: lighting,
-                                    width: options.width, height: options.height)
-            window.append(renderer.lastGPUTime * 1000)
-            // `--dynamic` lets the resolution controller act, as presentation
-            // would, so the valve can be watched opening.
-            if options.dynamic { renderer.recordDynamicResolution(gpuTime: renderer.lastGPUTime) }
+            if options.paceHertz > 0 {
+                // One frame per interval. Frames that finish inside it never
+                // overlap, so the per-buffer GPU time is exact and the
+                // resolution controller sees what presentation would.
+                let interval = 1 / options.paceHertz
+                let tick = start.addingTimeInterval(Double(frame) * interval)
+                let wait = tick.timeIntervalSinceNow
+                if wait > 0 { Thread.sleep(forTimeInterval: wait) }
+                paced.wait()
+                if options.dynamic { let measured = renderer.gpuTime; if measured > 0 { renderer.recordDynamicResolution(gpuTime: measured) } }
+                let submitted = Date()
+                try renderer.submit(resources: [resources], instances: [RenderInstance(resource: 0)],
+                                    camera: frameCamera, lighting: lighting,
+                                    width: options.width, height: options.height) { seconds in
+                    completed.add(seconds * 1000)
+                    let latency = Date().timeIntervalSince(submitted) * 1000
+                    latencies.add(latency)
+                    // A late frame whose own GPU span fit the interval was
+                    // waiting on something else: the CPU ahead of the commit,
+                    // or the GPU busy with another process's work.
+                    if latency > interval * 1000 { lateGPUFits.add(seconds * 1000 <= interval * 1000 ? 1 : 0) }
+                    paced.signal()
+                }
+                window = completed.drain(into: window)
+                windowLatency = latencies.drain(into: windowLatency)
+                windowLateFits = lateGPUFits.drain(into: windowLateFits)
+            } else if options.framesInFlight > 1 {
+                inFlight.wait()
+                // `--dynamic` lets the resolution controller act, as
+                // presentation would: on the last completed frame's cost.
+                if options.dynamic { let measured = renderer.gpuTime; if measured > 0 { renderer.recordDynamicResolution(gpuTime: measured) } }
+                try renderer.submit(resources: [resources], instances: [RenderInstance(resource: 0)],
+                                    camera: frameCamera, lighting: lighting,
+                                    width: options.width, height: options.height) { seconds in
+                    completed.add(seconds * 1000)
+                    inFlight.signal()
+                }
+                window = completed.drain(into: window)
+            } else {
+                _ = try renderer.render(scene: resources, camera: frameCamera, lighting: lighting,
+                                        width: options.width, height: options.height)
+                window.append(renderer.lastGPUTime * 1000)
+                // `--dynamic` lets the resolution controller act, as presentation
+                // would, so the valve can be watched opening.
+                if options.dynamic { renderer.recordDynamicResolution(gpuTime: renderer.lastGPUTime) }
+            }
             frame += 1
             if Date().timeIntervalSince(windowStart) >= 15 {
                 let sorted = window.sorted()
                 let median = sorted[sorted.count / 2], p95 = sorted[min(sorted.count - 1, Int(Double(sorted.count) * 0.95))]
                 windows.append((Date().timeIntervalSince(start), median, p95))
-                print(String(format: "  t=%4.0f s  median %6.3f ms  p95 %6.3f ms  (%d frames)  scale %.2f",
-                             Date().timeIntervalSince(start), median, p95, sorted.count, renderer.effectiveRenderScale))
-                window.removeAll(); windowStart = Date()
+                // Wall-clock per frame: with frames in flight one buffer's
+                // GPU span overlaps its neighbours', and throughput is the
+                // figure that means what a frame costs the busy GPU.
+                let wall = Date().timeIntervalSince(windowStart) * 1000 / Double(max(sorted.count, 1))
+                var pacing = ""
+                if options.paceHertz > 0, !windowLatency.isEmpty {
+                    // Submit-to-completion latency against the interval: the
+                    // frames presentation would have shown on time.
+                    let interval = 1000 / options.paceHertz
+                    let onTime = windowLatency.filter { $0 <= interval }.count
+                    let sortedLatency = windowLatency.sorted()
+                    let late = windowLateFits.count, lateButFit = Int(windowLateFits.reduce(0, +))
+                    pacing = String(format: "  latency %.1f ms  p95 %.1f ms  on time %.1f%%  late: %d GPU-bound, %d waiting",
+                                    sortedLatency[sortedLatency.count / 2], sortedLatency[min(sortedLatency.count - 1, Int(Double(sortedLatency.count) * 0.95))],
+                                    100 * Double(onTime) / Double(windowLatency.count), late - lateButFit, lateButFit)
+                }
+                print(String(format: "  t=%4.0f s  median %6.3f ms  p95 %6.3f ms  (%d frames, %.2f ms/frame)  scale %.2f",
+                             Date().timeIntervalSince(start), median, p95, sorted.count, wall, renderer.effectiveRenderScale) + pacing)
+                window.removeAll(); windowLatency.removeAll(); windowLateFits.removeAll(); windowStart = Date()
             }
         }
+        // Let the frames in flight finish before leaving.
+        for _ in 0 ..< options.framesInFlight { inFlight.wait() }
+        for _ in 0 ..< 2 { paced.wait() }
         if let first = windows.first, let last = windows.last {
             print(String(format: "  first window %.3f ms, last window %.3f ms: %+.1f%%",
                          first.1, last.1, (last.1 - first.1) / first.1 * 100))
@@ -645,6 +722,34 @@ do {
     var samples: [Double] = []
     var pixels: [UInt8] = []
     let warmups = options.frames > 1 ? min(10, options.frames) : 0
+    if options.framesInFlight > 1 && !options.passes && options.frames > 1 {
+        // Keep the GPU busy: the per-frame medians are of a GPU at the clock
+        // presentation would hold, not of one idling between frames.
+        let inFlight = DispatchSemaphore(value: options.framesInFlight)
+        let completed = SampleCollector()
+        for frame in 0 ..< (warmups + options.frames) {
+            var frameCamera = camera
+            if options.orbitSpeed != 0, options.eye == nil {
+                frameCamera = RenderCamera(framing: scene.minimum, scene.maximum,
+                                           azimuth: (options.azimuth + options.orbitSpeed * Float(frame)) * radians,
+                                           elevation: options.elevation * radians)
+            }
+            inFlight.wait()
+            let counted = frame >= warmups
+            try renderer.submit(resources: [resources], instances: [RenderInstance(resource: 0)],
+                                camera: frameCamera, lighting: lighting,
+                                width: options.width, height: options.height) { seconds in
+                if counted { completed.add(seconds * 1000) }
+                inFlight.signal()
+            }
+        }
+        for _ in 0 ..< options.framesInFlight { inFlight.wait() }
+        samples = completed.drain(into: samples)
+        // The image is the synchronous path's, from the cold state the
+        // verification renders use.
+        pixels = try renderer.render(scene: resources, camera: camera, lighting: lighting,
+                                     width: options.width, height: options.height)
+    } else {
     for frame in 0 ..< (warmups + options.frames) {
         // `--orbit-speed D` turns the framing camera D degrees per frame, so a
         // still tool can show what depends on motion.
@@ -665,6 +770,7 @@ do {
                 if sample.fragmentSeconds.isFinite { passSamples[sample.name + "|f", default: []].append(sample.fragmentSeconds * 1000) }
             }
         }
+    }
     }
     if options.memory {
         let bytes = renderer.device.currentAllocatedSize
@@ -834,4 +940,17 @@ do {
 } catch {
     FileHandle.standardError.write(Data("torcs-rendershot: \(error)\n".utf8))
     exit(1)
+}
+
+/// GPU times arriving from completion handlers, drained on the main thread.
+final class SampleCollector: @unchecked Sendable {
+    private let lock = NSLock()
+    private var pending: [Double] = []
+    func add(_ value: Double) { lock.lock(); pending.append(value); lock.unlock() }
+    func drain(into samples: [Double]) -> [Double] {
+        lock.lock(); defer { lock.unlock() }
+        let drained = samples + pending
+        pending.removeAll()
+        return drained
+    }
 }

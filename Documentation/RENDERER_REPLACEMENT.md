@@ -1445,7 +1445,7 @@ Against the plan's phases, after twenty-nine increments on the
 | 5 Track | generated road, curbs, barriers, terrain, markings, racing-line rubber, skid marks, pit garages, painted starting grid | road detail atlas beyond the markings |
 | 6 Scatter | volumetric trees with dithered detail pairs, grass cards, wind (in the shadows too), tyre walls on the corners | impostors, crowds, GPU-driven culling (about 290 draws a frame: not needed) |
 | 7 Effects | smoke, dust, spray, wet weather with puddles, rain, sun glare, heat haze, a lens for the television view | — |
-| 8 Hardening | prebuilt shaders, pre-warmed scalers, memory budget test, sustained runs, the seven signposts, app bundle fixed, hero car subdivided in place, per-pass GPU timer, near-field aerial perspective in closed form, detail-map anisotropy per preset, occlusion at a quarter on the Air, view-frustum batch culling (driver's-eye 15.2 → 9.2 ms, under budget at native, sustained 9.3 ms native for 90 s) | binary archive for the first launch; a pipelined measurement harness |
+| 8 Hardening | prebuilt shaders, pre-warmed scalers, memory budget test, sustained runs, the seven signposts, app bundle fixed, hero car subdivided in place, per-pass GPU timer, near-field aerial perspective in closed form, detail-map anisotropy per preset, occlusion at a quarter on the Air, view-frustum batch culling (driver's-eye 15.2 → 9.2 ms, under budget at native, sustained 9.3 ms native for 90 s), a pipelined and a paced measurement loop (busy GPU: 6.8 ms/frame; paced 60 Hz: 85–96% of frames on time) | binary archive for the first launch; the resolution controller driven by the deadline rather than GPU spans |
 
 The measured state of the default preset on the target machine is the
 sustained table above: 8.7 ms at native with the whole session drawn, no
@@ -2253,6 +2253,87 @@ while one focused far in front of it loses more than a quarter, and
 removing the lens returns the sharp bytes exactly; the targets are half
 the source and follow it; the two entry points are pinned in the
 library.
+
+## Three loops, three answers: what a frame costs depends on who asks
+
+The previous section's caveat — the harness renders a frame and waits
+for it, the GPU idles and lowers its clock — turned out to be the
+largest error in this document's numbers, and fixing it did not produce
+one true figure but three regimes, each answering a different question.
+
+`ForwardRenderer.submit` is the offscreen path without the wait: it
+encodes, commits with a completion handler that reports the frame's GPU
+time (and records it for the resolution controller, as presentation
+does), and returns. The per-frame buffers — particles, skid marks — were
+already rings of three, so up to three frames may be in flight, as in
+the app. The render tool's timing and sustained loops take
+`--in-flight N`, and the sustained loop also `--pace HZ`: one frame per
+display interval with at most two in flight, reporting the
+submit-to-completion latency and the share of frames that finished
+inside the interval. A test submits a dozen frames, sees each complete
+with a time, and checks the synchronous path still renders the cold
+frame afterwards.
+
+The same circuit orbit at native, the three ways, alone on the machine:
+
+| loop | per-buffer GPU median | wall per frame | GPU busy | what it measures |
+|---|---|---|---|---|
+| render and wait | 9.5 ms | 25.7 ms | 37% | a GPU at the clock it drops to when a third busy |
+| three in flight | 7.6 ms | 6.8 ms | 100% | throughput of a GPU kept busy — the true cost of the work |
+| paced at 60 Hz, dynamic | 9.2–10.5 ms | 16.67 ms | ~60% | what presentation sees |
+
+Kept busy, the frame the synchronous loop had put at 9.3–9.5 ms is
+6.8 ms of throughput, 28% less — and every "frame" in the earlier
+sections was the synchronous figure, pessimistic by roughly that. Per-
+pass medians within one frame, which is what the cuts were decided on,
+compare correctly in any regime; frame totals across regimes do not.
+With buffers overlapping, one buffer's start-to-end span includes its
+neighbours' work (5.6 ms per buffer at 1280×832 against 5.0 ms of
+throughput), so the busy loop reports wall-clock per frame as the cost.
+
+The paced loop is the one that answers the plan's question, and its
+answer is not the one the throughput suggests. At 60 Hz the GPU is busy
+a little over half the time, runs at a clock to match, and the
+per-buffer span sits at 9–11 ms; add the CPU's encoding ahead of the
+commit and the median submit-to-completion latency is 12–14 ms against
+a 16.7 ms interval, with 85–96% of frames on time:
+
+| view, paced 60 Hz | scale | latency median | on time |
+|---|---|---|---|
+| circuit orbit, dynamic | 0.75 → 0.60 | 10.7–12.6 ms | 88–96% |
+| driver's-eye, fixed native | 1.00 | 13.0–13.9 ms | 85–89% |
+| driver's-eye, dynamic | 0.60 → 0.55 | 12.5–13.6 ms | 80–82% |
+
+The last row is the finding. The resolution controller is fed GPU spans;
+under pacing those spans are inflated by the lowered clock, so it reads
+a frame that was on time as over budget, steps down, and a lighter frame
+lowers the utilisation and the clock further — the driver's-eye view on
+time 87% of the time at native became 81% at 0.6. Rendering fewer pixels
+did not make more frames on time, because pixels were not what the late
+frames were waiting for. And the busy loop's dynamic run had collapsed
+to the 0.40 floor on its first window for the same reason, overlapped
+spans this time, while its throughput at 0.40 was worse than native's
+(9.3 against 6.8 ms/frame: the scaler path costs more than it saves when
+the GPU is already busy).
+
+The paced loop can also say what the late frames were waiting for: a
+late frame whose own GPU span fit inside the interval was not late for
+its pixels. Driver's-eye, native, paced, two windows:
+
+| window | on time | late, GPU-bound | late, waiting |
+|---|---|---|---|
+| 0–15 s | 90.9% | 11 | 71 |
+| 15–30 s | 92.9% | 4 | 60 |
+
+Nine in ten late frames had a GPU span that fit. They were waiting on
+the CPU's encoding ahead of the commit, or on the GPU being busy with
+another process's work — a window server was taking a third of a core
+through every run in this section — and no render scale reaches either.
+So the valve the plan relies on is closed by the signal it is given, and
+would not have opened anything had it stayed open: it should step down
+only for frames the GPU itself made late, and step back if a step bought
+nothing. That is the next increment. What this one delivers is the
+instrument that can tell.
 
 ## Licensing
 

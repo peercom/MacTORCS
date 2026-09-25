@@ -616,6 +616,44 @@ public final class ForwardRenderer {
         return pixels
     }
 
+    /// Renders one frame offscreen and returns as soon as it is committed,
+    /// like presentation does, so several frames can be in flight and the
+    /// GPU stays busy: an idle GPU lowers its clock, and a harness that
+    /// renders a frame and waits for it measures that lowered clock. The
+    /// per-frame buffers are ring-buffered for `maximumFramesInFlight`, which
+    /// callers must not exceed. `completion` runs on the completion handler's
+    /// thread with the frame's GPU time, which is also recorded for dynamic
+    /// resolution. No history reset and no readback: this is an interactive
+    /// frame, not a verification render.
+    public func submit(resources: [SceneResources], instances: [RenderInstance],
+                       camera: RenderCamera, lighting: SunLighting,
+                       width: Int, height: Int, mirror: MirrorRequest? = nil,
+                       completion: @escaping @Sendable (Double) -> Void) throws {
+        let targets = try targets(outputWidth: width, outputHeight: height)
+        guard let commands = queue.makeCommandBuffer() else {
+            throw RenderError.unavailable("Could not create a command buffer")
+        }
+        commands.label = "Submitted frame"
+        let mirrorView = try mirror.map { try encodeMirrorView(into: commands, $0, lighting: lighting) }
+        encodeFrame(into: commands, targets: targets, resources: resources, instances: instances,
+                    camera: camera, lighting: lighting, aspect: Float(width) / Float(max(height, 1)))
+        encodeResolve(into: commands, source: tonemapSource(targets), destination: targets.display,
+                      lighting: lighting, depthOfField: depthOfFieldRenderer.result)
+        if let mirror, let mirrorView {
+            encodeMirrorComposite(into: commands, mirror: mirrorView, destination: targets.display, rect: mirror.rect)
+        }
+        commands.addCompletedHandler { [weak self] buffer in
+            let seconds = buffer.gpuEndTime - buffer.gpuStartTime
+            if seconds > 0 { self?.recordFrameTime(seconds) }
+            completion(seconds)
+        }
+        commands.commit()
+    }
+
+    /// Frames that may be in flight at once through `submit`: the depth of
+    /// the per-frame buffer rings.
+    public static let maximumFramesInFlight = 3
+
     /// Everything up to but not including the tonemapping resolve: atmosphere
     /// tables, shadow cascades, sky and forward opaque.
     ///
