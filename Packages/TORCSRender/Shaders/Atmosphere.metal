@@ -333,10 +333,14 @@ inline float3 aerialPerspective(float3 worldPosition, float3 cameraPosition,
     if (distance < 1e-5f) { transmittanceOut = float3(1.0f); return float3(0.0f); }
 
     // Eight steps is enough because the step integration is analytic; more only
-    // matters across tens of kilometres, which a circuit never spans.
+    // matters across tens of kilometres, which a circuit never spans. Over the
+    // first few hundred metres — most of the pixels of a driver's view — the
+    // medium is so nearly uniform that two steps integrate it exactly enough,
+    // and the forward pass is where the frame's milliseconds are.
+    uint steps = distance < 0.3f ? 2u : (distance < 1.0f ? 4u : 8u);
     return integrateScattering(defaultMedium(), atmospherePosition(cameraPosition),
                                normalize(offset), sunDirection, sunIlluminance,
-                               distance, 8u, transmittanceLUT, multiScatterLUT, transmittanceOut);
+                               distance, steps, transmittanceLUT, multiScatterLUT, transmittanceOut);
 }
 
 

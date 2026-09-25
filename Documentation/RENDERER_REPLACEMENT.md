@@ -1445,7 +1445,7 @@ Against the plan's phases, after twenty-nine increments on the
 | 5 Track | generated road, curbs, barriers, terrain, markings, racing-line rubber, skid marks, pit garages, painted starting grid | road detail atlas beyond the markings |
 | 6 Scatter | volumetric trees with dithered detail pairs, grass cards, wind (in the shadows too), tyre walls on the corners | impostors, crowds, GPU-driven culling (about 290 draws a frame: not needed) |
 | 7 Effects | smoke, dust, spray, wet weather with puddles, sun glare, heat haze | rain itself, replay/photo depth of field |
-| 8 Hardening | prebuilt shaders, pre-warmed scalers, memory budget test, sustained runs, the seven signposts, app bundle fixed, hero car subdivided in place | binary archive for the first launch |
+| 8 Hardening | prebuilt shaders, pre-warmed scalers, memory budget test, sustained runs, the seven signposts, app bundle fixed, hero car subdivided in place, per-pass GPU timer, near-field aerial perspective (−2.5 ms driver's-eye) | binary archive for the first launch |
 
 The measured state of the default preset on the target machine is the
 sustained table above: 8.7 ms at native with the whole session drawn, no
@@ -1939,6 +1939,51 @@ Two smaller corrections from the same instrument: the earlier
 which costs 1–2.3 ms itself; and the tool's summary had printed the
 quality levels by a stale table since the quarter level shifted the raw
 values, so "ao full" meant half. It prints the names now.
+
+## The forward fragment, first cut
+
+The per-pass numbers said the forward fragment stage was eight of the
+driver's-eye view's fifteen milliseconds, and listed what it does per
+pixel. The first thing on that list that could be cheaper without being
+different was the aerial perspective: `aerialPerspective` marched every
+pixel's view ray in eight steps, the count the sky LUT needs to cross a
+hundred kilometres of atmosphere, and the road in front of the car is two
+hundred metres of it. Over a ray that short the medium is uniform to
+within the LUT's own resolution, and the step integration is analytic per
+step, so two steps integrate it as exactly as eight. The count is now a
+schedule on the ray's length: two steps under 300 m, four under a
+kilometre, eight beyond. Nothing else in the pass changed.
+
+Same binary, the two shader versions built to `.metallib` files and
+swapped through `TORCS_METALLIB` on alternate runs, so neither version
+was measured on a warmer chip than the other — the earlier sections'
+lesson. Native 2560×1664, sixty frames, M2 Air preset:
+
+| view | forward fragment, before | after | frame, before | after |
+|---|---|---|---|---|
+| driver's-eye, three pairs | 8.75 / 8.02 / 7.79 ms | 5.54 / 5.49 / 5.80 ms | 16.4 / 15.4 / 14.8 ms | 12.6 / 12.5 / 13.0 ms |
+| orbit, three pairs | 3.61 / 3.61 / 3.61 ms | 2.94 / 2.94 / 2.93 ms | 7.40 / 7.30 / 7.46 ms | 6.60 / 6.69 / 6.64 ms |
+
+A third of the forward fragment on the road-filled view, nearly a fifth
+on the orbit, and two to three milliseconds off the driver's-eye frame —
+more than the cascade cadence, the quarter trace and the quality preset
+put together. One orbit "after" run came back at 10.1 ms with its vertex
+stage doubled as well and is excluded: that is the chip throttling
+mid-run, not the shader, and the alternation is what makes it obvious.
+
+The images are the same. Both views rendered at 1280×832 before and after
+differ by at most one 8-bit step in any channel, with no channel differing
+by more than two; a test (`AerialPerspectiveTests`) probes the shortcut
+against the eight-step reference on the same tables along a driver's ray
+from two metres to five kilometres, at both sides of each edge of the
+schedule, and holds it to a thousandth of the brightest channel.
+
+That the shortcut is invisible says something about where the pass's
+cost actually is: the eight-step march was three milliseconds of a
+fifteen-millisecond frame for an integral whose value a two-step march
+reproduces to four decimals. The remaining five and a half milliseconds
+of forward fragment are the cascade kernel, the material and the probe;
+the pass timer now shows whether the next cut moves them.
 
 ## Licensing
 
