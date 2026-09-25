@@ -3,6 +3,32 @@ import Foundation
 import TORCSCore
 import TORCSSimulation
 
+/// One car in a published frame: the pair of snapshots presentation interpolates
+/// between, and what the race knows about it.
+public struct DrivingFrameCar: Sendable {
+    public let previous,current: VehicleVisualSnapshot
+    public let presentation: RacePresentationCar
+    public init(previous: VehicleVisualSnapshot,current: VehicleVisualSnapshot,presentation: RacePresentationCar) {
+        self.previous=previous;self.current=current;self.presentation=presentation
+    }
+}
+
+/// One line of the published classification.
+public struct RaceStanding: Sendable,Equatable {
+    public let position,car,laps: Int
+    public let behindLeader: Double
+    public let lapsBehindLeader,penalties: Int
+    public let penaltyTime: Float
+    public let bestLap: Double
+    public let inPits,finished,eliminated: Bool
+    public init(position: Int,car: Int,laps: Int,behindLeader: Double,lapsBehindLeader: Int,penalties: Int,
+                penaltyTime: Float,bestLap: Double,inPits: Bool,finished: Bool,eliminated: Bool) {
+        self.position=position;self.car=car;self.laps=laps;self.behindLeader=behindLeader
+        self.lapsBehindLeader=lapsBehindLeader;self.penalties=penalties;self.penaltyTime=penaltyTime
+        self.bestLap=bestLap;self.inPits=inPits;self.finished=finished;self.eliminated=eliminated
+    }
+}
+
 /// An immutable boundary between a fixed-step driving session and presentation.
 public struct DrivingFrame: Sendable {
     public let previous,current: VehicleVisualSnapshot
@@ -20,6 +46,29 @@ public struct DrivingFrame: Sendable {
     public let configuration: RaceSessionConfiguration
     public let phase: DrivingSessionPhase
     public let result: DrivingSessionResult?
+    /// Every car to present, in stable car order. A single-car session publishes
+    /// just its own, so presentation has one path for both.
+    public let field: [DrivingFrameCar]
+    /// Which entry of `field` the cameras follow and the readouts describe.
+    public let viewer: Int
+    /// The current classification, leader first. Empty outside a race.
+    public let standings: [RaceStanding]
+    /// Set when a race has ended, alongside `result` for the viewer's own car.
+    public let raceResult: RaceResult?
+    public init(previous: VehicleVisualSnapshot,current: VehicleVisualSnapshot,interpolation: Float,time: Double,
+                raceTime: Double,presentationCar: RacePresentationCar,speed: Float,publicSpeed: Float,rpm: Float,
+                fuel: Float,gear: Int,trackSegment: Int,damage: Int32,behind: Bool,timing: RaceLapTiming,
+                completedLaps: [CompletedLap],configuration: RaceSessionConfiguration,phase: DrivingSessionPhase,
+                result: DrivingSessionResult?,field: [DrivingFrameCar]? = nil,viewer: Int = 0,
+                standings: [RaceStanding] = [],raceResult: RaceResult? = nil) {
+        self.previous=previous;self.current=current;self.interpolation=interpolation;self.time=time
+        self.raceTime=raceTime;self.presentationCar=presentationCar;self.speed=speed;self.publicSpeed=publicSpeed
+        self.rpm=rpm;self.fuel=fuel;self.gear=gear;self.trackSegment=trackSegment;self.damage=damage
+        self.behind=behind;self.timing=timing;self.completedLaps=completedLaps;self.configuration=configuration
+        self.phase=phase;self.result=result
+        self.field=field ?? [DrivingFrameCar(previous:previous,current:current,presentation:presentationCar)]
+        self.viewer=viewer;self.standings=standings;self.raceResult=raceResult
+    }
 }
 
 /// Own exclusively on the simulation execution context. Display callbacks only

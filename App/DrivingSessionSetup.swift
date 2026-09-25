@@ -7,6 +7,7 @@ struct DrivingSessionSetup: View {
     @Environment(\.dismiss) private var dismiss
     @State private var kind: RaceSessionKind = .practice
     @State private var laps=5
+    @State private var cars=3
     var body: some View {
         VStack(alignment:.leading,spacing:18) {
             Text("New Session").font(.title2)
@@ -14,20 +15,37 @@ struct DrivingSessionSetup: View {
             Picker("Session",selection:$kind) {
                 Text("Practice").tag(RaceSessionKind.practice)
                 Text("Qualifying").tag(RaceSessionKind.qualifying)
+                Text("Race").tag(RaceSessionKind.race)
             }.pickerStyle(.segmented)
-            Text(kind == .practice ? "Drive timed laps and review each lap afterward.":"Set your best valid lap in a solo qualifying run.")
+            Text(description)
             Stepper("Laps: \(laps)",value:$laps,in:1...100).monospacedDigit()
-            Text("The car starts fresh. Wall hits and corner cutting invalidate lap times. A two-second countdown precedes driving.")
+            if kind == .race {
+                Stepper("Cars: \(cars)",value:$cars,in:1...16).monospacedDigit()
+                Text("You start on pole; the rest of the grid is driven by the original BT policy. "
+                     + "Telemetry recording is available in practice and qualifying only.")
+                    .font(.callout).foregroundStyle(.secondary)
+            }
+            Text(kind == .race
+                 ? "The field lines up on the original starting grid. Corner cutting adds a time penalty instead of invalidating the lap, and the pit rules apply."
+                 : "The car starts fresh. Wall hits and corner cutting invalidate lap times. A two-second countdown precedes driving.")
                 .font(.callout).foregroundStyle(.secondary)
             HStack {
                 Button("Cancel",role:.cancel) { dismiss() }.keyboardShortcut(.cancelAction)
                 Spacer()
                 Button("Prepare Session") {
-                    session.selectedSessionKind=kind;session.selectedLaps=laps;session.restart();dismiss()
+                    session.selectedSessionKind=kind;session.selectedLaps=laps;session.selectedCars=cars
+                    session.restart();dismiss()
                 }.keyboardShortcut(.defaultAction)
             }
         }.padding(24).frame(width:430)
-        .onAppear { kind=session.selectedSessionKind;laps=session.selectedLaps }
+        .onAppear { kind=session.selectedSessionKind;laps=session.selectedLaps;cars=session.selectedCars }
+    }
+    private var description: String {
+        switch kind {
+        case .practice:return "Drive timed laps and review each lap afterward."
+        case .qualifying:return "Set your best valid lap in a solo qualifying run."
+        case .race:return "Race the field over a set distance, with the original rules and pit stops."
+        }
     }
 }
 

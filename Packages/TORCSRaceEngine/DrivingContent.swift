@@ -34,6 +34,9 @@ public struct DrivingContent: Sendable {
     public let reflection,environmentShade,trackShadow: CompiledTexture?
     /// The native starting grid for a full field, for painting the boxes.
     public let gridSlots: [StartingGridSlot]
+    /// The merged category and car parameters, which a race needs to build one
+    /// entry per car.
+    public let carParameters: ParameterDocument
     /// Boxes painted on the road, whatever the entry.
     public static let paintedGridSlots = 20
     public var trackLoaderBounds: ACLoaderBounds? { scenes[5].asset.scene.loaderBounds }
@@ -89,6 +92,6 @@ public struct DrivingContent: Sendable {
             return try BrakeGeometry(wheel:i,radius:wheel.brake.radius,width:wheel.force.tireWidth).parts
         }
         return DrivingContent(name:index.name,scenes:scenes,brakeScenes:brakeScenes,lights:lights,lightTextures:lightTextures,simulation:simulation,
-            minimumGear:definition.transmission.minimumGear,maximumGear:definition.transmission.maximumGear,bonnetPosition:bonnet,driverPosition:driver,dimensions:dimensions,shadow:shadow,graphics:graphics,background:background,reflection:reflection,environmentShade:environmentShade,trackShadow:trackShadow,gridSlots:gridSlots)
+            minimumGear:definition.transmission.minimumGear,maximumGear:definition.transmission.maximumGear,bonnetPosition:bonnet,driverPosition:driver,dimensions:dimensions,shadow:shadow,graphics:graphics,background:background,reflection:reflection,environmentShade:environmentShade,trackShadow:trackShadow,gridSlots:gridSlots,carParameters:parameters)
     }
 }

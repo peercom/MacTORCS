@@ -7,6 +7,7 @@ import TORCSPresentation
 import TORCSRaceEngine
 import TORCSRender
 import TORCSSimulation
+import TORCSConfiguration
 import TORCSTrack
 import TORCSTrackMesh
 
@@ -14,6 +15,84 @@ import TORCSTrackMesh
 /// field, so the other cars are shown to actually reach the image, plus the
 /// rear-view mirror that has to contain them. A renderer diagnostic, not a race.
 @MainActor enum ModernTrafficSmoke {
+    /// The window's own path, headless: a race runtime publishes a frame, the
+    /// frame's field becomes render instances exactly as the driving view builds
+    /// them, and the result is captured. Verifies the data path, not the window.
+    static func race(session: URL, output: URL, cars: Int = 3, seconds: Double = 6,
+                     width: Int = 1280, height: Int = 832) throws {
+        guard !FileManager.default.fileExists(atPath: output.path) else {
+            throw ACError.invalid("Race output directory already exists")
+        }
+        let content = try DrivingContent.load(session)
+        let renderer = try ForwardRenderer()
+        let resources = try SessionRenderResources(
+            device: renderer.device, scenes: content.renderScenes,
+            road: content.simulation.road.geometry, pits: content.simulation.road.pits, terrain: TerrainParameters(),
+            materials: ModernDrivingRenderer.materialsDirectory(beside: session))
+        let lighting = ModernDrivingRenderer.lighting(from: content.graphics)
+        renderer.roadPaint.set(content.gridSlots.map { RoadPaint.Box(centre: $0.world, yaw: $0.yaw) })
+        let entries = (0 ..< cars).map { index in
+            RaceEntry(parameters: content.carParameters, kind: index == 0 ? .human : .bt, team: "bt", skillLevel: 3)
+        }
+        var race = try RaceRuntime(road: content.simulation.road, entries: entries, grid: try .quickRace(),
+                                   configuration: try RaceSessionConfiguration(kind: .race, laps: 2, countdown: true))
+        // Drive the human entry forward so the field is genuinely racing.
+        var elapsed = 0.0
+        while elapsed < seconds, race.result == nil {
+            try race.advance(elapsed: 1.0 / 60, humanCommand: DriverCommand(throttle: 1, gear: 1))
+            elapsed += 1.0 / 60
+        }
+        let frame = race.frame
+        guard frame.field.count == cars else { throw ACError.invalid("The frame carried \(frame.field.count) cars") }
+        try FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
+        // Exactly the driving view's construction.
+        let poses = try frame.field.map { car -> VehiclePresentation in
+            let a = try VehiclePresentation(car.previous), b = try VehiclePresentation(car.current)
+            return try VehiclePresentation.interpolate(previous: a, current: b, alpha: frame.interpolation)
+        }
+        let viewer = frame.viewer
+        let field = frame.field.indices.map { index in
+            ModernDrivingRenderer.FieldCar(pose: poses[index],
+                                           brakeCommand: frame.field[index].current.brakeCommand,
+                                           lightCommand: frame.field[index].current.lightCommand)
+        }
+        let world = try CameraWorld(bounds: content.simulation.road.bounds)
+        let geometry = content.simulation.road.geometry
+        let body = poses[viewer].body
+        let heading = geometry.tangent(try geometry.globalToLocal(SIMD2(body[3].x, body[3].y), startingAt: frame.trackSegment))
+        var rig = DrivingCameraRig()
+        var chase: SceneCamera?
+        for _ in 0 ..< 200 {
+            chase = try rig.view(preset: .chase, body: body, bonnetPosition: content.bonnetPosition,
+                                 driverPosition: content.driverPosition, world: world, roadCameraPosition: nil,
+                                 yaw: frame.current.body.orientation.z,
+                                 trackHeading: heading) { try geometry.height(at: $0, startingAt: frame.trackSegment) }
+        }
+        guard let chase else { throw ACError.invalid("Chase camera unavailable") }
+        renderer.resetHistory()
+        let instances = resources.staticInstances() + ModernDrivingRenderer.vehicleInstances(field: field)
+        let pixels = try renderer.render(resources: resources.resources, instances: instances,
+                                         camera: ModernDrivingRenderer.camera(from: chase),
+                                         lighting: lighting, width: width, height: height)
+        try writePNG(Data(pixels), width: width, height: height, output: output.appendingPathComponent("race.png"))
+        let standings = frame.standings.map { standing in
+            ["position": standing.position, "car": standing.car, "laps": standing.laps,
+             "behindLeader": standing.behindLeader, "penalties": standing.penalties,
+             "penaltyTime": standing.penaltyTime, "inPits": standing.inPits] as [String: Any]
+        }
+        let report: [String: Any] = [
+            "schema": 1, "cars": cars, "viewer": viewer, "raceSeconds": frame.raceTime,
+            "phase": frame.phase.rawValue, "standings": standings,
+            "draws": renderer.lastDrawCount, "triangles": renderer.lastTriangleCount,
+            "fieldInstances": ModernDrivingRenderer.vehicleInstances(field: field).count,
+            "scope": "Race runtime to published frame to render instances; no window"
+        ]
+        try JSONSerialization.data(withJSONObject: report, options: [.prettyPrinted, .sortedKeys])
+            .write(to: output.appendingPathComponent("race.json"), options: .atomic)
+        print("Modern race: \(cars) cars, viewer \(viewer), race time \(frame.raceTime)s, "
+            + "positions \(frame.standings.map(\.position)), draws \(renderer.lastDrawCount)")
+    }
+
     static func run(session: URL, output: URL, cars: Int = 3, width: Int = 1280, height: Int = 832) throws {
         guard !FileManager.default.fileExists(atPath: output.path) else {
             throw ACError.invalid("Traffic output directory already exists")

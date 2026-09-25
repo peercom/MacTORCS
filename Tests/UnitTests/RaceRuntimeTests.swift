@@ -140,6 +140,39 @@ final class RaceRuntimeTests:XCTestCase {
         XCTAssertGreaterThan(race.progress.timing[1].distanceFromStart,start,"the human car advanced")
         print("NATIVE_RACE_HUMAN cars=3 humanCar=1 callbacks=\(race.driveCalls[1]) speed=\(speed)")
     }
+    /// What the window consumes: one frame describing the viewer, carrying every
+    /// car to draw and the classification to show.
+    func testRaceFramePublishesFieldStandingsAndViewer() throws {
+        var race=try runtime(cars:3,laps:2,human:1)
+        XCTAssertEqual(race.viewer,1,"the human entry is the car the window follows")
+        let initial=race.frame
+        XCTAssertEqual(initial.field.count,3)
+        XCTAssertEqual(initial.viewer,1)
+        XCTAssertEqual(initial.standings.count,3)
+        XCTAssertEqual(initial.standings.map(\.position),[1,2,3])
+        XCTAssertEqual(Set(initial.standings.map(\.car)),[0,1,2])
+        XCTAssertEqual(initial.phase, .prestart)
+        // Advancing by wall-clock time drives the fixed step, and a pause
+        // consumes none of it.
+        try race.advance(elapsed:0.5,humanCommand:DriverCommand(throttle:1,gear:1))
+        let running=race.frame
+        XCTAssertGreaterThan(running.time,0,"the step clock advanced")
+        let held=running.time
+        try race.advance(elapsed:0.5,humanCommand:DriverCommand(throttle:1,gear:1),paused:true)
+        XCTAssertEqual(race.frame.time,held,"a pause consumes no simulation time")
+        // Every car is presentable and the viewer's readouts describe the viewer.
+        let frame=race.frame
+        XCTAssertEqual(frame.field.count,3)
+        XCTAssertEqual(Set(frame.field.map { $0.presentation.index }),[0,1,2])
+        XCTAssertTrue((0...1).contains(frame.interpolation))
+        XCTAssertEqual(frame.presentationCar.index,frame.viewer)
+        XCTAssertEqual(frame.trackSegment,race.simulation.cars[1].chassis.trackPosition.segment)
+        // The field moved apart, so the snapshots are not one car repeated.
+        XCTAssertNotEqual(frame.field[0].current.body.position,frame.field[1].current.body.position)
+        XCTAssertGreaterThan(frame.standings.filter { $0.penaltyTime>=0 }.count,0)
+        print("NATIVE_RACE_FRAME cars=\(frame.field.count) viewer=\(frame.viewer) "
+            + "standings=\(frame.standings.map(\.position)) interpolation=\(frame.interpolation)")
+    }
     func testRuntimeRejectsInvalidFields() throws {
         let p=try parameters(),road=try ChassisTestContext.road()
         let configuration=try RaceSessionConfiguration(kind: .race,laps:1,countdown:true)

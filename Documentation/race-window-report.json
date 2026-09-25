@@ -1,0 +1,41 @@
+{
+ "date": "2026-09-25",
+ "evidence": {
+  "g6-race-tests.log": "8dcaf76eec29af5b55fd1593a7213ed065cf2113a9494875a2966128e4134a23",
+  "g6-race/race.json": "06965d488c8924761115b4b51a3399f9bd6f844515dbe8566dd0692e69d32fee",
+  "g6-race/race.png": "082a0de763cbc9734d0ef14dd9af2edb2f713318c53c9173d184d89a38017758"
+ },
+ "increment": "G6b racing in the driving window",
+ "limits": [
+  "The on-screen layout has not been seen: the window cannot be driven headlessly, so the HUD and setup sheet are verified by compiling and by the frame they consume, not by a screenshot.",
+  "No per-car livery; every car wears the same one.",
+  "Telemetry capture stays practice and qualifying only and the button is disabled in a race.",
+  "The Results sheet still shows the viewer's own session result; a full race classification sheet, qualifying feeding a race grid and championships remain to do.",
+  "Particle and skid effects are emitted for the viewer's car only.",
+  "One prepared session, one camera and a four-second capture; longer races and other cameras in the window are not separately captured."
+ ],
+ "measurements": {
+  "captureCars": 4,
+  "captureDraws": 177,
+  "captureFieldInstances": 68,
+  "capturePhase": "running",
+  "captureRaceSeconds": 4.016,
+  "captureViewer": 0,
+  "instancesPerCar": 17,
+  "leaderAfterFourSeconds": 1,
+  "newTests": 1,
+  "releaseSuite": "458 tests, 0 failures, 97.172 s"
+ },
+ "schema": 1,
+ "scope": "The authoritative race runtime behind the driving window: one published frame for both session kinds, the whole field drawn, and the classification on screen",
+ "sources": {
+  "App/DrivingSession.swift": "68935de6b02f0d72d0524caa985d42e7214a14a99f432499d75ba70034fb341c",
+  "App/DrivingSessionSetup.swift": "0a5c78f64e840abeb2b15d5dc3a8a94cdb3203552467a0f853f9bcc512618386",
+  "App/ModernTrafficSmoke.swift": "bf7c6649ca446619e71ae0f8c43d419b4d27f281cad2a8d720ce7ce345b2ae34",
+  "App/TORCSMacApp.swift": "cf30707e8b1fed9d7dc048bd207d9da14f34d8c469d11cd6a958edddb3686a85",
+  "Packages/TORCSRaceEngine/DrivingContent.swift": "d044a00b6ba42b21461e8dec23cadb47e97d03fe73e9c590ff0c13eea9b5e28b",
+  "Packages/TORCSRaceEngine/DrivingRuntime.swift": "5e1362b54c88f47d1bc256ba1d45477fc19b08f8d3a260d33ca4f5148684662f",
+  "Packages/TORCSRaceEngine/RaceRuntime.swift": "ada23fa4709a58ac7feff1bb10a26625cad611085592ecdff75ac2913c91ad03",
+  "Tests/UnitTests/RaceRuntimeTests.swift": "72abdbe51fb638228c0b69108a98f707b5e236cb8de41ad63561041ad00d49dd"
+ }
+}

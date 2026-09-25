@@ -52,8 +52,9 @@ This is not yet an integrated human-versus-AI race. Remaining gameplay work:
    race runtime now connects multi-car simulation, race progress, pit service and
    penalties in the original ReOneStep order; see
    [race runtime](RACE_RUNTIME.md). **Done.**
-3. Expose opponent selection, live standings, finish handling and race results in
-   the driving window; use actual cars in cameras, mirrors and collisions.
+3. Opponent selection, live standings and the field in cameras, mirrors and
+   collisions are **done**; see [race window](RACE_WINDOW.md). A full race
+   classification sheet and finish handling in the window remain.
 4. Complete a physical five-lap human session and deterministic ten-lap AI race,
    with upstream telemetry comparisons and pit coverage.
 5. Add state-driven audio and compatible deterministic replay, followed by wider

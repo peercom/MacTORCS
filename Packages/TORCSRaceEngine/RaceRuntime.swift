@@ -3,6 +3,7 @@
 // Copyright (C) 2002-2017 Eric Espie, Bernhard Wymann; upstream GPL-2.0-or-later.
 import Foundation
 import TORCSConfiguration
+import TORCSCore
 import TORCSRobots
 import TORCSSimulation
 import TORCSTrack
@@ -84,6 +85,14 @@ public struct RaceRuntime: Sendable {
     public private(set) var pitRequests: [Bool]
     public private(set) var lastDriveTick=0
     public private(set) var collisions: [PresentationCollisionHistory]
+    /// Presentation interpolates between the last two published snapshots, so
+    /// the runtime keeps both, exactly as the single-car session does.
+    public private(set) var previousSnapshots: [VehicleVisualSnapshot]
+    public private(set) var currentSnapshots: [VehicleVisualSnapshot]
+    /// The presentation step clock, distinct from the original race clock above.
+    public private(set) var stepClock=FixedStepClock()
+    /// Which car the window follows. The human entry when there is one.
+    public let viewer: Int
     public private(set) var result: RaceResult?
     public let maximumDamage: Int32
     public var raceTime: Double { clock.time }
@@ -140,6 +149,11 @@ public struct RaceRuntime: Sendable {
         pitCalls=Array(repeating:0,count:entries.count)
         pitRequests=Array(repeating:false,count:entries.count)
         collisions=Array(repeating:PresentationCollisionHistory(),count:entries.count)
+        viewer=entries.firstIndex { $0.kind == .human } ?? 0
+        let placed=self.simulation
+        var snapshots: [VehicleVisualSnapshot]=[]
+        for car in 0..<entries.count { snapshots.append(placed.visualSnapshot(car:car)) }
+        previousSnapshots=snapshots;currentSnapshots=snapshots
         for car in entries.indices {
             let life=self.simulation.lifecycle[car]
             try collisions[car].observe(tick:self.simulation.tick,flags:life.flags,
@@ -252,7 +266,60 @@ public struct RaceRuntime: Sendable {
         for car in simulation.cars.indices where progress.timing[car].flags != simulation.lifecycle[car].flags {
             try simulation.updateCarStatus(car:car,flags:progress.timing[car].flags)
         }
+        previousSnapshots=currentSnapshots
+        currentSnapshots=simulation.cars.indices.map { simulation.visualSnapshot(car:$0) }
         if progress.ended { finish(.completed) }
+    }
+
+    /// Advance by wall-clock elapsed time, as the single-car session does: the
+    /// fixed step owns the simulation, a pause consumes none of it, and a work
+    /// cap keeps a late frame from stalling the window.
+    public mutating func advance(elapsed: Double,humanCommand: DriverCommand = DriverCommand(),
+                                 paused: Bool = false,maximumSteps: Int = 125) throws {
+        guard !paused,result==nil else { return }
+        guard elapsed.isFinite,elapsed>=0,maximumSteps>0 else { throw TrackError.invalid("Invalid race time step") }
+        var failure: Error?
+        // The clock is stepped through a local so the closure can mutate the
+        // rest of the runtime without overlapping access to it.
+        var clock=stepClock
+        clock.advanceContinuing(elapsed:elapsed,maximumSteps:maximumSteps) { _ in
+            do { try step(humanCommand:humanCommand);return result==nil }
+            catch { failure=error;return false }
+        }
+        stepClock=clock
+        // A failed runtime must be discarded. Never resume partially failed physics.
+        if let failure { throw failure }
+    }
+
+    /// The published classification, leader first.
+    public var standings: [RaceStanding] {
+        progress.order.indices.enumerated().map { slot,car in
+            RaceStanding(position:slot+1,car:car,laps:progress.timing[car].completedLaps,
+                behindLeader:progress.gaps[car].behindLeader,lapsBehindLeader:progress.gaps[car].lapsBehindLeader,
+                penalties:progress.carRules[car].penalties.count,penaltyTime:progress.carRules[car].penaltyTime,
+                bestLap:progress.timing[car].bestLapTime,inPits:simulation.lifecycle[car].flags & 0x1 != 0,
+                finished:progress.timing[car].finished,eliminated:progress.timing[car].flags & 0x800 != 0)
+        }
+    }
+
+    /// One published frame for the window, described from the viewer's car.
+    public var frame: DrivingFrame {
+        let car=simulation.cars[viewer],timing=progress.timing[viewer]
+        let field=simulation.cars.indices.map {
+            DrivingFrameCar(previous:previousSnapshots[$0],current:currentSnapshots[$0],presentation:presentationCar($0))
+        }
+        return DrivingFrame(previous:previousSnapshots[viewer],current:currentSnapshots[viewer],
+            interpolation:result != nil ? 1:Float(stepClock.interpolation),time:stepClock.time,raceTime:raceTime,
+            presentationCar:presentationCar(viewer),speed:car.chassis.body.velocity.x,
+            publicSpeed:simulation.lifecycle[viewer].publicSpeed,rpm:car.engine.speed*60/(2 * .pi),fuel:car.fuel,
+            gear:car.transmission.gear,trackSegment:car.chassis.trackPosition.segment,damage:car.damage,
+            behind:result == nil && stepClock.isBehind,timing:timing,completedLaps:progress.laps[viewer],
+            configuration:configuration,phase:phase,
+            result:result.map { race in
+                DrivingSessionResult(configuration:configuration,reason:race.reason,elapsed:race.elapsed,
+                    laps:progress.laps[viewer],fuel:car.fuel,damage:car.damage)
+            },
+            field:field,viewer:viewer,standings:standings,raceResult:result)
     }
 
     public mutating func endRace() { finish(.endedEarly) }

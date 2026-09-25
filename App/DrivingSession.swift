@@ -11,17 +11,37 @@ import TORCSInput
 import os
 
 private actor DrivingWorker {
-    private var runtime: DrivingRuntime
+    /// A window session is either the single-car practice runtime or a race.
+    /// Both publish the same frame, so presentation has one path.
+    private enum Runtime {
+        case solo(DrivingRuntime)
+        case race(RaceRuntime)
+        var frame: DrivingFrame {
+            switch self { case .solo(let r): return r.frame; case .race(let r): return r.frame }
+        }
+        var isRace: Bool { if case .race = self { return true };return false }
+    }
+    private var runtime: Runtime
     private var capture: TelemetryWriter?
     private let signposter=OSSignposter(subsystem:"org.torcs.mac",category:"Driving simulation")
-    init(_ simulation: SingleVehicleSimulation,configuration: RaceSessionConfiguration) throws { runtime=try DrivingRuntime(simulation:simulation,configuration:configuration) }
+    init(_ simulation: SingleVehicleSimulation,configuration: RaceSessionConfiguration) throws {
+        runtime = .solo(try DrivingRuntime(simulation:simulation,configuration:configuration))
+    }
+    init(race: RaceRuntime) { runtime = .race(race) }
     func endSession() throws -> DrivingFrame {
-        runtime.endSession();try finishCapture();return runtime.frame
+        switch runtime {
+        case .solo(var r): r.endSession();runtime = .solo(r)
+        case .race(var r): r.endRace();runtime = .race(r)
+        }
+        try finishCapture();return runtime.frame
     }
     func startCapture(_ destination: URL) throws {
         guard capture==nil else { throw TelemetryError.invalid("A telemetry capture is already running") }
+        guard case .solo(let r)=runtime else {
+            throw TelemetryError.invalid("Telemetry capture is available in practice and qualifying, not a race")
+        }
         let writer=try TelemetryWriter(to:destination)
-        try writer.append(DrivingTelemetry.record(runtime.simulation,timing:runtime.timing,raceTime:runtime.raceTime))
+        try writer.append(DrivingTelemetry.record(r.simulation,timing:r.timing,raceTime:r.raceTime))
         capture=writer
     }
     func finishCapture() throws {
@@ -34,11 +54,18 @@ private actor DrivingWorker {
         defer { signposter.endInterval("Driving fixed-step batch",interval) }
         let writer=capture
         do {
-            try runtime.advance(elapsed:elapsed,command:command,paused:paused,didStep:writer.map { writer in
-                { simulation,timing,time in try writer.append(DrivingTelemetry.record(simulation,timing:timing,raceTime:time)) }
-            })
+            switch runtime {
+            case .solo(var r):
+                try r.advance(elapsed:elapsed,command:command,paused:paused,didStep:writer.map { writer in
+                    { simulation,timing,time in try writer.append(DrivingTelemetry.record(simulation,timing:timing,raceTime:time)) }
+                })
+                runtime = .solo(r)
+            case .race(var r):
+                try r.advance(elapsed:elapsed,humanCommand:command,paused:paused)
+                runtime = .race(r)
+            }
         } catch { capture=nil;throw error } // Failed capture never publishes a partial JSON line.
-        if runtime.result != nil { try finishCapture() }
+        if runtime.frame.result != nil { try finishCapture() }
         return runtime.frame
     }
 }
@@ -50,6 +77,8 @@ private actor DrivingWorker {
     var loading=false
     var selectedSessionKind: RaceSessionKind = .practice
     var selectedLaps=5
+    /// Cars in a race, the human included. Practice and qualifying run alone.
+    var selectedCars=3
     var sessionBusy=false
     var lastResult: DrivingSessionResult?
     var paused=true
@@ -127,6 +156,20 @@ private actor DrivingWorker {
         if let window=NSApp.keyWindow { panel.beginSheetModal(for:window,completionHandler:completion) }
         else { panel.begin(completionHandler:completion) }
     }
+    /// Practice and qualifying keep the single-car runtime; a race builds the
+    /// authoritative race runtime with the human entry first on the grid.
+    private func makeWorker(_ content: DrivingContent,configuration: RaceSessionConfiguration) throws -> (DrivingWorker,DrivingFrame) {
+        guard configuration.kind == .race else {
+            return (try DrivingWorker(content.simulation,configuration:configuration),
+                    try DrivingRuntime(simulation:content.simulation,configuration:configuration).frame)
+        }
+        let entries=(0..<selectedCars).map { index in
+            RaceEntry(parameters:content.carParameters,kind:index==0 ? .human:.bt,team:"bt",skillLevel:3)
+        }
+        let race=try RaceRuntime(road:content.simulation.road,entries:entries,grid:try .quickRace(),
+                                 configuration:configuration)
+        return (DrivingWorker(race:race),race.frame)
+    }
     func load(_ directory: URL) {
         stop();loadTask?.cancel();generation=UUID();let token=generation
         content=nil;frame=nil;worker=nil;message=nil;loading=true;requestedGear=1
@@ -135,8 +178,9 @@ private actor DrivingWorker {
                 let result=try await Task.detached(priority:.userInitiated) { try DrivingContent.load(directory) }.value
                 guard !Task.isCancelled,generation==token else { return }
                 let configuration=try RaceSessionConfiguration(kind:selectedSessionKind,laps:selectedLaps)
-                content=result;contentDirectory=directory;worker=try DrivingWorker(result.simulation,configuration:configuration)
-                frame=try DrivingRuntime(simulation:result.simulation,configuration:configuration).frame
+                content=result;contentDirectory=directory
+                let built=try makeWorker(result,configuration:configuration)
+                worker=built.0;frame=built.1
                 loading=false
             } catch { guard generation==token else { return };message=String(describing:error);loading=false }
         }
@@ -154,8 +198,8 @@ private actor DrivingWorker {
                     if ended.time>0 { lastResult=ended.result }
                 }
                 let configuration=try RaceSessionConfiguration(kind:selectedSessionKind,laps:selectedLaps)
-                worker=try DrivingWorker(content.simulation,configuration:configuration)
-                frame=try DrivingRuntime(simulation:content.simulation,configuration:configuration).frame
+                let built=try makeWorker(content,configuration:configuration)
+                worker=built.0;frame=built.1
                 generation=UUID();requestedGear=1;message=nil;recording=false;captureMessage=nil
                 lastWall=ProcessInfo.processInfo.systemUptime;startTimer()
             } catch { guard generation==token else { return };message="Could not start a new session: \(error)" }
@@ -297,7 +341,9 @@ struct DrivingScreen: View {
                 Button("Results…") { session.suspend();showResults=true }.disabled(session.frame?.result==nil && session.lastResult==nil)
                 Button(session.recording ? "Finish Recording":"Record Telemetry…") {
                     if session.recording { session.finishRecording() } else { session.chooseCapture() }
-                }.disabled(session.content==nil || session.captureBusy || session.sessionBusy || session.frame?.result != nil)
+                }.disabled(session.content==nil || session.captureBusy || session.sessionBusy || session.frame?.result != nil
+                           || session.frame?.configuration.kind == .race)
+                    .help("Telemetry capture is available in practice and qualifying.")
                 Button("Controls…") { session.suspend();showControls=true }
                 Button("Open Session…") { session.choose() }.disabled(session.sessionBusy || session.captureBusy)
             }.padding()
@@ -355,14 +401,22 @@ struct DrivingScreen: View {
             }.monospacedDigit().padding(.horizontal).padding(.top,10)
             if let frame=session.frame {
                 HStack(spacing:20) {
-                    Text(frame.configuration.kind == .qualifying ? "Qualifying":"Practice")
+                    Text(frame.configuration.kind == .qualifying ? "Qualifying":frame.configuration.kind == .race ? "Race":"Practice")
+                    if let mine=frame.standings.first(where:{ $0.car==frame.viewer }) {
+                        Text("P\(mine.position) of \(frame.standings.count)").bold()
+                    }
                     Text(frame.result != nil ? "\(frame.completedLaps.count) / \(frame.timing.targetLaps) laps completed":frame.phase == .prestart ? "Starting…":frame.timing.laps==0 ? "Approaching start line":"Lap \(min(frame.timing.laps,frame.timing.targetLaps)) / \(frame.timing.targetLaps)")
                     Text(frame.phase == .prestart ? "Current —":String(format:"Current %.3f s",frame.timing.currentLapTime))
                     Text(frame.timing.lastLapTime>0 ? String(format:"Last %.3f s",frame.timing.lastLapTime):"Last —")
                     Text(frame.timing.bestLapTime>0 ? String(format:"Best %.3f s",frame.timing.bestLapTime):"Best —")
                     if !frame.timing.commitBestLapTime { Text("Invalid lap").foregroundStyle(.orange) }
+                    if let mine=frame.standings.first(where:{ $0.car==frame.viewer }) {
+                        if mine.penaltyTime>0 { Text(String(format:"Penalty +%.2f s",mine.penaltyTime)).foregroundStyle(.orange) }
+                        if mine.penalties>0 { Text("\(mine.penalties) penalty\(mine.penalties==1 ? "":"s") to serve").foregroundStyle(.red) }
+                    }
                     Spacer()
                 }.monospacedDigit().font(.callout).padding(.horizontal).padding(.top,8)
+                if !frame.standings.isEmpty { RaceStandingsBoard(frame:frame) }
                 if frame.result==nil,frame.time>0 {
                     Button("End Session") { session.endSession() }.disabled(session.sessionBusy || session.captureBusy).padding(6)
                 }
@@ -390,6 +444,38 @@ struct DrivingScreen: View {
         .onReceive(NotificationCenter.default.publisher(for:NSWindow.didResignKeyNotification)) { _ in session.suspend() }
     }
 }
+/// The live classification. Gaps are the original crossing-time differences, so
+/// they update as cars complete laps rather than continuously.
+struct RaceStandingsBoard: View {
+    let frame: DrivingFrame
+    private func gap(_ standing: RaceStanding) -> String {
+        if standing.position==1 { return "—" }
+        if standing.lapsBehindLeader>0 { return "+\(standing.lapsBehindLeader) lap\(standing.lapsBehindLeader==1 ? "":"s")" }
+        return standing.behindLeader>0 ? String(format:"+%.3f s",standing.behindLeader):"—"
+    }
+    var body: some View {
+        VStack(alignment:.leading,spacing:2) {
+            ForEach(frame.standings,id:\.car) { standing in
+                HStack(spacing:14) {
+                    Text("P\(standing.position)").frame(width:34,alignment:.leading)
+                    Text(standing.car==frame.viewer ? "You":"BT \(standing.car+1)").frame(width:66,alignment:.leading)
+                    Text("Lap \(standing.laps)").frame(width:58,alignment:.leading)
+                    Text(gap(standing)).frame(width:92,alignment:.leading)
+                    Text(standing.bestLap>0 ? String(format:"Best %.3f",standing.bestLap):"Best —")
+                        .frame(width:110,alignment:.leading)
+                    if standing.inPits { Text("In pits").foregroundStyle(.secondary) }
+                    if standing.penalties>0 { Text("Penalty").foregroundStyle(.red) }
+                    if standing.eliminated { Text("Out").foregroundStyle(.red) }
+                    else if standing.finished { Text("Finished").foregroundStyle(.green) }
+                    Spacer()
+                }
+                .font(.caption).monospacedDigit()
+                .fontWeight(standing.car==frame.viewer ? .bold: .regular)
+            }
+        }.padding(.horizontal).padding(.top,6)
+    }
+}
+
 @MainActor final class DrivingMetalNSView: MTKView {
     var session: DrivingSession?
     override var acceptsFirstResponder: Bool { true }
@@ -425,8 +511,14 @@ struct DrivingMetalView: NSViewRepresentable {
         func draw(in view: MTKView) {
             guard let modern, let frame=session.frame else { return }
             do {
-                let a=try VehiclePresentation(frame.previous),b=try VehiclePresentation(frame.current)
-                let pose=try VehiclePresentation.interpolate(previous:a,current:b,alpha:frame.interpolation)
+                // Every car is interpolated the same way; the viewer's is the one
+                // the cameras follow and the only one a cockpit view may hide.
+                let poses=try frame.field.map { car -> VehiclePresentation in
+                    let a=try VehiclePresentation(car.previous),b=try VehiclePresentation(car.current)
+                    return try VehiclePresentation.interpolate(previous:a,current:b,alpha:frame.interpolation)
+                }
+                let viewer=frame.field.indices.contains(frame.viewer) ? frame.viewer:0
+                let pose=poses[viewer]
                 let preset=session.cameraPreset
                 func ground(_ point: SIMD2<Float>) throws -> Float { try content.simulation.road.geometry.height(at:point,startingAt:frame.trackSegment) }
                 let p=pose.body[3]
@@ -449,7 +541,10 @@ struct DrivingMetalView: NSViewRepresentable {
                     guard let flyView else { throw RenderError.unavailable("Fly camera is not initialized") }
                     sceneCamera=flyView
                 } else if preset == .television {
-                    guard let world,let result=try television?.view(screen:0,time:frame.raceTime,frame:[frame.presentationCar],road:content.simulation.road,world:world,zoom:session.cameraZoom) else { throw RenderError.unavailable("TV director is not initialized") }
+                    // The director chooses between the real cars, in race order.
+                    let subjects=frame.standings.isEmpty ? frame.field.map(\.presentation)
+                        :frame.standings.map { frame.field[$0.car].presentation }
+                    guard let world,let result=try television?.view(screen:0,time:frame.raceTime,frame:subjects,road:content.simulation.road,world:world,zoom:session.cameraZoom) else { throw RenderError.unavailable("TV director is not initialized") }
                     sceneCamera=result.camera
                 } else {
                     sceneCamera=try cameraRig.view(preset:preset,body:pose.body,bonnetPosition:content.bonnetPosition,driverPosition:content.driverPosition,world:world,roadCameraPosition:content.simulation.road.camera(at:frame.trackSegment)?.position,zoomValue:session.cameraZoom,yaw:cameraYaw,trackHeading:trackHeading,groundHeight:ground)
@@ -466,7 +561,16 @@ struct DrivingMetalView: NSViewRepresentable {
                 modern.windscreenRain=session.rain && preset == .driver ? 1:0
                 modern.wetness=session.wet || session.rain ? 1:0
                 let sources=ModernDrivingRenderer.particleSources(pose:pose,snapshot:frame.current,speed:frame.speed,geometry:content.simulation.road.geometry,segment:frame.trackSegment,wetness:modern.wetness)
-                modern.draw(in:view,pose:pose,camera:sceneCamera,brakeCommand:frame.current.brakeCommand,lightCommand:frame.current.lightCommand,drawsDriver:preset.drawsDriver,drawsCar:preset.drawsCar,particleSources:sources,skidSources:ModernDrivingRenderer.skidSources(pose:pose,snapshot:frame.current,speed:frame.speed),deltaTime:1/Float(max(view.preferredFramesPerSecond,1)))
+                // Only the viewer's car answers to the view's own exclusions.
+                let field=frame.field.indices.map { index in
+                    ModernDrivingRenderer.FieldCar(pose:poses[index],
+                        brakeCommand:frame.field[index].current.brakeCommand,
+                        lightCommand:frame.field[index].current.lightCommand,
+                        drawsCar:index==viewer ? preset.drawsCar:true,
+                        drawsDriver:index==viewer ? preset.drawsDriver:true,
+                        castsShadow:index==viewer ? preset.drawsCar:true)
+                }
+                modern.draw(in:view,field:field,camera:sceneCamera,viewer:viewer,particleSources:sources,skidSources:ModernDrivingRenderer.skidSources(pose:pose,snapshot:frame.current,speed:frame.speed),deltaTime:1/Float(max(view.preferredFramesPerSecond,1)))
                 if let error=modern.lastError { throw RenderError.unavailable(error) }
             } catch { session.message=String(describing:error);session.stop() }
         }
