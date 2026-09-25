@@ -90,6 +90,9 @@ public struct RenderSettings: Sendable, Equatable {
     /// anamorphic streak and a starburst added at the resolve.
     public var sunGlare: Bool
     public var sunGlareStrength: Float
+    /// Shimmer over the far road under a high sun.
+    public var heatHaze: Bool
+    public var heatHazeStrength: Float
 
     /// Render a depth-only pass before shading.
     ///
@@ -134,6 +137,8 @@ public struct RenderSettings: Sendable, Equatable {
             skidMarks = true
             sunGlare = true
             sunGlareStrength = 0.35
+            heatHaze = true
+            heatHazeStrength = 1
             depthPrepass = false
             mirrorScale = 0.5
             textureMemoryBudgetBytes = 1_500_000_000
@@ -158,6 +163,8 @@ public struct RenderSettings: Sendable, Equatable {
             skidMarks = true
             sunGlare = true
             sunGlareStrength = 0.35
+            heatHaze = true
+            heatHazeStrength = 1
             depthPrepass = false
             mirrorScale = 0.67
             textureMemoryBudgetBytes = 3_000_000_000
@@ -182,6 +189,8 @@ public struct RenderSettings: Sendable, Equatable {
             skidMarks = true
             sunGlare = true
             sunGlareStrength = 0.35
+            heatHaze = true
+            heatHazeStrength = 1
             depthPrepass = false
             mirrorScale = 1
             textureMemoryBudgetBytes = 6_000_000_000

@@ -678,8 +678,10 @@ public final class ForwardRenderer {
     /// The sun's position in uv space for the last encoded frame, when it is
     /// in front of the camera; the resolve draws the glare there.
     public private(set) var sunScreenPosition: SIMD2<Float>?
-    /// The depth target of the last encoded frame, for the glare's occlusion.
+    /// The depth target of the last encoded frame, for the glare's occlusion
+    /// and the heat haze, and that frame's projection near.
     private var lastDepth: MTLTexture?
+    private var lastNear: Float = 0.25
     /// Spatial scalers by render size, kept so a dynamic-resolution step
     /// never constructs one mid-race; `prewarmSpatialScalers` fills it.
     private var spatialUpscalers: [SIMD2<Int>: SpatialUpscaler] = [:]
@@ -729,6 +731,7 @@ public final class ForwardRenderer {
             sunScreenPosition = nil
         }
         lastDepth = targets.depth
+        lastNear = camera.near
         var frame = FrameUniforms(
             viewProjection: projection * camera.view(),
             view: camera.view(),
@@ -1131,7 +1134,16 @@ public final class ForwardRenderer {
             // Sun glare: only when the setting is on, the sun is in front of
             // the camera and within a frame's width of the view. Occlusion is
             // decided in the shader from the depth around the sun.
-            var glare = GlareUniforms(sun: .zero, colour: .zero)
+            var glare = GlareUniforms(sun: .zero, colour: .zero, haze: .zero)
+            // Heat haze grows with the sun's height: nothing below 17°, full
+            // above 53°. Needs the depth, like the glare.
+            if settings.heatHaze, settings.heatHazeStrength > 0, let depth = lastDepth {
+                let heat = min(max((lighting.direction.z - 0.3) / 0.5, 0), 1) * settings.heatHazeStrength
+                glare.haze = SIMD4(heat, Float(animationTime), lastNear, 1 / Float(max(destination.height, 1)))
+                encoder.setFragmentTexture(depth, index: 2)
+            } else {
+                encoder.setFragmentTexture(source, index: 2)
+            }
             if settings.sunGlare, settings.sunGlareStrength > 0, let sun = sunScreenPosition, let depth = lastDepth,
                sun.x > -0.5, sun.x < 1.5, sun.y > -0.5, sun.y < 1.5 {
                 glare.sun = SIMD4(sun.x, sun.y, Float(destination.width) / Float(max(destination.height, 1)), settings.sunGlareStrength)
@@ -1152,4 +1164,5 @@ public final class ForwardRenderer {
 struct GlareUniforms {
     var sun: SIMD4<Float>
     var colour: SIMD4<Float>
+    var haze: SIMD4<Float>
 }

@@ -69,6 +69,8 @@ struct Options {
     var wetness: Float = 0
     var compareWet = false
     var sunGlare: Bool? = nil
+    var heatHaze: Bool? = nil
+    var compareHaze = false
     var compareGlare = false
     var reflectionTemporal: Bool? = nil
     var compareReflectionTemporal = false
@@ -171,6 +173,9 @@ func parse() -> Options {
         case "--wet": options.wetness = Float(next()) ?? 1
         case "--compare-wet": options.compareWet = true
         case "--glare": options.sunGlare = true
+        case "--haze": options.heatHaze = true
+        case "--no-haze": options.heatHaze = false
+        case "--compare-haze": options.compareHaze = true
         case "--no-glare": options.sunGlare = false
         case "--compare-glare": options.compareGlare = true
         case "--ssr-temporal": options.reflectionTemporal = true
@@ -357,6 +362,7 @@ do {
     if let ssr = options.reflections { settings.screenSpaceReflections = ssr }
     if let blur = options.motionBlur { settings.motionBlur = blur }
     if let glare = options.sunGlare { settings.sunGlare = glare }
+    if let haze = options.heatHaze { settings.heatHaze = haze }
     if let temporal = options.reflectionTemporal { settings.reflectionTemporal = temporal }
     if let cascades = options.cascades { settings.shadowCascades = max(0, min(4, cascades)) }
     let startupClock = DispatchTime.now()
@@ -565,6 +571,7 @@ do {
     }
     if options.compareSkid { try compare("skid marks") { $0.skidMarks = $1 } }
     if options.compareGlare { try compare("sun glare") { $0.sunGlare = $1 } }
+    if options.compareHaze { try compare("heat haze") { $0.heatHaze = $1 } }
     if options.compareReflectionTemporal {
         // The history must survive between frames for the reuse to run.
         renderer.resetsHistoryPerRender = false

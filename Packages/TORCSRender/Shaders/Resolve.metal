@@ -11,7 +11,31 @@ using namespace metal;
 struct GlareUniforms {
     float4 sun;         // xy sun position in uv space, z aspect (width / height), w strength (0 = off)
     float4 colour;      // rgb exposed sun colour, w unused
+    /// Heat haze: x strength (0 = off), y animation time, z projection near,
+    /// w one pixel in uv (1 / height).
+    float4 haze;
 };
+
+/// Heat haze: the far road shimmers. A rising two-octave value noise
+/// displaces the sample by a couple of pixels where the opaque depth is a
+/// hundred metres or more and not yet at the horizon, and only when the
+/// displaced sample is itself far, so a car or a post ahead is never
+/// smeared into the road. Strength follows the sun's height.
+inline float2 heatHaze(float2 uv, texture2d<float> depth, constant GlareUniforms &g) {
+    constexpr sampler pointSampler(coord::normalized, address::clamp_to_edge, filter::nearest);
+    float deviceDepth = depth.sample(pointSampler, uv).x;
+    if (deviceDepth <= 0.0f) { return uv; }
+    float linear = g.haze.z / deviceDepth;
+    float amount = smoothstep(60.0f, 220.0f, linear) * (1.0f - smoothstep(500.0f, 1400.0f, linear)) * g.haze.x;
+    if (amount <= 0.001f) { return uv; }
+    float t = g.haze.y;
+    float2 n = float2(groundNoise(uv * float2(42.0f, 95.0f) + float2(0.0f, -t * 1.4f)),
+                      groundNoise(uv * float2(39.0f, 88.0f) + float2(7.3f, -t * 1.1f))) - 0.5f;
+    float2 displaced = uv + n * amount * 2.5f * g.haze.w;
+    float other = depth.sample(pointSampler, displaced).x;
+    float otherLinear = other > 0.0f ? g.haze.z / other : 1e9f;
+    return otherLinear > 45.0f ? displaced : uv;
+}
 
 /// Whether the sun is unoccluded: the fraction of a small disc of depth
 /// taps around its position that see sky. The depth is reversed and
@@ -68,14 +92,16 @@ vertex ResolveVarying resolveVertex(uint id [[vertex_id]],
 fragment float4 resolveFragment(ResolveVarying in [[stage_in]],
                                 texture2d<float> scene [[texture(0)]],
                                 texture2d<float> bloom [[texture(1)]],
+                                texture2d<float> depth [[texture(2)]],
                                 constant float &exposureScale [[buffer(0)]],
                                 constant float &bloomStrength [[buffer(1)]],
                                 constant GlareUniforms &glare [[buffer(2)]]) {
     constexpr sampler pointSampler(coord::normalized, address::clamp_to_edge, filter::nearest);
     constexpr sampler linearSampler(coord::normalized, address::clamp_to_edge, filter::linear);
+    float2 sceneUV = glare.haze.x > 0.0f ? heatHaze(in.uv, depth, glare) : in.uv;
     // The pyramid was built from exposed values (see bloomPrefilter), so the
     // scene is exposed here to match and the tonemapper is given unit scale.
-    float3 radiance = scene.sample(pointSampler, in.uv).rgb * exposureScale;
+    float3 radiance = scene.sample(pointSampler, sceneUV).rgb * exposureScale;
     if (glare.sun.w > 0.0f && in.sunVisibility > 0.0f) {
         radiance += sunGlare(in.uv, glare, in.sunVisibility);
     }

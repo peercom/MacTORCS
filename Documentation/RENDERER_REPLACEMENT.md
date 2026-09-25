@@ -1694,6 +1694,26 @@ untouched frame with the decals off. The first look for the boxes was from
 the start line facing forward, which is the wrong way: the grid is behind
 the line, in the last fifty metres of the lap.
 
+## Heat haze
+
+The far road shimmers under a high sun. In the resolve, before the scene
+is sampled, a rising two-octave value noise displaces the sample by up to
+two and a half pixels where the opaque depth is between about a hundred
+metres and the horizon — from 60 to 220 m in, fading out from 500 to
+1,400 m — and only when the displaced sample is itself more than 45 m
+away, so a car or a post ahead is never smeared into the road behind it.
+The strength follows the sun's height: nothing below 17° of elevation,
+full above 53°, scaled by `RenderSettings.heatHazeStrength`; the mirror
+has it off. It costs **+0.15 ms** at native with the whole frame's road
+in view.
+
+`testFarGroundShimmersNearGroundHolds` looks down a 480 m checkered
+strip: between two animation times the far band differs, the near band is
+identical to the byte, and with the haze off or the sun at 10° nothing
+differs at all. In a still the effect is a faint waviness in the far
+markings; in motion it is the summer afternoon the lighting already
+implies.
+
 ## Licensing
 
 No third-party artwork is imported by this work. New render source is
