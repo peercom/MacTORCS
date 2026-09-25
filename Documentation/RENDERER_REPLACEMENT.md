@@ -1645,6 +1645,32 @@ assertion per vertex per garage took twenty minutes);
 goes and the trees and road stay. The batches are named `pit-…` so no
 original artwork file can match them.
 
+## Tyre walls on the corners
+
+The first of the Phase 6 furniture. `FurnitureGeneration` finds the corners
+from the segment model — runs of same-hand arcs tighter than 120 m and
+longer than 12 m, so a kink between two straights gets nothing — and lays a
+tyre wall along the outside of each: a strip against the outer edge, in
+front of whatever barrier the track has there, two tyres high and one deep,
+stepped every two metres along the corner with the rows shared at segment
+joins. It is dressing: the physics keeps the original barrier. The strip
+takes the `tyre-wall` set with metre UVs along it, so the stacked tyres
+repeat at their real size and the painted rows read from the road.
+
+Two lessons from a short increment. The outward direction was first taken
+across the outer strip, and Aalborg's outer strips can be narrower than
+the half metre the probe used, which gave a zero direction and a strip of
+zero depth; it now comes from the main road's own lateral axis. And the
+first winding test judged each face against its *first* vertex's normal,
+which for a strip whose rows share vertices between the front, the top
+and the back is often perpendicular to the face; the orient pass judges
+against the sum of the three, and so does the test now.
+
+Also in this increment, by way of a fault it exposed: the render tool's
+generated-track path had lost the pit garages and the pit-complex strip
+between two commits (see the note on the shared checkout in the recap of
+the session), and has them back.
+
 ## Licensing
 
 No third-party artwork is imported by this work. New render source is

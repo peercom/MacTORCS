@@ -327,6 +327,7 @@ do {
             scene = TrackSurfaceAssembly.strippingTrackgen(scene)
             var generated = try TrackSurfaceAssembly.roadBatches(road.geometry)
             generated += try TrackSurfaceAssembly.pitBatches(road.geometry, pits: road.pits)
+            generated += try TrackSurfaceAssembly.furnitureBatches(road.geometry)
             scene = TrackSurfaceAssembly.strippingPitComplex(scene, garages: PitGeneration.footprints(road.geometry, pits: road.pits))
             if options.grass {
                 var grassParameters = GrassGeneration.Parameters()

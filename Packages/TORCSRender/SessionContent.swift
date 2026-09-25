@@ -89,6 +89,7 @@ public final class SessionRenderResources {
             if generateRoad {
                 generated += try TrackSurfaceAssembly.roadBatches(road)
                 if let pits { generated += try TrackSurfaceAssembly.pitBatches(road, pits: pits) }
+                generated += try TrackSurfaceAssembly.furnitureBatches(road)
                 if materialDirectory != nil {
                     generated += try TrackSurfaceAssembly.grassBatches(road)
                 }
