@@ -39,6 +39,12 @@ public final class SceneResources {
         let castsShadow: Bool
         let prepass: Bool
 
+        /// The bounding sphere's centre under an instance transform.
+        func worldCentre(under transform: simd_float4x4) -> SIMD3<Float> {
+            let centre = transform * SIMD4(worldCentre, 1)
+            return SIMD3(centre.x, centre.y, centre.z)
+        }
+
         /// How this batch draws for a camera at `eye`, under `transform`:
         /// fully, not at all, or dithered through a detail switch.
         func fade(from eye: SIMD3<Float>, transform: simd_float4x4) -> LevelOfDetail.Fade {
@@ -260,6 +266,11 @@ public final class ForwardRenderer {
     /// too coarse to read as shadows anyway, and aerial perspective has taken over.
     public var shadowDistance: Float = 400
     let sampler: MTLSamplerState
+    /// Skip batches whose bounding sphere lies outside the view. On by
+    /// default; off only to measure what it saves.
+    public var frustumCulling = true
+    /// Batches the frustum rejected in the last frame, across the passes.
+    public private(set) var lastCulledCount = 0
     /// Samplers for the normal and roughness maps, one per anisotropy the
     /// settings have asked for; see `RenderSettings.detailAnisotropy`.
     private var detailSamplers: [Int: MTLSamplerState] = [:]
@@ -467,6 +478,13 @@ public final class ForwardRenderer {
             throw RenderError.unavailable("Could not create a sampler")
         }
         self.sampler = sampler
+    }
+
+    /// The largest axis scale of a transform, to grow a bounding radius by.
+    static func maxScale(of transform: simd_float4x4) -> Float {
+        max(simd_length(SIMD3(transform.columns.0.x, transform.columns.0.y, transform.columns.0.z)),
+            simd_length(SIMD3(transform.columns.1.x, transform.columns.1.y, transform.columns.1.z)),
+            simd_length(SIMD3(transform.columns.2.x, transform.columns.2.y, transform.columns.2.z)), 1e-4)
     }
 
     /// The sampler for the normal and roughness maps at the settings' detail
@@ -813,6 +831,10 @@ public final class ForwardRenderer {
 
         lastDrawCount = 0
         lastTriangleCount = 0
+        lastCulledCount = 0
+        // The unjittered frustum: the jitter is a fraction of a pixel and the
+        // sphere test is conservative by a whole batch.
+        let frustum: ViewFrustum? = frustumCulling ? ViewFrustum(viewProjection: unjittered) : nil
 
         // Screen-space occlusion reads the opaque depth of this frame before
         // anything shades, which means the prepass has to finish — as its own
@@ -846,7 +868,7 @@ public final class ForwardRenderer {
                 encoder.setVertexBytes(&frame, length: MemoryLayout<FrameUniforms>.stride, index: 1)
                 encoder.setFragmentBytes(&frame, length: MemoryLayout<FrameUniforms>.stride, index: 1)
                 encoder.setFragmentSamplerState(sampler, index: 0)
-                encodePrepassDraws(on: encoder, resources: resources, instances: instances, eye: camera.eye)
+                encodePrepassDraws(on: encoder, resources: resources, instances: instances, eye: camera.eye, frustum: frustum)
                 encoder.endEncoding()
             }
             occlusion.encode(into: commands, depth: targets.depth, projection: projection,
@@ -871,7 +893,7 @@ public final class ForwardRenderer {
         // Optional depth-only prepass. Everything that will shade writes depth
         // first, so the shading pass touches each visible pixel once.
         if usesPrepass && !wantsOcclusion {
-            encodePrepassDraws(on: encoder, resources: resources, instances: instances, eye: camera.eye)
+            encodePrepassDraws(on: encoder, resources: resources, instances: instances, eye: camera.eye, frustum: frustum)
         }
 
         encoder.setDepthStencilState(usesPrepass ? equalDepthState : depthState)
@@ -914,10 +936,16 @@ public final class ForwardRenderer {
             // exactly such a flip.
             let instanceMirrored = simd_determinant(instance.transform) < 0
 
+            let instanceScale = Self.maxScale(of: instance.transform)
             for (batchIndex, batch) in scene.batches.enumerated() {
                 if batch.isDriver && !instance.drawsDriver { continue }
                 let fade = batch.fade(from: camera.eye, transform: instance.transform)
                 if !fade.visible { continue }
+                if let frustum, !frustum.mayContain(sphereAt: batch.worldCentre(under: instance.transform),
+                                                    radius: batch.worldRadius * instanceScale) {
+                    lastCulledCount += 1
+                    continue
+                }
                 // A batch the prepass skipped has no depth to match; it tests
                 // and writes depth here like a frame without a prepass.
                 if usesPrepass { encoder.setDepthStencilState(batch.prepass ? equalDepthState : depthState) }
@@ -991,7 +1019,7 @@ public final class ForwardRenderer {
     /// same depth.
     private func encodePrepassDraws(on encoder: MTLRenderCommandEncoder,
                                     resources: [SceneResources], instances: [RenderInstance],
-                                    eye: SIMD3<Float>) {
+                                    eye: SIMD3<Float>, frustum: ViewFrustum?) {
         encoder.setDepthStencilState(prepassDepthState)
         encoder.setFrontFacing(.counterClockwise)
         for instance in instances {
@@ -1000,12 +1028,18 @@ public final class ForwardRenderer {
             var instanceUniforms = InstanceUniforms(model: instance.transform)
             encoder.setVertexBytes(&instanceUniforms, length: MemoryLayout<InstanceUniforms>.stride, index: 5)
             let instanceMirrored = simd_determinant(instance.transform) < 0
+            let instanceScale = Self.maxScale(of: instance.transform)
             for batch in scene.batches {
                 if batch.isDeferred { continue }
                 if batch.isDriver && !instance.drawsDriver { continue }
                 let fade = batch.fade(from: eye, transform: instance.transform)
                 if !fade.visible { continue }
                 if !batch.prepass { continue }
+                if let frustum, !frustum.mayContain(sphereAt: batch.worldCentre(under: instance.transform),
+                                                    radius: batch.worldRadius * instanceScale) {
+                    lastCulledCount += 1
+                    continue
+                }
                 encoder.setRenderPipelineState(batch.needsAlphaTest ? depthOnlyCutout : depthOnly)
                 let mirrored = batch.mirrored != instanceMirrored
                 encoder.setCullMode(batch.culls ? (mirrored ? .front : .back) : .none)

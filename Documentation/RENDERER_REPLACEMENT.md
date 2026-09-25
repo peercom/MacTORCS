@@ -1445,7 +1445,7 @@ Against the plan's phases, after twenty-nine increments on the
 | 5 Track | generated road, curbs, barriers, terrain, markings, racing-line rubber, skid marks, pit garages, painted starting grid | road detail atlas beyond the markings |
 | 6 Scatter | volumetric trees with dithered detail pairs, grass cards, wind (in the shadows too), tyre walls on the corners | impostors, crowds, GPU-driven culling (about 290 draws a frame: not needed) |
 | 7 Effects | smoke, dust, spray, wet weather with puddles, sun glare, heat haze | rain itself, replay/photo depth of field |
-| 8 Hardening | prebuilt shaders, pre-warmed scalers, memory budget test, sustained runs, the seven signposts, app bundle fixed, hero car subdivided in place, per-pass GPU timer, near-field aerial perspective in closed form, detail-map anisotropy per preset, occlusion at a quarter on the Air (driver's-eye 15.2 → 10.0 ms, under budget at native) | binary archive for the first launch |
+| 8 Hardening | prebuilt shaders, pre-warmed scalers, memory budget test, sustained runs, the seven signposts, app bundle fixed, hero car subdivided in place, per-pass GPU timer, near-field aerial perspective in closed form, detail-map anisotropy per preset, occlusion at a quarter on the Air, view-frustum batch culling (driver's-eye 15.2 → 9.2 ms, under budget at native) | binary archive for the first launch |
 
 The measured state of the default preset on the target machine is the
 sustained table above: 8.7 ms at native with the whole session drawn, no
@@ -2114,6 +2114,46 @@ occlusion at a quarter costs what the plan budgeted for it at half
 (0.7 ms), and the forward pass is a millimetre from its own line
 (4.1 + 2.0 ms against 3.2 — the vertex stage of the trees is what
 remains above it).
+
+## What was behind the camera
+
+The forward-fragment attribution had one number that was not a fragment
+cost: the trees and grass were 1.8 ms of the driver's-eye view's
+*vertex* stage. A tree here is a trunk, branches and a crown of leaf
+cards — the better part of a thousand triangles at the near build — and
+the circuit places 169 of them. The forward pass decided what to submit
+by distance alone, through the detail fade, so from a driver's seat the
+trees behind the car were transformed, swayed and clipped every frame,
+in the prepass and again in the forward pass. The shadow cascades had
+their own sphere test since Phase 1; the camera never got one.
+
+`ViewFrustum` is that test: the five clip planes of the unjittered
+view-projection (the reversed infinite projection has no far plane, and
+the helper simply has no plane for it), against each batch's bounding
+sphere under its instance transform. Both draw loops skip what it
+rejects; `ForwardRenderer.frustumCulling` turns it off, and the render
+tool's `--no-frustum` with it, so the saving can be measured rather than
+assumed. Driver's-eye view, native, alternated:
+
+| | without | with |
+|---|---|---|
+| batches submitted | 247 | 125 (244 rejected across both passes) |
+| triangles | 515 k | 316 k |
+| depth prepass vertex stage | 0.55 ms | 0.37 ms |
+| forward vertex stage | 1.61 ms | 1.14 ms |
+| frame | 9.7 ms | 9.2–9.45 ms |
+
+The circuit overview looks down on all of it and rejects nothing, and
+its frame is unchanged. The driver's-eye image is byte-identical with
+and without the cull, as a test now pins on the fixture, and the cull's
+own tests check the planes against clip space directly on two thousand
+random points.
+
+The saving is the smallest of this run of increments, and the cheapest:
+forty lines and no shader. It leaves the driver's-eye frame at 9.2 ms
+at native. The vertex stage that remains is the trees in view, which is
+where the plan's impostors would go if they were ever needed; at these
+numbers they are not.
 
 ## Licensing
 

@@ -76,6 +76,8 @@ struct Options {
     var shadowRefresh: Int? = nil
     /// Per-pass GPU timing over the frames, from the GPU's timestamp counter.
     var passes = false
+    /// Submit every batch regardless of the view frustum, to measure the cull.
+    var noFrustum = false
     /// Overrides the preset's anisotropy for the normal and roughness maps.
     var detailAnisotropy: Int?
     var compareGlare = false
@@ -186,6 +188,7 @@ func parse() -> Options {
         case "--rain": options.rain = Float(next()) ?? 1
         case "--shadow-refresh": options.shadowRefresh = Int(next())
         case "--passes": options.passes = true
+        case "--no-frustum": options.noFrustum = true
         case "--detail-anisotropy": options.detailAnisotropy = Int(next())
         case "--no-glare": options.sunGlare = false
         case "--compare-glare": options.compareGlare = true
@@ -401,6 +404,7 @@ do {
     renderer.wetness = options.wetness
     renderer.roadPaint.set(gridBoxes)
     if options.passes { renderer.passTimer = try PassTimer(device: renderer.device) }
+    if options.noFrustum { renderer.frustumCulling = false }
     var passSamples: [String: [Double]] = [:]
     renderer.rain = options.rain
     if options.rain > 0 { renderer.wetness = max(renderer.wetness, options.rain) }
@@ -800,6 +804,7 @@ do {
     rendered \(options.width)x\(options.height) -> \(options.output)
       batches       \(renderer.lastDrawCount)
       triangles     \(renderer.lastTriangleCount)
+      culled        \(renderer.lastCulledCount) batches outside the view
       geometry      \(String(format: "%.2f", megabytes)) MiB
       scalerBuilds  \(renderer.upscalerBuildCount)\(renderer.lastUpscalerError.map { " error: " + $0 } ?? "")
       bloom         \(settings.bloom ? "on, strength \(settings.bloomStrength), threshold \(settings.bloomThreshold) exposed, \(renderer.bloom.levelCount) levels" : "off")
