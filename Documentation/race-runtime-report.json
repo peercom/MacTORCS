@@ -1,0 +1,72 @@
+{
+ "date": "2026-09-25",
+ "evidence": {
+  "native-race-3car-repeat.json": "0cc6f8824a2b9d8519996d70ff915b46a45e42da93885f17d4492f4fece028ae",
+  "native-race-3car.json": "0cc6f8824a2b9d8519996d70ff915b46a45e42da93885f17d4492f4fece028ae",
+  "race-runtime-tests.log": "d75393f3368bb21cdab11a5753e8c358b3a04490a9867743439c38dafcb02073"
+ },
+ "increment": "G4 authoritative native race runtime",
+ "limits": [
+  "No trajectory parity with the original is claimed: drivers, physics and scheduling are native, and a field amplifies the recorded native/reference difference. Scheduling, structure and repeatability are what is compared.",
+  "BT drivers still have no opponent handling; the inflated first-lap times are the evidence, and they must not be presented as a traffic AI.",
+  "The runtime runs every car's pit block before any car's timing, where the original interleaves them per car; nothing in the pit block feeds another car's timing.",
+  "Human input is sampled at the original 0.02 s robot interval, unlike the existing practice DrivingRuntime which applies input every physics tick.",
+  "Only one human entry is supported and the human car has no robot policy.",
+  "The driving window is not connected to this runtime: opponent selection, live standings and race results in the UI are later work.",
+  "Accumulated penalty time is not fed into pit service timing yet.",
+  "Qualifying does not feed a race grid; championships and replay remain unimplemented.",
+  "This driver never cuts past the original threshold on Aalborg, so its measured race penalty time is zero; the penalty arithmetic itself is compared against the original separately.",
+  "The diagnostic uses one car model and one setup per race, though the runtime accepts a different definition per entry."
+ ],
+ "measurements": {
+  "callbacksPerCarOver1500Ticks": 98,
+  "humanCarCallbacks": 148,
+  "newTests": 6,
+  "oracleCallbacksPerCarOver1500Ticks": 98,
+  "prestartTicks": 999,
+  "raceCars": 3,
+  "raceClassification": [
+   2,
+   0,
+   1
+  ],
+  "raceFirstLapSecondsRange": [
+   147.874,
+   159.266
+  ],
+  "raceGapsSeconds": [
+   0.0,
+   9.604,
+   11.31
+  ],
+  "raceLaps": 2,
+  "racePenaltySecondsForThisDriver": 0.0,
+  "raceReportIdenticalOnRepeat": true,
+  "raceSecondLapSecondsRange": [
+   87.586,
+   87.752
+  ],
+  "raceTicks": 124468,
+  "releaseSuite": "455 tests, 0 failures, 95.772 s",
+  "rulesWiredCollisionBits": 11,
+  "rulesWiredInvalidatedAtTick": 34198,
+  "shortRunRepeatExact": true,
+  "shortRunRepeatTicks": 3000,
+  "twoCarOneLapTicks": 92446
+ },
+ "priority": "Gameplay; foliage and new graphical work deferred",
+ "schema": 1,
+ "scope": "One runtime in original ReOneStep order: race clock, 0.02 s robot scheduling for BT and human entries, multi-car physics, per-car pit management, ReManage timing and gaps, complete ReRaceRules and ReSortCars, with race results",
+ "sources": {
+  "Packages/TORCSRaceEngine/RaceLapTiming.swift": "f93ceb54beaa6bfc7ed4873467b00498de52a776324d0aa3fb4b2c89e9531360",
+  "Packages/TORCSRaceEngine/RaceProgress.swift": "f958ba82f0ffb5a3a6ec33ff9488b5cc401a986b85768633efba77b9770df6e9",
+  "Packages/TORCSRaceEngine/RaceRuntime.swift": "0a9cf58dff1a25d7bf0329a65f65f72270cb0df1f3fd3b92e385fe4d20193bb0",
+  "Packages/TORCSTrack/StartingGrid.swift": "a103787e3aacbe645f4ed03e39722721cf876e4e334a72dd00e6cbd05d5a931d",
+  "Tests/UnitTests/RaceRuntimeTests.swift": "799e0b27ceead8bd14650c8ec70851345bfd78403a861fbcdb1f2a2e56c4a37d",
+  "Tools/torcs-sim/NativeRace.swift": "382e6beee22e2dc64c25d78d7b95f5e4a84e5d0d1aa0a0639a65cc6ff1688d6f"
+ },
+ "verification": {
+  "gating": "Release suite gated on the three-digit total line with no runtime-failure, Fatal, failed-case or signal markers",
+  "oracleComparison": "Robot callback cadence and prestart length compared against the G1 multi-car oracle over the same tick range"
+ }
+}

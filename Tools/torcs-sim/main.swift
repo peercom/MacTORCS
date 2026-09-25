@@ -4,6 +4,10 @@ import TORCSSimulation
 import TORCSTelemetry
 
 do {
+    if CommandLine.arguments.contains("--race") {
+        try runNativeRace(Array(CommandLine.arguments.dropFirst()))
+        exit(0)
+    }
     if CommandLine.arguments.contains("--robot") {
         try runNativeBTRace(Array(CommandLine.arguments.dropFirst()))
         exit(0)

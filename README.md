@@ -58,6 +58,15 @@ It rejects schema, field and tick mismatches. Exit codes: 0 pass, 1 divergence,
 capture-size limit; see [telemetry comparison](Documentation/TELEMETRY_COMPARISON.md).
 Full race telemetry is not implemented.
 
+A native multi-car race now runs in the original ReOneStep order, with the race
+clock, robot scheduling, pit management, timing, rules, sorting and results; see
+[race runtime](Documentation/RACE_RUNTIME.md).
+
+```sh
+.build/release/torcs-sim --race race --fixtures Tests/UnitTests/Fixtures \
+  --cars 3 --laps 2 --max-ticks 900000 --summary Artifacts/native-race.json
+```
+
 The original race rules and penalties are ported and measured against the
 original routine; see [race rules](Documentation/RACE_RULES.md).
 

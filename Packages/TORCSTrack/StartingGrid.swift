@@ -21,6 +21,11 @@ public struct StartingGridConfiguration: Sendable, Equatable {
         self.rows=rows;self.toStart=toStart;self.columnDistance=columnDistance;self.columnOffset=columnOffset
         self.initialSpeed=initialSpeed;self.initialHeight=initialHeight;self.poleLeft=poleLeft
     }
+    /// The values shipped in the original quickrace.xml. The plain initializer's
+    /// defaults are raceinit.cpp's own fallbacks.
+    public static func quickRace() throws -> Self {
+        try Self(rows:2,toStart:25,columnDistance:20,columnOffset:10,initialSpeed:0,initialHeight:0.2)
+    }
     /// The original attribute names, read from `<race name>/Starting Grid` and
     /// then overridden by the track's own top-level `Starting Grid` section.
     public init(race: ParameterDocument,raceName: String,track: ParameterDocument? = nil) throws {

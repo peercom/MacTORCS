@@ -25,8 +25,12 @@ public struct RaceLapSample: Sendable {
     public let position: TrackLocalPosition
     public let speed,width: Float
     public let flags,collision: UInt32
-    public init(position: TrackLocalPosition,speed: Float,width: Float,flags: UInt32=0,collision: UInt32=0) {
+    /// Original total speed. Only the corner-cutting time penalty reads it.
+    public let publicSpeed: Float
+    public init(position: TrackLocalPosition,speed: Float,width: Float,flags: UInt32=0,collision: UInt32=0,
+                publicSpeed: Float=0) {
         self.position=position;self.speed=speed;self.width=width;self.flags=flags;self.collision=collision
+        self.publicSpeed=publicSpeed
     }
 }
 /// Single human car timing. Multi-car ordering/gaps, robot timeout and pit
@@ -41,6 +45,12 @@ public struct RaceLapTiming: Sendable {
     public var completedLaps: Int { max(0,laps-1) }
     // ReManage's post-finish crossing forces the remaining field to finish.
     mutating func finishWithField() { flags |= 0x100 }
+    /// For a runtime that applies the complete ReRaceRules itself: the original
+    /// clears the same flag from inside the rules, after the crossing reset.
+    public mutating func invalidateLap() { commitBestLapTime=false }
+    /// The complete rules can eliminate a car. The original writes the state onto
+    /// the car, so the same tick's sorting and the enclosing runtime both see it.
+    public mutating func applyRuleFlags(_ value: UInt32) { flags=value }
     public let targetLaps: Int
     public init(initialPosition: TrackLocalPosition,targetLaps: Int=5) {
         precondition((1...10000).contains(targetLaps))
