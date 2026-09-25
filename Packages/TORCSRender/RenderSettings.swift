@@ -23,8 +23,12 @@ public struct RenderSettings: Sendable, Equatable {
     }
 
     public enum Quality: Int, Sendable, Comparable, CaseIterable {
-        case off = 0, half = 1, full = 2
+        case off = 0, quarter = 1, half = 2, full = 3
         public static func < (a: Quality, b: Quality) -> Bool { a.rawValue < b.rawValue }
+        /// Divisor of the render resolution the pass runs at.
+        public var divisor: Int {
+            switch self { case .off, .full: return 1; case .half: return 2; case .quarter: return 4 }
+        }
     }
 
     /// Fraction of output resolution the scene is rendered at, at rest.

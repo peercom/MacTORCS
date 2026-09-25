@@ -1860,6 +1860,36 @@ instead of half, and blurring at the render resolution before the scaler
 (the spatial path already does), are the next two increments with a
 number attached.
 
+## A quarter-resolution trace, and what it did not save
+
+`RenderSettings.Quality` gains `quarter`, with a `divisor` the occlusion
+and reflection passes take instead of comparing cases, and the render tool
+accepts it. Measured on both views at native, sixty frames each,
+back to back:
+
+| reflections | orbit | driver's-eye |
+|---|---|---|
+| off | 6.74 ms | 14.40 ms |
+| quarter | 7.45 ms | 14.75 ms |
+| half | 7.48 ms | 14.75 ms |
+
+Two corrections fall out. The reflections cost 0.35–0.7 ms at native, not
+the 2.5 ms the previous section reported: that figure came from two runs
+minutes apart on a chip whose clocks had moved between them, the very
+comparison this document says not to make, and the interleaved comparison
+that would have caught it is contaminated for this setting because
+toggling it re-allocates the frame targets. And the trace's resolution is
+not where its cost is: a quarter of the pixels costs the same as half, so
+the milliseconds are in the composite at full resolution and the fixed
+per-frame work, not the march. The option stays — it is free and looks the
+same on the car — and the presets keep half.
+
+Three null results in a row say the same thing: the tool's back-to-back
+runs are too coarse for sub-millisecond attribution on a fanless chip, and
+the plan's per-pass GPU timing from `MTLCounterSampleBuffer` (section 9.3,
+never built) is the instrument this work now needs. It is the next
+increment.
+
 ## Licensing
 
 No third-party artwork is imported by this work. New render source is

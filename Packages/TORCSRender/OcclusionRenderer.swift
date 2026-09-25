@@ -94,7 +94,7 @@ public final class OcclusionRenderer {
         // the rest. Contact shadows on their own stay at full resolution —
         // keying this on `.full` made the contact edges change with the AO
         // setting, which showed up as pixels brightening when AO was enabled.
-        let divisor = ambient == .half ? 2 : 1
+        let divisor = ambient.divisor
         guard ambient != .off || contact,
               let pair = targets(width: max(1, depth.width / divisor), height: max(1, depth.height / divisor)) else {
             result = nil

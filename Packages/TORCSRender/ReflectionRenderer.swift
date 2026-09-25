@@ -123,7 +123,7 @@ public final class ReflectionRenderer {
                        viewProjection: simd_float4x4? = nil, previousViewProjection: simd_float4x4? = nil,
                        temporal: Bool = false) -> MTLTexture? {
         guard quality != .off, targets.reflections else { result = nil; historyValid = false; return nil }
-        let divisor = quality == .half ? 2 : 1
+        let divisor = quality.divisor
         let width = max(1, targets.renderWidth / divisor), height = max(1, targets.renderHeight / divisor)
         guard let pair = self.targets(width: width, height: height) else {
             result = nil

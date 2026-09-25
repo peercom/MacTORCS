@@ -92,6 +92,20 @@ final class ReflectionTests: XCTestCase {
         XCTAssertEqual(try render(renderer), try render(renderer))
     }
 
+    func testQuarterResolutionTargetIsAQuarter() throws {
+        guard MTLCreateSystemDefaultDevice() != nil else { throw XCTSkip("Metal device unavailable") }
+        var settings = RenderSettings()
+        settings.bloom = false; settings.motionBlur = false; settings.screenSpaceReflections = .quarter
+        let renderer = try ForwardRenderer(settings: settings)
+        let scene = try SceneResources(device: renderer.device, scene: MotionBlurTests().fixtureScene())
+        _ = try renderer.render(scene: scene, camera: RenderCamera(eye: SIMD3(6, -5, 2), target: SIMD3(0, 0, 0.5)),
+                                lighting: SunLighting(), width: 256, height: 160)
+        let result = try XCTUnwrap(renderer.reflections.result)
+        XCTAssertEqual(result.width, 64); XCTAssertEqual(result.height, 40)
+        XCTAssertEqual(RenderSettings.Quality.quarter.divisor, 4)
+        XCTAssertTrue(RenderSettings.Quality.quarter < .half && .half < .full && .off < .quarter)
+    }
+
     func testHalfResolutionTargetIsHalf() throws {
         let renderer = try makeRenderer { $0.screenSpaceReflections = .half }
         _ = try render(renderer)

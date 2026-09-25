@@ -159,11 +159,11 @@ func parse() -> Options {
         case "--compare-bloom": options.compareBloom = true
         case "--compare-upscale": options.compareUpscale = true
         case "--compare-occlusion": options.compareOcclusion = true
-        case "--ao": options.ambientOcclusion = ["off": .off, "half": .half, "full": .full][next()]
+        case "--ao": options.ambientOcclusion = ["off": .off, "quarter": .quarter, "half": .half, "full": .full][next()]
         case "--contact": options.contactShadows = true
         case "--no-contact": options.contactShadows = false
         case "--occlusion-view": options.occlusionView = next()
-        case "--ssr": options.reflections = ["off": .off, "half": .half, "full": .full][next()]
+        case "--ssr": options.reflections = ["off": .off, "quarter": .quarter, "half": .half, "full": .full][next()]
         case "--compare-ssr": options.compareReflections = true
         case "--reflection-view": options.reflectionView = next()
         case "--surface-view": options.surfaceView = next()
