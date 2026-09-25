@@ -259,6 +259,11 @@ final class ModernDrivingRenderer {
     }
     /// Rain, 0 to 1: streaks around the camera and a sun dimmed to a
     /// quarter, the ambient to two thirds.
+    /// Rain on the windscreen, for the view from inside the cabin.
+    var windscreenRain: Float {
+        get { renderer.windscreenRain }
+        set { renderer.windscreenRain = newValue }
+    }
     /// Cloud coverage, 0 clear to 1 overcast.
     var overcast: Float {
         get { renderer.overcast }

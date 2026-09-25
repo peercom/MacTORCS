@@ -1444,7 +1444,7 @@ Against the plan's phases, after twenty-nine increments on the
 | 4 Materials | 26 `torcs-matgen` sets incl. metals, car detail sets under the atlas, stochastic tiling, car paint/glass/lens | AI-sourced base maps, BC7-vs-ASTC comparison |
 | 5 Track | generated road, curbs, barriers, terrain, markings, racing-line rubber, skid marks, pit garages, painted starting grid | road detail atlas beyond the markings |
 | 6 Scatter | volumetric trees with dithered detail pairs, grass cards, wind (in the shadows too), tyre walls on the corners | impostors, crowds, GPU-driven culling (about 290 draws a frame: not needed) |
-| 7 Effects | smoke, dust, spray, wet weather with puddles, rain, sun glare, heat haze, a lens for the television view | — |
+| 7 Effects | smoke, dust, spray, wet weather with puddles, rain and drops on the windscreen, sun glare, heat haze, a lens for the television view | — |
 | 8 Hardening | prebuilt shaders, pre-warmed scalers, memory budget test, sustained runs, the seven signposts, app bundle fixed, hero car subdivided in place, per-pass GPU timer, near-field aerial perspective in closed form, detail-map anisotropy per preset, occlusion at a quarter on the Air, view-frustum batch culling (driver's-eye 15.2 → 9.2 ms, under budget at native, sustained 9.3 ms native for 90 s), a pipelined and a paced measurement loop (busy GPU: 6.8 ms/frame; paced 60 Hz: 85–96% of frames on time), the resolution controller made deadline-aware and self-checking (native held, 93–96% on time) | binary archive for the first launch |
 
 The measured state of the default preset on the target machine is the
@@ -2434,6 +2434,39 @@ do — and repeats exactly.
 Cost, native, alternated: the sky pass is part of "sky and forward
 opaque", which rose by 0.0–0.4 ms with the layer drawn over a full sky;
 the frame by 0.1–0.5 ms. The layer costs per sky pixel only.
+
+## Rain on the glass
+
+The last of the weather: from the driver's seat, in the rain, the
+windscreen has drops on it. Only there — a chase camera has no glass,
+and the app sets `ForwardRenderer.windscreenRain` for the driver preset
+when it rains and for nothing else.
+
+It is a screen-space effect at the resolve, ahead of the tonemap: three
+layers of drops on grids down the frame — twelve, twenty-four and
+fifty-six cells to the height — each cell holding a drop with a fifth
+of a chance, placed anywhere in its cell by its hash, the two coarser
+layers sliding down at their own pace with their cells sliding with
+them so a drop keeps its shape as it falls. A drop is a lens: the
+normal of a sphere cap bends the scene sample toward the drop's centre
+by up to the drop's own radius, which turns the picture inside it
+upside down as a real drop does, and the glass under it is lifted a
+little where the drop scatters the light behind it. Units inside are
+fractions of the frame's height, so a drop is round at any aspect.
+
+The first version had every cell hold a drop and the centres on rows,
+and refracted by a large fraction of the screen: a lattice of blobs
+over a smeared picture. Sparseness, placement anywhere in the cell and
+an offset bounded by the radius made it rain on glass.
+
+Cost, driver's-eye at native: the resolve from 0.71 to 1.23 ms, the
+frame by half a millisecond — three hashes and a square root per pixel,
+paid only in the one view that asks. The tool takes `--windscreen R` to
+put it in any view. The test: with the drops the frame differs, the
+difference is confined to bent edges (the fixture's flat sky refracts
+into itself), the mean brightness moves under 5% — refraction moves
+light, it does not add it — the frame repeats exactly, and it is gone
+when the amount is zero.
 
 ## Licensing
 

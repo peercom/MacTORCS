@@ -18,7 +18,57 @@ struct GlareUniforms {
     /// Depth of field: x focus distance, y circle scale and z largest circle
     /// in the half-resolution target's pixels, w on (0 = off). Uses haze.z.
     float4 focus;
+    /// Rain on the windscreen: x amount (0 = off), y time, z aspect, w unused.
+    float4 rain;
 };
+
+// MARK: - Rain on the glass
+
+inline float2 dropHash(float2 cell) {
+    float2 p = float2(dot(cell, float2(127.1f, 311.7f)), dot(cell, float2(269.5f, 183.3f)));
+    return fract(sin(p) * 43758.5453f);
+}
+
+/// One layer of drops on a grid of `cells` down the frame. Each cell holds
+/// a drop with probability `amount`, placed anywhere in the cell by its
+/// hash, sliding down at its own pace; the cells slide with the drops so a
+/// drop keeps its shape as it falls. Returns the refraction offset in uv
+/// and, in z, how much of the pixel is under a drop. Units inside are
+/// fractions of the frame's height, so a drop is round on any aspect.
+inline float3 dropLayer(float2 uv, float aspect, float cells, float time, float amount, float speed) {
+    float2 p = float2(uv.x * aspect, uv.y) * cells;
+    float column = floor(p.x);
+    float phase = dropHash(float2(column, 7.0f)).x;
+    p.y += time * speed * (0.6f + phase * 0.8f);
+    float2 cell = floor(p);
+    float2 h = dropHash(cell);
+    if (h.y > amount) { return float3(0.0f); }
+    float2 h2 = dropHash(cell + 31.0f);
+    float2 centre = cell + float2(0.15f, 0.15f) + h * 0.7f;
+    float radius = 0.12f + h2.x * 0.16f;   // in cells
+    float2 d = (p - centre) / radius;
+    float dist = length(d);
+    if (dist > 1.0f) { return float3(0.0f); }
+    // A lens: a sphere cap's normal bends the view toward the drop's
+    // centre, by up to the drop's own radius.
+    float z = sqrt(max(1.0f - dist * dist, 0.0f));
+    float2 bend = -d * (1.0f - z) * 1.3f * (radius / cells);
+    float edge = smoothstep(1.0f, 0.8f, dist);
+    return float3(bend.x / aspect, bend.y, edge);
+}
+
+/// The scene seen through a wet windscreen: two layers of sliding drops and
+/// one of fine static droplets, each refracting the picture behind it. The
+/// displaced coordinate is what the resolve samples the scene at.
+inline float2 windscreen(float2 uv, constant GlareUniforms &g, thread float &coverage) {
+    float amount = g.rain.x, t = g.rain.y, aspect = g.rain.z;
+    float3 a = dropLayer(uv, aspect, 12.0f, t, amount * 0.18f, 0.25f);
+    float3 b = dropLayer(uv + float2(0.37f, 0.11f), aspect, 24.0f, t, amount * 0.22f, 0.15f);
+    float3 c = dropLayer(uv + float2(0.53f, 0.71f), aspect, 56.0f, 0.0f, amount * 0.2f, 0.0f);
+    float2 offset = a.xy + b.xy + c.xy;
+    coverage = max(max(a.z, b.z), c.z * 0.6f);
+    return uv + offset;
+}
 
 /// Heat haze: the far road shimmers. A rising two-octave value noise
 /// displaces the sample by a couple of pixels where the opaque depth is a
@@ -104,6 +154,8 @@ fragment float4 resolveFragment(ResolveVarying in [[stage_in]],
     constexpr sampler pointSampler(coord::normalized, address::clamp_to_edge, filter::nearest);
     constexpr sampler linearSampler(coord::normalized, address::clamp_to_edge, filter::linear);
     float2 sceneUV = glare.haze.x > 0.0f ? heatHaze(in.uv, depth, glare) : in.uv;
+    float underDrop = 0.0f;
+    if (glare.rain.x > 0.0f) { sceneUV = clamp(windscreen(sceneUV, glare, underDrop), 0.0f, 1.0f); }
     // The pyramid was built from exposed values (see bloomPrefilter), so the
     // scene is exposed here to match and the tonemapper is given unit scale.
     float3 radiance = scene.sample(pointSampler, sceneUV).rgb * exposureScale;
@@ -127,6 +179,9 @@ fragment float4 resolveFragment(ResolveVarying in [[stage_in]],
         // bright core and adds a halo rather than draining the core into it.
         radiance += bloom.sample(linearSampler, in.uv).rgb * bloomStrength;
     }
+    // The glass under a drop is a little dulled: the drop scatters some of
+    // the light behind it, which shows as a lift of the darks.
+    radiance += underDrop * 0.015f;
     float3 mapped = tonemapAgX(radiance, 1.0f);
     uint2 pixel = uint2(in.position.xy);
     return float4(ditherForDisplay(mapped, pixel), 1.0f);

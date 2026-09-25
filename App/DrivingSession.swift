@@ -462,6 +462,8 @@ struct DrivingMetalView: NSViewRepresentable {
                 modern.depthOfField=preset == .television ? DepthOfField(focusDistance:sceneCamera.distance):nil
                 modern.rain=session.rain ? 1:0
                 modern.overcast=session.overcast || session.rain ? 1:0
+                // Drops on the glass only where there is glass: the driver's seat.
+                modern.windscreenRain=session.rain && preset == .driver ? 1:0
                 modern.wetness=session.wet || session.rain ? 1:0
                 let sources=ModernDrivingRenderer.particleSources(pose:pose,snapshot:frame.current,speed:frame.speed,geometry:content.simulation.road.geometry,segment:frame.trackSegment,wetness:modern.wetness)
                 modern.draw(in:view,pose:pose,camera:sceneCamera,brakeCommand:frame.current.brakeCommand,lightCommand:frame.current.lightCommand,drawsDriver:preset.drawsDriver,drawsCar:preset.drawsCar,particleSources:sources,skidSources:ModernDrivingRenderer.skidSources(pose:pose,snapshot:frame.current,speed:frame.speed),deltaTime:1/Float(max(view.preferredFramesPerSecond,1)))

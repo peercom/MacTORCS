@@ -75,6 +75,8 @@ struct Options {
     var rain: Float = 0
     /// Cloud coverage, 0 clear to 1 overcast; dims the sun as the app does.
     var overcast: Float = 0
+    /// Rain on the glass, 0 to 1, in whatever view is rendered.
+    var windscreen: Float = 0
     var shadowRefresh: Int? = nil
     /// Per-pass GPU timing over the frames, from the GPU's timestamp counter.
     var passes = false
@@ -202,6 +204,7 @@ func parse() -> Options {
         case "--compare-haze": options.compareHaze = true
         case "--rain": options.rain = Float(next()) ?? 1
         case "--overcast": options.overcast = Float(next()) ?? 1
+        case "--windscreen": options.windscreen = Float(next()) ?? 1
         case "--shadow-refresh": options.shadowRefresh = Int(next())
         case "--passes": options.passes = true
         case "--pace": options.paceHertz = Double(next()) ?? 60
@@ -434,6 +437,7 @@ do {
     var passSamples: [String: [Double]] = [:]
     renderer.rain = options.rain
     renderer.overcast = options.overcast
+    renderer.windscreenRain = options.windscreen
     if options.rain > 0 { renderer.wetness = max(renderer.wetness, options.rain) }
     if !gridBoxes.isEmpty { print("grid: \(gridBoxes.count) boxes painted") }
     if let radius = options.aoRadius { renderer.occlusion.ambientRadius = radius }

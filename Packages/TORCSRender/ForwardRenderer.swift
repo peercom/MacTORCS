@@ -266,6 +266,10 @@ public final class ForwardRenderer {
     /// too coarse to read as shadows anyway, and aerial perspective has taken over.
     public var shadowDistance: Float = 400
     let sampler: MTLSamplerState
+    /// Rain on the windscreen, 0 to 1: drops refracting the picture at the
+    /// resolve. The presentation sets it for the view from inside the cabin
+    /// when it rains, and nothing else; a chase camera has no glass.
+    public var windscreenRain: Float = 0
     /// Cloud coverage, 0 clear to 1 overcast: drawn as a layer in the sky
     /// pass and hiding the sun disc and its glare. The lighting is the
     /// caller's: see `SunLighting.overcast(_:)`.
@@ -1272,7 +1276,12 @@ public final class ForwardRenderer {
             // Sun glare: only when the setting is on, the sun is in front of
             // the camera and within a frame's width of the view. Occlusion is
             // decided in the shader from the depth around the sun.
-            var glare = GlareUniforms(sun: .zero, colour: .zero, haze: .zero, focus: .zero)
+            var glare = GlareUniforms(sun: .zero, colour: .zero, haze: .zero, focus: .zero, rain: .zero)
+            // Rain on the glass: only a view from inside the cabin asks for it.
+            if windscreenRain > 0 {
+                glare.rain = SIMD4(min(windscreenRain, 1), Float(animationTime),
+                                   Float(destination.width) / Float(max(destination.height, 1)), 0)
+            }
             // Heat haze grows with the sun's height: nothing below 17°, full
             // above 53°. Needs the depth, like the glare and the lens blur.
             let wantsHaze = settings.heatHaze && settings.heatHazeStrength > 0
@@ -1315,4 +1324,5 @@ struct GlareUniforms {
     var colour: SIMD4<Float>
     var haze: SIMD4<Float>
     var focus: SIMD4<Float>
+    var rain: SIMD4<Float>
 }
