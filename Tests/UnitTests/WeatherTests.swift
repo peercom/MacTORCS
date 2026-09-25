@@ -49,6 +49,8 @@ final class WeatherTests: XCTestCase {
     func testWetGroundDarkensAndPuddlesWhereFlagged() throws {
         _ = try device()
         var settings = RenderSettings()
+        // Fixed exposure: this test measures brightness, not the meter.
+        settings.autoExposure = false
         settings.bloom = false; settings.motionBlur = false; settings.screenSpaceReflections = .off
         let renderer = try ForwardRenderer(settings: settings)
         let dry = try render(renderer, ground(weather: true), wetness: 0)

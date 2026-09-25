@@ -58,6 +58,8 @@ final class CarMaterialsTests: XCTestCase {
     func testBrakeCommandLightsTheRearLenses() throws {
         guard MTLCreateSystemDefaultDevice() != nil else { throw XCTSkip("Metal device unavailable") }
         var settings = RenderSettings()
+        // Fixed exposure: a lit lens must not move the meter and darken the rest.
+        settings.autoExposure = false
         settings.bloom = false
         let renderer = try ForwardRenderer(settings: settings)
         let scene = try SceneResources(device: renderer.device, scene: RenderScene(fixture(), car: true))
@@ -82,6 +84,8 @@ final class CarMaterialsTests: XCTestCase {
     func testCarMaterialsChangeTheRenderedFrame() throws {
         guard MTLCreateSystemDefaultDevice() != nil else { throw XCTSkip("Metal device unavailable") }
         var settings = RenderSettings()
+        // Fixed exposure: a lit lens must not move the meter and darken the rest.
+        settings.autoExposure = false
         settings.bloom = false
         let renderer = try ForwardRenderer(settings: settings)
         let scene = try fixture()

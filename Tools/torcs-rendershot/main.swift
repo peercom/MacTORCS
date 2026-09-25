@@ -108,6 +108,8 @@ struct Options {
     var archiveStrict = false
     /// Upload the generated material maps as RGBA8 instead of block-compressed, to measure.
     var noCompression = false
+    var autoExposure = true
+    var exposureCompensation: Float = 0
     /// Report the device's allocated memory after the frames.
     var memory = false
     /// Frames of tyre smoke to emit at the rear wheels before rendering.
@@ -230,6 +232,8 @@ func parse() -> Options {
         case "--archive": options.archivePath = next()
         case "--archive-strict": options.archiveStrict = true
         case "--no-compression": options.noCompression = true
+        case "--no-auto-exposure": options.autoExposure = false
+        case "--exposure-compensation": options.exposureCompensation = Float(next()) ?? 0
         case "--memory": options.memory = true
         case "--smoke": options.smokeFrames = Int(next()) ?? 45
         case "--orbit-speed": options.orbitSpeed = Float(next()) ?? 0
@@ -413,6 +417,8 @@ do {
     if let haze = options.heatHaze { settings.heatHaze = haze }
     if let refresh = options.shadowRefresh { settings.staticShadowRefreshInterval = max(1, refresh) }
     if let anisotropy = options.detailAnisotropy { settings.detailAnisotropy = anisotropy }
+    settings.autoExposure = options.autoExposure
+    settings.exposureCompensation = options.exposureCompensation
     if let temporal = options.reflectionTemporal { settings.reflectionTemporal = temporal }
     if let cascades = options.cascades { settings.shadowCascades = max(0, min(4, cascades)) }
     let startupClock = DispatchTime.now()
@@ -954,6 +960,7 @@ do {
       batches       \(renderer.lastDrawCount)
       triangles     \(renderer.lastTriangleCount)
       culled        \(renderer.lastCulledCount) batches outside the view
+      exposure      EV100 \(String(format: "%.2f", renderer.lastExposureEV)) (\(settings.autoExposure ? "metered" : "manual"))
       geometry      \(String(format: "%.2f", megabytes)) MiB
       scalerBuilds  \(renderer.upscalerBuildCount)\(renderer.lastUpscalerError.map { " error: " + $0 } ?? "")
       bloom         \(settings.bloom ? "on, strength \(settings.bloomStrength), threshold \(settings.bloomThreshold) exposed, \(renderer.bloom.levelCount) levels" : "off")

@@ -15,11 +15,12 @@
 #define TORCS_BLOOM_METAL
 
 #include <metal_stdlib>
+#include "Exposure.metal"
 #include "Forward.metal"
 using namespace metal;
 
 struct BloomUniforms {
-    /// xy source texel size, z threshold in exposed units, w exposure scale.
+    /// xy source texel size, z threshold in exposed units, w unused (the exposure comes from its state buffer).
     float4 parameters;
 };
 
@@ -62,7 +63,8 @@ inline float3 thresholded(float3 colour, float threshold) {
 
 fragment float4 bloomPrefilter(FullscreenVarying in [[stage_in]],
                                texture2d<float> source [[texture(0)]],
-                               constant BloomUniforms &bloom [[buffer(0)]]) {
+                               constant BloomUniforms &bloom [[buffer(0)]],
+                               constant ExposureState &exposure [[buffer(1)]]) {
     constexpr sampler linearSampler(coord::normalized, address::clamp_to_edge, filter::linear);
     // Four-to-one, not two-to-one: the first level is where the cost is, and
     // at native resolution a half-size level costs more than every other pass
@@ -79,7 +81,7 @@ fragment float4 bloomPrefilter(FullscreenVarying in [[stage_in]],
     // saturates, and exposure is what decides where that is; a fixed radiance
     // threshold would bloom nothing at a bright exposure and everything at a
     // dim one.
-    colour *= 0.25f * bloom.parameters.w;
+    colour *= 0.25f * exposure.scale;
     // Clamped before thresholding: one extremely bright texel, such as the sun
     // disc, would otherwise dominate the whole pyramid and produce a flat wash.
     colour = min(colour, float3(64.0f));

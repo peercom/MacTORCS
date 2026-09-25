@@ -98,6 +98,12 @@ public struct RenderSettings: Sendable, Equatable {
     public var heatHaze: Bool
     public var heatHazeStrength: Float
 
+    /// Meter the frame and adapt the exposure to it (plan section 5). Off,
+    /// the lighting's `exposureEV100` is the exposure, as before.
+    public var autoExposure: Bool
+    /// EV added to the metered exposure: taste, not measurement.
+    public var exposureCompensation: Float
+
     /// Depth of field for the television and photo views, when the
     /// presentation asks for it with `ForwardRenderer.depthOfField`. The
     /// setting allows it; the view decides. Never applied to a driver's view.
@@ -161,6 +167,8 @@ public struct RenderSettings: Sendable, Equatable {
             heatHazeStrength = 1
             detailAnisotropy = 2
             depthOfField = true
+            autoExposure = true
+            exposureCompensation = 0
             depthPrepass = false
             mirrorScale = 0.5
             textureMemoryBudgetBytes = 1_500_000_000
@@ -189,6 +197,8 @@ public struct RenderSettings: Sendable, Equatable {
             heatHazeStrength = 1
             detailAnisotropy = 4
             depthOfField = true
+            autoExposure = true
+            exposureCompensation = 0
             depthPrepass = false
             mirrorScale = 0.67
             textureMemoryBudgetBytes = 3_000_000_000
@@ -217,6 +227,8 @@ public struct RenderSettings: Sendable, Equatable {
             heatHazeStrength = 1
             detailAnisotropy = 8
             depthOfField = true
+            autoExposure = true
+            exposureCompensation = 0
             depthPrepass = false
             mirrorScale = 1
             textureMemoryBudgetBytes = 6_000_000_000

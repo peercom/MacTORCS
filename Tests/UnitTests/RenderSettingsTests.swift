@@ -60,6 +60,13 @@ final class RenderSettingsTests: XCTestCase {
     /// The normal and roughness maps filter at a lower anisotropy than the
     /// albedo on the cheaper presets: measured a millisecond off the forward
     /// pass at 2 with no visible change. The high preset keeps the full 8.
+    func testEveryPresetMetersItsExposure() {
+        for preset in RenderSettings.Preset.allCases {
+            XCTAssertTrue(RenderSettings(preset: preset).autoExposure, "\(preset)")
+            XCTAssertEqual(RenderSettings(preset: preset).exposureCompensation, 0)
+        }
+    }
+
     func testDetailAnisotropyRisesWithThePreset() {
         let air = RenderSettings(preset: .m2Air), balanced = RenderSettings(preset: .balanced)
         let high = RenderSettings(preset: .high)

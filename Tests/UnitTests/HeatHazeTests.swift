@@ -30,6 +30,7 @@ final class HeatHazeTests: XCTestCase {
         let scene = RenderScene(batches: batches, minimum: SIMD3(-8, 0, 0), maximum: SIMD3(8, 480, 0))
         func settings(haze: Bool) -> RenderSettings {
             var s = RenderSettings()
+            s.autoExposure = false   // fixed exposure: the shimmer is measured, not the meter
             s.bloom = false; s.motionBlur = false; s.screenSpaceReflections = .off; s.sunGlare = false
             s.ambientOcclusion = .off; s.contactShadows = false; s.heatHaze = haze
             return s

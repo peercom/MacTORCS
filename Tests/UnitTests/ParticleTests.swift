@@ -64,6 +64,8 @@ final class ParticleTests: XCTestCase {
     func makeRenderer(_ configure: (inout RenderSettings) -> Void = { _ in }) throws -> ForwardRenderer {
         _ = try device()
         var settings = RenderSettings()
+        // Fixed exposure: this test measures brightness, not the meter.
+        settings.autoExposure = false
         settings.bloom = false
         settings.screenSpaceReflections = .off
         settings.motionBlur = false

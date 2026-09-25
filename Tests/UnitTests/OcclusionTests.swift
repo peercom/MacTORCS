@@ -15,6 +15,8 @@ final class OcclusionTests: XCTestCase {
     func makeRenderer(_ configure: (inout RenderSettings) -> Void = { _ in }) throws -> ForwardRenderer {
         guard MTLCreateSystemDefaultDevice() != nil else { throw XCTSkip("Metal device unavailable") }
         var settings = RenderSettings()
+        // Fixed exposure: this test measures brightness, not the meter.
+        settings.autoExposure = false
         settings.bloom = false
         // Every renderer here runs the prepass, so an "off" baseline differs
         // from "on" only by the occlusion itself and not by the depth test —

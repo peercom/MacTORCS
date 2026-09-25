@@ -1438,7 +1438,7 @@ Against the plan's phases, after twenty-nine increments on the
 | Phase | Delivered | Deferred |
 |---|---|---|
 | 0 Foundations | TORCSRender, linear HDR, packed 32-byte vertex with tangents, generated mip chains, BC1/BC3/BC4/BC5 encoders in the asset package (no BC7; uploaded RGBA8 until R54) | — |
-| 1 Light | Hillaire atmosphere, physical sun and exposure, AgX, four-cascade CSM + contact shadows, SH + prefiltered sky IBL, a drifting cloud layer and the overcast day | clustered punctual lights (no night to light) |
+| 1 Light | Hillaire atmosphere, physical sun, histogram auto-exposure with two adaptation rates, AgX, four-cascade CSM + contact shadows, SH + prefiltered sky IBL, a drifting cloud layer and the overcast day | clustered punctual lights (no night to light) |
 | 2 Upscaling | jitter, motion vectors, MetalFX temporal (measured a net loss) and spatial scalers, dynamic resolution, **classic path deleted** | reactive mask (spatial path needs none) |
 | 3 Screen space | GTAO, SSR with a depth-aware filter and temporal reuse, motion blur, bloom | local probe |
 | 4 Materials | 26 `torcs-matgen` sets incl. metals, car detail sets under the atlas, stochastic tiling, car paint/glass/lens, maps and original art uploaded BC1/BC3/BC5 with a sidecar encode (full session 372 → 214 MB), sets derived from any colour image with a provenance manifest | the image model itself (the derivation, manifest and verifier are in); BC7 and ASTC have no encoder here |
@@ -2735,6 +2735,55 @@ road renders nearly black because the exposure is fixed — the plan's
 histogram auto-exposure was never built, the rain and overcast code
 having opened up by hand. That is the next increment, and this one is
 what made it visible.
+
+## The exposure, metered
+
+Section 5 of the plan asked for "histogram-based auto-exposure with
+separate adaptation rates (fast down, slow up)", and the Phase 1 row
+said exposure was delivered. What was delivered was EV100 as a number
+the lighting carried, set to zero, which suited Aalborg's high sun and
+was opened up by hand for rain and overcast. The first imported track
+put its sun at seventeen degrees and rendered black.
+
+`ExposureMeter` is the meter. One threadgroup samples the HDR frame at
+render resolution on a 64×64 grid, weighted toward the centre, into a
+64-bin histogram of log₂ luminance over 24 stops, and takes the
+weighted mean of the bins between the 25th and 95th percentiles of
+that weight — so the sun disc does not close the exposure down and a
+black void does not open it up. The scene's key gives a target EV100
+(`log₂(L·100/12.5)`), and an adapted EV moves toward it with a time
+constant of 0.4 s when the scene brightens and 1.5 s when it darkens,
+as an eye does. The state lives in a buffer on the GPU; the resolve,
+the bloom prefilter and the glare read the exposure from it, so no
+frame waits for a readback. A cold verification render snaps to its
+target and repeats exactly; `resetHistory` snaps too, for a camera
+cut. With `RenderSettings.autoExposure` off the same buffer carries the
+lighting's EV100 as before, and `exposureCompensation` adds taste on
+top of the meter. The tool takes `--no-auto-exposure` and
+`--exposure-compensation`, and prints the metered EV.
+
+The meter's readings on the generated Aalborg scene, the sun at 0.25,
+4 and 64 of its unit: EV100 −4.83, −1.01 and +2.97 — four stops per
+sixteenfold, as it should be. The picture's mean at 4 and at 64: 69.0
+and 69.3 metered, against 43.8 and 164.6 manual. The tests pin the
+opening up of a dim scene and the closing down of a bright one, the
+cold render's snap and repeat, manual mode carrying its EV exactly,
+and the adaptation's two speeds as fractions of the gap covered in half
+a second (measured 0.28 opening against 0.70 closing, each within a
+tenth of what the time constants predict).
+
+Seven earlier tests measured absolute brightness — dusk darker than
+noon, wet ground darker than dry, occlusion's darkening, a lit lens not
+darkening its surroundings, the haze's shimmer count, a hidden puff's
+exact bytes — and under a meter that adapts to what it sees they cannot;
+they run at a fixed exposure now, as they should have said they did.
+
+Alpine-1, imported in the previous section, now renders as a track in
+low sun rather than a black one; Aalborg's exposure moved a fraction of
+a stop and reads the same. One thing the alpine render shows that is
+not exposure: its road surface resolves by name to a mottled material,
+the surface-name mapping having been made for Aalborg's textures. That
+is the importer's next step.
 
 ## Licensing
 

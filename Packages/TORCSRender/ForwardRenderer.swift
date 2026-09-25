@@ -286,6 +286,12 @@ public final class ForwardRenderer {
     /// pass and hiding the sun disc and its glare. The lighting is the
     /// caller's: see `SunLighting.overcast(_:)`.
     public var overcast: Float = 0
+    /// The auto-exposure meter; its state buffer is what every pass reads
+    /// the exposure from, automatic or manual.
+    public let exposureMeter: ExposureMeter
+    /// The exposure the last completed offscreen render used, EV100.
+    public private(set) var lastExposureEV: Float = 0
+    private var exposureNeedsReset = true
     /// The lens for a television or photo view; nil for every driver's view
     /// and in the race. Applied only when `settings.depthOfField` allows.
     public var depthOfField: DepthOfField?
@@ -421,6 +427,7 @@ public final class ForwardRenderer {
         atmosphere = try AtmosphereResources(device: device, library: library, archive: archive)
         bloom = try BloomRenderer(device: device, library: library, archive: archive)
         depthOfFieldRenderer = try DepthOfFieldRenderer(device: device, library: library, archive: archive)
+        exposureMeter = try ExposureMeter(device: device, library: library, archive: archive)
         occlusion = try OcclusionRenderer(device: device, library: library, archive: archive)
         reflections = try ReflectionRenderer(device: device, library: library, archive: archive)
         motionBlur = try MotionBlurRenderer(device: device, library: library, archive: archive)
@@ -635,6 +642,7 @@ public final class ForwardRenderer {
         if let error = commands.error { throw RenderError.unavailable("GPU error: \(error)") }
         lastGPUTime = commands.gpuEndTime - commands.gpuStartTime
         lastPassTimes = passTimer?.resolve() ?? []
+        lastExposureEV = exposureMeter.lastState.adaptedEV
 
         var pixels = [UInt8](repeating: 0, count: width * height * 4)
         pixels.withUnsafeMutableBytes { raw in
@@ -765,6 +773,14 @@ public final class ForwardRenderer {
             motionBlur.discard()
         }
 
+        // Meter the frame before anything reads the exposure: a cold render
+        // snaps to what it meters, an interactive one adapts.
+        exposureMeter.encode(into: commands, source: targets.colour, deltaTime: presentedFrameInterval,
+                             reset: resetsHistoryPerRender || exposureNeedsReset,
+                             automatic: settings.autoExposure, manualEV: lighting.exposureEV100,
+                             compensation: settings.exposureCompensation, timer: passTimer)
+        exposureNeedsReset = false
+
         // The lens blur, on the image the tonemapper will see, before the
         // bloom so the glow is of the blurred picture.
         if settings.depthOfField, let lens = depthOfField {
@@ -780,7 +796,7 @@ public final class ForwardRenderer {
         // glow it then has to track temporally.
         if settings.bloom && settings.bloomStrength > 0 {
             bloom.encode(into: commands, source: tonemapSource(targets),
-                         threshold: settings.bloomThreshold, exposureScale: lighting.exposureScale, timer: passTimer)
+                         threshold: settings.bloomThreshold, exposure: exposureMeter.state, timer: passTimer)
         } else {
             bloom.discard()
         }
@@ -795,6 +811,7 @@ public final class ForwardRenderer {
     /// motion: for a camera cut, or a diagnostic that renders unrelated
     /// views in sequence and must not blur one against the last.
     public func resetHistory() {
+        exposureNeedsReset = true
         previousViewProjection = nil
         previousInstanceTransforms = [:]
         upscaler?.needsReset = true
@@ -1237,7 +1254,7 @@ public final class ForwardRenderer {
                                     instances: mirror.instances, camera: mirror.camera, lighting: lighting,
                                     aspect: Float(mirror.width) / Float(max(mirror.height, 1)))
         mirror.renderer.encodeResolve(into: commands, source: mirror.renderer.tonemapSource(targets),
-                                      destination: targets.display, lighting: lighting)
+                                      destination: targets.display, lighting: lighting, exposure: exposureMeter.state)
         return targets.display
     }
 
@@ -1273,7 +1290,7 @@ public final class ForwardRenderer {
     /// Tonemaps HDR scene colour into a display-format target.
     public func encodeResolve(into commands: MTLCommandBuffer, source: MTLTexture,
                               destination: MTLTexture, lighting: SunLighting,
-                              depthOfField blurred: MTLTexture? = nil) {
+                              depthOfField blurred: MTLTexture? = nil, exposure: MTLBuffer? = nil) {
         let resolvePass = MTLRenderPassDescriptor()
         resolvePass.colorAttachments[0].texture = destination
         resolvePass.colorAttachments[0].loadAction = .dontCare
@@ -1283,8 +1300,9 @@ public final class ForwardRenderer {
             encoder.label = "Tonemap resolve"
             encoder.setRenderPipelineState(resolve)
             encoder.setFragmentTexture(source, index: 0)
-            var exposure = lighting.exposureScale
-            encoder.setFragmentBytes(&exposure, length: MemoryLayout<Float>.stride, index: 0)
+            // The metered state, or a caller's — the mirror takes the main
+            // view's so both halves of the picture agree.
+            encoder.setFragmentBuffer(exposure ?? exposureMeter.state, offset: 0, index: 0)
             // Strength stays zero unless a pyramid was actually built, so a
             // bloom target that failed to allocate resolves to a clean frame
             // instead of sampling an unwritten texture.
@@ -1329,7 +1347,7 @@ public final class ForwardRenderer {
                 // Under cloud the disc is hidden and its glare goes with it.
                 glare.sun = SIMD4(sun.x, sun.y, Float(destination.width) / Float(max(destination.height, 1)),
                                   settings.sunGlareStrength * (1 - min(max(overcast, 0), 1)))
-                glare.colour = SIMD4(lighting.illuminance * lighting.exposureScale, 0)
+                glare.colour = SIMD4(lighting.illuminance, 0)
                 encoder.setVertexTexture(depth, index: 2)
             } else {
                 encoder.setVertexTexture(source, index: 2)

@@ -45,6 +45,8 @@ final class ForwardRendererTests: XCTestCase {
 
     func testSunAngleChangesTheImage() throws {
         let renderer = try makeRenderer()
+        // Dusk is darker than noon only at a fixed exposure; the meter would open up.
+        renderer.settings.autoExposure = false
         let scene = try SceneResources(device: renderer.device, scene: fixtureScene("155-DTM/155-DTM.acc", car: true))
         let camera = RenderCamera(eye: SIMD3(6, -5, 2), target: SIMD3(0, 0, 0.5))
 

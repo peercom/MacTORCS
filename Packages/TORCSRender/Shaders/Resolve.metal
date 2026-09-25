@@ -7,11 +7,12 @@
 #include "Post.metal"
 #include "Bloom.metal"
 #include "DepthOfField.metal"
+#include "Exposure.metal"
 using namespace metal;
 
 struct GlareUniforms {
     float4 sun;         // xy sun position in uv space, z aspect (width / height), w strength (0 = off)
-    float4 colour;      // rgb exposed sun colour, w unused
+    float4 colour;      // rgb sun colour before exposure, w unused
     /// Heat haze: x strength (0 = off), y animation time, z projection near,
     /// w one pixel in uv (1 / height).
     float4 haze;
@@ -149,11 +150,12 @@ fragment float4 resolveFragment(ResolveVarying in [[stage_in]],
                                 texture2d<float> bloom [[texture(1)]],
                                 texture2d<float> depth [[texture(2)]],
                                 texture2d<float> blurred [[texture(3)]],
-                                constant float &exposureScale [[buffer(0)]],
+                                constant ExposureState &exposure [[buffer(0)]],
                                 constant float &bloomStrength [[buffer(1)]],
                                 constant GlareUniforms &glare [[buffer(2)]]) {
     constexpr sampler pointSampler(coord::normalized, address::clamp_to_edge, filter::nearest);
     constexpr sampler linearSampler(coord::normalized, address::clamp_to_edge, filter::linear);
+    float exposureScale = exposure.scale;
     float2 sceneUV = glare.haze.x > 0.0f ? heatHaze(in.uv, depth, glare) : in.uv;
     float underDrop = 0.0f;
     if (glare.rain.x > 0.0f) {
@@ -177,7 +179,7 @@ fragment float4 resolveFragment(ResolveVarying in [[stage_in]],
         radiance = mix(radiance, blurred.sample(linearSampler, sceneUV).rgb * exposureScale, blend);
     }
     if (glare.sun.w > 0.0f && in.sunVisibility > 0.0f) {
-        radiance += sunGlare(in.uv, glare, in.sunVisibility);
+        radiance += sunGlare(in.uv, glare, in.sunVisibility) * exposureScale;
     }
     if (bloomStrength > 0.0f) {
         // Added rather than mixed. Mixing with a *thresholded* pyramid would

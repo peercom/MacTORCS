@@ -100,7 +100,7 @@ public final class BloomRenderer {
     /// rather than compositing a meaningless single level.
     @discardableResult
     public func encode(into commands: MTLCommandBuffer, source: MTLTexture,
-                       threshold: Float, exposureScale: Float, timer: PassTimer? = nil) -> MTLTexture? {
+                       threshold: Float, exposure: MTLBuffer, timer: PassTimer? = nil) -> MTLTexture? {
         if chain?.matches(width: source.width, height: source.height) != true {
             chain = try? Chain(device: device, width: source.width, height: source.height)
         }
@@ -120,11 +120,12 @@ public final class BloomRenderer {
             encoder.label = label
             encoder.setRenderPipelineState(state)
             encoder.setFragmentTexture(input, index: 0)
+            encoder.setFragmentBuffer(exposure, offset: 0, index: 1)
             // Texel size of the *input*: every filter here samples its source,
             // so offsets are in source texels, not destination texels.
             var uniforms = BloomUniforms(parameters: SIMD4<Float>(1 / Float(input.width),
                                                                  1 / Float(input.height),
-                                                                 threshold, exposureScale))
+                                                                 threshold, 0))
             encoder.setFragmentBytes(&uniforms, length: MemoryLayout<BloomUniforms>.stride, index: 0)
             encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
             encoder.endEncoding()
