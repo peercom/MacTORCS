@@ -53,7 +53,33 @@ public struct DynamicResolutionController: Sendable, Equatable {
     /// Frames ignored before the controller may act at all.
     public private(set) var warmupRemaining: Int
 
-    public init(targetGPUTime: Double = 1.0 / 60.0 * 0.66,
+    /// The average GPU time before the last step down, kept until the new
+    /// level has settled; a step that did not lower the average by
+    /// `usefulStepFraction` bought nothing and is reverted.
+    private var averageBeforeStep: Double?
+    /// Frames the new level is given to settle before it is judged.
+    public static let judgementFrames = 30
+    private var judgementRemaining = 0
+    /// The fraction a step down must cut the average by to be kept. A ladder
+    /// step removes 15–30% of the pixels; a GPU whose clock falls with its
+    /// load can return the same time for fewer of them, and then the step
+    /// gave up sharpness for nothing.
+    public static let usefulStepFraction = 0.06
+    /// Frames during which no further step down is attempted after a step
+    /// was reverted: the cost is not in the pixels, so measuring again
+    /// sooner would only repeat the experiment.
+    public static let holdFrames = 900
+    private var holdRemaining = 0
+    /// Steps reverted because they bought nothing, for diagnostics.
+    public private(set) var revertedSteps = 0
+
+    /// The GPU time a controller targets for a presentation interval: most of
+    /// it. The remainder is the CPU's share of the frame ahead of the commit.
+    /// Two thirds was the earlier figure, and it read a frame that arrived on
+    /// time as over budget once the GPU's clock had settled to its load.
+    public static func target(forInterval interval: Double) -> Double { interval * 0.9 }
+
+    public init(targetGPUTime: Double = DynamicResolutionController.target(forInterval: 1.0 / 60.0),
                 minimumScale: Float = 0.4, maximumScale: Float = 1.0,
                 initialScale: Float = 0.5,
                 framesBeforeDecrease: Int = 30, framesBeforeIncrease: Int = 180,
@@ -80,6 +106,7 @@ public struct DynamicResolutionController: Sendable, Equatable {
         guard gpuTime.isFinite, gpuTime > 0 else { return false }
         if warmupRemaining > 0 { warmupRemaining -= 1; return false }
         if cooldown > 0 { cooldown -= 1; return false }
+        if holdRemaining > 0 { holdRemaining -= 1 }
         // Weighted toward history; 0.2 settles in roughly 15 frames. Each
         // sample is clamped to twice the running average first: a clock
         // transition on a throttling chip delivers bursts of frames at double
@@ -88,6 +115,26 @@ public struct DynamicResolutionController: Sendable, Equatable {
         let sample = averageGPUTime.map { min(gpuTime, $0 * 2) } ?? gpuTime
         averageGPUTime = averageGPUTime.map { $0 * 0.8 + sample * 0.2 } ?? gpuTime
         guard let average = averageGPUTime else { return false }
+
+        // Judging the last step down: once the new level has settled, a step
+        // that did not lower the average is undone and the level held.
+        if let before = averageBeforeStep {
+            judgementRemaining -= 1
+            if judgementRemaining <= 0 {
+                averageBeforeStep = nil
+                if average > before * (1 - Self.usefulStepFraction), index < maximumIndex {
+                    index += 1
+                    scale = Self.ladder[index]
+                    revertedSteps += 1
+                    holdRemaining = Self.holdFrames
+                    averageGPUTime = nil
+                    cooldown = Self.cooldownFrames
+                    overBudgetRun = 0
+                    underBudgetRun = 0
+                    return true
+                }
+            }
+        }
 
         if average > targetGPUTime {
             overBudgetRun += 1
@@ -102,9 +149,11 @@ public struct DynamicResolutionController: Sendable, Equatable {
         }
 
         let previous = index
-        if overBudgetRun >= framesBeforeDecrease, index > minimumIndex {
+        if overBudgetRun >= framesBeforeDecrease, index > minimumIndex, holdRemaining == 0 {
             index -= 1
             overBudgetRun = 0
+            averageBeforeStep = average
+            judgementRemaining = Self.judgementFrames
         } else if underBudgetRun >= framesBeforeIncrease, index < maximumIndex {
             index += 1
             underBudgetRun = 0
@@ -125,5 +174,7 @@ public struct DynamicResolutionController: Sendable, Equatable {
         underBudgetRun = 0
         averageGPUTime = nil
         cooldown = 0
+        averageBeforeStep = nil
+        holdRemaining = 0
     }
 }

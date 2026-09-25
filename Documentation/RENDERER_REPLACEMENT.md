@@ -1445,7 +1445,7 @@ Against the plan's phases, after twenty-nine increments on the
 | 5 Track | generated road, curbs, barriers, terrain, markings, racing-line rubber, skid marks, pit garages, painted starting grid | road detail atlas beyond the markings |
 | 6 Scatter | volumetric trees with dithered detail pairs, grass cards, wind (in the shadows too), tyre walls on the corners | impostors, crowds, GPU-driven culling (about 290 draws a frame: not needed) |
 | 7 Effects | smoke, dust, spray, wet weather with puddles, rain, sun glare, heat haze, a lens for the television view | — |
-| 8 Hardening | prebuilt shaders, pre-warmed scalers, memory budget test, sustained runs, the seven signposts, app bundle fixed, hero car subdivided in place, per-pass GPU timer, near-field aerial perspective in closed form, detail-map anisotropy per preset, occlusion at a quarter on the Air, view-frustum batch culling (driver's-eye 15.2 → 9.2 ms, under budget at native, sustained 9.3 ms native for 90 s), a pipelined and a paced measurement loop (busy GPU: 6.8 ms/frame; paced 60 Hz: 85–96% of frames on time) | binary archive for the first launch; the resolution controller driven by the deadline rather than GPU spans |
+| 8 Hardening | prebuilt shaders, pre-warmed scalers, memory budget test, sustained runs, the seven signposts, app bundle fixed, hero car subdivided in place, per-pass GPU timer, near-field aerial perspective in closed form, detail-map anisotropy per preset, occlusion at a quarter on the Air, view-frustum batch culling (driver's-eye 15.2 → 9.2 ms, under budget at native, sustained 9.3 ms native for 90 s), a pipelined and a paced measurement loop (busy GPU: 6.8 ms/frame; paced 60 Hz: 85–96% of frames on time), the resolution controller made deadline-aware and self-checking (native held, 93–96% on time) | binary archive for the first launch |
 
 The measured state of the default preset on the target machine is the
 sustained table above: 8.7 ms at native with the whole session drawn, no
@@ -2334,6 +2334,58 @@ would not have opened anything had it stayed open: it should step down
 only for frames the GPU itself made late, and step back if a step bought
 nothing. That is the next increment. What this one delivers is the
 instrument that can tell.
+
+## The valve, opened
+
+The resolution controller had two faults the paced loop exposed. Its
+target was two thirds of the interval — 11 ms at 60 Hz — so a frame
+whose GPU span was 10.5 ms, on time by two milliseconds, sat at the
+edge of "over budget" and any settling of the GPU's clock pushed it
+over. And it assumed that fewer pixels always meant less time, which a
+GPU that lowers its clock with its load does not honour: it stepped
+down, measured the same span at fewer pixels, and stepped down again.
+
+Two changes to `DynamicResolutionController`, neither large:
+
+- The target is most of the interval — `target(forInterval:)` gives
+  nine tenths, 15 ms at 60 Hz — the remainder being the CPU's share
+  ahead of the commit. A span inside it is a frame on time.
+- A step down is an experiment. The average before it is kept; after
+  `judgementFrames` at the new level, a step that did not cut the
+  average by `usefulStepFraction` is undone, and no further step is
+  attempted for `holdFrames` (fifteen seconds at 60 Hz): the cost was
+  not in the pixels, and measuring again sooner would only repeat the
+  experiment. A step that did cut it is kept, as before.
+
+The controller's older tests modelled the cost as a constant, which is
+now precisely the case that gets reverted; they model it as
+proportional to the scale where they mean "the pixels are the cost",
+and three new tests pin the target, the reversion, and the keeping.
+
+Paced at 60 Hz with dynamic resolution, alone on the machine:
+
+| view | before: scale, on time | after: scale, on time |
+|---|---|---|
+| driver's-eye | 0.60 → 0.55, 80–82% | 1.00 held, 93–96% |
+| circuit orbit | 0.75 → 0.60, 88–96% | 1.00 held, 92–95% |
+
+Native throughout, and more frames on time than the fixed-native run of
+the previous section (85–89%), the remaining late frames being nine in
+ten "waiting" ones as before. The synchronous protocol, run for
+continuity, held 6.6 ms at native for its two minutes with the
+controller idle — where the morning's run of the same loop had read
+9.3 ms and stepped to 0.75. The difference is the machine, not the
+renderer: a browser that had held a third of a core through the
+morning's runs was gone by evening (the window server's share was not
+smaller — 47% of a core against 38%), and the late-but-fitting frames
+had fallen with it. The document's earlier
+frame totals were taken in the busier state, which is one more reason
+to read them against each other and not as absolutes.
+
+The valve still closes for the case it was built for. Under real
+throttling the span grows with the pixels, the step cuts it, and the
+step is kept; the thermal-ramp test is unchanged. What it no longer does
+is give up sharpness to a clock.
 
 ## Licensing
 

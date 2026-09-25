@@ -107,10 +107,57 @@ final class DynamicResolutionControllerTests: XCTestCase {
         for _ in 0 ..< frames { controller.record(gpuTime: gpuTime) }
     }
 
+    /// A cost that is in the pixels: what the frame would take at scale 1,
+    /// scaled by the controller's current choice. This is the case a step
+    /// down is kept for; a cost that ignores the scale is reverted.
+    func drivePixels(_ controller: inout DynamicResolutionController, gpuTimeAtNative: Double, frames: Int) {
+        for _ in 0 ..< frames { controller.record(gpuTime: gpuTimeAtNative * Double(controller.scale)) }
+    }
+
+    /// A frame that fits the interval is on time; the target is most of the
+    /// interval, not two thirds of it, which read a 10.5 ms frame at 60 Hz as
+    /// over budget once the GPU's clock had settled to the load.
+    func testDefaultTargetIsMostOfTheSixtyHertzInterval() {
+        var controller = DynamicResolutionController(initialScale: 1.0)
+        XCTAssertEqual(controller.targetGPUTime, 1.0 / 60.0 * 0.9, accuracy: 1e-9)
+        drive(&controller, gpuTime: 0.0110, frames: 600)
+        XCTAssertEqual(controller.scale, 1.0, "an 11 ms frame at 60 Hz stays native")
+        drivePixels(&controller, gpuTimeAtNative: 0.0160, frames: 600)
+        XCTAssertLessThan(controller.scale, 1.0, "a 16 ms frame does not")
+    }
+
+    /// The cost may not be in the pixels: on a GPU whose clock follows its
+    /// load, fewer pixels can take the same time. A step down that does not
+    /// lower the average is undone, and no further step is tried for a while.
+    func testAStepThatBuysNothingIsRevertedAndHeld() {
+        let target = 0.010
+        var controller = DynamicResolutionController(targetGPUTime: target, initialScale: 1.0)
+        var changes = 0, sawLower = false
+        // The measured time ignores the scale entirely.
+        for _ in 0 ..< 3000 {
+            if controller.record(gpuTime: target * 1.2) { changes += 1 }
+            if controller.scale < 1.0 { sawLower = true }
+        }
+        XCTAssertTrue(sawLower, "it must try a step to learn it is useless")
+        XCTAssertEqual(controller.scale, 1.0, "and return once the step measured as useless")
+        XCTAssertGreaterThanOrEqual(controller.revertedSteps, 1)
+        XCTAssertLessThanOrEqual(changes, 8, "tried and reverted a few times over 3000 frames, not every cooldown: \(changes)")
+    }
+
+    /// When the pixels are the cost, a step is kept: the thermal ramp below
+    /// relies on it, and this pins it directly.
+    func testAStepThatCutsTheTimeIsKept() {
+        let target = 0.010
+        var controller = DynamicResolutionController(targetGPUTime: target, initialScale: 1.0)
+        for _ in 0 ..< 600 { controller.record(gpuTime: target * 1.2 * Double(controller.scale)) }
+        XCTAssertLessThan(controller.scale, 1.0)
+        XCTAssertEqual(controller.revertedSteps, 0)
+    }
+
     func testSustainedOverBudgetDropsTheScale() {
         var controller = DynamicResolutionController(targetGPUTime: target, initialScale: 0.75)
         let start = controller.scale
-        drive(&controller, gpuTime: target * 1.5, frames: 200)
+        drivePixels(&controller, gpuTimeAtNative: target * 1.5 / 0.75, frames: 200)
         XCTAssertLessThan(controller.scale, start)
         XCTAssertGreaterThanOrEqual(controller.scale, 0.4, "must not fall below the floor")
     }
@@ -174,7 +221,7 @@ final class DynamicResolutionControllerTests: XCTestCase {
     /// frame must not seed the next decision, or one legitimate step cascades.
     func testTheHitchAfterAStepDoesNotCascade() {
         var controller = DynamicResolutionController(targetGPUTime: target, initialScale: 1.0)
-        drive(&controller, gpuTime: target * 1.3, frames: 120)
+        drivePixels(&controller, gpuTimeAtNative: target * 1.3, frames: 120)
         let afterFirst = controller.scale
         XCTAssertLessThan(afterFirst, 1.0, "sustained over budget should step down once")
         controller.record(gpuTime: target * 4)  // the reallocation hitch
@@ -304,9 +351,12 @@ final class TemporalUpscalingTests: XCTestCase {
         let rest = try renderer.targets(outputWidth: 512, outputHeight: 320)
         XCTAssertEqual(rest.renderWidth, 512)
         XCTAssertNil(rest.upscaled, "at scale 1 the scaler is bypassed")
-        // Two hundred frames well over budget, as a throttling chip delivers.
-        // Past the controller's warm-up, then long enough to step.
-        for _ in 0 ..< ForwardRenderer.resolutionWarmupFrames + 200 { renderer.recordDynamicResolution(gpuTime: 0.020) }
+        // Two hundred frames well over budget, as a throttling chip delivers,
+        // the cost in the pixels so each step is kept. Past the controller's
+        // warm-up, then long enough to step.
+        for _ in 0 ..< ForwardRenderer.resolutionWarmupFrames + 200 {
+            renderer.recordDynamicResolution(gpuTime: 0.020 * Double(renderer.effectiveRenderScale))
+        }
         XCTAssertLessThan(renderer.effectiveRenderScale, 1)
         let loaded = try renderer.targets(outputWidth: 512, outputHeight: 320)
         XCTAssertLessThan(loaded.renderWidth, 512)
