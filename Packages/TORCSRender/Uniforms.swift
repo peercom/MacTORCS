@@ -39,7 +39,7 @@ public struct FrameUniforms: Equatable, Sendable {
                 unjitteredViewProjection: simd_float4x4? = nil,
                 previousViewProjection: simd_float4x4? = nil,
                 renderSize: SIMD2<Float> = SIMD2(1, 1),
-                mipBias: Float = 0, animationTime: Float = 0, wetness: Float = 0) {
+                mipBias: Float = 0, animationTime: Float = 0, wetness: Float = 0, overcast: Float = 0) {
         self.viewProjection = viewProjection
         self.view = view
         self.inverseViewProjection = viewProjection.inverse
@@ -51,13 +51,15 @@ public struct FrameUniforms: Equatable, Sendable {
         self.renderSize = SIMD4(renderSize.x, renderSize.y, mipBias, 0)
         // The spare lane carries the scene's wetness, 0 dry to 1 soaked.
         self.cameraPosition = SIMD4(cameraPosition, wetness)
-        self.sunDirection = SIMD4(simd_normalize(sunDirection), 0)
+        // The sun direction's spare lane carries the cloud coverage, 0 clear to 1 overcast.
+        self.sunDirection = SIMD4(simd_normalize(sunDirection), min(max(overcast, 0), 1))
         self.sunIlluminance = SIMD4(sunIlluminance, exposureScale)
         self.ambientIrradiance = SIMD4(ambientIrradiance, animationTime)
     }
 
     public var exposureScale: Float { sunIlluminance.w }
     public var wetness: Float { cameraPosition.w }
+    public var overcast: Float { sunDirection.w }
 }
 
 /// Mirrors `DrawUniforms` in `Shaders/Forward.metal`.

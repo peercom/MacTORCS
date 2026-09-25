@@ -1438,7 +1438,7 @@ Against the plan's phases, after twenty-nine increments on the
 | Phase | Delivered | Deferred |
 |---|---|---|
 | 0 Foundations | TORCSRender, linear HDR, packed 32-byte vertex with tangents, generated mip chains, BC5/BC7 caches | — |
-| 1 Light | Hillaire atmosphere, physical sun and exposure, AgX, four-cascade CSM + contact shadows, SH + prefiltered sky IBL | clustered punctual lights (no night to light) |
+| 1 Light | Hillaire atmosphere, physical sun and exposure, AgX, four-cascade CSM + contact shadows, SH + prefiltered sky IBL, a drifting cloud layer and the overcast day | clustered punctual lights (no night to light) |
 | 2 Upscaling | jitter, motion vectors, MetalFX temporal (measured a net loss) and spatial scalers, dynamic resolution, **classic path deleted** | reactive mask (spatial path needs none) |
 | 3 Screen space | GTAO, SSR with a depth-aware filter and temporal reuse, motion blur, bloom | local probe |
 | 4 Materials | 26 `torcs-matgen` sets incl. metals, car detail sets under the atlas, stochastic tiling, car paint/glass/lens | AI-sourced base maps, BC7-vs-ASTC comparison |
@@ -2386,6 +2386,54 @@ The valve still closes for the case it was built for. Under real
 throttling the span grows with the pixels, the step cuts it, and the
 step is kept; the thermal-ramp test is unchanged. What it no longer does
 is give up sharpness to a clock.
+
+## Clouds, and an overcast day
+
+Section 5 of the plan put "a single scrolling cloud layer with parallax"
+over the atmosphere, and the weather work since had a wet track and
+rain under a sky that stayed clear. The layer is here now, and with it
+the overcast day the memory of remaining items had been carrying.
+
+One layer at 1,500 m, a four-octave value noise in a 2.2 km cell
+drifting at 12 m/s, drawn in the sky pass where the view ray meets the
+layer: the noise thresholded by a coverage — 0 clear, 1 covered — is
+the cloud's density there, thinning toward the horizon where the layer
+is seen edge-on. The coverage rides in the frame uniforms' spare lane
+of the sun direction, so the sun disc is hidden by the cloud's density
+along the sun's own direction — a gap shows it, a bank does not — and
+the glare goes with it.
+
+What the clouds are made of took two tries. The first lit their
+undersides with the clear sky's zenith, which is dim and blue, and
+every cloud came out near black: a storm, not an overcast. A cloud is
+bright; most of the sunlight that falls on it comes out again,
+diffused, and an overcast sky is a large grey lamp. The layer's light
+seen from below is the sun's, scattered through it — two thirds of it
+through a thin cloud, a quarter through a thick one — plus the
+skylight; toward the sun the thin edges glow with forward scattering.
+
+The scene under it changes in two places. `SunLighting.overcast(_:)`
+gives the lighting of a covered sky — the sun to a fifth, so shadows
+all but go, and the exposure opened by a stop and a third, as an eye
+would — and the app and the render tool both apply it, so the sky pass
+and the scene agree on how much sun there is. And the forward fragment
+raises and greys the skylight the scene receives from the same coverage
+lane, because the scene's ambient is the sky tables' spherical-harmonic
+irradiance, not the lighting struct's flat term, and the tables describe
+a clear sky: under cloud the diffuse light is the sun's, scattered,
+and the larger part of what lights the road.
+
+A session toggle, "Overcast", beside "Wet track" and "Rain"; rain covers
+the sky as well now. The tool takes `--overcast C`. Tests: the coverage
+lane and its clamp; the lighting helper's numbers; and a render whose
+top third loses more than half its blue-over-red under full cover, with
+half cover between — under identical lighting, since the opened
+exposure would brighten the blue that remains and mask what the clouds
+do — and repeats exactly.
+
+Cost, native, alternated: the sky pass is part of "sky and forward
+opaque", which rose by 0.0–0.4 ms with the layer drawn over a full sky;
+the frame by 0.1–0.5 ms. The layer costs per sky pixel only.
 
 ## Licensing
 

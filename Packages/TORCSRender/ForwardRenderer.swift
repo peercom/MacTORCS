@@ -266,6 +266,10 @@ public final class ForwardRenderer {
     /// too coarse to read as shadows anyway, and aerial perspective has taken over.
     public var shadowDistance: Float = 400
     let sampler: MTLSamplerState
+    /// Cloud coverage, 0 clear to 1 overcast: drawn as a layer in the sky
+    /// pass and hiding the sun disc and its glare. The lighting is the
+    /// caller's: see `SunLighting.overcast(_:)`.
+    public var overcast: Float = 0
     /// The lens for a television or photo view; nil for every driver's view
     /// and in the race. Applied only when `settings.depthOfField` allows.
     public var depthOfField: DepthOfField?
@@ -860,7 +864,7 @@ public final class ForwardRenderer {
             mipBias: settings.upscaling
                 ? RenderCamera.mipBias(renderWidth: targets.renderWidth, outputWidth: targets.outputWidth)
                 : 0,
-            animationTime: Float(animationTime), wetness: min(max(wetness, 0), 1))
+            animationTime: Float(animationTime), wetness: min(max(wetness, 0), 1), overcast: overcast)
 
         let scenePass = MTLRenderPassDescriptor()
         scenePass.colorAttachments[0].texture = targets.colour
@@ -1289,7 +1293,9 @@ public final class ForwardRenderer {
             }
             if settings.sunGlare, settings.sunGlareStrength > 0, let sun = sunScreenPosition, let depth = lastDepth,
                sun.x > -0.5, sun.x < 1.5, sun.y > -0.5, sun.y < 1.5 {
-                glare.sun = SIMD4(sun.x, sun.y, Float(destination.width) / Float(max(destination.height, 1)), settings.sunGlareStrength)
+                // Under cloud the disc is hidden and its glare goes with it.
+                glare.sun = SIMD4(sun.x, sun.y, Float(destination.width) / Float(max(destination.height, 1)),
+                                  settings.sunGlareStrength * (1 - min(max(overcast, 0), 1)))
                 glare.colour = SIMD4(lighting.illuminance * lighting.exposureScale, 0)
                 encoder.setVertexTexture(depth, index: 2)
             } else {

@@ -375,6 +375,16 @@ fragment ForwardOutput forwardFragment(ForwardVarying in [[stage_in]],
     float mipCount = float(max(skyViewLUT.get_num_mip_levels(), 1u) - 1u);
     float3 prefiltered = skyViewLUT.sample(skySampler, skyViewUV(reflection),
                                            level(surface.perceptualRoughness * mipCount)).rgb;
+    // Under cloud the skylight is the sun's light diffused by the layer:
+    // greyer than the clear sky's blue and, with the sun dimmed to match,
+    // the larger part of what lights the scene. The tables describe the
+    // clear sky; the coverage lane says how much of it is covered.
+    float coverage = frame.sunDirection.w;
+    if (coverage > 0.0f) {
+        constexpr float3 luma = float3(0.2126f, 0.7152f, 0.0722f);
+        irradiance = mix(irradiance, float3(dot(irradiance, luma)) * 2.4f, coverage);
+        prefiltered = mix(prefiltered, float3(dot(prefiltered, luma)) * 1.8f, coverage);
+    }
     // The sharp white lobe: the clear coat where there is one, otherwise the
     // base lobe of a dielectric. Screen-space reflections replace this lobe's
     // probe where they hit; a metal's coloured base lobe is never traced.

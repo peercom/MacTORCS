@@ -105,6 +105,21 @@ public struct SunLighting: Equatable, Sendable {
 
     public var illuminance: SIMD3<Float> { colour * intensity }
     public var exposureScale: Float { Exposure.scale(ev100: exposureEV100) }
+
+    /// The light of a sky covered by `coverage` of cloud: the sun to a
+    /// fifth at full cover, so shadows all but go, and the exposure opened
+    /// by a stop and a third, as an eye would — an overcast day is short of
+    /// sun, not of light, and the skylight the scene receives is raised in
+    /// the shader from the same coverage. Applied by whoever owns the
+    /// lighting, so the sky pass and the scene agree on how much sun there is.
+    public func overcast(_ coverage: Float) -> SunLighting {
+        let c = min(max(coverage, 0), 1)
+        var lighting = self
+        lighting.intensity *= 1 - 0.8 * c
+        lighting.ambient *= 1 + 0.5 * c
+        lighting.exposureEV100 -= 1.3 * c
+        return lighting
+    }
 }
 
 

@@ -242,7 +242,7 @@ final class ModernDrivingRenderer {
             let mirror = try mirrorRequest(pose: pose, drawableWidth: drawableWidth, drawableHeight: drawableHeight,
                                            lightState: lightState, drawsCar: drawsCar)
             try renderer.present(in: view, resources: resources.resources, instances: instances,
-                                 camera: Self.camera(from: sceneCamera), lighting: Self.lighting(lighting, rain: renderer.rain),
+                                 camera: Self.camera(from: sceneCamera), lighting: Self.lighting(lighting, rain: renderer.rain, overcast: renderer.overcast),
                                  mirror: mirror)
             lastDrawCount = renderer.lastDrawCount
             lastTriangleCount = renderer.lastTriangleCount
@@ -259,6 +259,11 @@ final class ModernDrivingRenderer {
     }
     /// Rain, 0 to 1: streaks around the camera and a sun dimmed to a
     /// quarter, the ambient to two thirds.
+    /// Cloud coverage, 0 clear to 1 overcast.
+    var overcast: Float {
+        get { renderer.overcast }
+        set { renderer.overcast = newValue }
+    }
     /// The lens for the television view; nil for every other preset.
     var depthOfField: DepthOfField? {
         get { renderer.depthOfField }
@@ -275,8 +280,8 @@ final class ModernDrivingRenderer {
         return ParticleSystem.Source(kind: .rain, position: eye, velocity: .zero, intensity: min(rain, 1))
     }
 
-    static func lighting(_ base: SunLighting, rain: Float) -> SunLighting {
-        var lighting = base
+    static func lighting(_ base: SunLighting, rain: Float, overcast: Float = 0) -> SunLighting {
+        var lighting = base.overcast(overcast)
         let r = min(max(rain, 0), 1)
         // Overcast: the sun to a third, the skylight kept — diffuse light is
         // what an overcast day has plenty of. Dimming both read as dusk.
