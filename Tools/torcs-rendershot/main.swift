@@ -73,6 +73,7 @@ struct Options {
     var compareHaze = false
     /// Rain, 0 to 1: streaks pre-rolled around the camera, a dimmed sun.
     var rain: Float = 0
+    var shadowRefresh: Int? = nil
     var compareGlare = false
     var reflectionTemporal: Bool? = nil
     var compareReflectionTemporal = false
@@ -179,6 +180,7 @@ func parse() -> Options {
         case "--no-haze": options.heatHaze = false
         case "--compare-haze": options.compareHaze = true
         case "--rain": options.rain = Float(next()) ?? 1
+        case "--shadow-refresh": options.shadowRefresh = Int(next())
         case "--no-glare": options.sunGlare = false
         case "--compare-glare": options.compareGlare = true
         case "--ssr-temporal": options.reflectionTemporal = true
@@ -366,6 +368,7 @@ do {
     if let blur = options.motionBlur { settings.motionBlur = blur }
     if let glare = options.sunGlare { settings.sunGlare = glare }
     if let haze = options.heatHaze { settings.heatHaze = haze }
+    if let refresh = options.shadowRefresh { settings.staticShadowRefreshInterval = max(1, refresh) }
     if let temporal = options.reflectionTemporal { settings.reflectionTemporal = temporal }
     if let cascades = options.cascades { settings.shadowCascades = max(0, min(4, cascades)) }
     let startupClock = DispatchTime.now()

@@ -64,7 +64,7 @@ final class RenderSettingsTests: XCTestCase {
         XCTAssertLessThanOrEqual(air.ambientOcclusion, high.ambientOcclusion)
         XCTAssertLessThan(air.textureMemoryBudgetBytes, high.textureMemoryBudgetBytes)
         // Distant cascades refresh less often on the cheaper preset.
-        XCTAssertGreaterThan(air.staticShadowRefreshInterval, high.staticShadowRefreshInterval)
+        XCTAssertGreaterThanOrEqual(air.staticShadowRefreshInterval, high.staticShadowRefreshInterval)
     }
 }
 
@@ -273,7 +273,8 @@ final class TemporalUpscalingTests: XCTestCase {
         XCTAssertEqual(rest.renderWidth, 512)
         XCTAssertNil(rest.upscaled, "at scale 1 the scaler is bypassed")
         // Two hundred frames well over budget, as a throttling chip delivers.
-        for _ in 0 ..< 200 { renderer.recordDynamicResolution(gpuTime: 0.020) }
+        // Past the controller's warm-up, then long enough to step.
+        for _ in 0 ..< ForwardRenderer.resolutionWarmupFrames + 200 { renderer.recordDynamicResolution(gpuTime: 0.020) }
         XCTAssertLessThan(renderer.effectiveRenderScale, 1)
         let loaded = try renderer.targets(outputWidth: 512, outputHeight: 320)
         XCTAssertLessThan(loaded.renderWidth, 512)

@@ -50,11 +50,15 @@ public struct DynamicResolutionController: Sendable, Equatable {
     /// Frames ignored after a step.
     public static let cooldownFrames = 12
 
+    /// Frames ignored before the controller may act at all.
+    public private(set) var warmupRemaining: Int
+
     public init(targetGPUTime: Double = 1.0 / 60.0 * 0.66,
                 minimumScale: Float = 0.4, maximumScale: Float = 1.0,
                 initialScale: Float = 0.5,
                 framesBeforeDecrease: Int = 30, framesBeforeIncrease: Int = 180,
-                increaseThreshold: Double = 0.70) {
+                increaseThreshold: Double = 0.70, warmupFrames: Int = 0) {
+        warmupRemaining = max(0, warmupFrames)
         let ladder = Self.ladder
         func nearest(_ value: Float) -> Int {
             ladder.indices.min { abs(ladder[$0] - value) < abs(ladder[$1] - value) } ?? 0
@@ -74,6 +78,7 @@ public struct DynamicResolutionController: Sendable, Equatable {
     @discardableResult
     public mutating func record(gpuTime: Double) -> Bool {
         guard gpuTime.isFinite, gpuTime > 0 else { return false }
+        if warmupRemaining > 0 { warmupRemaining -= 1; return false }
         if cooldown > 0 { cooldown -= 1; return false }
         // Weighted toward history; 0.2 settles in roughly 15 frames. Each
         // sample is clamped to twice the running average first: a clock

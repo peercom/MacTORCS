@@ -237,7 +237,11 @@ public final class ForwardRenderer {
     /// Drives the render scale from measured GPU time when the settings ask
     /// for it. Only presentation records into it; offscreen renders stay at
     /// the settings' scale so they are repeatable.
-    public private(set) var dynamicResolution = DynamicResolutionController(initialScale: 1.0)
+    public private(set) var dynamicResolution = DynamicResolutionController(initialScale: 1.0, warmupFrames: ForwardRenderer.resolutionWarmupFrames)
+    /// Frames the resolution controller ignores after a reset: the material
+    /// and atlas uploads and first pipeline uses of a session's start spike
+    /// the frame time, and the controller stepped down on them and stayed.
+    public static let resolutionWarmupFrames = 180
     /// Whether the upscaler actually wrote its output this frame. The fallback
     /// on upscaler failure cannot be expressed by which textures exist — the
     /// output texture is still allocated — so the tonemap source is chosen from
@@ -480,7 +484,9 @@ public final class ForwardRenderer {
     }
 
     /// Returns to native and forgets the history, for a settings change.
-    public func resetDynamicResolution() { dynamicResolution = DynamicResolutionController(initialScale: 1.0) }
+    public func resetDynamicResolution() {
+        dynamicResolution = DynamicResolutionController(initialScale: 1.0, warmupFrames: Self.resolutionWarmupFrames)
+    }
 
     public func targets(outputWidth: Int, outputHeight: Int) throws -> FrameTargets {
         let scale = effectiveRenderScale
@@ -543,6 +549,7 @@ public final class ForwardRenderer {
         if resetsHistoryPerRender {
             occlusion.resetNoise()
             reflections.resetNoise()
+            shadows.invalidate()
         }
         encodeFrame(into: commands, targets: targets, resources: resources, instances: instances,
                     camera: camera, lighting: lighting, aspect: Float(width) / Float(max(height, 1)))
@@ -582,10 +589,13 @@ public final class ForwardRenderer {
                                       aspect: aspect, count: settings.shadowCascades,
                                       resolution: shadows.resolution,
                                       shadowDistance: shadowDistance).cascades
-        shadows.encode(into: commands, resources: resources, instances: instances, cascades: cascades,
-                       animationTime: Float(animationTime))
+        // The far cascades refresh on a cadence; the frame samples each slice
+        // with the matrix it was actually rendered with.
+        let sampled = shadows.encode(into: commands, resources: resources, instances: instances, cascades: cascades,
+                                     animationTime: Float(animationTime),
+                                     refreshInterval: settings.staticShadowRefreshInterval)
         encode(into: commands, targets: targets, resources: resources, instances: instances,
-               camera: camera, lighting: lighting, cascades: cascades, aspect: aspect)
+               camera: camera, lighting: lighting, cascades: sampled, aspect: aspect)
 
         if targets.upscaled != nil && settings.upscalingMode == .spatial {
             // Blur before the scaler: a quarter of the pixels, and the scaler
@@ -667,6 +677,7 @@ public final class ForwardRenderer {
         previousViewProjection = nil
         previousInstanceTransforms = [:]
         upscaler?.needsReset = true
+        shadows.invalidate()
     }
 
     public private(set) var lastUpscalerError: String?

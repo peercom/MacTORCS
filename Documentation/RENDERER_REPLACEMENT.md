@@ -1802,6 +1802,64 @@ dimming rule holds.
 Not done: drops on the glass, the sky itself (still clear blue behind the
 rain), and the physics, which stays dry.
 
+## Where the milliseconds are
+
+The previous section guessed at the shadow cascades and the correction
+under it guessed at the road's pixels. This section measured instead, and
+both guesses were mostly wrong.
+
+**The cascade cadence is a null result.** `ShadowRenderer.encode` now
+takes the refresh interval the settings have carried since Phase 1: the
+near cascade every frame, the second every other, the far two every
+`interval` frames staggered, each stale slice sampled with the matrix it
+was rendered with, a history reset refreshing all. It is tested and it
+works — and at interval 3 the orbit view measured 7.76 ms against 7.71,
+the driver's-eye view 15.6 against 14.8. The shadow pass is not where the
+time goes: with the cascades off entirely the orbit frame drops by 0.15
+ms. The mechanism stays, off in every preset, until a circuit needs it.
+
+**The controller now waits.** Its startup step-down came from the first
+seconds' spikes; it ignores the first 180 frames after a reset
+(`testControllerIgnoresTheWarmup`).
+
+**What the orbit frame is made of**, native 2560×1664, 55° sun, everything
+on unless stated, interleaved where the setting can be toggled per frame
+and back-to-back sixty-frame runs where toggling it re-allocates targets
+(reflections, motion blur — the interleaved comparison of those two
+reported 16–22 ms medians, the cost of re-creating the frame targets
+every other frame, not of the pass):
+
+| | Δ at native |
+|---|---|
+| screen-space reflections, half resolution | **+2.5 ms** |
+| motion blur at output resolution | **+1.4 ms** |
+| trees (middle build, whole forest in view) | +1.2 ms |
+| bloom | +0.18 ms |
+| heat haze | +0.17 ms |
+| sun glare (in frame) | +0.19 ms |
+| grass, skid marks, depth prepass alone | ≈ 0 |
+| four cascades | +0.15 ms |
+| occlusion (with its standalone prepass) | **−1.0 ms** |
+
+Occlusion is *cheaper on*: it forces the standalone depth prepass, and the
+equal-depth shading pass that follows shades each visible pixel once,
+which on a road that fills the frame is worth more than the occlusion
+costs. The prepass setting on its own measured nothing because occlusion
+had already turned it on.
+
+And the frame is resolution-bound after all: the same orbit view at a
+fixed spatial scale of 0.6 costs 6.4 ms against 7.5 native, and the
+driver's-eye view 12.3 ms at 0.75 against 14.7. The earlier dynamic run
+that seemed to say otherwise compared windows from different thermal
+states, which this document warns against on its first page.
+
+Where that leaves the budget: the two passes worth a millisecond or more
+each at native are the reflections and the motion blur, both at the
+full-resolution end of the pipeline. Tracing at a quarter resolution
+instead of half, and blurring at the render resolution before the scaler
+(the spatial path already does), are the next two increments with a
+number attached.
+
 ## Licensing
 
 No third-party artwork is imported by this work. New render source is

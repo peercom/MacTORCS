@@ -44,6 +44,13 @@ public final class ShadowRenderer {
     let depthState: MTLDepthStencilState
     public let comparisonSampler: MTLSamplerState
     public private(set) var lastDrawCount = 0
+    /// The cascades as last rendered into each slice. A slice not refreshed
+    /// this frame keeps its depth and the matrix it was rendered with, and
+    /// sampling must use that matrix, not the freshly fitted one.
+    public private(set) var renderedCascades: [ShadowCascades.Cascade] = []
+    /// Which slices were rendered by the last encode, for diagnostics.
+    public private(set) var lastRefreshedSlices: [Int] = []
+    private var frameCounter = 0
 
     /// `depth16Unorm` rather than `depth32Float`: an orthographic cascade has
     /// uniform depth precision, so 16 bits is ample over a few hundred metres,
@@ -104,11 +111,40 @@ public final class ShadowRenderer {
     /// Batches are culled per cascade against the cascade's world-space bounds.
     /// Without it the whole scene is submitted four extra times, which on a
     /// 1,315-batch track costs far more than the shadows are worth.
+    /// Forgets the rendered cascades so the next encode refreshes every
+    /// slice: for a camera cut, or a verification render from a cold state.
+    public func invalidate() {
+        renderedCascades = []
+        frameCounter = 0
+    }
+
+    /// Whether slice `index` is refreshed this frame at `interval`. The near
+    /// cascade every frame — the car's contact with the ground lives there —
+    /// the second every other frame at most, the far ones every `interval`
+    /// frames, staggered so no frame refreshes them all.
+    public static func refreshes(slice index: Int, frame: Int, interval: Int) -> Bool {
+        guard interval > 1, index > 0 else { return true }
+        let stride = index == 1 ? min(2, interval) : interval
+        return (frame + index) % stride == 0
+    }
+
+    /// Renders the cascades and returns the ones to sample with: the fresh
+    /// fit for slices rendered this frame, the previous fit for the rest.
+    @discardableResult
     public func encode(into commands: MTLCommandBuffer, resources: [SceneResources],
                        instances: [RenderInstance], cascades: [ShadowCascades.Cascade],
-                       animationTime: Float = 0) {
+                       animationTime: Float = 0, refreshInterval: Int = 1) -> [ShadowCascades.Cascade] {
         lastDrawCount = 0
-        for (index, cascade) in cascades.prefix(cascadeCount).enumerated() {
+        lastRefreshedSlices = []
+        let fitted = Array(cascades.prefix(cascadeCount))
+        // A change in the cascade count, or nothing rendered yet, is a cold start.
+        let cold = renderedCascades.count != fitted.count
+        if cold { renderedCascades = fitted }
+        defer { frameCounter &+= 1 }
+        for (index, cascade) in fitted.enumerated() {
+            if !cold, !Self.refreshes(slice: index, frame: frameCounter, interval: refreshInterval) { continue }
+            renderedCascades[index] = cascade
+            lastRefreshedSlices.append(index)
             let pass = MTLRenderPassDescriptor()
             pass.depthAttachment.texture = map
             pass.depthAttachment.slice = index
@@ -171,6 +207,7 @@ public final class ShadowRenderer {
             }
             encoder.endEncoding()
         }
+        return renderedCascades
     }
 
     /// Bounding-sphere test against the cascade's clip volume.

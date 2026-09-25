@@ -123,7 +123,7 @@ public struct RenderSettings: Sendable, Equatable {
             dynamicResolution = true
             shadowCascades = 4
             shadowResolution = 2048
-            staticShadowRefreshInterval = 3
+            staticShadowRefreshInterval = 1
             contactShadows = true
             ambientOcclusion = .half
             screenSpaceReflections = .half
@@ -149,7 +149,7 @@ public struct RenderSettings: Sendable, Equatable {
             dynamicResolution = true
             shadowCascades = 4
             shadowResolution = 2048
-            staticShadowRefreshInterval = 2
+            staticShadowRefreshInterval = 1
             contactShadows = true
             ambientOcclusion = .half
             screenSpaceReflections = .half
