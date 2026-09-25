@@ -32,6 +32,10 @@ public struct DrivingContent: Sendable {
     public let graphics: TrackGraphics
     public let background: CompiledTexture?
     public let reflection,environmentShade,trackShadow: CompiledTexture?
+    /// The native starting grid for a full field, for painting the boxes.
+    public let gridSlots: [StartingGridSlot]
+    /// Boxes painted on the road, whatever the entry.
+    public static let paintedGridSlots = 20
     public var trackLoaderBounds: ACLoaderBounds? { scenes[5].asset.scene.loaderBounds }
     // This prepared session always uses detailed wheels. grcar stores sx/sy
     // after initWheel has loaded speed meshes 0...3 for the last wheel.
@@ -49,6 +53,10 @@ public struct DrivingContent: Sendable {
         let trackParameters=try ParameterDocument.parse(read(index.track),entities:["default-surfaces":read(index.surfaces),"default-objects":read(index.objects)],allowLegacyLatin1:true)
         let road=try TrackBuilder.buildRoad(parameters:trackParameters)
         let graphics=try TrackGraphics(parameters:trackParameters)
+        // The painted grid: the native placement for a full field, the
+        // track's own Starting Grid section overriding the defaults.
+        let gridConfiguration=try StartingGridConfiguration(race:trackParameters,raceName:"",track:trackParameters)
+        let gridSlots=(try? StartingGrid.slots(road:road,configuration:gridConfiguration,cars:Self.paintedGridSlots)) ?? []
         let background=try index.background.map { try TextureCache.decode(ContentSearchPath.readBounded(search.resolve($0),maximumBytes:96*1024*1024)) }
         let scenes=try ([index.body]+index.wheels+[index.scenery]).map { reference in
             let file=try search.resolve(reference)
@@ -81,6 +89,6 @@ public struct DrivingContent: Sendable {
             return try BrakeGeometry(wheel:i,radius:wheel.brake.radius,width:wheel.force.tireWidth).parts
         }
         return DrivingContent(name:index.name,scenes:scenes,brakeScenes:brakeScenes,lights:lights,lightTextures:lightTextures,simulation:simulation,
-            minimumGear:definition.transmission.minimumGear,maximumGear:definition.transmission.maximumGear,bonnetPosition:bonnet,driverPosition:driver,dimensions:dimensions,shadow:shadow,graphics:graphics,background:background,reflection:reflection,environmentShade:environmentShade,trackShadow:trackShadow)
+            minimumGear:definition.transmission.minimumGear,maximumGear:definition.transmission.maximumGear,bonnetPosition:bonnet,driverPosition:driver,dimensions:dimensions,shadow:shadow,graphics:graphics,background:background,reflection:reflection,environmentShade:environmentShade,trackShadow:trackShadow,gridSlots:gridSlots)
     }
 }

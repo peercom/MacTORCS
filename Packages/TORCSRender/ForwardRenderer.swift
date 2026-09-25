@@ -221,6 +221,9 @@ public final class ForwardRenderer {
     /// renderer draws the same ring.
     public var skidMarks: SkidMarks
     public let skidMarkRenderer: SkidMarkRenderer
+    /// Painted boxes on the road (the starting grid); the mirror renderer
+    /// draws the same set.
+    public var roadPaint: RoadPaint
     /// Whether motion blur wrote the post-colour target this frame.
     private var postProduced = false
     /// Bound at the occlusion slot when the pass is off, so the shader never
@@ -374,6 +377,7 @@ public final class ForwardRenderer {
         particleRenderer = try ParticleRenderer(device: device, library: library)
         skidMarks = try SkidMarks(device: device)
         skidMarkRenderer = try SkidMarkRenderer(device: device, library: library)
+        roadPaint = RoadPaint(device: device)
         let neutral = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: OcclusionRenderer.format,
                                                                 width: 1, height: 1, mipmapped: false)
         neutral.usage = .shaderRead
@@ -912,6 +916,7 @@ public final class ForwardRenderer {
         // Skid marks darken the road before the reflections trace reads it,
         // so a mark shows in the paint of a car standing on it.
         if settings.skidMarks {
+            skidMarkRenderer.encodePaint(into: commands, targets: targets, paint: roadPaint, frame: &frame)
             skidMarkRenderer.encode(into: commands, targets: targets, marks: skidMarks, frame: &frame)
         }
 
@@ -1061,6 +1066,7 @@ public final class ForwardRenderer {
         mirror.renderer.wetness = wetness
         mirror.renderer.particles = particles
         mirror.renderer.skidMarks = skidMarks
+        mirror.renderer.roadPaint = roadPaint
         mirror.renderer.encodeFrame(into: commands, targets: targets, resources: mirror.resources,
                                     instances: mirror.instances, camera: mirror.camera, lighting: lighting,
                                     aspect: Float(mirror.width) / Float(max(mirror.height, 1)))

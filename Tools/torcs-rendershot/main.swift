@@ -243,6 +243,7 @@ do {
     let radians = Float.pi / 180
     let data = try Data(contentsOf: URL(fileURLWithPath: options.input))
     var scene = try RenderScene(ACScene.parse(data, car: options.car), car: options.car, subdivisionLevels: options.subdivide)
+    var gridBoxes: [RoadPaint.Box] = []
 
     // Procedural terrain from the track's own Terrain Generation parameters.
     // Aalborg's baked mesh contains almost no ground, so without this the
@@ -328,6 +329,9 @@ do {
             var generated = try TrackSurfaceAssembly.roadBatches(road.geometry)
             generated += try TrackSurfaceAssembly.pitBatches(road.geometry, pits: road.pits)
             generated += try TrackSurfaceAssembly.furnitureBatches(road.geometry)
+            let gridConfiguration = try StartingGridConfiguration(race: document, raceName: "", track: document)
+            gridBoxes = (try? StartingGrid.slots(road: road, configuration: gridConfiguration, cars: 20))?
+                .map { RoadPaint.Box(centre: $0.world, yaw: $0.yaw) } ?? []
             scene = TrackSurfaceAssembly.strippingPitComplex(scene, garages: PitGeneration.footprints(road.geometry, pits: road.pits))
             if options.grass {
                 var grassParameters = GrassGeneration.Parameters()
@@ -376,6 +380,8 @@ do {
     }
     renderer.animationTime = Double(options.animationTime)
     renderer.wetness = options.wetness
+    renderer.roadPaint.set(gridBoxes)
+    if !gridBoxes.isEmpty { print("grid: \(gridBoxes.count) boxes painted") }
     if let radius = options.aoRadius { renderer.occlusion.ambientRadius = radius }
     if let power = options.aoPower { renderer.occlusion.ambientPower = power }
     // Default to the scene file's own directory, which is where the original

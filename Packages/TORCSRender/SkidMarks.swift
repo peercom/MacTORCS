@@ -141,8 +141,10 @@ public final class SkidMarks {
 /// darker, nothing else changes.
 public final class SkidMarkRenderer {
     private let pipeline: MTLRenderPipelineState
+    private let paintPipeline: MTLRenderPipelineState
     private let depthState: MTLDepthStencilState
     public private(set) var lastDrawnQuads = 0
+    public private(set) var lastPaintedBoxes = 0
 
     public init(device: MTLDevice, library: MTLLibrary) throws {
         let descriptor = MTLRenderPipelineDescriptor()
@@ -159,6 +161,21 @@ public final class SkidMarkRenderer {
         colour.destinationAlphaBlendFactor = .one
         descriptor.depthAttachmentPixelFormat = FrameTargets.depthFormat
         pipeline = try device.makeRenderPipelineState(descriptor: descriptor)
+
+        // Paint: straight alpha over the road, same vertex layout.
+        let paintDescriptor = MTLRenderPipelineDescriptor()
+        paintDescriptor.label = "roadPaint"
+        paintDescriptor.vertexFunction = library.makeFunction(name: "skidVertex")
+        paintDescriptor.fragmentFunction = library.makeFunction(name: "roadPaintFragment")
+        let paint = paintDescriptor.colorAttachments[0]!
+        paint.pixelFormat = FrameTargets.colourFormat
+        paint.isBlendingEnabled = true
+        paint.sourceRGBBlendFactor = .sourceAlpha
+        paint.destinationRGBBlendFactor = .oneMinusSourceAlpha
+        paint.sourceAlphaBlendFactor = .zero
+        paint.destinationAlphaBlendFactor = .one
+        paintDescriptor.depthAttachmentPixelFormat = FrameTargets.depthFormat
+        paintPipeline = try device.makeRenderPipelineState(descriptor: paintDescriptor)
         let depth = MTLDepthStencilDescriptor()
         depth.depthCompareFunction = .greaterEqual
         depth.isDepthWriteEnabled = false
@@ -190,5 +207,36 @@ public final class SkidMarkRenderer {
         encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: marks.quadCount * 6)
         encoder.endEncoding()
         lastDrawnQuads = marks.quadCount
+    }
+
+    /// Draws the painted boxes; each box's length and width ride in its
+    /// vertices, so one draw covers boxes of any size.
+    public func encodePaint(into commands: MTLCommandBuffer, targets: FrameTargets,
+                            paint: RoadPaint, frame: inout FrameUniforms, lineWidth: Float = 0.12) {
+        lastPaintedBoxes = 0
+        guard let buffer = paint.buffer, paint.quadCount > 0 else { return }
+        let pass = MTLRenderPassDescriptor()
+        pass.colorAttachments[0].texture = targets.colour
+        pass.colorAttachments[0].loadAction = .load
+        pass.colorAttachments[0].storeAction = .store
+        pass.depthAttachment.texture = targets.depth
+        pass.depthAttachment.loadAction = .load
+        pass.depthAttachment.storeAction = .store
+        guard let encoder = commands.makeRenderCommandEncoder(descriptor: pass) else { return }
+        encoder.label = "Road paint"
+        encoder.setRenderPipelineState(paintPipeline)
+        encoder.setDepthStencilState(depthState)
+        encoder.setCullMode(.none)
+        encoder.setVertexBuffer(buffer, offset: 0, index: 0)
+        encoder.setVertexBytes(&frame, length: MemoryLayout<FrameUniforms>.stride, index: 1)
+        encoder.setFragmentBytes(&frame, length: MemoryLayout<FrameUniforms>.stride, index: 1)
+        // One draw per box so the fragment sees that box's size.
+        for (i, box) in paint.boxes.enumerated() {
+            var parameters = SIMD4<Float>(lineWidth, 0.9, box.length, box.width)
+            encoder.setFragmentBytes(&parameters, length: MemoryLayout<SIMD4<Float>>.stride, index: 2)
+            encoder.drawPrimitives(type: .triangle, vertexStart: i * 6, vertexCount: 6)
+        }
+        encoder.endEncoding()
+        lastPaintedBoxes = paint.quadCount
     }
 }

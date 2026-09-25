@@ -1671,6 +1671,29 @@ generated-track path had lost the pit garages and the pit-complex strip
 between two commits (see the note on the shared checkout in the recap of
 the session), and has them back.
 
+## The starting grid, painted
+
+The other session's G2 increment brought a native `StartingGrid` — the
+original placement, parity-verified for sixteen cars. Its slots are now
+painted on the road: `RoadPaint` holds one static quad per box in the skid
+marks' vertex layout, and the skid-mark renderer gained a paint pipeline
+that blends a white outline over the tarmac, depth-tested read-only like
+the marks. Each box is a car's footprint, 4.7 × 2.2 m, its length and
+width carried per draw so the outline is 12 cm wide whatever the box; a
+hash wears the paint a little. Twenty boxes are painted whatever the entry
+— a circuit's grid is painted for its capacity — from the track's own
+`Starting Grid` section over the original defaults, resolved in
+`DrivingContent.load`, and the render tool paints them for a generated
+track. The mirror renderer draws the same set.
+
+`testGridBoxesFromTheNativeStartingGrid` puts all twenty of Aalborg's
+slots on the road; `testBoxesBecomeQuadsInMetres` pins the quad, the lift
+and the metre coordinates; `testPaintBrightensOnlyUnderTheBox` renders a
+box beside the car and requires more light, none taken away, and an
+untouched frame with the decals off. The first look for the boxes was from
+the start line facing forward, which is the wrong way: the grid is behind
+the line, in the last fifty metres of the lap.
+
 ## Licensing
 
 No third-party artwork is imported by this work. New render source is

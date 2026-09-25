@@ -47,4 +47,21 @@ fragment float4 skidFragment(SkidVarying in [[stage_in]]) {
     return float4(darkness, darkness, darkness, 1.0f);
 }
 
+/// Painted outline: white where the fragment is within a line's width of
+/// the box's edge, in metres along (uv.x of uv.z) and across (uv.y of
+/// uv.w). Worn a little, like paint that has had cars over it.
+fragment float4 roadPaintFragment(SkidVarying in [[stage_in]],
+                                  constant float4 &paint [[buffer(2)]]) {
+    // uv.x along in metres, uv.y across in metres; the box size travels in
+    // the vertex's uv.zw, interpolated flat across the quad.
+    float along = in.uv.x, across = in.uv.y;
+    float lineWidth = paint.x;
+    float edgeAlong = min(along, paint.z - along), edgeAcross = min(across, paint.w - across);
+    float d = min(edgeAlong, edgeAcross);
+    float coverage = 1.0f - smoothstep(lineWidth - 0.02f, lineWidth + 0.02f, d);
+    float wear = 0.75f + 0.25f * skidHash(floor(float2(along, across) * 7.0f));
+    float alpha = coverage * wear * paint.y;
+    return float4(float3(0.85f, 0.85f, 0.82f), alpha);
+}
+
 #endif

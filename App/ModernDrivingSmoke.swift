@@ -28,6 +28,7 @@ import TORCSTrackMesh
             road: content.simulation.road.geometry, pits: content.simulation.road.pits, terrain: TerrainParameters(),
             materials: ModernDrivingRenderer.materialsDirectory(beside: session))
         let lighting = ModernDrivingRenderer.lighting(from: content.graphics)
+        renderer.roadPaint.set(content.gridSlots.map { RoadPaint.Box(centre: $0.world, yaw: $0.yaw) })
         let pose = try VehiclePresentation(content.simulation.visualSnapshot)
         let world = try CameraWorld(bounds: content.simulation.road.bounds)
         let geometry = content.simulation.road.geometry
@@ -130,6 +131,7 @@ import TORCSTrackMesh
             "cameras": report.count,
             "particleSourcesAtRest": sources.count,
             "shadersPrebuilt": renderer.shadersPrebuilt,
+            "gridBoxes": renderer.roadPaint.quadCount,
             "resources": resources.resources.count,
             "terrainResource": resources.terrainResource ?? -1,
             "texturesUploaded": resources.textures.count,

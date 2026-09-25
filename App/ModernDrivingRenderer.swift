@@ -82,6 +82,7 @@ final class ModernDrivingRenderer {
             materials: materials)
         staticInstances = resources.staticInstances()
         lighting = Self.lighting(from: content.graphics)
+        renderer.roadPaint.set(content.gridSlots.map { RoadPaint.Box(centre: $0.world, yaw: $0.yaw) })
     }
 
     /// The generated material sets for a session: a `materials` folder beside
