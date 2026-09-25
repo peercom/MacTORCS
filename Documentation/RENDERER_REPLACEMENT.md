@@ -1745,14 +1745,62 @@ the next change to it.
 
 More telling: at 0.60–0.75 of the render resolution the frame cost 6.5 to
 7.5 ms against 7.7 ms at native. Cutting the shaded pixels by half saved a
-tenth. The frame is no longer bound by shading at all: it is the four
+tenth. For the orbiting camera the frame is not bound by shading: it is the four
 shadow cascades re-rendering the whole static circuit every frame, the
 geometry passes, and the fixed-cost passes at output resolution. The plan
 saw this coming — section 3 asked for a static/dynamic split of the
 cascades with the static circuit rendered once and only the cars
 refreshed — and `staticShadowRefreshInterval` has sat in the settings
-unused since Phase 1. That split is the next performance increment, and
-the scale valve is worth little until it lands.
+unused since Phase 1.
+
+**Correction, measured the same hour.** The orbit camera is the wrong
+view to draw that conclusion from. The driver's-eye view — the road
+camera at 250 m, the road filling the frame, sixty frames each at native
+with a 40° sun:
+
+| | GPU median |
+|---|---|
+| no trees | 11.8 ms |
+| trees, detail pairs | **14.6 ms** |
+| trees, middle build only | 13.3 ms |
+| trees, two cascades instead of four | 14.7 ms |
+| trees, 1280×832 | **6.6 ms** |
+
+That view is shading-bound through and through: half the pixels is less
+than half the time, and the cascades do not matter. In the view the
+player actually drives, the controller's ladder is worth what the plan
+said it was, and it will settle near 0.75 for a frame under the target.
+What the two views agree on is that the per-pixel road — four cascades
+sampled with a rotated kernel, the half-resolution trace and occlusion,
+the markings, rubber and weather — is where the milliseconds are, and
+that the sustained orbit runs in this document understate a lap. The
+next sustained run should orbit at the driver's height.
+
+## Rain
+
+Phase 7's last item but the photo mode. A fourth particle kind: drops
+spawned in a box above the source — the camera, wherever it is — falling
+at 9 m/s with a little drift, carried along by the source's velocity, for
+just over a second, at 1,800 a second. The vertex shader stands a rain
+streak along its fall, three centimetres wide and seventy tall, rather
+than facing it to the camera as the puffs are, and the fragment draws it
+as a soft line lit by the skylight. Rain implies the wet road, so the
+session's "Rain" toggle turns on the wetness too, and the sun goes to
+thirty percent with the skylight kept and the exposure opened by a stop
+and a fifth: the first version dimmed the ambient as well and left the
+exposure alone, and the afternoon read as night, because there is no
+auto-exposure to open up for an overcast sky and the skylight the
+renderer uses comes from the atmosphere, not from the ambient value.
+
+Some two thousand drops in the air cost **+1.0 ms** at native — about
+what the tyre smoke costs per hundred puffs, since a streak is small and
+the particle pass draws at half resolution. `testRainSpawnsAboveAndFalls`
+pins the spawn box, the fall, and that the count settles at rate × life;
+`testRainDrawsStreaksAndDimsTheSun` that the frame changes and the
+dimming rule holds.
+
+Not done: drops on the glass, the sky itself (still clear blue behind the
+rain), and the physics, which stays dry.
 
 ## Licensing
 

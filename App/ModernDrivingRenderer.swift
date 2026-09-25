@@ -226,7 +226,9 @@ final class ModernDrivingRenderer {
               particleSources: [ParticleSystem.Source] = [], skidSources: [SkidMarks.Source] = [],
               deltaTime: Float = 1 / 60) {
         do {
-            renderer.particles.sources = particleSources
+            var sources = particleSources
+            if let rainSource = Self.rainSource(eye: sceneCamera.eye, rain: renderer.rain) { sources.append(rainSource) }
+            renderer.particles.sources = sources
             renderer.particles.advance(by: deltaTime)
             renderer.skidMarks.sources = skidSources
             renderer.skidMarks.advance()
@@ -240,7 +242,8 @@ final class ModernDrivingRenderer {
             let mirror = try mirrorRequest(pose: pose, drawableWidth: drawableWidth, drawableHeight: drawableHeight,
                                            lightState: lightState, drawsCar: drawsCar)
             try renderer.present(in: view, resources: resources.resources, instances: instances,
-                                 camera: Self.camera(from: sceneCamera), lighting: lighting, mirror: mirror)
+                                 camera: Self.camera(from: sceneCamera), lighting: Self.lighting(lighting, rain: renderer.rain),
+                                 mirror: mirror)
             lastDrawCount = renderer.lastDrawCount
             lastTriangleCount = renderer.lastTriangleCount
             lastError = nil
@@ -253,6 +256,31 @@ final class ModernDrivingRenderer {
     var wetness: Float {
         get { renderer.wetness }
         set { renderer.wetness = newValue }
+    }
+    /// Rain, 0 to 1: streaks around the camera and a sun dimmed to a
+    /// quarter, the ambient to two thirds.
+    var rain: Float {
+        get { renderer.rain }
+        set { renderer.rain = newValue }
+    }
+
+    /// The rain falls through a box above the camera, wherever it is.
+    static func rainSource(eye: SIMD3<Float>, rain: Float) -> ParticleSystem.Source? {
+        guard rain > 0.02 else { return nil }
+        return ParticleSystem.Source(kind: .rain, position: eye, velocity: .zero, intensity: min(rain, 1))
+    }
+
+    static func lighting(_ base: SunLighting, rain: Float) -> SunLighting {
+        var lighting = base
+        let r = min(max(rain, 0), 1)
+        // Overcast: the sun to a third, the skylight kept — diffuse light is
+        // what an overcast day has plenty of. Dimming both read as dusk.
+        lighting.intensity *= 1 - 0.7 * r
+        lighting.ambient *= 1 + 0.1 * r
+        // No auto-exposure yet: open up as an eye would under an overcast
+        // sky, a little over a stop at full rain.
+        lighting.exposureEV100 -= 1.2 * r
+        return lighting
     }
 
     var uploadedTextureBytes: Int { resources.textures.uploadedBytes }

@@ -265,6 +265,10 @@ public final class ForwardRenderer {
     /// road and terrain, and fills puddles. A scene condition, not a
     /// quality setting, so it lives here rather than in `RenderSettings`.
     public var wetness: Float = 0
+    /// How hard it is raining, 0 to 1. A scene condition the presentation
+    /// turns into rain particles around the camera and a dimmer sun; the
+    /// renderer keeps it so the mirror and diagnostics see the same value.
+    public var rain: Float = 0
     private var cachedTargets: FrameTargets?
 
     public private(set) var lastGPUTime: Double = 0
@@ -1067,6 +1071,7 @@ public final class ForwardRenderer {
         let targets = try mirror.renderer.targets(outputWidth: mirror.width, outputHeight: mirror.height)
         mirror.renderer.animationTime = animationTime
         mirror.renderer.wetness = wetness
+        mirror.renderer.rain = rain
         mirror.renderer.particles = particles
         mirror.renderer.skidMarks = skidMarks
         mirror.renderer.roadPaint = roadPaint

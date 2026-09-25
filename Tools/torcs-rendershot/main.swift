@@ -71,6 +71,8 @@ struct Options {
     var sunGlare: Bool? = nil
     var heatHaze: Bool? = nil
     var compareHaze = false
+    /// Rain, 0 to 1: streaks pre-rolled around the camera, a dimmed sun.
+    var rain: Float = 0
     var compareGlare = false
     var reflectionTemporal: Bool? = nil
     var compareReflectionTemporal = false
@@ -176,6 +178,7 @@ func parse() -> Options {
         case "--haze": options.heatHaze = true
         case "--no-haze": options.heatHaze = false
         case "--compare-haze": options.compareHaze = true
+        case "--rain": options.rain = Float(next()) ?? 1
         case "--no-glare": options.sunGlare = false
         case "--compare-glare": options.compareGlare = true
         case "--ssr-temporal": options.reflectionTemporal = true
@@ -387,6 +390,8 @@ do {
     renderer.animationTime = Double(options.animationTime)
     renderer.wetness = options.wetness
     renderer.roadPaint.set(gridBoxes)
+    renderer.rain = options.rain
+    if options.rain > 0 { renderer.wetness = max(renderer.wetness, options.rain) }
     if !gridBoxes.isEmpty { print("grid: \(gridBoxes.count) boxes painted") }
     if let radius = options.aoRadius { renderer.occlusion.ambientRadius = radius }
     if let power = options.aoPower { renderer.occlusion.ambientPower = power }
@@ -438,7 +443,7 @@ do {
                               elevation: options.elevation * radians)
     }
     let sunAzimuth = options.sunAzimuth * radians, sunElevation = options.sunElevation * radians
-    let lighting = SunLighting(
+    var lighting = SunLighting(
         direction: SIMD3(cos(sunAzimuth) * cos(sunElevation),
                          sin(sunAzimuth) * cos(sunElevation),
                          sin(sunElevation)),
@@ -540,6 +545,18 @@ do {
                          first.1, last.1, (last.1 - first.1) / first.1 * 100))
         }
         exit(0)
+    }
+    if options.rain > 0 {
+        // Rain: the sun dimmed as presentation dims it, and a second of
+        // streaks pre-rolled around the camera so the frame is in the rain.
+        lighting.intensity *= 1 - 0.7 * options.rain
+        lighting.ambient *= 1 + 0.1 * options.rain
+        lighting.exposureEV100 -= 1.2 * options.rain
+        for _ in 0 ..< 70 {
+            renderer.particles.sources = [ParticleSystem.Source(kind: .rain, position: camera.eye, velocity: .zero, intensity: options.rain)]
+            renderer.particles.advance(by: 1 / 60)
+        }
+        print("rain: \(renderer.particles.count) drops in the air")
     }
     if options.smokeFrames > 0 {
         // A stationary car's rear wheels spinning up: two sources a frame,

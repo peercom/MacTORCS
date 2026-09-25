@@ -35,7 +35,14 @@ vertex ParticleVarying particleVertex(uint vertexID [[vertex_id]], uint instance
     // Camera axes from the view matrix's rows: right and up in world space.
     float3 right = float3(frame.view[0][0], frame.view[1][0], frame.view[2][0]);
     float3 up = float3(frame.view[0][1], frame.view[1][1], frame.view[2][1]);
-    float3 world = p.positionSize.xyz + right * rotated.x + up * rotated.y;
+    float3 world;
+    if (p.attributes.z > 2.5f) {
+        // Rain: a streak a few centimetres wide and half a metre tall,
+        // standing along its fall rather than facing the camera.
+        world = p.positionSize.xyz + right * corner.x * p.positionSize.w + float3(0.0f, 0.0f, corner.y * 0.35f);
+    } else {
+        world = p.positionSize.xyz + right * rotated.x + up * rotated.y;
+    }
     ParticleVarying out;
     out.position = frame.viewProjection * float4(world, 1.0f);
     out.local = corner;
@@ -65,6 +72,15 @@ fragment float4 particleFragment(ParticleVarying in [[stage_in]],
                                  texture2d<float> depth [[texture(0)]],
                                  sampler pointSampler [[sampler(0)]]) {
     float r = length(in.local);
+    if (in.attributes.z > 2.5f) {
+        // Rain streak: soft across, fading at both ends, lit by the sky.
+        float across = 1.0f - smoothstep(0.3f, 1.0f, abs(in.local.x));
+        float along = 1.0f - smoothstep(0.6f, 1.0f, abs(in.local.y));
+        float coverage = across * along * in.colourAlpha.a * 0.7f;
+        if (coverage <= 0.002f) discard_fragment();
+        float3 colour = in.colourAlpha.rgb * (frame.ambientIrradiance.xyz * 1.2f + frame.sunIlluminance.xyz * 0.03f);
+        return float4(colour * coverage, coverage);
+    }
     if (r > 1.0f) discard_fragment();
 
     // Manual depth test and soft fade. The opaque depth is reversed and
