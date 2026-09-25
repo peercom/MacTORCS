@@ -1,0 +1,40 @@
+{
+ "date": "2026-09-25",
+ "evidence": {
+  "g6-field-tests.log": "c604c639fb6c63e85642123bdddc7f42c8debd064dd7f6d3ebb5c4cede9632e3",
+  "g6-traffic/field.png": "d7017b3b75f4ffeeb25a38917e3c61f3a4f2123fbacfad1edbdfe1a382e48fd0",
+  "g6-traffic/one-car.png": "0f0b2852cc329df28ff7fd3dda32bde77e17cb7ff8e7a0e838a165c0ce03db27",
+  "g6-traffic/traffic.json": "f91282426ca85b4dbedaece50b0231ebcd788c98bad675260cf4eeaf5575e6a5"
+ },
+ "increment": "G6a field rendering",
+ "limits": [
+  "No per-car visual identity: RenderInstance carries no colour or material override and the session ships one car model, so every car wears the same livery.",
+  "Particle and skid sources are caller-supplied, so a field emits only for the cars the caller asks for; the diagnostic asks for none.",
+  "Cross-process image comparison is not bit-stable for this renderer; the repeat check is within one process.",
+  "Renderer half only: the driving window still runs the single-car session runtime, and standings, gaps and penalties in the HUD remain to do.",
+  "One prepared session and one camera; other cameras and larger fields are not separately captured."
+ ],
+ "measurements": {
+  "cars": 3,
+  "changedChannels": 244739,
+  "changedFraction": 0.05745262732872596,
+  "fieldDraws": 246,
+  "fieldInstances": 51,
+  "fieldTriangles": 497247,
+  "instancesPerCar": 17,
+  "mirrorOpponentInstances": 34,
+  "oneCarDraws": 146,
+  "oneCarTriangles": 277247,
+  "poleChaseShadowOnlyFraction": 0.0077,
+  "releaseSuite": "457 tests, 0 failures, 99.608 s",
+  "repeatIdenticalInProcess": true,
+  "viewerCar": 2
+ },
+ "schema": 1,
+ "scope": "Renderer draws a whole field: per-car instances, explicit viewer, and mirror contents; verified by an offscreen field capture",
+ "sources": {
+  "App/ModernDrivingRenderer.swift": "9b705943471d7d30cb3d0f56de915dc055a6f52d212c81176102a0a7fc1ace82",
+  "App/ModernTrafficSmoke.swift": "1c938ea337361e95b96a7e11092a008334a5089b37b9e02e1a25cccbbba9a240",
+  "App/TORCSMacApp.swift": "de96cb2a6470bbe9172c30ea94149742ccf7d3eb5aae813e62a0400683f1c402"
+ }
+}

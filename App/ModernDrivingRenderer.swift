@@ -53,6 +53,31 @@ final class ModernDrivingRenderer {
     /// hidden, so the mirror shows the road behind rather than the cabin.
     func mirrorRequest(pose: VehiclePresentation, drawableWidth: Int, drawableHeight: Int,
                        lightState: SIMD4<Float>, drawsCar: Bool) throws -> ForwardRenderer.MirrorRequest? {
+        var car = FieldCar(pose: pose, drawsCar: true, drawsDriver: false)
+        car.brakeCommand = 0
+        return try mirrorRequest(field: [car], viewer: 0, viewerDrawsCar: drawsCar,
+                                 viewerLightState: lightState,
+                                 drawableWidth: drawableWidth, drawableHeight: drawableHeight)
+    }
+    /// The car instances a mirror carries: every other car whole, and the
+    /// viewer's own bodywork only when the main view hides it.
+    static func mirrorCarInstances(field: [FieldCar], viewer: Int, viewerDrawsCar: Bool,
+                                   viewerLightState: SIMD4<Float> = .zero) -> [RenderInstance] {
+        var instances: [RenderInstance] = []
+        if !viewerDrawsCar, field.indices.contains(viewer) {
+            var body = vehicleInstances(field: [field[viewer]])
+                .filter { $0.resource == SessionRenderResources.bodyResource }
+            if !body.isEmpty { body[0].lightState = viewerLightState;body[0].drawsDriver = false }
+            instances += body
+        }
+        instances += vehicleInstances(field: field.indices.filter { $0 != viewer }.map { field[$0] })
+        return instances
+    }
+    /// The mirror shows every other car whole. The viewer's own bodywork appears
+    /// only when the main view hides it, which is what a cockpit view does.
+    func mirrorRequest(field: [FieldCar], viewer: Int, viewerDrawsCar: Bool,
+                       viewerLightState: SIMD4<Float> = .zero,
+                       drawableWidth: Int, drawableHeight: Int) throws -> ForwardRenderer.MirrorRequest? {
         guard let mirror, drawableWidth >= 8, drawableHeight >= 48 else { return nil }
         let layout = MirrorLayout(width: drawableWidth, height: drawableHeight)
         let camera = try mirror.camera(width: layout.width, height: layout.height)
@@ -60,9 +85,8 @@ final class ModernDrivingRenderer {
             mirrorRenderer = try ForwardRenderer(device: renderer.device, settings: Self.mirrorSettings(), archive: renderer.pipelineArchive)
         }
         guard let mirrorRenderer else { return nil }
-        let instances = staticInstances + (drawsCar ? [] : Self.vehicleInstances(
-            pose, drawsDriver: false, drawsCar: true, castsShadow: true, lightState: lightState)
-            .filter { $0.resource == SessionRenderResources.bodyResource })
+        let instances = staticInstances + Self.mirrorCarInstances(
+            field: field, viewer: viewer, viewerDrawsCar: viewerDrawsCar, viewerLightState: viewerLightState)
         return ForwardRenderer.MirrorRequest(renderer: mirrorRenderer, resources: resources.resources,
                                              instances: instances, camera: Self.camera(from: camera),
                                              width: layout.width, height: layout.height,
@@ -145,23 +169,62 @@ final class ModernDrivingRenderer {
     /// `VehiclePresentation` already pre-multiplies each wheel by the body
     /// matrix, so every transform here is world-space and there is no rig to
     /// maintain.
+    /// One car to draw this frame. Every car shares the session's meshes, so a
+    /// field differs only by pose and published light state. The viewer's own car
+    /// is the one a cockpit view hides and excludes from shadow casting; the rest
+    /// always draw and always cast.
+    struct FieldCar {
+        var pose: VehiclePresentation
+        var brakeCommand: Float
+        var lightCommand: UInt32
+        var drawsCar: Bool
+        var drawsDriver: Bool
+        var castsShadow: Bool
+        init(pose: VehiclePresentation, brakeCommand: Float = 0, lightCommand: UInt32 = 0,
+             drawsCar: Bool = true, drawsDriver: Bool = true, castsShadow: Bool = true) {
+            self.pose = pose
+            self.brakeCommand = brakeCommand
+            self.lightCommand = lightCommand
+            self.drawsCar = drawsCar
+            self.drawsDriver = drawsDriver
+            self.castsShadow = castsShadow
+        }
+        var lightState: SIMD4<Float> {
+            RenderInstance.lightState(brakeCommand: brakeCommand, lightCommand: lightCommand)
+        }
+    }
+    /// Instances per car: one body, then each wheel's three brake parts and the
+    /// wheel itself at its own detail level.
+    static let instancesPerCar = 17
+    static func vehicleInstances(field: [FieldCar]) -> [RenderInstance] {
+        var instances: [RenderInstance] = []
+        instances.reserveCapacity(field.count * instancesPerCar)
+        for car in field where car.drawsCar {
+            instances.append(RenderInstance(resource: SessionRenderResources.bodyResource,
+                                            transform: car.pose.body, drawsDriver: car.drawsDriver,
+                                            castsShadow: car.castsShadow, lightState: car.lightState))
+            for index in 0 ..< 4 {
+                let wheel = car.pose.wheels[index]
+                for part in 0 ..< 3 {
+                    instances.append(RenderInstance(resource: SessionRenderResources.brakeResources[index * 3 + part],
+                                                    transform: wheel.brakeTransform, castsShadow: car.castsShadow))
+                }
+                let level = min(max(wheel.level, 0), SessionRenderResources.wheelResources.count - 1)
+                instances.append(RenderInstance(resource: SessionRenderResources.wheelResources[level],
+                                                transform: wheel.transform, castsShadow: car.castsShadow))
+            }
+        }
+        return instances
+    }
     static func vehicleInstances(_ pose: VehiclePresentation, drawsDriver: Bool,
                                  drawsCar: Bool, castsShadow: Bool,
                                  lightState: SIMD4<Float> = .zero) -> [RenderInstance] {
+        // The single-car form keeps taking a prepared light state, so existing
+        // callers are unchanged.
         guard drawsCar else { return [] }
-        var instances = [RenderInstance(resource: SessionRenderResources.bodyResource,
-                                        transform: pose.body, drawsDriver: drawsDriver,
-                                        castsShadow: castsShadow, lightState: lightState)]
-        for index in 0 ..< 4 {
-            let wheel = pose.wheels[index]
-            for part in 0 ..< 3 {
-                instances.append(RenderInstance(resource: SessionRenderResources.brakeResources[index * 3 + part],
-                                                transform: wheel.brakeTransform, castsShadow: castsShadow))
-            }
-            let level = min(max(wheel.level, 0), SessionRenderResources.wheelResources.count - 1)
-            instances.append(RenderInstance(resource: SessionRenderResources.wheelResources[level],
-                                            transform: wheel.transform, castsShadow: castsShadow))
-        }
+        var instances = vehicleInstances(field: [FieldCar(pose: pose, drawsCar: true,
+                                                          drawsDriver: drawsDriver, castsShadow: castsShadow)])
+        instances[0].lightState = lightState
         return instances
     }
 
@@ -234,6 +297,15 @@ final class ModernDrivingRenderer {
               drawsDriver: Bool, drawsCar: Bool,
               particleSources: [ParticleSystem.Source] = [], skidSources: [SkidMarks.Source] = [],
               deltaTime: Float = 1 / 60) {
+        draw(in: view, field: [FieldCar(pose: pose, brakeCommand: brakeCommand, lightCommand: lightCommand,
+                                        drawsCar: drawsCar, drawsDriver: drawsDriver, castsShadow: drawsCar)],
+             camera: sceneCamera, particleSources: particleSources, skidSources: skidSources, deltaTime: deltaTime)
+    }
+    /// Draw a whole field. The caller supplies particle and skid sources for
+    /// whichever cars should produce them.
+    func draw(in view: MTKView, field: [FieldCar], camera sceneCamera: SceneCamera, viewer: Int = 0,
+              particleSources: [ParticleSystem.Source] = [], skidSources: [SkidMarks.Source] = [],
+              deltaTime: Float = 1 / 60) {
         do {
             var sources = particleSources
             if let rainSource = Self.rainSource(eye: sceneCamera.eye, rain: renderer.rain) { sources.append(rainSource) }
@@ -243,13 +315,14 @@ final class ModernDrivingRenderer {
             renderer.skidMarks.advance()
             // A car filling the near cascade would shadow the camera in cockpit
             // views, where the body is hidden but would still cast.
-            let lightState = RenderInstance.lightState(brakeCommand: brakeCommand, lightCommand: lightCommand)
-            let instances = staticInstances + Self.vehicleInstances(
-                pose, drawsDriver: drawsDriver, drawsCar: drawsCar, castsShadow: drawsCar, lightState: lightState)
+            let instances = staticInstances + Self.vehicleInstances(field: field)
             let drawableWidth = view.currentDrawable?.texture.width ?? 0
             let drawableHeight = view.currentDrawable?.texture.height ?? 0
-            let mirror = try mirrorRequest(pose: pose, drawableWidth: drawableWidth, drawableHeight: drawableHeight,
-                                           lightState: lightState, drawsCar: drawsCar)
+            let viewed = field.indices.contains(viewer) ? field[viewer] : nil
+            let mirror = try mirrorRequest(field: field, viewer: viewer,
+                                           viewerDrawsCar: viewed?.drawsCar ?? true,
+                                           viewerLightState: viewed?.lightState ?? .zero,
+                                           drawableWidth: drawableWidth, drawableHeight: drawableHeight)
             try renderer.present(in: view, resources: resources.resources, instances: instances,
                                  camera: Self.camera(from: sceneCamera), lighting: Self.lighting(lighting, rain: renderer.rain, overcast: renderer.overcast),
                                  mirror: mirror)

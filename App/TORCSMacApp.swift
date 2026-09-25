@@ -57,6 +57,14 @@ import os
     @State private var drivingSession = DrivingSession()
     @Environment(\.openWindow) private var openWindow
     init() {
+        if let index=CommandLine.arguments.firstIndex(of:"--modern-traffic-test") {
+            do {
+                guard CommandLine.arguments.count>=index+3 else { throw RenderError.unavailable("Usage: --modern-traffic-test session-directory new-output-directory [cars]") }
+                let cars=CommandLine.arguments.count>index+3 ? Int(CommandLine.arguments[index+3]) ?? 3:3
+                try ModernTrafficSmoke.run(session:URL(fileURLWithPath:CommandLine.arguments[index+1]),
+                    output:URL(fileURLWithPath:CommandLine.arguments[index+2]),cars:cars);exit(0)
+            } catch { FileHandle.standardError.write(Data("torcs: \(error)\n".utf8));exit(2) }
+        }
         if let index=CommandLine.arguments.firstIndex(of:"--modern-driving-test") {
             do {
                 guard CommandLine.arguments.count==index+3 else { throw RenderError.unavailable("Usage: --modern-driving-test session-directory new-output-directory") }
