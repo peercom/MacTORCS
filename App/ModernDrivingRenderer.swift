@@ -57,7 +57,7 @@ final class ModernDrivingRenderer {
         let layout = MirrorLayout(width: drawableWidth, height: drawableHeight)
         let camera = try mirror.camera(width: layout.width, height: layout.height)
         if mirrorRenderer == nil {
-            mirrorRenderer = try ForwardRenderer(device: renderer.device, settings: Self.mirrorSettings())
+            mirrorRenderer = try ForwardRenderer(device: renderer.device, settings: Self.mirrorSettings(), archive: renderer.pipelineArchive)
         }
         guard let mirrorRenderer else { return nil }
         let instances = staticInstances + (drawsCar ? [] : Self.vehicleInstances(
@@ -74,7 +74,16 @@ final class ModernDrivingRenderer {
     var lastError: String?
 
     init(content: DrivingContent, settings: RenderSettings = .init(), materials: URL? = nil) throws {
-        renderer = try ForwardRenderer(settings: settings)
+        // Compiled pipelines kept in Application Support between launches,
+        // so the first frame after installation compiles nothing at the
+        // start of a race. Without the directory the renderer compiles as
+        // before.
+        let archive = (try? FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask,
+                                                     appropriateFor: nil, create: true)
+            .appendingPathComponent("TORCSMac", isDirectory: true)).flatMap { directory in
+                try? PipelineArchive(device: MTLCreateSystemDefaultDevice()!, directory: directory)
+            }
+        renderer = try ForwardRenderer(settings: settings, archive: archive)
         resources = try SessionRenderResources(
             device: renderer.device,
             scenes: content.renderScenes,

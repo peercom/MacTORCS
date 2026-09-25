@@ -146,7 +146,7 @@ public final class SkidMarkRenderer {
     public private(set) var lastDrawnQuads = 0
     public private(set) var lastPaintedBoxes = 0
 
-    public init(device: MTLDevice, library: MTLLibrary) throws {
+    public init(device: MTLDevice, library: MTLLibrary, archive: PipelineArchive? = nil) throws {
         let descriptor = MTLRenderPipelineDescriptor()
         descriptor.label = "skidMarks"
         descriptor.vertexFunction = library.makeFunction(name: "skidVertex")
@@ -160,7 +160,7 @@ public final class SkidMarkRenderer {
         colour.sourceAlphaBlendFactor = .zero
         colour.destinationAlphaBlendFactor = .one
         descriptor.depthAttachmentPixelFormat = FrameTargets.depthFormat
-        pipeline = try device.makeRenderPipelineState(descriptor: descriptor)
+        pipeline = try PipelineArchive.make(descriptor, device: device, archive: archive)
 
         // Paint: straight alpha over the road, same vertex layout.
         let paintDescriptor = MTLRenderPipelineDescriptor()
@@ -175,7 +175,7 @@ public final class SkidMarkRenderer {
         paint.sourceAlphaBlendFactor = .zero
         paint.destinationAlphaBlendFactor = .one
         paintDescriptor.depthAttachmentPixelFormat = FrameTargets.depthFormat
-        paintPipeline = try device.makeRenderPipelineState(descriptor: paintDescriptor)
+        paintPipeline = try PipelineArchive.make(paintDescriptor, device: device, archive: archive)
         let depth = MTLDepthStencilDescriptor()
         depth.depthCompareFunction = .greaterEqual
         depth.isDepthWriteEnabled = false

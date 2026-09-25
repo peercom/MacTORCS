@@ -45,7 +45,7 @@ public final class OcclusionRenderer {
     /// The texture the forward pass should sample, valid until the next encode.
     public private(set) var result: MTLTexture?
 
-    public init(device: MTLDevice, library: MTLLibrary) throws {
+    public init(device: MTLDevice, library: MTLLibrary, archive: PipelineArchive? = nil) throws {
         self.device = device
         func pipeline(_ fragment: String) throws -> MTLRenderPipelineState {
             let descriptor = MTLRenderPipelineDescriptor()
@@ -53,7 +53,7 @@ public final class OcclusionRenderer {
             descriptor.vertexFunction = library.makeFunction(name: "fullscreenVertex")
             descriptor.fragmentFunction = library.makeFunction(name: fragment)
             descriptor.colorAttachments[0].pixelFormat = Self.format
-            return try device.makeRenderPipelineState(descriptor: descriptor)
+            return try PipelineArchive.make(descriptor, device: device, archive: archive)
         }
         occlusion = try pipeline("occlusionFragment")
         blur = try pipeline("occlusionBlurFragment")

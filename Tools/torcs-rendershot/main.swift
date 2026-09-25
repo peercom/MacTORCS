@@ -102,6 +102,10 @@ struct Options {
     var compareReflectionTemporal = false
     /// Report startup costs: shader library, renderer construction, scaler pre-warm.
     var startup = false
+    /// A pipeline archive file to build the pipelines through and keep.
+    var archivePath: String?
+    /// Fail construction on any pipeline the archive does not hold.
+    var archiveStrict = false
     /// Report the device's allocated memory after the frames.
     var memory = false
     /// Frames of tyre smoke to emit at the rear wheels before rendering.
@@ -221,6 +225,8 @@ func parse() -> Options {
         case "--no-ssr-temporal": options.reflectionTemporal = false
         case "--compare-ssr-temporal": options.compareReflectionTemporal = true
         case "--startup": options.startup = true
+        case "--archive": options.archivePath = next()
+        case "--archive-strict": options.archiveStrict = true
         case "--memory": options.memory = true
         case "--smoke": options.smokeFrames = Int(next()) ?? 45
         case "--orbit-speed": options.orbitSpeed = Float(next()) ?? 0
@@ -414,7 +420,16 @@ do {
         print(String(format: "shader library: %.1f ms (%@)", Double(t1.uptimeNanoseconds - t0.uptimeNanoseconds) / 1e6,
                      shaders.prebuilt ? "prebuilt metallib" : "compiled from source"))
     }
-    let renderer = try ForwardRenderer(settings: settings)
+    var archive: PipelineArchive?
+    if let path = options.archivePath, let device = MTLCreateSystemDefaultDevice() {
+        archive = try PipelineArchive(device: device, url: URL(fileURLWithPath: path))
+        archive?.requiresHit = options.archiveStrict
+    }
+    let renderer = try ForwardRenderer(settings: settings, archive: archive)
+    if let archive, options.startup {
+        let size = (try? FileManager.default.attributesOfItem(atPath: archive.url.path)[.size] as? Int) ?? 0
+        print("pipeline archive: \(archive.loaded ? "loaded" : "started empty"), \(archive.added) pipelines recorded, \(size) bytes at \(archive.url.lastPathComponent)")
+    }
     if options.startup {
         let t = DispatchTime.now()
         print(String(format: "renderer construction: %.1f ms (shaders %@)",

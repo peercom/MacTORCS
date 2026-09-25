@@ -26,14 +26,14 @@ public final class MotionBlurRenderer {
 
     public private(set) var result: MTLTexture?
 
-    public init(device: MTLDevice, library: MTLLibrary) throws {
+    public init(device: MTLDevice, library: MTLLibrary, archive: PipelineArchive? = nil) throws {
         self.device = device
         let descriptor = MTLRenderPipelineDescriptor()
         descriptor.label = "motionBlurFragment"
         descriptor.vertexFunction = library.makeFunction(name: "fullscreenVertex")
         descriptor.fragmentFunction = library.makeFunction(name: "motionBlurFragment")
         descriptor.colorAttachments[0].pixelFormat = FrameTargets.colourFormat
-        pipeline = try device.makeRenderPipelineState(descriptor: descriptor)
+        pipeline = try PipelineArchive.make(descriptor, device: device, archive: archive)
     }
 
     /// Blurs `source` (at the output resolution) by `velocity` (at the render

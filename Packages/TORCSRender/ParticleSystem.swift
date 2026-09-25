@@ -284,7 +284,7 @@ public final class ParticleRenderer {
     private var target: MTLTexture?
     public private(set) var lastDrawnCount = 0
 
-    public init(device: MTLDevice, library: MTLLibrary) throws {
+    public init(device: MTLDevice, library: MTLLibrary, archive: PipelineArchive? = nil) throws {
         self.device = device
         let descriptor = MTLRenderPipelineDescriptor()
         descriptor.label = "particles"
@@ -299,7 +299,7 @@ public final class ParticleRenderer {
         colour.destinationRGBBlendFactor = .oneMinusSourceAlpha
         colour.sourceAlphaBlendFactor = .one
         colour.destinationAlphaBlendFactor = .oneMinusSourceAlpha
-        pipeline = try device.makeRenderPipelineState(descriptor: descriptor)
+        pipeline = try PipelineArchive.make(descriptor, device: device, archive: archive)
 
         let compositeDescriptor = MTLRenderPipelineDescriptor()
         compositeDescriptor.label = "particleComposite"
@@ -312,7 +312,7 @@ public final class ParticleRenderer {
         over.destinationRGBBlendFactor = .oneMinusSourceAlpha
         over.sourceAlphaBlendFactor = .zero
         over.destinationAlphaBlendFactor = .one
-        composite = try device.makeRenderPipelineState(descriptor: compositeDescriptor)
+        composite = try PipelineArchive.make(compositeDescriptor, device: device, archive: archive)
 
         func sampler(_ filter: MTLSamplerMinMagFilter) throws -> MTLSamplerState {
             let d = MTLSamplerDescriptor()

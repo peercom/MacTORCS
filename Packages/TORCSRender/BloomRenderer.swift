@@ -64,7 +64,7 @@ public final class BloomRenderer {
     private let upsample: MTLRenderPipelineState
     private var chain: Chain?
 
-    public init(device: MTLDevice, library: MTLLibrary) throws {
+    public init(device: MTLDevice, library: MTLLibrary, archive: PipelineArchive? = nil) throws {
         self.device = device
 
         func pipeline(_ fragment: String, blending: Bool) throws -> MTLRenderPipelineState {
@@ -80,7 +80,7 @@ public final class BloomRenderer {
                 attachment.sourceRGBBlendFactor = .one
                 attachment.destinationRGBBlendFactor = .one
             }
-            return try device.makeRenderPipelineState(descriptor: descriptor)
+            return try PipelineArchive.make(descriptor, device: device, archive: archive)
         }
 
         prefilter = try pipeline("bloomPrefilter", blending: false)

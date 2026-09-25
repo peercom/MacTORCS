@@ -42,7 +42,7 @@ public final class AtmosphereResources {
         var sunIlluminance: SIMD4<Float>
     }
 
-    public init(device: MTLDevice, library: MTLLibrary) throws {
+    public init(device: MTLDevice, library: MTLLibrary, archive: PipelineArchive? = nil) throws {
         func table(_ size: (width: Int, height: Int)) throws -> MTLTexture {
             let descriptor = MTLTextureDescriptor.texture2DDescriptor(
                 pixelFormat: .rgba16Float, width: size.width, height: size.height, mipmapped: false)
@@ -79,7 +79,10 @@ public final class AtmosphereResources {
             guard let function = library.makeFunction(name: name) else {
                 throw RenderError.unavailable("Missing atmosphere kernel \(name)")
             }
-            return try device.makeComputePipelineState(function: function)
+            let descriptor = MTLComputePipelineDescriptor()
+            descriptor.computeFunction = function
+            descriptor.label = name
+            return try PipelineArchive.make(descriptor, device: device, archive: archive)
         }
         transmittancePipeline = try pipeline("atmosphereTransmittanceLUT")
         multiScatterPipeline = try pipeline("atmosphereMultiScatterLUT")

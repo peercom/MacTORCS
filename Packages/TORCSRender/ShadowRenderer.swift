@@ -58,7 +58,7 @@ public final class ShadowRenderer {
     /// about to run four times per frame.
     public static let format: MTLPixelFormat = .depth16Unorm
 
-    public init(device: MTLDevice, library: MTLLibrary, resolution: Int, cascadeCount: Int) throws {
+    public init(device: MTLDevice, library: MTLLibrary, resolution: Int, cascadeCount: Int, archive: PipelineArchive? = nil) throws {
         self.resolution = max(256, resolution)
         self.cascadeCount = max(1, min(cascadeCount, 4))
 
@@ -81,9 +81,9 @@ public final class ShadowRenderer {
         pipelineDescriptor.fragmentFunction = nil
         pipelineDescriptor.depthAttachmentPixelFormat = Self.format
         pipelineDescriptor.rasterSampleCount = 1
-        pipeline = try device.makeRenderPipelineState(descriptor: pipelineDescriptor)
+        pipeline = try PipelineArchive.make(pipelineDescriptor, device: device, archive: archive)
         pipelineDescriptor.vertexFunction = library.makeFunction(name: "shadowSwayVertex")
-        swayPipeline = try device.makeRenderPipelineState(descriptor: pipelineDescriptor)
+        swayPipeline = try PipelineArchive.make(pipelineDescriptor, device: device, archive: archive)
 
         let depth = MTLDepthStencilDescriptor()
         depth.depthCompareFunction = .lessEqual

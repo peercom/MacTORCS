@@ -49,28 +49,28 @@ public final class ReflectionRenderer {
     public private(set) var result: MTLTexture?
     public var noisePhase: UInt32 { frameIndex }
 
-    public init(device: MTLDevice, library: MTLLibrary) throws {
+    public init(device: MTLDevice, library: MTLLibrary, archive: PipelineArchive? = nil) throws {
         self.device = device
         let traceDescriptor = MTLRenderPipelineDescriptor()
         traceDescriptor.label = "reflectionFragment"
         traceDescriptor.vertexFunction = library.makeFunction(name: "fullscreenVertex")
         traceDescriptor.fragmentFunction = library.makeFunction(name: "reflectionFragment")
         traceDescriptor.colorAttachments[0].pixelFormat = Self.format
-        trace = try device.makeRenderPipelineState(descriptor: traceDescriptor)
+        trace = try PipelineArchive.make(traceDescriptor, device: device, archive: archive)
 
         let blurDescriptor = MTLRenderPipelineDescriptor()
         blurDescriptor.label = "reflectionBlurFragment"
         blurDescriptor.vertexFunction = library.makeFunction(name: "fullscreenVertex")
         blurDescriptor.fragmentFunction = library.makeFunction(name: "reflectionBlurFragment")
         blurDescriptor.colorAttachments[0].pixelFormat = Self.format
-        blur = try device.makeRenderPipelineState(descriptor: blurDescriptor)
+        blur = try PipelineArchive.make(blurDescriptor, device: device, archive: archive)
 
         let resolveDescriptor = MTLRenderPipelineDescriptor()
         resolveDescriptor.label = "reflectionResolveFragment"
         resolveDescriptor.vertexFunction = library.makeFunction(name: "fullscreenVertex")
         resolveDescriptor.fragmentFunction = library.makeFunction(name: "reflectionResolveFragment")
         resolveDescriptor.colorAttachments[0].pixelFormat = Self.format
-        resolve = try device.makeRenderPipelineState(descriptor: resolveDescriptor)
+        resolve = try PipelineArchive.make(resolveDescriptor, device: device, archive: archive)
 
         let compositeDescriptor = MTLRenderPipelineDescriptor()
         compositeDescriptor.label = "reflectionCompositeFragment"
@@ -85,7 +85,7 @@ public final class ReflectionRenderer {
         attachment.alphaBlendOperation = .add
         attachment.sourceAlphaBlendFactor = .zero
         attachment.destinationAlphaBlendFactor = .one
-        composite = try device.makeRenderPipelineState(descriptor: compositeDescriptor)
+        composite = try PipelineArchive.make(compositeDescriptor, device: device, archive: archive)
     }
 
     public var byteCount: Int { [traced, smoothed].compactMap { $0 }.reduce(0) { $0 + $1.width * $1.height * 8 } }

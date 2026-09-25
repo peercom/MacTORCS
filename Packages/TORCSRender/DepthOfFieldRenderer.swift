@@ -56,7 +56,7 @@ public final class DepthOfFieldRenderer {
     /// The gathered image, valid until the next encode or discard.
     public private(set) var result: MTLTexture?
 
-    public init(device: MTLDevice, library: MTLLibrary) throws {
+    public init(device: MTLDevice, library: MTLLibrary, archive: PipelineArchive? = nil) throws {
         self.device = device
         func pipeline(_ fragment: String) throws -> MTLRenderPipelineState {
             let descriptor = MTLRenderPipelineDescriptor()
@@ -64,7 +64,7 @@ public final class DepthOfFieldRenderer {
             descriptor.vertexFunction = library.makeFunction(name: "fullscreenVertex")
             descriptor.fragmentFunction = library.makeFunction(name: fragment)
             descriptor.colorAttachments[0].pixelFormat = FrameTargets.colourFormat
-            return try device.makeRenderPipelineState(descriptor: descriptor)
+            return try PipelineArchive.make(descriptor, device: device, archive: archive)
         }
         prefilter = try pipeline("dofPrefilterFragment")
         gather = try pipeline("dofGatherFragment")

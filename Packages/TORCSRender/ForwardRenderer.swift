@@ -322,7 +322,11 @@ public final class ForwardRenderer {
     public private(set) var lastDrawCount = 0
     public private(set) var lastTriangleCount = 0
 
-    public init(device: MTLDevice? = nil, settings: RenderSettings = .init()) throws {
+    /// The archive the pipelines were built through, if any.
+    public let pipelineArchive: PipelineArchive?
+
+    public init(device: MTLDevice? = nil, settings: RenderSettings = .init(), archive: PipelineArchive? = nil) throws {
+        pipelineArchive = archive
         guard let device = device ?? MTLCreateSystemDefaultDevice(),
               let queue = device.makeCommandQueue() else {
             throw RenderError.unavailable("Metal device unavailable")
@@ -363,7 +367,7 @@ public final class ForwardRenderer {
                 colour.destinationAlphaBlendFactor = .oneMinusSourceAlpha
             }
             descriptor.depthAttachmentPixelFormat = FrameTargets.depthFormat
-            return try device.makeRenderPipelineState(descriptor: descriptor)
+            return try PipelineArchive.make(descriptor, device: device, archive: archive)
         }
         // Specialized rather than branched: RASTER_STABILITY.md documents an M2
         // repeat-render instability caused by an inactive discard path.
@@ -388,7 +392,7 @@ public final class ForwardRenderer {
             descriptor.colorAttachments[2].pixelFormat = FrameTargets.reflectionSurfaceFormat
             descriptor.colorAttachments[2].writeMask = []
             descriptor.depthAttachmentPixelFormat = FrameTargets.depthFormat
-            return try device.makeRenderPipelineState(descriptor: descriptor)
+            return try PipelineArchive.make(descriptor, device: device, archive: archive)
         }
         depthOnly = try depthPipeline(alphaTest: false)
         depthOnlyCutout = try depthPipeline(alphaTest: true)
@@ -401,17 +405,17 @@ public final class ForwardRenderer {
         skyDescriptor.colorAttachments[2].pixelFormat = FrameTargets.reflectionSurfaceFormat
         skyDescriptor.colorAttachments[2].writeMask = []
         skyDescriptor.depthAttachmentPixelFormat = FrameTargets.depthFormat
-        sky = try device.makeRenderPipelineState(descriptor: skyDescriptor)
-        atmosphere = try AtmosphereResources(device: device, library: library)
-        bloom = try BloomRenderer(device: device, library: library)
-        depthOfFieldRenderer = try DepthOfFieldRenderer(device: device, library: library)
-        occlusion = try OcclusionRenderer(device: device, library: library)
-        reflections = try ReflectionRenderer(device: device, library: library)
-        motionBlur = try MotionBlurRenderer(device: device, library: library)
+        sky = try PipelineArchive.make(skyDescriptor, device: device, archive: archive)
+        atmosphere = try AtmosphereResources(device: device, library: library, archive: archive)
+        bloom = try BloomRenderer(device: device, library: library, archive: archive)
+        depthOfFieldRenderer = try DepthOfFieldRenderer(device: device, library: library, archive: archive)
+        occlusion = try OcclusionRenderer(device: device, library: library, archive: archive)
+        reflections = try ReflectionRenderer(device: device, library: library, archive: archive)
+        motionBlur = try MotionBlurRenderer(device: device, library: library, archive: archive)
         particles = try ParticleSystem(device: device)
-        particleRenderer = try ParticleRenderer(device: device, library: library)
+        particleRenderer = try ParticleRenderer(device: device, library: library, archive: archive)
         skidMarks = try SkidMarks(device: device)
-        skidMarkRenderer = try SkidMarkRenderer(device: device, library: library)
+        skidMarkRenderer = try SkidMarkRenderer(device: device, library: library, archive: archive)
         roadPaint = RoadPaint(device: device)
         let neutral = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: OcclusionRenderer.format,
                                                                 width: 1, height: 1, mipmapped: false)
@@ -424,20 +428,24 @@ public final class ForwardRenderer {
         self.neutralOcclusion = neutralOcclusion
         shadows = try ShadowRenderer(device: device, library: library,
                                      resolution: settings.shadowResolution,
-                                     cascadeCount: settings.shadowCascades)
+                                     cascadeCount: settings.shadowCascades, archive: archive)
 
         let resolveDescriptor = MTLRenderPipelineDescriptor()
         resolveDescriptor.vertexFunction = library.makeFunction(name: "resolveVertex")
         resolveDescriptor.fragmentFunction = library.makeFunction(name: "resolveFragment")
         resolveDescriptor.colorAttachments[0].pixelFormat = FrameTargets.displayFormat
-        resolve = try device.makeRenderPipelineState(descriptor: resolveDescriptor)
+        resolve = try PipelineArchive.make(resolveDescriptor, device: device, archive: archive)
 
         let mirrorDescriptor = MTLRenderPipelineDescriptor()
         mirrorDescriptor.label = "mirrorComposite"
         mirrorDescriptor.vertexFunction = library.makeFunction(name: "mirrorVertex")
         mirrorDescriptor.fragmentFunction = library.makeFunction(name: "mirrorFragment")
         mirrorDescriptor.colorAttachments[0].pixelFormat = FrameTargets.displayFormat
-        mirrorComposite = try device.makeRenderPipelineState(descriptor: mirrorDescriptor)
+        mirrorComposite = try PipelineArchive.make(mirrorDescriptor, device: device, archive: archive)
+        // Every pipeline is built now; what was added is kept for the next
+        // launch. A save that fails leaves the next launch compiling, which
+        // is what it would have done anyway.
+        if let archive, archive.added > 0 { try? archive.save() }
 
         let depth = MTLDepthStencilDescriptor()
         // Reversed depth: near is 1, far is 0.

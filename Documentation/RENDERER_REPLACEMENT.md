@@ -1445,7 +1445,7 @@ Against the plan's phases, after twenty-nine increments on the
 | 5 Track | generated road, curbs, barriers, terrain, markings, racing-line rubber, skid marks, pit garages, painted starting grid | road detail atlas beyond the markings |
 | 6 Scatter | volumetric trees with dithered detail pairs, grass cards, wind (in the shadows too), tyre walls on the corners | impostors, crowds, GPU-driven culling (about 290 draws a frame: not needed) |
 | 7 Effects | smoke, dust, spray, wet weather with puddles, rain and drops on the windscreen, sun glare, heat haze, a lens for the television view | — |
-| 8 Hardening | prebuilt shaders, pre-warmed scalers, memory budget test, sustained runs, the seven signposts, app bundle fixed, hero car subdivided in place, per-pass GPU timer, near-field aerial perspective in closed form, detail-map anisotropy per preset, occlusion at a quarter on the Air, view-frustum batch culling (driver's-eye 15.2 → 9.2 ms, under budget at native, sustained 9.3 ms native for 90 s), a pipelined and a paced measurement loop (busy GPU: 6.8 ms/frame; paced 60 Hz: 85–96% of frames on time), the resolution controller made deadline-aware and self-checking (native held, 93–96% on time) | binary archive for the first launch |
+| 8 Hardening | prebuilt shaders, pre-warmed scalers, memory budget test, sustained runs, the seven signposts, app bundle fixed, hero car subdivided in place, per-pass GPU timer, near-field aerial perspective in closed form, detail-map anisotropy per preset, occlusion at a quarter on the Air, view-frustum batch culling (driver's-eye 15.2 → 9.2 ms, under budget at native, sustained 9.3 ms native for 90 s), a pipelined and a paced measurement loop (busy GPU: 6.8 ms/frame; paced 60 Hz: 85–96% of frames on time), the resolution controller made deadline-aware and self-checking (native held, 93–96% on time), pipelines archived between launches (604 → 44 ms, proven with fail-on-miss) | — |
 
 The measured state of the default preset on the target machine is the
 sustained table above: 8.7 ms at native with the whole session drawn, no
@@ -2467,6 +2467,55 @@ difference is confined to bent edges (the fixture's flat sky refracts
 into itself), the mean brightness moves under 5% — refraction moves
 light, it does not add it — the frame repeats exactly, and it is gone
 when the amount is zero.
+
+## No pipeline compiles during a race
+
+The last hardening item the plan had deferred, and the one the memory
+of remaining work called hard to evidence: `PORT_SPECIFICATION.md`
+section 24 asks that no pipeline compiles during a race, and section 1
+of the plan named `MTLBinaryArchive` as the means. The prebuilt shader
+library (R26) removed the shader compile from launch; the thirty-one
+pipeline states the renderer builds from it were still compiled at
+every first launch, and then found in the system's own shader cache.
+
+`PipelineArchive` wraps an `MTLBinaryArchive`. Every pipeline the
+renderer and its sub-renderers build goes through its `make`: the
+archive is offered to the descriptor, so a pipeline it holds is looked
+up rather than compiled, and the descriptor is recorded after, so the
+next launch finds it. The renderer saves the archive once its last
+pipeline is built. The file is named by a hash of the shader sources,
+so a changed shader starts a new archive rather than looking up stale
+binaries; a missing or unreadable file starts an empty one and costs
+nothing but the compile it would have paid anyway. The app keeps it in
+Application Support beside the configuration, and the mirror renderer
+shares it; the tool takes `--archive PATH`.
+
+Evidence needed a library the machine had never compiled, since the
+system cache would otherwise serve any repeat. A variant of the shaders
+differing in one constant, built to its own `.metallib`, and three
+constructions of the renderer at 640×416:
+
+| launch | renderer construction |
+|---|---|
+| never-seen library, no archive: every pipeline compiled | 604 ms |
+| same library, archive from the launch above | 44 ms |
+| same library, no archive, the system cache now warm | 39 ms |
+
+The second and third rows are the point the memory made: on the
+developer's machine the system cache makes the archive invisible. What
+says the archive is real is `requiresHit`, Metal's fail-on-miss option
+carried as a strict mode: with it, construction from the archive alone
+succeeds in 46 ms for all thirty-one pipelines, and from an empty
+archive fails on the first — "Unable to find function forwardFragment
+in binary archives". The test does the same in a temporary directory:
+the archive is written (865 KB), loaded, serves a strict construction
+that renders the fixture pixel-identical to the first, a file that is
+not an archive is ignored, and an empty archive in strict mode throws.
+
+Not shipped in the bundle: an archive holds binaries for one GPU
+family, and a file built here would serve an M2 and no other. Built on
+the first launch and kept, it makes every launch after it — and every
+race — compile nothing, which is what the specification asked.
 
 ## Licensing
 
