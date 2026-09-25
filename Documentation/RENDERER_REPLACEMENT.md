@@ -1440,12 +1440,12 @@ Against the plan's phases, after twenty-nine increments on the
 | 0 Foundations | TORCSRender, linear HDR, packed 32-byte vertex with tangents, generated mip chains, BC5/BC7 caches | — |
 | 1 Light | Hillaire atmosphere, physical sun and exposure, AgX, four-cascade CSM + contact shadows, SH + prefiltered sky IBL | clustered punctual lights (no night to light) |
 | 2 Upscaling | jitter, motion vectors, MetalFX temporal (measured a net loss) and spatial scalers, dynamic resolution, **classic path deleted** | reactive mask (spatial path needs none) |
-| 3 Screen space | GTAO, SSR with a depth-aware filter, motion blur, bloom | SSR temporal reuse, local probe |
-| 4 Materials | `torcs-matgen` sets, stochastic tiling, car paint/glass/lens materials | AI-sourced base maps, the full ~30-material list, BC7-vs-ASTC comparison |
-| 5 Track | generated road, curbs, barriers, terrain, markings, racing-line rubber, skid marks | pit buildings, road detail atlas |
-| 6 Scatter | volumetric trees with dithered detail pairs, grass cards, wind (in the shadows too) | impostors, furniture, crowds, GPU-driven culling |
-| 7 Effects | smoke, dust, spray, wet weather with puddles, sun glare | heat haze, rain itself, replay/photo depth of field |
-| 8 Hardening | prebuilt shaders, pre-warmed scalers, memory budget test, sustained runs, app bundle fixed | binary archive for the first launch, ICB culling and batch merging, the remaining signposts |
+| 3 Screen space | GTAO, SSR with a depth-aware filter and temporal reuse, motion blur, bloom | local probe |
+| 4 Materials | 26 `torcs-matgen` sets incl. metals, car detail sets under the atlas, stochastic tiling, car paint/glass/lens | AI-sourced base maps, BC7-vs-ASTC comparison |
+| 5 Track | generated road, curbs, barriers, terrain, markings, racing-line rubber, skid marks, pit garages, painted starting grid | road detail atlas beyond the markings |
+| 6 Scatter | volumetric trees with dithered detail pairs, grass cards, wind (in the shadows too), tyre walls on the corners | impostors, crowds, GPU-driven culling (about 290 draws a frame: not needed) |
+| 7 Effects | smoke, dust, spray, wet weather with puddles, sun glare, heat haze | rain itself, replay/photo depth of field |
+| 8 Hardening | prebuilt shaders, pre-warmed scalers, memory budget test, sustained runs, the seven signposts, app bundle fixed, hero car subdivided in place | binary archive for the first launch |
 
 The measured state of the default preset on the target machine is the
 sustained table above: 8.7 ms at native with the whole session drawn, no
@@ -1713,6 +1713,46 @@ identical to the byte, and with the haze off or the sun at 10° nothing
 differs at all. In a still the effect is a faint waviness in the far
 markings; in motion it is the summer afternoon the lighting already
 implies.
+
+## Sustained, a third time: what the scale valve is worth
+
+Everything since the previous sustained run — pit garages, tyre walls, the
+painted grid, sun glare, heat haze, dithered detail switches, temporal
+reflections, the subdivided car — measured together on the M2 Air preset,
+orbiting at native 2560×1664 with a 55° sun so the glare and haze are in
+play:
+
+| | native, fixed scale | dynamic resolution |
+|---|---|---|
+| first window | 7.74 ms | 8.73 ms at scale 0.67 (p95 18.9 ms) |
+| steady | 7.58–7.69 ms | 6.5–7.5 ms at scale 0.60–0.75 |
+| 1280×832 | 3.21 → 3.19 ms over 90 s | — |
+
+Native holds under eight milliseconds with everything on, at the track's
+own sun and at the high one alike: the additions since R28 cost nothing
+the earlier margin could not absorb. Two other things are in that table,
+and they matter more than the headline.
+
+The controller dropped two steps in the first fifteen seconds and never
+came back to native. The first window's p95 is the material and atlas
+uploads and the first pipeline uses — the same spikes every earlier run
+showed and shrugged off at fixed scale — but the controller's thirty-frame
+average crossed its 11 ms threshold during them, stepped down, and then
+sat where its increase threshold (7.7 ms, 0.70 of the target) is exactly
+the cost of the frame, oscillating 0.60–0.75 for four minutes. A warm-up
+grace before the controller may act is the obvious fix and is queued with
+the next change to it.
+
+More telling: at 0.60–0.75 of the render resolution the frame cost 6.5 to
+7.5 ms against 7.7 ms at native. Cutting the shaded pixels by half saved a
+tenth. The frame is no longer bound by shading at all: it is the four
+shadow cascades re-rendering the whole static circuit every frame, the
+geometry passes, and the fixed-cost passes at output resolution. The plan
+saw this coming — section 3 asked for a static/dynamic split of the
+cascades with the static circuit rendered once and only the cars
+refreshed — and `staticShadowRefreshInterval` has sat in the settings
+unused since Phase 1. That split is the next performance increment, and
+the scale valve is worth little until it lands.
 
 ## Licensing
 
