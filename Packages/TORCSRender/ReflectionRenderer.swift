@@ -121,7 +121,7 @@ public final class ReflectionRenderer {
                        roughnessCutoff: Float, quality: RenderSettings.Quality,
                        skyView: MTLTexture,
                        viewProjection: simd_float4x4? = nil, previousViewProjection: simd_float4x4? = nil,
-                       temporal: Bool = false) -> MTLTexture? {
+                       temporal: Bool = false, timer: PassTimer? = nil) -> MTLTexture? {
         guard quality != .off, targets.reflections else { result = nil; historyValid = false; return nil }
         let divisor = quality.divisor
         let width = max(1, targets.renderWidth / divisor), height = max(1, targets.renderHeight / divisor)
@@ -151,6 +151,7 @@ public final class ReflectionRenderer {
         tracePass.colorAttachments[0].texture = traced
         tracePass.colorAttachments[0].loadAction = .dontCare
         tracePass.colorAttachments[0].storeAction = .store
+        timer?.attach(tracePass, "Reflection trace")
         if let encoder = commands.makeRenderCommandEncoder(descriptor: tracePass) {
             encoder.label = "Screen-space reflections"
             encoder.setRenderPipelineState(trace)
@@ -166,6 +167,7 @@ public final class ReflectionRenderer {
         blurPass.colorAttachments[0].texture = smoothed
         blurPass.colorAttachments[0].loadAction = .dontCare
         blurPass.colorAttachments[0].storeAction = .store
+        timer?.attach(blurPass, "Reflection blur")
         if let encoder = commands.makeRenderCommandEncoder(descriptor: blurPass) {
             encoder.label = "Reflection blur"
             encoder.setRenderPipelineState(blur)
@@ -186,6 +188,7 @@ public final class ReflectionRenderer {
             resolvePass.colorAttachments[0].texture = output
             resolvePass.colorAttachments[0].loadAction = .dontCare
             resolvePass.colorAttachments[0].storeAction = .store
+            timer?.attach(resolvePass, "Reflection temporal resolve")
             if let encoder = commands.makeRenderCommandEncoder(descriptor: resolvePass) {
                 encoder.label = "Reflection temporal resolve"
                 encoder.setRenderPipelineState(resolve)
@@ -208,6 +211,7 @@ public final class ReflectionRenderer {
         compositePass.colorAttachments[0].texture = targets.colour
         compositePass.colorAttachments[0].loadAction = .load
         compositePass.colorAttachments[0].storeAction = .store
+        timer?.attach(compositePass, "Reflection composite")
         if let encoder = commands.makeRenderCommandEncoder(descriptor: compositePass) {
             encoder.label = "Reflection composite"
             encoder.setRenderPipelineState(composite)

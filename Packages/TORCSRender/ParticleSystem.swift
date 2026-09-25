@@ -341,7 +341,7 @@ public final class ParticleRenderer {
     /// Draws into `targets.colour` over the opaque scene. `frame` must be the
     /// scene pass's uniforms so the billboards land where the geometry did.
     public func encode(into commands: MTLCommandBuffer, targets: FrameTargets,
-                       system: ParticleSystem, frame: inout FrameUniforms, near: Float) {
+                       system: ParticleSystem, frame: inout FrameUniforms, near: Float, timer: PassTimer? = nil) {
         lastDrawnCount = 0
         guard let buffer = system.buffer, system.count > 0, let half = target(for: targets) else { return }
 
@@ -350,6 +350,7 @@ public final class ParticleRenderer {
         pass.colorAttachments[0].loadAction = .clear
         pass.colorAttachments[0].clearColor = MTLClearColor(red: 0, green: 0, blue: 0, alpha: 0)
         pass.colorAttachments[0].storeAction = .store
+        timer?.attach(pass, "Particles")
         guard let encoder = commands.makeRenderCommandEncoder(descriptor: pass) else { return }
         encoder.label = "Particles"
         encoder.setRenderPipelineState(pipeline)
@@ -367,6 +368,7 @@ public final class ParticleRenderer {
         over.colorAttachments[0].texture = targets.colour
         over.colorAttachments[0].loadAction = .load
         over.colorAttachments[0].storeAction = .store
+        timer?.attach(over, "Particle composite")
         guard let compositor = commands.makeRenderCommandEncoder(descriptor: over) else { return }
         compositor.label = "Particle composite"
         compositor.setRenderPipelineState(composite)

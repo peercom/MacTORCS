@@ -562,6 +562,7 @@ public final class ForwardRenderer {
         commands.waitUntilCompleted()
         if let error = commands.error { throw RenderError.unavailable("GPU error: \(error)") }
         lastGPUTime = commands.gpuEndTime - commands.gpuStartTime
+        lastPassTimes = passTimer?.resolve() ?? []
 
         var pixels = [UInt8](repeating: 0, count: width * height * 4)
         pixels.withUnsafeMutableBytes { raw in
@@ -584,7 +585,8 @@ public final class ForwardRenderer {
             ? jitterSequence.next() : SIMD2(0, 0)
         upscaleProduced = false
         postProduced = false
-        atmosphere.update(into: commands, lighting: lighting, cameraAltitude: camera.eye.z)
+        passTimer?.beginFrame()
+        atmosphere.update(into: commands, lighting: lighting, cameraAltitude: camera.eye.z, timer: passTimer)
         let cascades = ShadowCascades(camera: camera, sunDirection: lighting.direction,
                                       aspect: aspect, count: settings.shadowCascades,
                                       resolution: shadows.resolution,
@@ -593,7 +595,7 @@ public final class ForwardRenderer {
         // with the matrix it was actually rendered with.
         let sampled = shadows.encode(into: commands, resources: resources, instances: instances, cascades: cascades,
                                      animationTime: Float(animationTime),
-                                     refreshInterval: settings.staticShadowRefreshInterval)
+                                     refreshInterval: settings.staticShadowRefreshInterval, timer: passTimer)
         encode(into: commands, targets: targets, resources: resources, instances: instances,
                camera: camera, lighting: lighting, cascades: sampled, aspect: aspect)
 
@@ -601,7 +603,7 @@ public final class ForwardRenderer {
             // Blur before the scaler: a quarter of the pixels, and the scaler
             // keeps no history the blur could corrupt.
             if settings.motionBlur, targets.postAtRenderResolution, targets.velocity != nil, targets.postColour != nil {
-                postProduced = motionBlur.encode(into: commands, targets: targets, source: targets.colour) != nil
+                postProduced = motionBlur.encode(into: commands, targets: targets, source: targets.colour, timer: passTimer) != nil
             }
             do {
                 let key = SIMD2(targets.renderWidth, targets.renderHeight)
@@ -648,7 +650,7 @@ public final class ForwardRenderer {
         // streak with the object, and the tonemapper should see the blur.
         if settings.motionBlur, !targets.postAtRenderResolution, targets.velocity != nil, targets.postColour != nil {
             let source = upscaleProduced ? (targets.upscaled ?? targets.colour) : targets.colour
-            postProduced = motionBlur.encode(into: commands, targets: targets, source: source) != nil
+            postProduced = motionBlur.encode(into: commands, targets: targets, source: source, timer: passTimer) != nil
         } else if !settings.motionBlur {
             motionBlur.discard()
         }
@@ -659,7 +661,7 @@ public final class ForwardRenderer {
         // glow it then has to track temporally.
         if settings.bloom && settings.bloomStrength > 0 {
             bloom.encode(into: commands, source: tonemapSource(targets),
-                         threshold: settings.bloomThreshold, exposureScale: lighting.exposureScale)
+                         threshold: settings.bloomThreshold, exposureScale: lighting.exposureScale, timer: passTimer)
         } else {
             bloom.discard()
         }
@@ -686,6 +688,10 @@ public final class ForwardRenderer {
     public private(set) var upscalerBuildCount = 0
     /// Whether the shaders came from a prebuilt library rather than source.
     public private(set) var shadersPrebuilt = false
+    /// Per-pass GPU timing for diagnostics; nil in ordinary use. Set it,
+    /// render offscreen, and read `lastPassTimes`.
+    public var passTimer: PassTimer?
+    public private(set) var lastPassTimes: [PassTimer.Sample] = []
     /// Offscreen `render` calls start each frame from a cold noise phase and
     /// history so they repeat exactly. Tests of temporal accumulation turn
     /// this off to render a sequence.
@@ -813,6 +819,7 @@ public final class ForwardRenderer {
             prepass.depthAttachment.loadAction = .clear
             prepass.depthAttachment.clearDepth = 0
             prepass.depthAttachment.storeAction = .store
+            passTimer?.attach(prepass, "Depth prepass")
             if let encoder = commands.makeRenderCommandEncoder(descriptor: prepass) {
                 encoder.label = "Depth prepass"
                 encoder.setVertexBytes(&frame, length: MemoryLayout<FrameUniforms>.stride, index: 1)
@@ -823,7 +830,7 @@ public final class ForwardRenderer {
             }
             occlusion.encode(into: commands, depth: targets.depth, projection: projection,
                              view: camera.view(), sunDirection: lighting.direction,
-                             ambient: settings.ambientOcclusion, contact: settings.contactShadows)
+                             ambient: settings.ambientOcclusion, contact: settings.contactShadows, timer: passTimer)
             scenePass.depthAttachment.loadAction = .load
         } else {
             occlusion.discard()
@@ -831,6 +838,7 @@ public final class ForwardRenderer {
         }
         frame.renderSize.w = occlusion.result == nil ? 0 : 1
 
+        passTimer?.attach(scenePass, "Sky and forward opaque")
         guard let encoder = commands.makeRenderCommandEncoder(descriptor: scenePass) else { return }
         encoder.label = "Sky and forward opaque"
         encoder.setVertexBytes(&frame, length: MemoryLayout<FrameUniforms>.stride, index: 1)
@@ -934,8 +942,8 @@ public final class ForwardRenderer {
         // Skid marks darken the road before the reflections trace reads it,
         // so a mark shows in the paint of a car standing on it.
         if settings.skidMarks {
-            skidMarkRenderer.encodePaint(into: commands, targets: targets, paint: roadPaint, frame: &frame)
-            skidMarkRenderer.encode(into: commands, targets: targets, marks: skidMarks, frame: &frame)
+            skidMarkRenderer.encodePaint(into: commands, targets: targets, paint: roadPaint, frame: &frame, timer: passTimer)
+            skidMarkRenderer.encode(into: commands, targets: targets, marks: skidMarks, frame: &frame, timer: passTimer)
         }
 
         if settings.screenSpaceReflections != .off {
@@ -943,7 +951,7 @@ public final class ForwardRenderer {
                                sunDirection: lighting.direction, roughnessCutoff: settings.reflectionRoughnessCutoff,
                                quality: settings.screenSpaceReflections, skyView: atmosphere.skyView,
                                viewProjection: unjittered, previousViewProjection: previousViewProjection ?? unjittered,
-                               temporal: settings.reflectionTemporal)
+                               temporal: settings.reflectionTemporal, timer: passTimer)
         } else {
             reflections.discard()
         }
@@ -952,7 +960,7 @@ public final class ForwardRenderer {
         // puff never leaves a ghost in the road: depth-tested by hand against
         // the stored opaque depth, colour only.
         if settings.particles {
-            particleRenderer.encode(into: commands, targets: targets, system: particles, frame: &frame, near: camera.near)
+            particleRenderer.encode(into: commands, targets: targets, system: particles, frame: &frame, near: camera.near, timer: passTimer)
         }
     }
 
@@ -1130,6 +1138,7 @@ public final class ForwardRenderer {
         resolvePass.colorAttachments[0].texture = destination
         resolvePass.colorAttachments[0].loadAction = .dontCare
         resolvePass.colorAttachments[0].storeAction = .store
+        passTimer?.attach(resolvePass, "Tonemap resolve")
         if let encoder = commands.makeRenderCommandEncoder(descriptor: resolvePass) {
             encoder.label = "Tonemap resolve"
             encoder.setRenderPipelineState(resolve)

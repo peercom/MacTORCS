@@ -40,7 +40,8 @@ public final class MotionBlurRenderer {
     /// resolution) into `targets.postColour`. Returns nil, and clears
     /// `result`, when the targets carry no velocity or post texture.
     @discardableResult
-    public func encode(into commands: MTLCommandBuffer, targets: FrameTargets, source: MTLTexture) -> MTLTexture? {
+    public func encode(into commands: MTLCommandBuffer, targets: FrameTargets, source: MTLTexture,
+                       timer: PassTimer? = nil) -> MTLTexture? {
         guard let velocity = targets.velocity, let destination = targets.postColour else {
             result = nil
             return nil
@@ -54,6 +55,7 @@ public final class MotionBlurRenderer {
         pass.colorAttachments[0].texture = destination
         pass.colorAttachments[0].loadAction = .dontCare
         pass.colorAttachments[0].storeAction = .store
+        timer?.attach(pass, "Motion blur")
         guard let encoder = commands.makeRenderCommandEncoder(descriptor: pass) else { result = nil; return nil }
         encoder.label = "Motion blur"
         encoder.setRenderPipelineState(pipeline)

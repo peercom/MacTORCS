@@ -133,7 +133,8 @@ public final class ShadowRenderer {
     @discardableResult
     public func encode(into commands: MTLCommandBuffer, resources: [SceneResources],
                        instances: [RenderInstance], cascades: [ShadowCascades.Cascade],
-                       animationTime: Float = 0, refreshInterval: Int = 1) -> [ShadowCascades.Cascade] {
+                       animationTime: Float = 0, refreshInterval: Int = 1,
+                       timer: PassTimer? = nil) -> [ShadowCascades.Cascade] {
         lastDrawCount = 0
         lastRefreshedSlices = []
         let fitted = Array(cascades.prefix(cascadeCount))
@@ -151,6 +152,7 @@ public final class ShadowRenderer {
             pass.depthAttachment.loadAction = .clear
             pass.depthAttachment.clearDepth = 1
             pass.depthAttachment.storeAction = .store
+            timer?.attach(pass, "Shadow cascade \(index)")
             guard let encoder = commands.makeRenderCommandEncoder(descriptor: pass) else { continue }
             encoder.label = "Shadow cascade \(index)"
             encoder.setRenderPipelineState(pipeline)

@@ -88,7 +88,8 @@ public final class OcclusionRenderer {
     @discardableResult
     public func encode(into commands: MTLCommandBuffer, depth: MTLTexture,
                        projection: simd_float4x4, view: simd_float4x4,
-                       sunDirection: SIMD3<Float>, ambient: RenderSettings.Quality, contact: Bool) -> MTLTexture? {
+                       sunDirection: SIMD3<Float>, ambient: RenderSettings.Quality, contact: Bool,
+                       timer: PassTimer? = nil) -> MTLTexture? {
         // Half resolution only when the ambient term asks for it: the noise is
         // blurred anyway, and the bilinear sample in the forward pass hides
         // the rest. Contact shadows on their own stay at full resolution —
@@ -119,6 +120,7 @@ public final class OcclusionRenderer {
             descriptor.colorAttachments[0].texture = destination
             descriptor.colorAttachments[0].loadAction = .dontCare
             descriptor.colorAttachments[0].storeAction = .store
+            timer?.attach(descriptor, label)
             guard let encoder = commands.makeRenderCommandEncoder(descriptor: descriptor) else { return }
             encoder.label = label
             encoder.setRenderPipelineState(state)

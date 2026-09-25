@@ -100,7 +100,7 @@ public final class BloomRenderer {
     /// rather than compositing a meaningless single level.
     @discardableResult
     public func encode(into commands: MTLCommandBuffer, source: MTLTexture,
-                       threshold: Float, exposureScale: Float) -> MTLTexture? {
+                       threshold: Float, exposureScale: Float, timer: PassTimer? = nil) -> MTLTexture? {
         if chain?.matches(width: source.width, height: source.height) != true {
             chain = try? Chain(device: device, width: source.width, height: source.height)
         }
@@ -115,6 +115,7 @@ public final class BloomRenderer {
             descriptor.colorAttachments[0].texture = destination
             descriptor.colorAttachments[0].loadAction = load
             descriptor.colorAttachments[0].storeAction = .store
+            timer?.attach(descriptor, label)
             guard let encoder = commands.makeRenderCommandEncoder(descriptor: descriptor) else { return }
             encoder.label = label
             encoder.setRenderPipelineState(state)

@@ -186,7 +186,7 @@ public final class SkidMarkRenderer {
     }
 
     public func encode(into commands: MTLCommandBuffer, targets: FrameTargets,
-                       marks: SkidMarks, frame: inout FrameUniforms) {
+                       marks: SkidMarks, frame: inout FrameUniforms, timer: PassTimer? = nil) {
         lastDrawnQuads = 0
         guard let buffer = marks.buffer, marks.quadCount > 0 else { return }
         let pass = MTLRenderPassDescriptor()
@@ -196,6 +196,7 @@ public final class SkidMarkRenderer {
         pass.depthAttachment.texture = targets.depth
         pass.depthAttachment.loadAction = .load
         pass.depthAttachment.storeAction = .store
+        timer?.attach(pass, "Skid marks")
         guard let encoder = commands.makeRenderCommandEncoder(descriptor: pass) else { return }
         encoder.label = "Skid marks"
         encoder.setRenderPipelineState(pipeline)
@@ -212,7 +213,8 @@ public final class SkidMarkRenderer {
     /// Draws the painted boxes; each box's length and width ride in its
     /// vertices, so one draw covers boxes of any size.
     public func encodePaint(into commands: MTLCommandBuffer, targets: FrameTargets,
-                            paint: RoadPaint, frame: inout FrameUniforms, lineWidth: Float = 0.12) {
+                            paint: RoadPaint, frame: inout FrameUniforms, lineWidth: Float = 0.12,
+                            timer: PassTimer? = nil) {
         lastPaintedBoxes = 0
         guard let buffer = paint.buffer, paint.quadCount > 0 else { return }
         let pass = MTLRenderPassDescriptor()
@@ -222,6 +224,7 @@ public final class SkidMarkRenderer {
         pass.depthAttachment.texture = targets.depth
         pass.depthAttachment.loadAction = .load
         pass.depthAttachment.storeAction = .store
+        timer?.attach(pass, "Road paint")
         guard let encoder = commands.makeRenderCommandEncoder(descriptor: pass) else { return }
         encoder.label = "Road paint"
         encoder.setRenderPipelineState(paintPipeline)

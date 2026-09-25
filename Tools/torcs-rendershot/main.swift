@@ -74,6 +74,8 @@ struct Options {
     /// Rain, 0 to 1: streaks pre-rolled around the camera, a dimmed sun.
     var rain: Float = 0
     var shadowRefresh: Int? = nil
+    /// Per-pass GPU timing over the frames, from the GPU's timestamp counter.
+    var passes = false
     var compareGlare = false
     var reflectionTemporal: Bool? = nil
     var compareReflectionTemporal = false
@@ -181,6 +183,7 @@ func parse() -> Options {
         case "--compare-haze": options.compareHaze = true
         case "--rain": options.rain = Float(next()) ?? 1
         case "--shadow-refresh": options.shadowRefresh = Int(next())
+        case "--passes": options.passes = true
         case "--no-glare": options.sunGlare = false
         case "--compare-glare": options.compareGlare = true
         case "--ssr-temporal": options.reflectionTemporal = true
@@ -393,6 +396,8 @@ do {
     renderer.animationTime = Double(options.animationTime)
     renderer.wetness = options.wetness
     renderer.roadPaint.set(gridBoxes)
+    if options.passes { renderer.passTimer = try PassTimer(device: renderer.device) }
+    var passSamples: [String: [Double]] = [:]
     renderer.rain = options.rain
     if options.rain > 0 { renderer.wetness = max(renderer.wetness, options.rain) }
     if !gridBoxes.isEmpty { print("grid: \(gridBoxes.count) boxes painted") }
@@ -632,12 +637,34 @@ do {
                                      width: options.width, height: options.height,
                                      lightState: RenderInstance.lightState(brakeCommand: options.brake ? 1 : 0,
                                                                            lightCommand: options.headlights ? 1 : 0))
-        if frame >= warmups { samples.append(renderer.lastGPUTime * 1000) }
+        if frame >= warmups {
+            samples.append(renderer.lastGPUTime * 1000)
+            for sample in renderer.lastPassTimes {
+                if sample.vertexSeconds.isFinite { passSamples[sample.name + "|v", default: []].append(sample.vertexSeconds * 1000) }
+                if sample.fragmentSeconds.isFinite { passSamples[sample.name + "|f", default: []].append(sample.fragmentSeconds * 1000) }
+            }
+        }
     }
     if options.memory {
         let bytes = renderer.device.currentAllocatedSize
         print(String(format: "device memory: %.1f MB allocated (budget %.0f MB)", Double(bytes) / 1_048_576,
                      Double(settings.textureMemoryBudgetBytes) / 1_048_576))
+    }
+    if options.passes {
+        // Median per pass over the sampled frames, in the frame's order.
+        let order = renderer.lastPassTimes.map(\.name)
+        var total = 0.0
+        print("per-pass GPU medians over \(samples.count) frames (vertex or encoder stage + fragment stage):")
+        func median(_ key: String) -> Double? {
+            guard let values = passSamples[key]?.sorted(), !values.isEmpty else { return nil }
+            return values[values.count / 2]
+        }
+        for name in order {
+            let v = median(name + "|v"), f = median(name + "|f")
+            total += f ?? v ?? 0
+            print(String(format: "  %-28@ %7.3f ms  %7.3f ms", name as NSString, v ?? .nan, f ?? .nan))
+        }
+        print(String(format: "  %-28@ %7.3f ms (sum of the working stages' medians)", "passes" as NSString, total))
     }
     samples.sort()
     let median = samples.isEmpty ? 0 : samples[samples.count / 2]
@@ -772,9 +799,9 @@ do {
       geometry      \(String(format: "%.2f", megabytes)) MiB
       scalerBuilds  \(renderer.upscalerBuildCount)\(renderer.lastUpscalerError.map { " error: " + $0 } ?? "")
       bloom         \(settings.bloom ? "on, strength \(settings.bloomStrength), threshold \(settings.bloomThreshold) exposed, \(renderer.bloom.levelCount) levels" : "off")
-      occlusion     ao \(["off","half","full"][settings.ambientOcclusion.rawValue]), contact \(settings.contactShadows ? "on" : "off")\(renderer.occlusion.result.map { ", \($0.width)x\($0.height)" } ?? "")
+      occlusion     ao \(String(describing: settings.ambientOcclusion)), contact \(settings.contactShadows ? "on" : "off")\(renderer.occlusion.result.map { ", \($0.width)x\($0.height)" } ?? "")
       motion blur   \(settings.motionBlur ? "on" : "off")\(renderer.motionBlur.result != nil ? ", applied" : "")
-      reflections   \(["off","half","full"][settings.screenSpaceReflections.rawValue])\(renderer.reflections.result.map { ", \($0.width)x\($0.height)" } ?? "")
+      reflections   \(String(describing: settings.screenSpaceReflections))\(renderer.reflections.result.map { ", \($0.width)x\($0.height)" } ?? "")
       upscaling     \(settings.upscaling ? "\(settings.upscalingMode.rawValue), render \(settings.renderSize(output: (options.width, options.height)).width)x\(settings.renderSize(output: (options.width, options.height)).height)" : "off")
       textures      \(textures.count) uploaded, \(String(format: "%.1f", Double(textures.uploadedBytes) / 1_048_576)) MiB
       textured      \(resources.texturedBatches) of \(resources.batchCount) batches

@@ -96,7 +96,8 @@ public final class AtmosphereResources {
     }
 
     /// Encodes only the work that is actually stale.
-    public func update(into commands: MTLCommandBuffer, lighting: SunLighting, cameraAltitude: Float) {
+    public func update(into commands: MTLCommandBuffer, lighting: SunLighting, cameraAltitude: Float,
+                       timer: PassTimer? = nil) {
         var uniforms = SkyUniforms(
             sunDirection: SIMD4(lighting.direction, max(cameraAltitude / 1000, 0.0005)),
             sunIlluminance: SIMD4(lighting.illuminance, 0))
@@ -106,7 +107,9 @@ public final class AtmosphereResources {
         let changed = lastSun.map { simd_distance($0, uniforms.sunDirection) > 1e-4 } ?? true
         guard !staticTablesReady || changed else { return }
 
-        guard let encoder = commands.makeComputeCommandEncoder() else { return }
+        let tablesPass = MTLComputePassDescriptor()
+        timer?.attach(tablesPass, "Atmosphere tables")
+        guard let encoder = commands.makeComputeCommandEncoder(descriptor: tablesPass) else { return }
         encoder.label = "Atmosphere tables"
         if !staticTablesReady {
             encoder.setTexture(transmittance, index: 0)
@@ -128,13 +131,17 @@ public final class AtmosphereResources {
         encoder.endEncoding()
 
         // Mips must exist before the irradiance projection reads the table.
-        if let blit = commands.makeBlitCommandEncoder() {
+        let mipPass = MTLBlitPassDescriptor()
+        timer?.attach(mipPass, "Sky mips")
+        if let blit = commands.makeBlitCommandEncoder(descriptor: mipPass) {
             blit.label = "Sky mips"
             blit.generateMipmaps(for: skyView)
             blit.endEncoding()
         }
 
-        if let shEncoder = commands.makeComputeCommandEncoder() {
+        let irradiancePass = MTLComputePassDescriptor()
+        timer?.attach(irradiancePass, "Sky irradiance")
+        if let shEncoder = commands.makeComputeCommandEncoder(descriptor: irradiancePass) {
             shEncoder.label = "Sky irradiance"
             shEncoder.setComputePipelineState(irradiancePipeline)
             shEncoder.setBuffer(irradiance, offset: 0, index: 0)

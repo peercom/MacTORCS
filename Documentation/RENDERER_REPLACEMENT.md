@@ -1890,6 +1890,56 @@ the plan's per-pass GPU timing from `MTLCounterSampleBuffer` (section 9.3,
 never built) is the instrument this work now needs. It is the next
 increment.
 
+## Per-pass timing, at last
+
+`PassTimer` is the instrument section 9.3 of the plan asked for and three
+null results in a row said was overdue. Every pass attaches a stage pair
+to its descriptor — vertex start and end, fragment start and end, or an
+encoder's start and end for compute and blit — in one timestamp sample
+buffer, and after the command buffer completes the pairs resolve to
+durations. All of a frame's passes are then measured in the same frame on
+the same clocks. `ForwardRenderer.passTimer` enables it; the render tool's
+`--passes` prints the per-pass medians over its frames.
+
+The first version bracketed each pass from its first vertex to its last
+fragment and reported every pass as the time since the frame began: this
+is a tile-based GPU, and it runs the vertex stages of several passes
+before their fragment stages, so one pass's "vertex start to fragment end"
+spans the others. A depth-only pass has no fragment stage to end at and
+came back as the error sentinel. Each stage is now bracketed by its own
+pair, and the sum of the working stages lands within a tenth of the
+frame.
+
+What the two views are made of, native 2560×1664, sixty frames, M2 Air
+preset, medians of the stage that did the work:
+
+| pass | orbit | driver's-eye |
+|---|---|---|
+| shadow cascades 0–3 | 0.12 ms | 0.65 ms |
+| depth prepass (vertex + fragment) | 0.54 ms | 1.36 ms |
+| occlusion + blur | 1.01 ms | 2.29 ms |
+| **sky and forward opaque** (vertex + fragment) | **1.30 + 3.61 ms** | **2.01 + 7.99 ms** |
+| reflections, four passes | 0.52 ms | 0.97 ms |
+| motion blur | 0.39 ms | 0.65 ms |
+| bloom, eleven passes | 0.18 ms | 0.27 ms |
+| tonemap resolve (glare, haze) | 0.66 ms | 0.66 ms |
+| sum of medians / frame | 6.76 / 7.30 ms | 14.31 / 15.18 ms |
+
+So the forward pass is two thirds of the driver's-eye frame, its fragment
+stage alone more than half; the occlusion is the next two milliseconds;
+everything the earlier sections argued about — cascades, the trace's
+resolution, the cadence — is in the tenths. The forward fragment is the
+road: four cascades sampled with a rotated kernel, the aerial perspective
+marched per pixel, the sky probe, the markings, rubber and weather. That
+is where the next increment goes, and for the first time it will be able
+to see what it did.
+
+Two smaller corrections from the same instrument: the earlier
+"occlusion is cheaper on" was the prepass it forces, not the occlusion,
+which costs 1–2.3 ms itself; and the tool's summary had printed the
+quality levels by a stale table since the quarter level shifted the raw
+values, so "ao full" meant half. It prints the names now.
+
 ## Licensing
 
 No third-party artwork is imported by this work. New render source is
