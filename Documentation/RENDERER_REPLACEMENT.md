@@ -1442,7 +1442,7 @@ Against the plan's phases, after twenty-nine increments on the
 | 2 Upscaling | jitter, motion vectors, MetalFX temporal (measured a net loss) and spatial scalers, dynamic resolution, **classic path deleted** | reactive mask (spatial path needs none) |
 | 3 Screen space | GTAO, SSR with a depth-aware filter and temporal reuse, motion blur, bloom | local probe |
 | 4 Materials | 26 `torcs-matgen` sets incl. metals, car detail sets under the atlas, stochastic tiling, car paint/glass/lens, maps and original art uploaded BC1/BC3/BC5 with a sidecar encode (full session 372 → 214 MB), sets derived from any colour image with a provenance manifest | the image model itself (the derivation, manifest and verifier are in); BC7 and ASTC have no encoder here |
-| 5 Track | generated road, curbs, barriers, terrain, markings, racing-line rubber, skid marks, pit garages, painted starting grid | road detail atlas beyond the markings |
+| 5 Track | generated road, curbs, barriers, terrain, markings, racing-line rubber, skid marks, pit garages, painted starting grid; the baked road stripped by the circuit's own surface textures | road detail atlas beyond the markings |
 | 6 Scatter | volumetric trees with dithered detail pairs, grass cards, wind (in the shadows too), tyre walls on the corners | impostors, crowds, GPU-driven culling (about 290 draws a frame: not needed) |
 | 7 Effects | smoke, dust, spray, wet weather with puddles, rain and drops on the windscreen, sun glare, heat haze, a lens for the television view | — |
 | 8 Hardening | prebuilt shaders, pre-warmed scalers, memory budget test, sustained runs, the seven signposts, app bundle fixed, hero car subdivided in place, per-pass GPU timer, near-field aerial perspective in closed form, detail-map anisotropy per preset, occlusion at a quarter on the Air, view-frustum batch culling (driver's-eye 15.2 → 9.2 ms, under budget at native, sustained 9.3 ms native for 90 s), a pipelined and a paced measurement loop (busy GPU: 6.8 ms/frame; paced 60 Hz: 85–96% of frames on time), the resolution controller made deadline-aware and self-checking (native held, 93–96% on time), pipelines archived between launches (604 → 44 ms, proven with fail-on-miss) | — |
@@ -2784,6 +2784,28 @@ a stop and reads the same. One thing the alpine render shows that is
 not exposure: its road surface resolves by name to a mottled material,
 the surface-name mapping having been made for Aalborg's textures. That
 is the importer's next step.
+
+## The baked road, on any circuit
+
+Alpine-1's road came out mottled — the asphalt set's aggregate stretched
+over polygons — and the cause was not the material mapping, which sends
+its `gasphalt1` to asphalt as it should. It was the baked road surviving
+under the generated one: the strip that removes trackgen's output from a
+baked scene recognised it by the `tr-` prefix Aalborg's surface textures
+happen to carry, and alpine's surfaces are textured `road1.rgb` and
+`road4.rgb`, so its baked road stayed, and its original per-polygon UVs
+put a two-metre tile across each polygon.
+
+Trackgen bakes every strip under the texture its surface declares, and
+the track XML declares it: each surface's `texture name`. `TrackSurface`
+now carries it, `TrackGeometry.surfaceTextures` collects it over every
+segment and barrier, and `strippingTrackgen` takes that set beside the
+prefix rule: a baked batch under any of the circuit's own surface
+textures is trackgen's, on any circuit. On Aalborg the set is exactly
+the `tr-` names, so nothing there changed, which a test pins on the
+fixture; another strips a synthetic scene of its `road1`, `ROAD4` and
+`mur2` batches and keeps the house. Alpine-1's chase view is now the
+generated asphalt with its grid.
 
 ## Licensing
 

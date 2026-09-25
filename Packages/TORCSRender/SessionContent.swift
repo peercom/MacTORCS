@@ -65,7 +65,7 @@ public final class SessionRenderResources {
                     flattened = try TrackSurfaceAssembly.replacingTrees(flattened, atlas: atlas).scene
                 }
                 if let road, generateRoad {
-                    flattened = TrackSurfaceAssembly.strippingTrackgen(flattened)
+                    flattened = TrackSurfaceAssembly.strippingTrackgen(flattened, surfaceTextures: road.surfaceTextures)
                     // The garages replace trackgen's pit building as well.
                     if let pits {
                         flattened = TrackSurfaceAssembly.strippingPitComplex(

@@ -12,14 +12,36 @@ public enum TrackStyle: Int, Sendable, Codable { case flat = 0, curb = 1, wall =
 public enum TrackSide: Int, Sendable, Codable { case right = 0, left = 1 }
 public enum TrackLateralOrigin: Int, Sendable { case right = 0, middle = 1, left = 2 }
 public enum TrackPositionMode: Int, Sendable, Codable { case main = 0, segment = 1, track = 2 }
+extension TrackGeometry {
+    /// The texture names of every surface the circuit's segments and their
+    /// barriers declare: what trackgen baked its strips under.
+    public var surfaceTextures: Set<String> {
+        var names: Set<String> = []
+        for segment in segments {
+            if let texture = segment.surface.texture { names.insert(texture) }
+            if let texture = segment.rightBarrier?.surface.texture { names.insert(texture) }
+            if let texture = segment.leftBarrier?.surface.texture { names.insert(texture) }
+        }
+        return names
+    }
+}
+
 public struct TrackSurface: Sendable, Codable, Equatable {
     public var material: String
     public var friction, rebound, rollingResistance, roughness, roughWaveNumber, damage: Float
+    /// The surface's `texture name`, which trackgen bakes its strips under.
+    /// Nil where the surface declares none. Runtime only: the encoding is
+    /// compared field for field against the original's, so this stays out
+    /// of it.
+    public var texture: String? = nil
+    enum CodingKeys: String, CodingKey {
+        case material, friction, rebound, rollingResistance, roughness, roughWaveNumber, damage
+    }
     public init(material: String, friction: Float, rebound: Float, rollingResistance: Float,
-                roughness: Float, roughWaveNumber: Float, damage: Float) {
+                roughness: Float, roughWaveNumber: Float, damage: Float, texture: String? = nil) {
         self.material = material; self.friction = friction; self.rebound = rebound
         self.rollingResistance = rollingResistance; self.roughness = roughness
-        self.roughWaveNumber = roughWaveNumber; self.damage = damage
+        self.roughWaveNumber = roughWaveNumber; self.damage = damage; self.texture = texture
     }
 }
 /// Indices, never C pointers. mainIndex identifies the road owning a border/side.

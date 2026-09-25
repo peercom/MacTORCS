@@ -15,13 +15,20 @@ public enum TrackSurfaceAssembly {
     /// road, side, curb or barrier strip that TORCS's `trackgen` emitted from
     /// the same segment model the generator reads, so nothing authored by hand
     /// is lost: trees, buildings and furniture use other names.
-    public static func strippingTrackgen(_ scene: RenderScene) -> RenderScene {
-        removing(from: scene) { batch in
-            let texture = (batch.baseTexture ?? "").lowercased()
+    ///
+    /// The `tr-` prefix is Aalborg's: trackgen bakes each strip under the
+    /// texture its surface declares, and other circuits' surfaces declare
+    /// `road1.rgb` or `gconcrete.rgb`. `surfaceTextures` are the textures of
+    /// every surface the track's segments and barriers use, from the track
+    /// XML; a baked batch under one of them is trackgen's, on any circuit.
+    public static func strippingTrackgen(_ scene: RenderScene, surfaceTextures: Set<String> = []) -> RenderScene {
+        let surfaces = Set(surfaceTextures.map { ($0 as NSString).lastPathComponent.lowercased() })
+        return removing(from: scene) { batch in
+            let texture = ((batch.baseTexture ?? "") as NSString).lastPathComponent.lowercased()
             // Road, sides and barriers carry trackgen's `tr-` prefix; the pit
             // building and its walls carry the pit wall surface's own name.
             // Both are trackgen output and both are generated here instead.
-            return texture.hasPrefix("tr-") || texture.contains("tarmac-wall")
+            return texture.hasPrefix("tr-") || texture.contains("tarmac-wall") || surfaces.contains(texture)
         }
     }
 

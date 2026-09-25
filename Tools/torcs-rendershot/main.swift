@@ -382,7 +382,7 @@ do {
         }
         if options.generateTrack {
             let before = scene.batches.count
-            scene = TrackSurfaceAssembly.strippingTrackgen(scene)
+            scene = TrackSurfaceAssembly.strippingTrackgen(scene, surfaceTextures: road.geometry.surfaceTextures)
             var generated = try TrackSurfaceAssembly.roadBatches(road.geometry)
             generated += try TrackSurfaceAssembly.pitBatches(road.geometry, pits: road.pits)
             generated += try TrackSurfaceAssembly.furnitureBatches(road.geometry)
