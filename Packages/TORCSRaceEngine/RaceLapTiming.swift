@@ -10,7 +10,10 @@ public struct LapValidityRules: OptionSet,Sendable {
     public init(rawValue: UInt32) { self.rawValue=rawValue }
     public static let cornerCutting=Self(rawValue:1)
     public static let wallHit=Self(rawValue:2)
+    /// Race-only: the original adds time instead of invalidating the lap.
+    public static let cornerCuttingPenalty=Self(rawValue:4)
     public static let practice: Self=[.cornerCutting,.wallHit]
+    public static let race: Self=[.cornerCutting,.wallHit,.cornerCuttingPenalty]
 }
 public struct CompletedLap: Sendable,Codable,Equatable {
     public let number: Int
@@ -72,19 +75,13 @@ public struct RaceLapTiming: Sendable {
             if old.raceFlags & 2 != 0,segment.raceFlags & 1 != 0 { backwardCrossings += 1 }
         }
         // ReRaceRules runs after crossing/reset and before publication of time.
+        // Only its lap-validity half applies here; the corner-cut geometry is
+        // shared with RaceRules, which owns the complete routine. A race runtime
+        // that calls RaceRules.apply should pass no validity rules here so the
+        // shared section is not applied twice.
         if !finished {
             if rules.contains(.wallHit),commitBestLapTime,sample.collision & 2 != 0 { commitBestLapTime=false }
-            var border: Float=0
-            if segment.curve != .straight {
-                let pits=road.pits
-                var inPit=false
-                if pits.type == .trackSide,let entry=pits.entry,let exit=pits.exit {
-                    let start=g.segments[entry].upstreamID,end=g.segments[exit].upstreamID,id=segment.upstreamID
-                    inPit=start<end ? id>=start && id<=end:id>=start || id<=end
-                }
-                if segment.curve == .left,!(inPit && pits.side == .left) { border=p.toLeft }
-                else if segment.curve == .right,!(inPit && pits.side == .right) { border=p.toRight }
-            }
+            let border=RaceRules.cornerCut(position:p,road:road).border
             if border < -(sample.width*0.7),rules.contains(.cornerCutting) { commitBestLapTime=false }
         }
         previousSegment=p.segment;currentLapTime=time-startTime

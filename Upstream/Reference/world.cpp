@@ -1504,6 +1504,10 @@ int ref_world_race_configure(RefWorld *w,unsigned int rules,unsigned int raceTyp
     for (auto &car:w->cars) { car._skillLevel=skill;car._driverType=driverType; }
     return 1;
 }
+int ref_world_race_public_speed(RefWorld *w,int car,float speed) {
+    if (!w||w!=activeWorld||car<0||car>=int(w->cars.size())||!std::isfinite(speed)) return 0;
+    w->cars[car].pub.speed=speed;return 1;
+}
 int ref_world_race_classification(RefWorld *w,int *order,int count) {
     if (!w||w!=activeWorld||!order||count!=int(w->cars.size())) return 0;
     for (int i=0;i<count;++i) order[i]=w->situation.cars[i]->index;

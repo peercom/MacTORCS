@@ -46,8 +46,10 @@ This is not yet an integrated human-versus-AI race. Remaining gameplay work:
    the captured-input reference cases; full physical trajectory parity is open.
 2. Original grid placement is **done** and matches the original exactly, and the
    multi-car simulation now takes one car definition per car; see
-   [starting grid](STARTING_GRID.md). Still to do: connect multi-car simulation,
-   race progress, pit service and penalties to one authoritative race runtime.
+   [starting grid](STARTING_GRID.md), and the original race rules and penalties
+   are ported and measured; see [race rules](RACE_RULES.md). Still to do: connect
+   multi-car simulation, race progress, pit service and penalties to one
+   authoritative race runtime.
 3. Expose opponent selection, live standings, finish handling and race results in
    the driving window; use actual cars in cameras, mirrors and collisions.
 4. Complete a physical five-lap human session and deterministic ten-lap AI race,

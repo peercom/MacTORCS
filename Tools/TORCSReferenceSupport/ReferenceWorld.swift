@@ -170,6 +170,12 @@ public final class ReferenceWorld {
             throw TelemetryError.invalid("Invalid original race rule configuration")
         }
     }
+    /// The original total speed, which the corner-cutting time penalty reads.
+    public func setPublicSpeed(_ speed: Float,car: Int) throws {
+        guard (0..<carCount).contains(car),let handle,ref_world_race_public_speed(handle,Int32(car),speed)==1 else {
+            throw TelemetryError.invalid("Invalid public speed for car \(car)")
+        }
+    }
     /// Stable car indices in the current original race order (leader first).
     public func classification() throws -> [Int] {
         var order=[Int32](repeating:0,count:carCount)

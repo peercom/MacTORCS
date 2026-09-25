@@ -1,0 +1,55 @@
+{
+ "date": "2026-09-25",
+ "evidence": {
+  "race-rules-tests.log": "d0d1a75c2d6d4cb8c05d41eb4c24e8ceb5d83e4adc72cf40e16e3ca179c8a925"
+ },
+ "increment": "G3 native race rules and penalties",
+ "limits": [
+  "Penalties are verified with authored positions, not by a car driving itself into an infringement.",
+  "The rules are not connected to a running race yet; that is the authoritative race runtime in the next increment.",
+  "Nothing consumes the accumulated penalty time yet: RacePitController already accepts one for service timing, but wiring it belongs to the race runtime.",
+  "RaceLapTiming still applies the lap-validity half itself for existing single-car sessions; a runtime calling RaceRules.apply should pass no validity rules to the timing so the shared section is not applied twice.",
+  "The original dereferences its penalty queue head when the rule flags say a penalty was served; the port reports an empty queue as nothing to clear rather than reading it.",
+  "Aalborg / 155-DTM pinned fixtures; the pit rules depend on each track's pit flags and a track without pits exercises none of them.",
+  "The original reads the previous tick's published lap time, so a runtime must pass the published value rather than a freshly computed one."
+ ],
+ "measurements": {
+  "cornerCutAccumulatedSeconds": 6.8236117,
+  "cornerCutMatchedEveryStep": true,
+  "cornerCutPenaltySpeeds": [
+   10,
+   25,
+   40,
+   55,
+   70
+  ],
+  "cornerCutPenaltySteps": 200,
+  "lapTimeEliminationHumanExempt": true,
+  "lapTimeEliminationRobot": true,
+  "lapTimeEliminationThresholdSeconds": 343.254345703125,
+  "newTests": 6,
+  "pitRuleWalkSteps": 8,
+  "pitSpeedLimit": 25.0,
+  "practiceInvalidationOnlyPenaltyTime": 0.0,
+  "racePenaltyOnlyLapStaysValid": true,
+  "releaseSuite": "449 tests, 0 failures, 91.749 s",
+  "repairStopDoesNotServe": true,
+  "stopAndGoServedCleared": true,
+  "stopAndGoWalkSteps": 8
+ },
+ "priority": "Gameplay; foliage and new graphical work deferred",
+ "schema": 1,
+ "scope": "Semantic ReRaceRules port: lap-time elimination, wall-hit and corner-cut invalidation, race corner-cut time penalty, penalty queue, pit-lane rule state machine and pit speed limit, compared against the original routine with authored positions",
+ "sources": {
+  "Packages/TORCSRaceEngine/RaceLapTiming.swift": "013a8417643d4245eeeb75593e26a5dce658cf69fffd639b809e3bc669f5753c",
+  "Packages/TORCSRaceEngine/RaceRules.swift": "6c9a5ce807bf37cf14447b6edfde73fe86a57fe481226e397698eebd52a40624",
+  "Tests/UnitTests/RaceRulesTests.swift": "ef0a030fabc42e9f908d4738dafd7c7d720f82f0d6d9bff198b22829f7da6549",
+  "Tools/TORCSReferenceSupport/ReferenceWorld.swift": "59a011f04592f8fa56afa65f49f1e06ef06e892f457692efc5ac737420933e11",
+  "Upstream/Reference/include/CReference.h": "e5e30ef5cea2fa642b6377bce89c91e708812e14f88a20d370891a396c14d8bb",
+  "Upstream/Reference/world.cpp": "20ce132020dd1c65eaa3f20bc99890cff4b35468e027855fd1a36647d2428d48"
+ },
+ "verification": {
+  "gating": "Release suite gated on the three-digit total line with no runtime-failure, Fatal, failed-case or signal markers",
+  "oracle": "ref_world_progress_init with ref_world_race_configure, ref_world_race_public_speed and ref_world_race_car_state"
+ }
+}

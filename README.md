@@ -58,6 +58,9 @@ It rejects schema, field and tick mismatches. Exit codes: 0 pass, 1 divergence,
 capture-size limit; see [telemetry comparison](Documentation/TELEMETRY_COMPARISON.md).
 Full race telemetry is not implemented.
 
+The original race rules and penalties are ported and measured against the
+original routine; see [race rules](Documentation/RACE_RULES.md).
+
 Native field placement now reproduces the original starting grid exactly, and the
 multi-car simulation accepts one car definition per car; see
 [starting grid](Documentation/STARTING_GRID.md).

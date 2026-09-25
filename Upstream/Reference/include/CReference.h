@@ -465,6 +465,9 @@ int ref_world_race_classification(RefWorld *world,int *order,int count);
 // RmRaceRules bitmask, the situation race type, and the per-car skill/driver
 // type ReRaceRules gates penalties and the lap-time DNF rule on.
 int ref_world_race_configure(RefWorld *world,unsigned int rules,unsigned int raceType,int skill,int driverType);
+// The original total speed (pub.speed). The corner-cutting time penalty uses it,
+// while the pit speed limit uses the longitudinal speed the sample carries.
+int ref_world_race_public_speed(RefWorld *world,int car,float speed);
 int ref_world_bt_car_status(RefWorld *world,int car,RefRobotRaceState *output);
 int ref_world_bt_car_input(RefWorld *world,int car,double *values,int capacity);
 int ref_world_bt_car_observation(RefWorld *world,int car,RefBTObservation *output);
