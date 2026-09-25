@@ -452,6 +452,10 @@ struct DrivingMetalView: NSViewRepresentable {
                 }
 
                 modern.mirror=session.mirrors && preset.allowsMirror ? RearViewMirror(body:pose.body,bonnetPosition:content.bonnetPosition,hiddenInstances:preset.drawsCar ? Set(1...17):[]):nil
+                // A broadcast lens on the television view only: an 85 mm at
+                // f/2.8 focused on the followed car. A driver's eyes focus
+                // where they look; those views stay sharp everywhere.
+                modern.depthOfField=preset == .television ? DepthOfField(focusDistance:sceneCamera.distance):nil
                 modern.rain=session.rain ? 1:0
                 modern.wetness=session.wet || session.rain ? 1:0
                 let sources=ModernDrivingRenderer.particleSources(pose:pose,snapshot:frame.current,speed:frame.speed,geometry:content.simulation.road.geometry,segment:frame.trackSegment,wetness:modern.wetness)

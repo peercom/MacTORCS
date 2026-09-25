@@ -6,6 +6,7 @@
 #include "Forward.metal"
 #include "Post.metal"
 #include "Bloom.metal"
+#include "DepthOfField.metal"
 using namespace metal;
 
 struct GlareUniforms {
@@ -14,6 +15,9 @@ struct GlareUniforms {
     /// Heat haze: x strength (0 = off), y animation time, z projection near,
     /// w one pixel in uv (1 / height).
     float4 haze;
+    /// Depth of field: x focus distance, y circle scale and z largest circle
+    /// in the half-resolution target's pixels, w on (0 = off). Uses haze.z.
+    float4 focus;
 };
 
 /// Heat haze: the far road shimmers. A rising two-octave value noise
@@ -93,6 +97,7 @@ fragment float4 resolveFragment(ResolveVarying in [[stage_in]],
                                 texture2d<float> scene [[texture(0)]],
                                 texture2d<float> bloom [[texture(1)]],
                                 texture2d<float> depth [[texture(2)]],
+                                texture2d<float> blurred [[texture(3)]],
                                 constant float &exposureScale [[buffer(0)]],
                                 constant float &bloomStrength [[buffer(1)]],
                                 constant GlareUniforms &glare [[buffer(2)]]) {
@@ -102,6 +107,14 @@ fragment float4 resolveFragment(ResolveVarying in [[stage_in]],
     // The pyramid was built from exposed values (see bloomPrefilter), so the
     // scene is exposed here to match and the tonemapper is given unit scale.
     float3 radiance = scene.sample(pointSampler, sceneUV).rgb * exposureScale;
+    if (glare.focus.w > 0.0f) {
+        // The blurred half-resolution image where this pixel's own circle is
+        // wider than a texel of it; the sharp one where it is not.
+        float circle = abs(circleOfConfusion(depth.sample(pointSampler, sceneUV).x,
+                                             float4(glare.focus.xyz, glare.haze.z)));
+        float blend = saturate(circle - 0.5f);
+        radiance = mix(radiance, blurred.sample(linearSampler, sceneUV).rgb * exposureScale, blend);
+    }
     if (glare.sun.w > 0.0f && in.sunVisibility > 0.0f) {
         radiance += sunGlare(in.uv, glare, in.sunVisibility);
     }

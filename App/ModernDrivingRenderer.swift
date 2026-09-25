@@ -259,6 +259,11 @@ final class ModernDrivingRenderer {
     }
     /// Rain, 0 to 1: streaks around the camera and a sun dimmed to a
     /// quarter, the ambient to two thirds.
+    /// The lens for the television view; nil for every other preset.
+    var depthOfField: DepthOfField? {
+        get { renderer.depthOfField }
+        set { renderer.depthOfField = newValue }
+    }
     var rain: Float {
         get { renderer.rain }
         set { renderer.rain = newValue }

@@ -2196,6 +2196,64 @@ increment. The fixed driver's-eye run, 8.6 ms opening, wandered to 11.4
 and back to 9.8 over two minutes with a window server taking a third
 of a core throughout: reported, not relied on.
 
+## A lens for the television view
+
+The one Phase 7 item still deferred was depth of field, and the plan was
+specific about where it belongs: replay and photo views, never the race.
+A driver's eyes focus where they look; a blurred mirror or dashboard is a
+fault. A broadcast camera has a lens, and its background is soft because
+the lens is long and open.
+
+`DepthOfField` is that lens, in the units a camera operator would use —
+focus distance, f-number, focal length — and the renderer converts it
+to a circle of confusion in pixels for the image it has, by the thin
+lens: `f² / (N (F − f))` on a 36 mm sensor for a subject at infinity,
+scaled by `(d − F) / d` for one at distance d. Signed, so the shader can
+tell a subject in front of the focus from one behind it. Three passes:
+
+- **Prefilter**, half resolution: the scene colour with the circle in
+  its alpha, from the nearest of the four depth texels under each
+  pixel so a thin near edge keeps its blur.
+- **Gather**, half resolution: forty-nine taps on three rings of a disc
+  as wide as the largest circle, each weighted by whether its own circle
+  reaches the pixel (scatter as gather) — a tap behind the pixel reaches
+  no further than the pixel's own circle, so a sharp subject keeps its
+  edge against a blurred background while a blurred foreground still
+  spreads over a sharp one. Rotated per pixel so the rings' residual is
+  noise. A pixel whose neighbourhood carries no circle — most of a
+  photograph — returns after seventeen looks around the rim instead of
+  the disc.
+- **Composite**, in the resolve: the blurred image where the pixel's own
+  circle is wider than half a texel of it, the sharp one where it is not.
+
+`RenderSettings.depthOfField` allows it (on in every preset); the view
+supplies the lens through `ForwardRenderer.depthOfField`, and the app
+sets an 85 mm at f/2.8 focused on the followed car for the television
+preset and nil for every other. The mirror never composites it. The
+render tool takes `--dof <metres>`, `--fstop`, `--focal` and `--dof-max`.
+
+What it costs, native 2560×1664 (the passes run at 1280×832),
+alternated:
+
+| view | prefilter | gather | frame without → with |
+|---|---|---|---|
+| driver's-eye, focus 25 m | 0.3 ms | 1.9–2.3 ms | 9.3 → 11.3–13.0 ms |
+| car photo, focus on the car | 0.12 ms | 1.8–2.6 ms | 6.1 → 6.3 ms (the GPU clock rose with the load; every other pass halved) |
+
+Two to two and a half milliseconds for a fully blurred background is
+the honest price of a 49-tap gather over a million pixels, and the
+television view is the one view that has the room: it is not the
+driver's, and its own cost is the circuit overview's 6.5 ms. The
+early-out is what keeps a photograph cheap where it is sharp.
+
+Tests: the thin-lens arithmetic (zero at the focus, signed either side,
+capped, a faster lens shallower, a shorter one deeper); a render focused
+on the fixture keeps more than 80% of the sharp frame's edge energy
+while one focused far in front of it loses more than a quarter, and
+removing the lens returns the sharp bytes exactly; the targets are half
+the source and follow it; the two entry points are pinned in the
+library.
+
 ## Licensing
 
 No third-party artwork is imported by this work. New render source is

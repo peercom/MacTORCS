@@ -50,7 +50,7 @@ final class ShaderLibraryTests: XCTestCase {
     func testCombinedLibraryCompilesAndExposesEveryEntryPoint() throws {
         guard let device = MTLCreateSystemDefaultDevice() else { throw XCTSkip("Metal device unavailable") }
         let library = try ShaderLibrary(device: device).library
-        for name in ["forwardVertex", "forwardFragment", "fullscreenVertex", "resolveFragment"] {
+        for name in ["forwardVertex", "forwardFragment", "fullscreenVertex", "resolveFragment", "dofPrefilterFragment", "dofGatherFragment"] {
             XCTAssertNotNil(library.makeFunction(name: name), "missing entry point \(name)")
         }
     }

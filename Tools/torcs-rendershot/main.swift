@@ -76,6 +76,11 @@ struct Options {
     var shadowRefresh: Int? = nil
     /// Per-pass GPU timing over the frames, from the GPU's timestamp counter.
     var passes = false
+    /// A television lens: focus distance in metres turns the depth of field on.
+    var focusDistance: Float?
+    var fNumber: Float = 2.8
+    var focalLength: Float = 85
+    var maximumCircle: Float = 12
     /// Submit every batch regardless of the view frustum, to measure the cull.
     var noFrustum = false
     /// Overrides the preset's anisotropy for the normal and roughness maps.
@@ -188,6 +193,10 @@ func parse() -> Options {
         case "--rain": options.rain = Float(next()) ?? 1
         case "--shadow-refresh": options.shadowRefresh = Int(next())
         case "--passes": options.passes = true
+        case "--dof": options.focusDistance = Float(next())
+        case "--fstop": options.fNumber = Float(next()) ?? options.fNumber
+        case "--focal": options.focalLength = Float(next()) ?? options.focalLength
+        case "--dof-max": options.maximumCircle = Float(next()) ?? options.maximumCircle
         case "--no-frustum": options.noFrustum = true
         case "--detail-anisotropy": options.detailAnisotropy = Int(next())
         case "--no-glare": options.sunGlare = false
@@ -405,6 +414,10 @@ do {
     renderer.roadPaint.set(gridBoxes)
     if options.passes { renderer.passTimer = try PassTimer(device: renderer.device) }
     if options.noFrustum { renderer.frustumCulling = false }
+    if let focus = options.focusDistance {
+        renderer.depthOfField = DepthOfField(focusDistance: focus, fNumber: options.fNumber,
+                                             focalLength: options.focalLength, maximumCircle: options.maximumCircle)
+    }
     var passSamples: [String: [Double]] = [:]
     renderer.rain = options.rain
     if options.rain > 0 { renderer.wetness = max(renderer.wetness, options.rain) }

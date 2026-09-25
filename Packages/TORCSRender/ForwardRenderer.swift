@@ -266,6 +266,10 @@ public final class ForwardRenderer {
     /// too coarse to read as shadows anyway, and aerial perspective has taken over.
     public var shadowDistance: Float = 400
     let sampler: MTLSamplerState
+    /// The lens for a television or photo view; nil for every driver's view
+    /// and in the race. Applied only when `settings.depthOfField` allows.
+    public var depthOfField: DepthOfField?
+    public let depthOfFieldRenderer: DepthOfFieldRenderer
     /// Skip batches whose bounding sphere lies outside the view. On by
     /// default; off only to measure what it saves.
     public var frustumCulling = true
@@ -392,6 +396,7 @@ public final class ForwardRenderer {
         sky = try device.makeRenderPipelineState(descriptor: skyDescriptor)
         atmosphere = try AtmosphereResources(device: device, library: library)
         bloom = try BloomRenderer(device: device, library: library)
+        depthOfFieldRenderer = try DepthOfFieldRenderer(device: device, library: library)
         occlusion = try OcclusionRenderer(device: device, library: library)
         reflections = try ReflectionRenderer(device: device, library: library)
         motionBlur = try MotionBlurRenderer(device: device, library: library)
@@ -593,7 +598,7 @@ public final class ForwardRenderer {
         encodeFrame(into: commands, targets: targets, resources: resources, instances: instances,
                     camera: camera, lighting: lighting, aspect: Float(width) / Float(max(height, 1)))
         encodeResolve(into: commands, source: tonemapSource(targets), destination: targets.display,
-                      lighting: lighting)
+                      lighting: lighting, depthOfField: depthOfFieldRenderer.result)
         if let mirror, let mirrorView {
             encodeMirrorComposite(into: commands, mirror: mirrorView, destination: targets.display, rect: mirror.rect)
         }
@@ -692,6 +697,15 @@ public final class ForwardRenderer {
             postProduced = motionBlur.encode(into: commands, targets: targets, source: source, timer: passTimer) != nil
         } else if !settings.motionBlur {
             motionBlur.discard()
+        }
+
+        // The lens blur, on the image the tonemapper will see, before the
+        // bloom so the glow is of the blurred picture.
+        if settings.depthOfField, let lens = depthOfField {
+            depthOfFieldRenderer.encode(into: commands, source: tonemapSource(targets), depth: targets.depth,
+                                        lens: lens, near: camera.near, timer: passTimer)
+        } else {
+            depthOfFieldRenderer.discard()
         }
 
         // After the upscaler, so the pyramid is built at output resolution from
@@ -1189,7 +1203,8 @@ public final class ForwardRenderer {
 
     /// Tonemaps HDR scene colour into a display-format target.
     public func encodeResolve(into commands: MTLCommandBuffer, source: MTLTexture,
-                              destination: MTLTexture, lighting: SunLighting) {
+                              destination: MTLTexture, lighting: SunLighting,
+                              depthOfField blurred: MTLTexture? = nil) {
         let resolvePass = MTLRenderPassDescriptor()
         resolvePass.colorAttachments[0].texture = destination
         resolvePass.colorAttachments[0].loadAction = .dontCare
@@ -1215,15 +1230,24 @@ public final class ForwardRenderer {
             // Sun glare: only when the setting is on, the sun is in front of
             // the camera and within a frame's width of the view. Occlusion is
             // decided in the shader from the depth around the sun.
-            var glare = GlareUniforms(sun: .zero, colour: .zero, haze: .zero)
+            var glare = GlareUniforms(sun: .zero, colour: .zero, haze: .zero, focus: .zero)
             // Heat haze grows with the sun's height: nothing below 17°, full
-            // above 53°. Needs the depth, like the glare.
-            if settings.heatHaze, settings.heatHazeStrength > 0, let depth = lastDepth {
-                let heat = min(max((lighting.direction.z - 0.3) / 0.5, 0), 1) * settings.heatHazeStrength
+            // above 53°. Needs the depth, like the glare and the lens blur.
+            let wantsHaze = settings.heatHaze && settings.heatHazeStrength > 0
+            let lens = blurred != nil ? depthOfField : nil
+            if let depth = lastDepth, wantsHaze || lens != nil {
+                let heat = wantsHaze ? min(max((lighting.direction.z - 0.3) / 0.5, 0), 1) * settings.heatHazeStrength : 0
                 glare.haze = SIMD4(heat, Float(animationTime), lastNear, 1 / Float(max(destination.height, 1)))
                 encoder.setFragmentTexture(depth, index: 2)
             } else {
                 encoder.setFragmentTexture(source, index: 2)
+            }
+            if let lens, let blurred {
+                let dof = DepthOfFieldRenderer.uniforms(lens, near: lastNear, targetWidth: blurred.width, targetHeight: blurred.height)
+                glare.focus = SIMD4(dof.focus.x, dof.focus.y, dof.focus.z, 1)
+                encoder.setFragmentTexture(blurred, index: 3)
+            } else {
+                encoder.setFragmentTexture(source, index: 3)
             }
             if settings.sunGlare, settings.sunGlareStrength > 0, let sun = sunScreenPosition, let depth = lastDepth,
                sun.x > -0.5, sun.x < 1.5, sun.y > -0.5, sun.y < 1.5 {
@@ -1246,4 +1270,5 @@ struct GlareUniforms {
     var sun: SIMD4<Float>
     var colour: SIMD4<Float>
     var haze: SIMD4<Float>
+    var focus: SIMD4<Float>
 }

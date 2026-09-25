@@ -61,7 +61,7 @@ public extension ForwardRenderer {
         // Tonemap straight into the drawable rather than into `targets.display`
         // and blitting: one less full-resolution write per frame.
         encodeResolve(into: commands, source: tonemapSource(targets), destination: drawable.texture,
-                      lighting: lighting)
+                      lighting: lighting, depthOfField: depthOfFieldRenderer.result)
         if let mirror, let mirrorView {
             encodeMirrorComposite(into: commands, mirror: mirrorView, destination: drawable.texture, rect: mirror.rect)
         }

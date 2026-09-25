@@ -7,7 +7,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 out="${1:?usage: build-shaders.sh <output.metallib>}"
 shaders="Packages/TORCSRender/Shaders"
-order=(Common BRDF Post Atmosphere Shadow Forward Sky Occlusion Reflections MotionBlur Bloom Particles SkidMarks Resolve)
+order=(Common BRDF Post Atmosphere Shadow Forward Sky Occlusion Reflections MotionBlur Bloom Particles SkidMarks DepthOfField Resolve)
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 all="$work/All.metal"

@@ -98,6 +98,11 @@ public struct RenderSettings: Sendable, Equatable {
     public var heatHaze: Bool
     public var heatHazeStrength: Float
 
+    /// Depth of field for the television and photo views, when the
+    /// presentation asks for it with `ForwardRenderer.depthOfField`. The
+    /// setting allows it; the view decides. Never applied to a driver's view.
+    public var depthOfField: Bool
+
     /// Anisotropic filtering for the normal and roughness maps, 1 to 16. The
     /// albedo keeps the full 8: at the road's grazing angles that is what keeps
     /// the surface legible. These two maps carry less that anisotropy
@@ -155,6 +160,7 @@ public struct RenderSettings: Sendable, Equatable {
             heatHaze = true
             heatHazeStrength = 1
             detailAnisotropy = 2
+            depthOfField = true
             depthPrepass = false
             mirrorScale = 0.5
             textureMemoryBudgetBytes = 1_500_000_000
@@ -182,6 +188,7 @@ public struct RenderSettings: Sendable, Equatable {
             heatHaze = true
             heatHazeStrength = 1
             detailAnisotropy = 4
+            depthOfField = true
             depthPrepass = false
             mirrorScale = 0.67
             textureMemoryBudgetBytes = 3_000_000_000
@@ -209,6 +216,7 @@ public struct RenderSettings: Sendable, Equatable {
             heatHaze = true
             heatHazeStrength = 1
             detailAnisotropy = 8
+            depthOfField = true
             depthPrepass = false
             mirrorScale = 1
             textureMemoryBudgetBytes = 6_000_000_000
