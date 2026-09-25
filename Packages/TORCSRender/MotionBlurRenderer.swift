@@ -18,10 +18,16 @@ public final class MotionBlurRenderer {
     /// convention (a 180° shutter) and reads as motion without smearing the
     /// frame into soup.
     public var shutter: Float = 0.5
+    /// The frame interval the shutter fraction refers to. A velocity is per
+    /// frame; a shutter is a time. At a lower frame rate each frame covers
+    /// more motion, and blurring by the frame would lengthen the streaks as
+    /// the machine slows — the caller scales the shutter by this over the
+    /// measured interval, so the exposure stays a sixtieth of a second.
+    public static let nominalFrameInterval: Double = 1.0 / 60.0
     /// Longest blur, as a fraction of the output height. Wheels and close
     /// barriers can exceed a whole frame of motion; past this they smear
     /// into mush rather than read faster.
-    public var maximumRadius: Float = 0.03
+    public var maximumRadius: Float = 0.02
     public var taps: Int = 8
 
     public private(set) var result: MTLTexture?
@@ -41,14 +47,14 @@ public final class MotionBlurRenderer {
     /// `result`, when the targets carry no velocity or post texture.
     @discardableResult
     public func encode(into commands: MTLCommandBuffer, targets: FrameTargets, source: MTLTexture,
-                       timer: PassTimer? = nil) -> MTLTexture? {
+                       exposureScale: Float = 1, timer: PassTimer? = nil) -> MTLTexture? {
         guard let velocity = targets.velocity, let destination = targets.postColour else {
             result = nil
             return nil
         }
         var uniforms = MotionBlurUniforms(
             parameters: SIMD4(1 / Float(destination.width), 1 / Float(destination.height),
-                              shutter, maximumRadius * Float(destination.height)),
+                              shutter * exposureScale, maximumRadius * Float(destination.height)),
             scale: SIMD4(Float(destination.width) / Float(velocity.width),
                          Float(destination.height) / Float(velocity.height), Float(taps), 0))
         let pass = MTLRenderPassDescriptor()

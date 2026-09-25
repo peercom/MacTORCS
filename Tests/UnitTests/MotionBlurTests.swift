@@ -53,6 +53,28 @@ final class MotionBlurTests: XCTestCase {
         XCTAssertEqual(sum(withBlur) / sum(without), 1, accuracy: 0.03)
     }
 
+    /// A shutter is a time, not a frame: the same motion over a frame that
+    /// took three times as long is blurred a third as much, so a slow machine
+    /// does not smear more the slower it gets.
+    func testBlurExposesForAFixedTimeWhateverTheFrameTook() throws {
+        let plain = try makeRenderer { $0.motionBlur = false }
+        _ = try render(plain, still)
+        let sharp = try render(plain, moved)
+        func blurEnergy(interval: Double) throws -> Double {
+            let blurred = try makeRenderer { $0.motionBlur = true }
+            blurred.presentedFrameInterval = interval
+            _ = try render(blurred, still)
+            let frame = try render(blurred, moved)
+            return Double(zip(frame, sharp).reduce(0) { $0 + abs(Int($1.0) - Int($1.1)) })
+        }
+        let nominal = try blurEnergy(interval: 1.0 / 60.0)
+        let slow = try blurEnergy(interval: 3.0 / 60.0)
+        let fast = try blurEnergy(interval: 1.0 / 120.0)
+        XCTAssertGreaterThan(nominal, 0)
+        XCTAssertLessThan(slow, nominal * 0.8, "a frame three times as long blurs less: \(slow) vs \(nominal)")
+        XCTAssertEqual(fast, nominal, accuracy: nominal * 0.05, "never more than a frame's worth")
+    }
+
     func testTargetsFollowTheSetting() throws {
         let renderer = try makeRenderer { $0.motionBlur = true }
         _ = try render(renderer, still)

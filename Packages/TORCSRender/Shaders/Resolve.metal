@@ -18,7 +18,8 @@ struct GlareUniforms {
     /// Depth of field: x focus distance, y circle scale and z largest circle
     /// in the half-resolution target's pixels, w on (0 = off). Uses haze.z.
     float4 focus;
-    /// Rain on the windscreen: x amount (0 = off), y time, z aspect, w unused.
+    /// Rain on the windscreen: x amount (0 = off), y time, z aspect, w the
+    /// depth in metres beyond which the drops apply (the cabin is nearer).
     float4 rain;
 };
 
@@ -155,7 +156,15 @@ fragment float4 resolveFragment(ResolveVarying in [[stage_in]],
     constexpr sampler linearSampler(coord::normalized, address::clamp_to_edge, filter::linear);
     float2 sceneUV = glare.haze.x > 0.0f ? heatHaze(in.uv, depth, glare) : in.uv;
     float underDrop = 0.0f;
-    if (glare.rain.x > 0.0f) { sceneUV = clamp(windscreen(sceneUV, glare, underDrop), 0.0f, 1.0f); }
+    if (glare.rain.x > 0.0f) {
+        // Drops sit on the glass, and the glass is the pane between the cabin
+        // and the world: what is nearer than about two metres — dashboard,
+        // wheel, pillars — is inside and stays dry. The sky, cleared to zero
+        // in reversed depth, is beyond it.
+        float deviceDepth = depth.sample(pointSampler, in.uv).x;
+        float linear = deviceDepth > 0.0f ? glare.haze.z / deviceDepth : 1e9f;
+        if (linear > glare.rain.w) { sceneUV = clamp(windscreen(sceneUV, glare, underDrop), 0.0f, 1.0f); }
+    }
     // The pyramid was built from exposed values (see bloomPrefilter), so the
     // scene is exposed here to match and the tonemapper is given unit scale.
     float3 radiance = scene.sample(pointSampler, sceneUV).rgb * exposureScale;

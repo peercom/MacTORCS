@@ -266,6 +266,18 @@ public final class ForwardRenderer {
     /// too coarse to read as shadows anyway, and aerial perspective has taken over.
     public var shadowDistance: Float = 400
     let sampler: MTLSamplerState
+    /// Seconds between the last two presented frames, measured by
+    /// presentation; offscreen renders leave it at the nominal sixtieth.
+    public var presentedFrameInterval: Double = MotionBlurRenderer.nominalFrameInterval
+    /// The shutter scale for this frame's motion blur: a sixtieth of a
+    /// second of exposure whatever the frame took, never more than a frame.
+    var motionBlurExposureScale: Float {
+        let interval = max(presentedFrameInterval, MotionBlurRenderer.nominalFrameInterval)
+        return Float(MotionBlurRenderer.nominalFrameInterval / interval)
+    }
+    /// Metres from the eye beyond which windscreen drops apply: the cabin —
+    /// dashboard, wheel, pillars — is nearer and stays dry.
+    public static let windscreenDepth: Float = 2.0
     /// Rain on the windscreen, 0 to 1: drops refracting the picture at the
     /// resolve. The presentation sets it for the view from inside the cabin
     /// when it rains, and nothing else; a chase camera has no glass.
@@ -701,7 +713,7 @@ public final class ForwardRenderer {
             // Blur before the scaler: a quarter of the pixels, and the scaler
             // keeps no history the blur could corrupt.
             if settings.motionBlur, targets.postAtRenderResolution, targets.velocity != nil, targets.postColour != nil {
-                postProduced = motionBlur.encode(into: commands, targets: targets, source: targets.colour, timer: passTimer) != nil
+                postProduced = motionBlur.encode(into: commands, targets: targets, source: targets.colour, exposureScale: motionBlurExposureScale, timer: passTimer) != nil
             }
             do {
                 let key = SIMD2(targets.renderWidth, targets.renderHeight)
@@ -748,7 +760,7 @@ public final class ForwardRenderer {
         // streak with the object, and the tonemapper should see the blur.
         if settings.motionBlur, !targets.postAtRenderResolution, targets.velocity != nil, targets.postColour != nil {
             let source = upscaleProduced ? (targets.upscaled ?? targets.colour) : targets.colour
-            postProduced = motionBlur.encode(into: commands, targets: targets, source: source, timer: passTimer) != nil
+            postProduced = motionBlur.encode(into: commands, targets: targets, source: source, exposureScale: motionBlurExposureScale, timer: passTimer) != nil
         } else if !settings.motionBlur {
             motionBlur.discard()
         }
@@ -1060,7 +1072,10 @@ public final class ForwardRenderer {
         // Skid marks darken the road before the reflections trace reads it,
         // so a mark shows in the paint of a car standing on it.
         if settings.skidMarks {
-            skidMarkRenderer.encodePaint(into: commands, targets: targets, paint: roadPaint, frame: &frame, timer: passTimer)
+            skidMarkRenderer.encodePaint(into: commands, targets: targets, paint: roadPaint, frame: &frame,
+                                         shadow: shadowUniforms, shadowMap: shadows.map,
+                                         shadowSampler: shadows.comparisonSampler, irradiance: atmosphere.irradiance,
+                                         timer: passTimer)
             skidMarkRenderer.encode(into: commands, targets: targets, marks: skidMarks, frame: &frame, timer: passTimer)
         }
 
@@ -1288,13 +1303,14 @@ public final class ForwardRenderer {
             // Rain on the glass: only a view from inside the cabin asks for it.
             if windscreenRain > 0 {
                 glare.rain = SIMD4(min(windscreenRain, 1), Float(animationTime),
-                                   Float(destination.width) / Float(max(destination.height, 1)), 0)
+                                   Float(destination.width) / Float(max(destination.height, 1)), Self.windscreenDepth)
             }
             // Heat haze grows with the sun's height: nothing below 17°, full
             // above 53°. Needs the depth, like the glare and the lens blur.
             let wantsHaze = settings.heatHaze && settings.heatHazeStrength > 0
             let lens = blurred != nil ? depthOfField : nil
-            if let depth = lastDepth, wantsHaze || lens != nil {
+            let wantsDrops = windscreenRain > 0
+            if let depth = lastDepth, wantsHaze || lens != nil || wantsDrops {
                 let heat = wantsHaze ? min(max((lighting.direction.z - 0.3) / 0.5, 0), 1) * settings.heatHazeStrength : 0
                 glare.haze = SIMD4(heat, Float(animationTime), lastNear, 1 / Float(max(destination.height, 1)))
                 encoder.setFragmentTexture(depth, index: 2)

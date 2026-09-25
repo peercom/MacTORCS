@@ -2655,6 +2655,52 @@ any field missing or a map absent. `ASSET_LICENSES.md` says what such a
 record documents and what it cannot, and why the project ships none of
 these sets itself.
 
+## Four things seen from the driver's seat
+
+The user drove it and saw four things this document's renders had not
+shown, each with its cause and its fix.
+
+**The windscreen was a solid pane.** A regression from the compression
+two sections back: the glass carries its transparency in its texture's
+alpha, and only alpha-*tested* cutouts had been routed to BC3; the rest,
+glass included, went to BC1, which has no alpha. Confirmed by rendering
+the driver's view both ways — 29% of its channels differed, against 1.6%
+on the chase view. The format now follows the image: any alpha at all is
+kept in BC3, whether the batch is tested or blended, in the texture
+store and the material library alike. The old sidecar of a wrongly
+formatted map is simply not found and the right one written.
+
+**Raindrops on the dashboard.** The drops were a screen-space effect
+over the whole frame, by the first version's design. They apply now only
+where the scene depth is beyond two metres — the glass is the pane
+between the cabin and the world, and the dashboard, wheel and pillars
+are nearer. The sky, cleared to zero in reversed depth, counts as beyond.
+
+**The starting grid floated.** The grid was a decal fifteen millimetres
+above the road, composited unlit, so the car's shadow did not fall on it
+and the lines read as standing up. Three millimetres and a depth bias
+now (reversed depth: a positive bias brings the decal nearer without
+raising it), for the skid marks too; and the paint is lit as the road
+is — the sun through the cascades and the sky's irradiance on an upward
+face — so a shadow crosses the grid. A test puts a box under the sun and
+under none and checks the paint follows.
+
+**Motion blur "all the time".** Not the renderer's: rendered twice with
+the history kept, every static preset produces the same picture. The
+blur is a moving camera's — the fly camera drifts toward the car on a
+spring, the trackside cameras zoom — at whatever frame rate the machine
+manages, and a velocity is per frame: a frame that took three times as
+long carried three times the motion and blurred three times as far. A
+shutter is a time. Presentation now measures the interval between
+frames and the blur exposes for a sixtieth of a second whatever the
+frame took, never more than a frame; the cap on a streak is two percent
+of the frame's height rather than three. A test blurs the same motion
+at a sixtieth, a twentieth and a hundred-and-twentieth of a second.
+
+The smoke run gained `TORCS_SMOKE_SECOND=1`, which renders every preset
+a second time with the history kept: that is what said the renderer was
+clean.
+
 ## Licensing
 
 No third-party artwork is imported by this work. New render source is

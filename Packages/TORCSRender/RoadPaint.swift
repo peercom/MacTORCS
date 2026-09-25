@@ -24,7 +24,7 @@ public final class RoadPaint {
     }
 
     /// Lift above the surface, as for the skid marks.
-    public var lift: Float = 0.015
+    public var lift: Float = 0.003
     public private(set) var boxes: [Box] = []
     public var quadCount: Int { boxes.count }
     private let device: MTLDevice

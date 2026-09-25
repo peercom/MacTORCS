@@ -132,21 +132,27 @@ public final class MaterialLibrary {
             let url = directory.appendingPathComponent("\(material)-\(suffix).png")
             guard let data = try? Data(contentsOf: url) else { return nil }
             if Self.compressesMaps {
-                let format = Self.format(forMap: suffix)
-                let sidecar = directory.appendingPathComponent("\(material)-\(suffix).\(format.rawValue).torcsbc")
+                // An albedo with alpha — a card atlas — keeps it in BC3.
+                var format = Self.format(forMap: suffix)
+                let sidecarFor = { (format: BlockCompression.Format) in
+                    directory.appendingPathComponent("\(material)-\(suffix).\(format.rawValue).torcsbc")
+                }
                 let chain: TextureLoading.CompressedChain
-                if let cached = MapSidecar.read(sidecar, source: data, format: format) {
+                if let cached = MapSidecar.read(sidecarFor(format), source: data, format: format)
+                    ?? (format == .bc1 ? MapSidecar.read(sidecarFor(.bc3), source: data, format: .bc3) : nil) {
                     chain = cached
+                    format = cached.format
                     sidecarHits += 1
                 } else {
                     guard let image = try? TextureLoading.decode(data),
                           let levels = try? TextureLoading.linearMipChain(image, preserveCutoutCoverage: false,
-                                                                         encodeAsColour: srgb),
-                          let encoded = try? TextureLoading.compress(levels, format: format) else { return nil }
+                                                                         encodeAsColour: srgb) else { return nil }
+                    if format == .bc1, TextureStore.hasTransparency(levels[0].pixels) { format = .bc3 }
+                    guard let encoded = try? TextureLoading.compress(levels, format: format) else { return nil }
                     chain = encoded
                     // Best effort: a directory that cannot be written to
                     // costs the encode again next time, nothing more.
-                    MapSidecar.write(chain, to: sidecar, source: data)
+                    MapSidecar.write(chain, to: sidecarFor(format), source: data)
                 }
                 uploadedBytes += chain.byteCount
                 return try? TextureLoading.upload(chain, device: device, srgb: srgb)

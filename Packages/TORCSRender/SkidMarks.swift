@@ -48,7 +48,7 @@ public final class SkidMarks {
     public var segmentLength: Float = 0.25
     /// Lift above the surface so the decal wins the depth test against the
     /// road it lies on, in metres.
-    public var lift: Float = 0.015
+    public var lift: Float = 0.003
 
     public let capacity: Int
     public var sources: [Source] = []
@@ -201,6 +201,7 @@ public final class SkidMarkRenderer {
         encoder.label = "Skid marks"
         encoder.setRenderPipelineState(pipeline)
         encoder.setDepthStencilState(depthState)
+        Self.biasDecal(encoder)
         encoder.setCullMode(.none)
         encoder.setVertexBuffer(buffer, offset: 0, index: 0)
         encoder.setVertexBytes(&frame, length: MemoryLayout<FrameUniforms>.stride, index: 1)
@@ -212,9 +213,17 @@ public final class SkidMarkRenderer {
 
     /// Draws the painted boxes; each box's length and width ride in its
     /// vertices, so one draw covers boxes of any size.
+    /// Depth bias for a decal a few millimetres above its surface: with
+    /// reversed depth a positive bias brings it nearer, so it wins the test
+    /// against the road it lies on without standing up from it.
+    static func biasDecal(_ encoder: MTLRenderCommandEncoder) {
+        encoder.setDepthBias(4, slopeScale: 2, clamp: 0)
+    }
+
     public func encodePaint(into commands: MTLCommandBuffer, targets: FrameTargets,
                             paint: RoadPaint, frame: inout FrameUniforms, lineWidth: Float = 0.12,
-                            timer: PassTimer? = nil) {
+                            shadow: ShadowUniforms, shadowMap: MTLTexture, shadowSampler: MTLSamplerState,
+                            irradiance: MTLBuffer, timer: PassTimer? = nil) {
         lastPaintedBoxes = 0
         guard let buffer = paint.buffer, paint.quadCount > 0 else { return }
         let pass = MTLRenderPassDescriptor()
@@ -231,8 +240,14 @@ public final class SkidMarkRenderer {
         encoder.setDepthStencilState(depthState)
         encoder.setCullMode(.none)
         encoder.setVertexBuffer(buffer, offset: 0, index: 0)
+        Self.biasDecal(encoder)
         encoder.setVertexBytes(&frame, length: MemoryLayout<FrameUniforms>.stride, index: 1)
         encoder.setFragmentBytes(&frame, length: MemoryLayout<FrameUniforms>.stride, index: 1)
+        var shadowUniforms = shadow
+        encoder.setFragmentBytes(&shadowUniforms, length: MemoryLayout<ShadowUniforms>.stride, index: 4)
+        encoder.setFragmentTexture(shadowMap, index: 6)
+        encoder.setFragmentSamplerState(shadowSampler, index: 1)
+        encoder.setFragmentBuffer(irradiance, offset: 0, index: 3)
         // One draw per box so the fragment sees that box's size.
         for (i, box) in paint.boxes.enumerated() {
             var parameters = SIMD4<Float>(lineWidth, 0.9, box.length, box.width)

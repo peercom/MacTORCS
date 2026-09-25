@@ -71,6 +71,20 @@ import TORCSTrackMesh
                                              lighting: lighting, width: width, height: height)
             try writePNG(Data(pixels), width: width, height: height,
                                     output: output.appendingPathComponent("\(preset).png"))
+            // TORCS_SMOKE_SECOND=1: the same view again with the history
+            // kept, as presentation would draw the next frame. A static
+            // camera must produce the same picture; a blur here is the
+            // renderer's, not the camera's.
+            if ProcessInfo.processInfo.environment["TORCS_SMOKE_SECOND"] != nil {
+                let wasResetting = renderer.resetsHistoryPerRender
+                renderer.resetsHistoryPerRender = false
+                let again = try renderer.render(resources: resources.resources, instances: instances,
+                                                camera: ModernDrivingRenderer.camera(from: sceneCamera),
+                                                lighting: lighting, width: width, height: height)
+                renderer.resetsHistoryPerRender = wasResetting
+                try writePNG(Data(again), width: width, height: height,
+                             output: output.appendingPathComponent("\(preset)-second.png"))
+            }
             report.append(["camera": "\(preset)", "draws": renderer.lastDrawCount,
                            "triangles": renderer.lastTriangleCount,
                            "gpuMilliseconds": renderer.lastGPUTime * 1000])

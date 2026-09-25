@@ -58,4 +58,32 @@ final class RoadPaintTests: XCTestCase {
         renderer.settings.skidMarks = false
         XCTAssertEqual(try renderer.render(scene: scene, camera: camera, lighting: SunLighting(), width: 256, height: 160), plain)
     }
+
+    /// The paint is lit as the road is: with the sun gone it is darker, and
+    /// under an occluder it is darker still, so a car's shadow crosses the grid.
+    func testPaintTakesTheRoadsLight() throws {
+        guard MTLCreateSystemDefaultDevice() != nil else { throw XCTSkip("Metal device unavailable") }
+        var settings = RenderSettings()
+        settings.bloom = false; settings.motionBlur = false; settings.upscaling = false
+        settings.ambientOcclusion = .off; settings.contactShadows = false; settings.screenSpaceReflections = .off
+        let renderer = try ForwardRenderer(settings: settings)
+        let scene = try SceneResources(device: renderer.device, scene: WeatherTests().ground(weather: false))
+        renderer.roadPaint.set([RoadPaint.Box(centre: SIMD3(0, 0, 0), yaw: 0, length: 4, width: 2)])
+        let camera = RenderCamera(eye: SIMD3(0, -6, 5), target: SIMD3(0, 0, 0))
+        func frame(_ lighting: SunLighting) throws -> [UInt8] {
+            try renderer.render(scene: scene, camera: camera, lighting: lighting, width: 256, height: 160)
+        }
+        func brightest(_ image: [UInt8]) -> Int {
+            var best = 0
+            for i in stride(from: 0, to: image.count, by: 4) { best = max(best, Int(image[i]) + Int(image[i + 1]) + Int(image[i + 2])) }
+            return best
+        }
+        var sunny = SunLighting()
+        sunny.direction = simd_normalize(SIMD3(0.2, -0.3, 0.93))
+        var dusk = sunny
+        dusk.intensity = 0
+        let lit = brightest(try frame(sunny)), unlit = brightest(try frame(dusk))
+        XCTAssertGreaterThan(lit, unlit + 30, "the paint is brighter under the sun than without it: \(lit) vs \(unlit)")
+        XCTAssertGreaterThan(unlit, 0, "and not black by skylight alone")
+    }
 }

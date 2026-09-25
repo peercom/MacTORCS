@@ -15,6 +15,7 @@ struct SkidVarying {
     float4 position [[position]];
     float2 uv;
     float intensity;
+    float3 world;
 };
 
 vertex SkidVarying skidVertex(uint id [[vertex_id]],
@@ -25,6 +26,7 @@ vertex SkidVarying skidVertex(uint id [[vertex_id]],
     out.position = frame.viewProjection * float4(v.positionIntensity.xyz, 1.0f);
     out.uv = v.uv.xy;
     out.intensity = v.positionIntensity.w;
+    out.world = v.positionIntensity.xyz;
     return out;
 }
 
@@ -50,8 +52,16 @@ fragment float4 skidFragment(SkidVarying in [[stage_in]]) {
 /// Painted outline: white where the fragment is within a line's width of
 /// the box's edge, in metres along (uv.x of uv.z) and across (uv.y of
 /// uv.w). Worn a little, like paint that has had cars over it.
+/// Paint lit as the road under it is: the sun through the cascades and the
+/// sky's irradiance on an upward face, so a car's shadow falls across the
+/// grid and the lines sit in the picture rather than on it.
 fragment float4 roadPaintFragment(SkidVarying in [[stage_in]],
-                                  constant float4 &paint [[buffer(2)]]) {
+                                  constant FrameUniforms &frame [[buffer(1)]],
+                                  constant float4 &paint [[buffer(2)]],
+                                  constant SkyIrradiance &skyIrradiance [[buffer(3)]],
+                                  constant ShadowUniforms &shadow [[buffer(4)]],
+                                  depth2d_array<float> shadowMap [[texture(6)]],
+                                  sampler shadowSampler [[sampler(1)]]) {
     // uv.x along in metres, uv.y across in metres; the box size travels in
     // the vertex's uv.zw, interpolated flat across the quad.
     float along = in.uv.x, across = in.uv.y;
@@ -61,7 +71,14 @@ fragment float4 roadPaintFragment(SkidVarying in [[stage_in]],
     float coverage = 1.0f - smoothstep(lineWidth - 0.02f, lineWidth + 0.02f, d);
     float wear = 0.75f + 0.25f * skidHash(floor(float2(along, across) * 7.0f));
     float alpha = coverage * wear * paint.y;
-    return float4(float3(0.85f, 0.85f, 0.82f), alpha);
+    constexpr float3 up = float3(0.0f, 0.0f, 1.0f);
+    float3 sun = normalize(frame.sunDirection.xyz);
+    float viewDepth = -(frame.view * float4(in.world, 1.0f)).z;
+    float visibility = sampleShadow(shadow, shadowMap, shadowSampler, in.world, up, sun, viewDepth, in.position.xy);
+    float3 albedo = float3(0.85f, 0.85f, 0.82f);
+    float3 lit = albedo * (frame.sunIlluminance.rgb * max(sun.z, 0.0f) * visibility
+                           + evaluateSkyIrradiance(skyIrradiance, up)) / M_PI_F;
+    return float4(lit, alpha);
 }
 
 #endif

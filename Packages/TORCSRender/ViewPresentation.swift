@@ -41,7 +41,9 @@ public extension ForwardRenderer {
                 "Drawable is \(drawable.texture.pixelFormat); the renderer needs \(Self.drawableFormat). Call configure(_:) first.")
         }
 
-        animationTime = CACurrentMediaTime()
+        let now = CACurrentMediaTime()
+        if animationTime > 0 { presentedFrameInterval = min(max(now - animationTime, 1.0 / 240.0), 0.5) }
+        animationTime = now
         let preparation = PerformanceSignposts.begin("Draw preparation")
         // Every scaler the resolution ladder can ask for, built before the
         // first frame at this size rather than on the frame that steps.

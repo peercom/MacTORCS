@@ -229,6 +229,16 @@ public final class TextureStore {
         self.blockCache = blockCache
     }
 
+    /// Whether any texel is less than fully opaque.
+    static func hasTransparency(_ rgba: [UInt8]) -> Bool {
+        var i = 3
+        while i < rgba.count {
+            if rgba[i] != 255 { return true }
+            i += 4
+        }
+        return false
+    }
+
     /// Uploads a linear mip chain, block-compressed when the store is asked
     /// to, serving the encode from the block cache when it holds one for
     /// this source. `sourceHash` is the source's SHA-256; `isCutout` picks
@@ -239,7 +249,10 @@ public final class TextureStore {
             uploadedBytes += levels.reduce(0) { $0 + $1.width * $1.height * 4 }
             return try TextureLoading.upload(levels, device: device, srgb: true)
         }
-        let format: BlockCompression.Format = isCutout ? .bc3 : .bc1
+        // Alpha is kept wherever the image has any: a cutout's coverage, or
+        // the transparency of glass that is drawn blended rather than
+        // tested. BC1 has no alpha and made the windscreen a solid pane.
+        let format: BlockCompression.Format = isCutout || Self.hasTransparency(levels[0].pixels) ? .bc3 : .bc1
         let name = sourceHash.map { String(format: "%02x", $0) }.joined() + ".\(format.rawValue).torcsbc"
         let sidecar = blockCache?.appendingPathComponent(name)
         let chain: TextureLoading.CompressedChain
