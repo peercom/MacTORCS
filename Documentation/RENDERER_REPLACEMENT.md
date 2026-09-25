@@ -2701,6 +2701,41 @@ The smoke run gained `TORCS_SMOKE_SECOND=1`, which renders every preset
 a second time with the history kept: that is what said the renderer was
 clean.
 
+## Any track, any car
+
+Only Aalborg and the 155 were available because the session packager
+prepared exactly that pairing from the repository's fixtures — the
+reviewed content — and nothing else. `Scripts/prepare-driving-session.py`
+now takes `--track NAME --car NAME` and imports any pairing a local
+TORCS 1.3.9 install has: the track's scene compiled against its own
+directory and the shared textures, its background and environment images
+as its XML names them, its shadow map if the scene has one; the car's
+scene, shadow, the wheel set its XML names from `data/cars/wheels`, one
+light texture per light type it declares; the category, the shared
+surfaces and objects, and the generated material sets so the road,
+barriers, pits and grass resolve. Without the flags it prepares the
+fixture pairing as before, so nothing that existed changed.
+
+Every imported session is marked for local use and lists what it took
+from where with hashes (`local-sources.json`): the shared textures carry
+unresolved per-file attribution, as `ASSET_LICENSES.md` records, and an
+import is development preparation, not a redistribution.
+
+Two imports, each run through the twenty-nine-camera smoke:
+
+| pairing | textures | missing | terrain | device memory |
+|---|---|---|---|---|
+| alpine-1 · car1-trb1 | 14 | 0 | generated | 123 MB |
+| e-track-3 · acura-nsx-sz | 32 | 0 | generated | 121 MB |
+
+What the imports show that Aalborg did not: the tree recovery is keyed
+on Aalborg's atlas, so other circuits keep their original crossed cards;
+and alpine-1's XML puts the sun at seventeen degrees, under which the
+road renders nearly black because the exposure is fixed — the plan's
+histogram auto-exposure was never built, the rain and overcast code
+having opened up by hand. That is the next increment, and this one is
+what made it visible.
+
 ## Licensing
 
 No third-party artwork is imported by this work. New render source is
