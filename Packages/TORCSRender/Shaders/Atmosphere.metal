@@ -306,6 +306,43 @@ kernel void atmosphereSkyViewLUT(texture2d<float, access::write> target [[textur
     target.write(float4(luminance, 1.0f), id);
 }
 
+/// Rays shorter than this are integrated in closed form.
+constant float kNearFieldKilometres = 0.3f;
+
+/// The first few hundred metres of a view ray, in closed form.
+///
+/// Over that length the medium's density changes by less than a part in a
+/// thousand (its scale heights are kilometres), so the ray crosses a uniform
+/// medium and the integral has an exact solution: one sample of the medium
+/// and of the two tables at the camera, and the same per-step expression the
+/// marcher uses, applied once over the whole ray. This is most of the pixels
+/// of a driver's view, and it costs a quarter of the march it replaces. The
+/// planet-intersection tests are skipped too: at a few hundred metres they
+/// are below single precision at the planet's radius, and the ray ends at
+/// the surface it shades.
+inline float3 nearFieldScattering(AtmosphereMedium m, float3 origin, float3 direction,
+                                  float3 sunDirection, float3 sunIlluminance, float distance,
+                                  texture2d<float> transmittanceLUT,
+                                  texture2d<float> multiScatterLUT,
+                                  thread float3 &throughputOut) {
+    constexpr sampler lut(coord::normalized, address::clamp_to_edge, filter::linear);
+    float3 position = origin + direction * (distance * 0.5f);
+    float altitude = length(position) - kEarthRadius;
+    float3 rayleigh; float mie; float3 extinction;
+    sampleMedium(m, altitude, rayleigh, mie, extinction);
+    float cosTheta = dot(direction, sunDirection);
+    float sunCos = dot(normalize(position), sunDirection);
+    float3 sunTransmittance = transmittanceLUT.sample(lut, transmittanceUV(altitude, sunCos)).rgb;
+    float3 multiScatter = multiScatterLUT.sample(lut, float2(sunCos * 0.5f + 0.5f,
+        clamp(altitude / (kAtmosphereRadius - kEarthRadius), 0.0f, 1.0f))).rgb;
+    float3 phased = rayleigh * rayleighPhase(cosTheta) + float3(mie * miePhase(cosTheta, m.miePhaseG));
+    float3 isotropic = (rayleigh + float3(mie)) * multiScatter;
+    float3 inScatter = (phased * sunTransmittance + isotropic) * sunIlluminance;
+    float3 throughput = exp(-extinction * distance);
+    throughputOut = throughput;
+    return (inScatter - inScatter * throughput) / max(extinction, 1e-6f);
+}
+
 /// Scene metres to atmosphere kilometres. The track sits near z = 0 in TORCS
 /// world space, which is taken as sea level.
 constant float kMetresPerKilometre = 1000.0f;
@@ -332,15 +369,18 @@ inline float3 aerialPerspective(float3 worldPosition, float3 cameraPosition,
     float distance = length(offset) / kMetresPerKilometre;
     if (distance < 1e-5f) { transmittanceOut = float3(1.0f); return float3(0.0f); }
 
+    float3 origin = atmospherePosition(cameraPosition);
+    if (distance < kNearFieldKilometres) {
+        return nearFieldScattering(defaultMedium(), origin, normalize(offset), sunDirection,
+                                   sunIlluminance, distance, transmittanceLUT, multiScatterLUT,
+                                   transmittanceOut);
+    }
     // Eight steps is enough because the step integration is analytic; more only
-    // matters across tens of kilometres, which a circuit never spans. Over the
-    // first few hundred metres — most of the pixels of a driver's view — the
-    // medium is so nearly uniform that two steps integrate it exactly enough,
-    // and the forward pass is where the frame's milliseconds are.
-    uint steps = distance < 0.3f ? 2u : (distance < 1.0f ? 4u : 8u);
-    return integrateScattering(defaultMedium(), atmospherePosition(cameraPosition),
-                               normalize(offset), sunDirection, sunIlluminance,
-                               distance, steps, transmittanceLUT, multiScatterLUT, transmittanceOut);
+    // matters across tens of kilometres, which a circuit never spans.
+    uint steps = distance < 1.0f ? 4u : 8u;
+    return integrateScattering(defaultMedium(), origin, normalize(offset), sunDirection,
+                               sunIlluminance, distance, steps, transmittanceLUT, multiScatterLUT,
+                               transmittanceOut);
 }
 
 

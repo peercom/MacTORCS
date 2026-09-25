@@ -260,6 +260,9 @@ public final class ForwardRenderer {
     /// too coarse to read as shadows anyway, and aerial perspective has taken over.
     public var shadowDistance: Float = 400
     let sampler: MTLSamplerState
+    /// Samplers for the normal and roughness maps, one per anisotropy the
+    /// settings have asked for; see `RenderSettings.detailAnisotropy`.
+    private var detailSamplers: [Int: MTLSamplerState] = [:]
     /// Mutable so a benchmark can alternate configurations within one process.
     public var settings: RenderSettings
     /// Seconds driving vertex animation (foliage). Presentation advances it;
@@ -464,6 +467,24 @@ public final class ForwardRenderer {
             throw RenderError.unavailable("Could not create a sampler")
         }
         self.sampler = sampler
+    }
+
+    /// The sampler for the normal and roughness maps at the settings' detail
+    /// anisotropy: the surface sampler's filtering at a lower anisotropy. The
+    /// sampler is immutable once made, so one is kept per value used.
+    func detailSampler() -> MTLSamplerState {
+        let anisotropy = min(max(settings.detailAnisotropy, 1), 16)
+        if let cached = detailSamplers[anisotropy] { return cached }
+        let descriptor = MTLSamplerDescriptor()
+        descriptor.minFilter = .linear
+        descriptor.magFilter = .linear
+        descriptor.mipFilter = .linear
+        descriptor.sAddressMode = .repeat
+        descriptor.tAddressMode = .repeat
+        descriptor.maxAnisotropy = anisotropy
+        let made = device.makeSamplerState(descriptor: descriptor) ?? sampler
+        detailSamplers[anisotropy] = made
+        return made
     }
 
     /// Allocates or reuses targets for an output size, deriving the render
@@ -844,6 +865,7 @@ public final class ForwardRenderer {
         encoder.setVertexBytes(&frame, length: MemoryLayout<FrameUniforms>.stride, index: 1)
         encoder.setFragmentBytes(&frame, length: MemoryLayout<FrameUniforms>.stride, index: 1)
         encoder.setFragmentSamplerState(sampler, index: 0)
+        encoder.setFragmentSamplerState(detailSampler(), index: 2)
         encoder.setFragmentTexture(occlusion.result ?? neutralOcclusion, index: 7)
 
         // Optional depth-only prepass. Everything that will shade writes depth

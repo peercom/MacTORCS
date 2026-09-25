@@ -1445,7 +1445,7 @@ Against the plan's phases, after twenty-nine increments on the
 | 5 Track | generated road, curbs, barriers, terrain, markings, racing-line rubber, skid marks, pit garages, painted starting grid | road detail atlas beyond the markings |
 | 6 Scatter | volumetric trees with dithered detail pairs, grass cards, wind (in the shadows too), tyre walls on the corners | impostors, crowds, GPU-driven culling (about 290 draws a frame: not needed) |
 | 7 Effects | smoke, dust, spray, wet weather with puddles, sun glare, heat haze | rain itself, replay/photo depth of field |
-| 8 Hardening | prebuilt shaders, pre-warmed scalers, memory budget test, sustained runs, the seven signposts, app bundle fixed, hero car subdivided in place, per-pass GPU timer, near-field aerial perspective (−2.5 ms driver's-eye) | binary archive for the first launch |
+| 8 Hardening | prebuilt shaders, pre-warmed scalers, memory budget test, sustained runs, the seven signposts, app bundle fixed, hero car subdivided in place, per-pass GPU timer, near-field aerial perspective in closed form, detail-map anisotropy per preset (driver's-eye 15.2 → 11.2 ms) | binary archive for the first launch |
 
 The measured state of the default preset on the target machine is the
 sustained table above: 8.7 ms at native with the whole session drawn, no
@@ -1984,6 +1984,79 @@ fifteen-millisecond frame for an integral whose value a two-step march
 reproduces to four decimals. The remaining five and a half milliseconds
 of forward fragment are the cascade kernel, the material and the probe;
 the pass timer now shows whether the next cut moves them.
+
+## The forward fragment, second cut
+
+With the pass timer in place the forward fragment could be taken apart
+without guessing. Each candidate was removed from a copy of the shader
+sources, built to its own `.metallib`, and alternated with the current
+one through `TORCS_METALLIB` in the same binary — driver's-eye view,
+native, sixty frames, medians of the fragment stage. Base was 5.5 ms;
+what each removal saved:
+
+| removed | saving | note |
+|---|---|---|
+| everything after the albedo sample | 4.4 ms | the floor is 1.05 ms: albedo, outputs, rasterisation |
+| normal and roughness maps | 1.4 ms | two samples at anisotropy 8 |
+| aerial perspective (already two steps) | 1.2 ms | the tables and the exponentials, not the loop |
+| shadow lookup entire | 0.9 ms | projection, selection and the compare |
+| shadow kernel 8 taps → 1 | 0.2 ms | the kernel is not the cost of the shadow |
+| road markings | 0.2 ms | |
+| sky probe | 0.0 ms | |
+| trees and grass, whole scene | 1.8 ms of vertex; fragment within noise | |
+
+Two of those could be made cheaper without being made different.
+
+**Aerial perspective in closed form.** The previous section cut the
+march to two steps under 300 m; what remained was each step's samples of
+the two tables and its exponentials. Over a ray that short the medium's
+density changes by under a part in a thousand — its scale heights are
+kilometres — so it is uniform, and the integral of a uniform medium has
+an exact solution: one sample of the medium and of the tables at the
+midpoint, and the per-step expression the marcher uses, applied once
+over the whole ray. `nearFieldScattering` does that for rays under
+`kNearFieldKilometres`; the planet-intersection tests are skipped too,
+being below single precision at the planet's radius over a few hundred
+metres. The probe test from the previous section holds it to the
+eight-step reference at a thousandth of the brightest channel.
+
+**Anisotropy on the detail maps.** The surface sampler filters at
+anisotropy 8 because the road is seen at grazing angles and would
+otherwise blur a few car lengths ahead. That is true of the albedo. The
+normal and roughness maps carry less that anisotropy preserves, and
+their two samples at 8 were a millimetre-scale detail the frame was
+paying 1.4 ms for. They now take a second sampler at
+`RenderSettings.detailAnisotropy`: 2 on the M2 Air preset, 4 balanced,
+8 high; the albedo keeps 8 everywhere. Crops of the road at 1280×832
+with the detail maps at 8, 2 and 1 are indistinguishable at that size.
+
+Together, same protocol (the R43 shaders as one library, these as the
+other, both through the same binary; the anisotropy switched with the
+tool's `--detail-anisotropy`):
+
+| view | forward fragment | frame |
+|---|---|---|
+| driver's-eye, R43 | 5.5 ms | 12.6 ms |
+| driver's-eye, closed-form aerial alone | 5.0 ms | 12.1 ms |
+| driver's-eye, both | 4.1 ms | 11.2 ms |
+| orbit, R43 → both | 2.94 → 2.93 ms | 7.0 → 6.8 ms |
+
+The orbit view has little road at a grazing angle and few pixels within
+the near field's terms, and shows it. The driver's-eye view — the one
+the plan's budget is for — has come from 15.2 ms two increments ago to
+11.2, with nothing on screen changed beyond one 8-bit step on the
+orbit view and, on the driver's-eye view, the anisotropy's own
+sub-texel differences on the far road.
+
+Two things the measuring taught. The chip throttled through the later
+runs — the same shader measuring 4.1 ms one run and 8.7 ms the next,
+with the vertex stage doubling alongside — and only alternation makes
+that visible; a run whose neighbours disagree with it by a factor is
+discarded, not averaged. And a `TORCS_METALLIB` naming a file that is
+not there used to fall back to compiling the sources without a word,
+which measured one shader change against itself for a whole series.
+It is an error now, and it takes precedence over a bundled library, so
+a measurement means what it says.
 
 ## Licensing
 

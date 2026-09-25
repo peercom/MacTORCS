@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 import XCTest
 import simd
-import TORCSRender
+@testable import TORCSRender
 import TORCSAssets
 import Metal
 
@@ -55,6 +55,38 @@ final class RenderSettingsTests: XCTestCase {
         // Absurd inputs must not produce a zero or oversized target.
         XCTAssertGreaterThanOrEqual(settings.renderSize(output: retina, scale: -5).width, 16)
         XCTAssertLessThanOrEqual(settings.renderSize(output: retina, scale: 99).width, retina.width + 1)
+    }
+
+    /// The normal and roughness maps filter at a lower anisotropy than the
+    /// albedo on the cheaper presets: measured a millisecond off the forward
+    /// pass at 2 with no visible change. The high preset keeps the full 8.
+    func testDetailAnisotropyRisesWithThePreset() {
+        let air = RenderSettings(preset: .m2Air), balanced = RenderSettings(preset: .balanced)
+        let high = RenderSettings(preset: .high)
+        XCTAssertEqual(air.detailAnisotropy, 2)
+        XCTAssertLessThanOrEqual(air.detailAnisotropy, balanced.detailAnisotropy)
+        XCTAssertLessThanOrEqual(balanced.detailAnisotropy, high.detailAnisotropy)
+        XCTAssertEqual(high.detailAnisotropy, 8, "the high preset filters the detail maps like the albedo")
+        for settings in [air, balanced, high] {
+            XCTAssertTrue((1 ... 16).contains(settings.detailAnisotropy))
+        }
+    }
+
+    /// One sampler per anisotropy the settings ask for, made once, and an
+    /// out-of-range value clamped rather than failing the sampler.
+    func testDetailSamplerFollowsTheSettingAndIsCached() throws {
+        guard let device = MTLCreateSystemDefaultDevice() else { throw XCTSkip("Metal device unavailable") }
+        let renderer = try ForwardRenderer(device: device)
+        renderer.settings.detailAnisotropy = 2
+        let two = renderer.detailSampler()
+        XCTAssertTrue(two === renderer.detailSampler(), "same setting, same sampler")
+        renderer.settings.detailAnisotropy = 8
+        let eight = renderer.detailSampler()
+        XCTAssertFalse(two === eight, "a different anisotropy needs its own sampler")
+        renderer.settings.detailAnisotropy = 99
+        XCTAssertTrue(renderer.detailSampler() === renderer.detailSampler(), "clamped and cached")
+        renderer.settings.detailAnisotropy = 2
+        XCTAssertTrue(two === renderer.detailSampler(), "the first sampler was kept")
     }
 
     func testPresetsAreOrderedByCost() {

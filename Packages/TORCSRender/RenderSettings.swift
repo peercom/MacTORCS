@@ -98,6 +98,13 @@ public struct RenderSettings: Sendable, Equatable {
     public var heatHaze: Bool
     public var heatHazeStrength: Float
 
+    /// Anisotropic filtering for the normal and roughness maps, 1 to 16. The
+    /// albedo keeps the full 8: at the road's grazing angles that is what keeps
+    /// the surface legible. These two maps carry less that anisotropy
+    /// preserves, and each step of it costs the forward pass a few tenths of
+    /// a millisecond on a road-filled view.
+    public var detailAnisotropy: Int
+
     /// Render a depth-only pass before shading.
     ///
     /// Off by default, and deliberately so. Apple GPUs remove hidden surfaces
@@ -143,6 +150,7 @@ public struct RenderSettings: Sendable, Equatable {
             sunGlareStrength = 0.35
             heatHaze = true
             heatHazeStrength = 1
+            detailAnisotropy = 2
             depthPrepass = false
             mirrorScale = 0.5
             textureMemoryBudgetBytes = 1_500_000_000
@@ -169,6 +177,7 @@ public struct RenderSettings: Sendable, Equatable {
             sunGlareStrength = 0.35
             heatHaze = true
             heatHazeStrength = 1
+            detailAnisotropy = 4
             depthPrepass = false
             mirrorScale = 0.67
             textureMemoryBudgetBytes = 3_000_000_000
@@ -195,6 +204,7 @@ public struct RenderSettings: Sendable, Equatable {
             sunGlareStrength = 0.35
             heatHaze = true
             heatHazeStrength = 1
+            detailAnisotropy = 8
             depthPrepass = false
             mirrorScale = 1
             textureMemoryBudgetBytes = 6_000_000_000

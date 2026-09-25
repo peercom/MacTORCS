@@ -206,7 +206,8 @@ fragment ForwardOutput forwardFragment(ForwardVarying in [[stage_in]],
                                 depth2d_array<float> shadowMap [[texture(6)]],
                                 texture2d<float> occlusionMap [[texture(7)]],
                                 sampler surfaceSampler [[sampler(0)]],
-                                sampler shadowSampler [[sampler(1)]]) {
+                                sampler shadowSampler [[sampler(1)]],
+                                sampler detailSampler [[sampler(2)]]) {
     float4 albedo = draw.baseColour;
     if (draw.maps.x != 0) {
         // The albedo texture is bound as sRGB, so hardware returns linear.
@@ -222,7 +223,11 @@ fragment ForwardOutput forwardFragment(ForwardVarying in [[stage_in]],
     float3x3 basis = tangentBasis(in.normal, in.tangent);
     float3 normal = basis[2];
     if (draw.maps.y != 0) {
-        float2 encoded = normalMap.sample(surfaceSampler, (in.uv0 * draw.parameters.z * draw.fade.z), bias(frame.renderSize.z)).xy;
+        // The normal and roughness maps take the cheaper sampler: at the road's
+        // grazing angles the albedo's anisotropy is what keeps the surface
+        // legible, and these two maps at a quarter of it measured a millisecond
+        // less with no visible change (see RENDERER_REPLACEMENT.md).
+        float2 encoded = normalMap.sample(detailSampler, (in.uv0 * draw.parameters.z * draw.fade.z), bias(frame.renderSize.z)).xy;
         normal = normalize(basis * unpackNormalMap(encoded, draw.parameters.x));
     }
 
@@ -231,7 +236,7 @@ fragment ForwardOutput forwardFragment(ForwardVarying in [[stage_in]],
 
     float roughness = draw.material.x, metallic = draw.material.y, occlusion = 1.0f;
     if (draw.maps.z != 0) {
-        float3 orm = ormMap.sample(surfaceSampler, (in.uv0 * draw.parameters.z * draw.fade.z), bias(frame.renderSize.z)).xyz;
+        float3 orm = ormMap.sample(detailSampler, (in.uv0 * draw.parameters.z * draw.fade.z), bias(frame.renderSize.z)).xyz;
         occlusion = orm.x;
         roughness *= orm.y;
         metallic *= orm.z;

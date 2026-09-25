@@ -55,6 +55,18 @@ final class ShaderLibraryTests: XCTestCase {
         }
     }
 
+    /// A measurement that names a library which is not there must fail, not
+    /// compile the sources and compare a change against itself.
+    func testExplicitMetallibPathMustExist() throws {
+        guard let device = MTLCreateSystemDefaultDevice() else { throw XCTSkip("Metal device unavailable") }
+        let missing = NSTemporaryDirectory() + "no-such-\(UUID().uuidString).metallib"
+        setenv("TORCS_METALLIB", missing, 1)
+        defer { unsetenv("TORCS_METALLIB") }
+        XCTAssertThrowsError(try ShaderLibrary(device: device)) { error in
+            XCTAssertTrue(String(describing: error).contains("TORCS_METALLIB"), "\(error)")
+        }
+    }
+
     func testNormalMatrixCorrectsNonUniformScale() {
         // Non-uniform scale is where reusing the model matrix visibly fails.
         var model = matrix_identity_float4x4

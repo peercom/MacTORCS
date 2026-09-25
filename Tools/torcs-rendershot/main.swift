@@ -76,6 +76,8 @@ struct Options {
     var shadowRefresh: Int? = nil
     /// Per-pass GPU timing over the frames, from the GPU's timestamp counter.
     var passes = false
+    /// Overrides the preset's anisotropy for the normal and roughness maps.
+    var detailAnisotropy: Int?
     var compareGlare = false
     var reflectionTemporal: Bool? = nil
     var compareReflectionTemporal = false
@@ -184,6 +186,7 @@ func parse() -> Options {
         case "--rain": options.rain = Float(next()) ?? 1
         case "--shadow-refresh": options.shadowRefresh = Int(next())
         case "--passes": options.passes = true
+        case "--detail-anisotropy": options.detailAnisotropy = Int(next())
         case "--no-glare": options.sunGlare = false
         case "--compare-glare": options.compareGlare = true
         case "--ssr-temporal": options.reflectionTemporal = true
@@ -372,6 +375,7 @@ do {
     if let glare = options.sunGlare { settings.sunGlare = glare }
     if let haze = options.heatHaze { settings.heatHaze = haze }
     if let refresh = options.shadowRefresh { settings.staticShadowRefreshInterval = max(1, refresh) }
+    if let anisotropy = options.detailAnisotropy { settings.detailAnisotropy = anisotropy }
     if let temporal = options.reflectionTemporal { settings.reflectionTemporal = temporal }
     if let cascades = options.cascades { settings.shadowCascades = max(0, min(4, cascades)) }
     let startupClock = DispatchTime.now()

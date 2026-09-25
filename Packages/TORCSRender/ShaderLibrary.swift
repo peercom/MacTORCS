@@ -56,10 +56,18 @@ public struct ShaderLibrary {
         // The package bundle, the copy of it inside an application bundle
         // (SwiftPM's accessor does not look in Contents/Resources), or an
         // explicit path.
-        let candidates: [URL?] = [
+        // An explicit path wins, and a wrong one is an error: a measurement
+        // that silently fell back to the sources once compared a shader
+        // change against itself.
+        var candidates: [URL?] = [
             bundle.url(forResource: Self.prebuiltName, withExtension: "metallib", subdirectory: "Shaders"),
-            Bundle.main.resourceURL?.appendingPathComponent("TORCSMac_TORCSRender.bundle/Shaders/\(Self.prebuiltName).metallib"),
-            ProcessInfo.processInfo.environment["TORCS_METALLIB"].map { URL(fileURLWithPath: $0) }]
+            Bundle.main.resourceURL?.appendingPathComponent("TORCSMac_TORCSRender.bundle/Shaders/\(Self.prebuiltName).metallib")]
+        if let explicit = ProcessInfo.processInfo.environment["TORCS_METALLIB"] {
+            guard FileManager.default.fileExists(atPath: explicit) else {
+                throw RenderError.unavailable("TORCS_METALLIB names a missing file: \(explicit)")
+            }
+            candidates.insert(URL(fileURLWithPath: explicit), at: 0)
+        }
         if let url = candidates.compactMap({ $0 }).first(where: { FileManager.default.fileExists(atPath: $0.path) }) {
             let loaded: MTLLibrary
             do {
