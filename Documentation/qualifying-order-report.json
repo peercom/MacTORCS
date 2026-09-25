@@ -1,18 +1,21 @@
 {
  "date": "2026-09-25",
  "evidence": {
-  "g7-qualifying-tests.log": "9028c8e53bd7a79a2ca18c515f8a01f067527984cc8b2e45bb94f65c6efa8b48"
+  "g7-qualifying-tests.log": "9028c8e53bd7a79a2ca18c515f8a01f067527984cc8b2e45bb94f65c6efa8b48",
+  "g7b-weekend-tests.log": "dca6b478f6a008375c02563e36a4add7268803596206f27faa05725fe4963d08"
  },
- "increment": "G7a qualifying ranking and starting order",
+ "increment": "G7 qualifying ranking, starting order and the session sequence",
  "limits": [
-  "The starting order is ported and tested but nothing calls it yet: a race still starts with its entries in the order the caller supplies.",
   "racemain.cpp and raceresults.cpp are pinned for provenance and the qualifying excerpt is compiled; the rest of those files is not built.",
   "Championship points and results-file handling around this code are not ported.",
   "The original's qualifying flow, one driver per session cycling the field, is not yet driven by the window, which runs a single solo qualifying session.",
-  "The plan assumed qualifying times order the grid directly; the original instead ranks single-driver runs and lets a race read that ranking through its starting order."
+  "The plan assumed qualifying times order the grid directly; the original instead ranks single-driver runs and lets a race read that ranking through its starting order.",
+  "The window only runs the human's qualifying session; the weekend model accepts a run from any driver but there is no flow yet for watching the AI drivers qualify in turn, so a ranking-based grid can only be completed for a one-car field.",
+  "Championship points and persistence across launches are not implemented; a weekend lives as long as the window.",
+  "A GPU timing test fails while the game is running, because the frame inflates under contention; the suite figure above was measured with the GPU free."
  ],
  "measurements": {
-  "newTests": 3,
+  "newTests": 7,
   "newlyPinned": [
    "src/libs/raceengineclient/raceresults.cpp",
    "src/libs/raceengineclient/racemain.cpp"
@@ -20,7 +23,7 @@
   "pinnedFiles": 231,
   "rankingCases": 10,
   "rankingMatched": true,
-  "releaseSuite": "461 tests, 0 failures, 164.777 s",
+  "releaseSuite": "465 tests, 0 failures, 96.971 s",
   "startingOrderValues": [
    "drivers list",
    "last race",
@@ -30,9 +33,13 @@
  "schema": 1,
  "scope": "Semantic port of the original qualifying ranking and the starting order a race selects, compared against a verbatim excerpt of the newly pinned results code",
  "sources": {
+  "App/DrivingSession.swift": "8b79811457bebc7c14669f9b759768eddfb80fdfe8ba81b58d5dbeeb22f0370a",
+  "App/DrivingSessionSetup.swift": "a3d66ae7fab0fb07ab5f04863c6ad65afb86a999feafe39fd57d986ab1f76427",
   "Packages/TORCSRaceEngine/QualifyingRanking.swift": "bd2f3a4562978376e23d02c449fbb0908ca62d687d142aff9a3db59fad0217c3",
+  "Packages/TORCSRaceEngine/RaceWeekend.swift": "1806d2581e56a9f99894a91c91f3a071d1f7e1d5d323eaab23a58d0997a49e7b",
   "Scripts/verify-provenance.py": "539f2bacae041d7bf54086beec33dfca5639e4913ec50d5bdc4dc473a1532ba3",
   "Tests/UnitTests/QualifyingRankingTests.swift": "c1966ed59ca886f8cb1fd0b8d4d846505da7f0407007461c775a71c71b2d0c02",
+  "Tests/UnitTests/RaceWeekendTests.swift": "5744a9f2ce08dd94e2c6c8d5fa1fe8ae178b5842d931406af204e295e82c2ef7",
   "Tools/TORCSReferenceSupport/ReferenceWorld.swift": "497f99bb7adabe9422884fcf34ee5fc8f21646fbff533aace1ac5489db79b437",
   "Upstream/Reference/include/CReference.h": "7e48d30629a1b15279f6ab348bf2e3818a95f6f47b3154314d972d73caeed089",
   "Upstream/Reference/race-instrumentation.cpp": "9a457f139fec1234a832eec81ec1fc83241c468a0d76bbb3b13aa096e380c875",

@@ -62,3 +62,33 @@ Release suite: 461 tests, 0 failures.
   championship points and results-file handling around this code are not ported.
 - The original's qualifying flow — one driver per session, cycling the field — is
   not yet driven by the window, which runs a single solo qualifying session.
+
+## The session sequence in the window
+
+`RaceWeekend` holds a weekend over one field: which driver qualifies next, the
+ranking built so far, and the starting order a race will use. It follows the
+original in qualifying **one driver at a time**, so a field of four means four
+qualifying sessions, and it refuses a run out of turn rather than reordering it.
+Changing the field size or the grid order starts the weekend over, because a
+ranking only describes the field that set it.
+
+**New Session…** offers the grid order — drivers list, qualifying order, or
+qualifying reversed — and refuses to prepare a race from a ranking that is not
+complete. A race builds its entries in grid order, so the car on pole is the
+entry on slot one, and the human keeps its identity wherever it starts.
+
+A finished qualifying session records that driver's best lap into the ranking and
+names who is next. A finished race shows a **classification**: every car in
+finishing order with laps, the gap or laps behind the leader, best lap, penalty
+time, and whether it was eliminated or is unclassified.
+
+Release suite: 465 tests, 0 failures.
+
+### Still open
+
+- **The window only runs the human's qualifying session.** The weekend model
+  takes a run from any driver, but the window has no flow yet for watching the AI
+  drivers qualify one after another, which is what the original does. Until it
+  does, a ranking-based grid can only be completed for a one-car field.
+- Championship points and persistence across launches are not implemented; a
+  weekend lives as long as the window.

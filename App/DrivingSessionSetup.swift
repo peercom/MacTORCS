@@ -8,6 +8,7 @@ struct DrivingSessionSetup: View {
     @State private var kind: RaceSessionKind = .practice
     @State private var laps=5
     @State private var cars=3
+    @State private var order: StartingOrder = .driversList
     var body: some View {
         VStack(alignment:.leading,spacing:18) {
             Text("New Session").font(.title2)
@@ -21,6 +22,15 @@ struct DrivingSessionSetup: View {
             Stepper("Laps: \(laps)",value:$laps,in:1...100).monospacedDigit()
             if kind == .race {
                 Stepper("Cars: \(cars)",value:$cars,in:1...16).monospacedDigit()
+                Picker("Grid",selection:$order) {
+                    Text("Drivers list").tag(StartingOrder.driversList)
+                    Text("Qualifying order").tag(StartingOrder.lastRace)
+                    Text("Qualifying reversed").tag(StartingOrder.lastRaceReversed)
+                }
+                if order != .driversList,!session.weekend.qualifyingComplete {
+                    Text("Every driver must qualify before a grid can be built from the ranking.")
+                        .font(.callout).foregroundStyle(.orange)
+                }
                 Text("You start on pole; the rest of the grid is driven by the original BT policy. "
                      + "Telemetry recording is available in practice and qualifying only.")
                     .font(.callout).foregroundStyle(.secondary)
@@ -34,17 +44,54 @@ struct DrivingSessionSetup: View {
                 Spacer()
                 Button("Prepare Session") {
                     session.selectedSessionKind=kind;session.selectedLaps=laps;session.selectedCars=cars
+                    // A changed field size or grid order starts the weekend over,
+                    // because a ranking only describes the field that set it.
+                    if session.weekend.cars != cars || session.weekend.startingOrder != order {
+                        session.weekend=(try? RaceWeekend(cars:cars,startingOrder:order)) ?? session.weekend
+                        session.weekendMessage=nil
+                    }
                     session.restart();dismiss()
                 }.keyboardShortcut(.defaultAction)
+                    .disabled(kind == .race && order != .driversList && !session.weekend.qualifyingComplete
+                              && session.weekend.cars==cars && session.weekend.startingOrder==order)
             }
         }.padding(24).frame(width:430)
-        .onAppear { kind=session.selectedSessionKind;laps=session.selectedLaps;cars=session.selectedCars }
+        .onAppear { kind=session.selectedSessionKind;laps=session.selectedLaps;cars=session.selectedCars
+                    order=session.weekend.startingOrder }
     }
     private var description: String {
         switch kind {
         case .practice:return "Drive timed laps and review each lap afterward."
         case .qualifying:return "Set your best valid lap in a solo qualifying run."
         case .race:return "Race the field over a set distance, with the original rules and pit stops."
+        }
+    }
+}
+
+/// A finished race: every car in its finishing order, with the original's gaps
+/// and penalties.
+struct RaceClassificationView: View {
+    let race: RaceResult
+    var body: some View {
+        VStack(alignment:.leading,spacing:4) {
+            Text("Classification").font(.headline)
+            ForEach(race.classification,id:\.self) { car in
+                let entry=race.cars[car]
+                HStack(spacing:12) {
+                    Text("P\(entry.position)").frame(width:34,alignment:.leading)
+                    Text(RaceWeekend.defaultName(car)).frame(width:66,alignment:.leading)
+                    Text("\(entry.laps) lap\(entry.laps==1 ? "":"s")").frame(width:62,alignment:.leading)
+                    Text(entry.position==1 ? String(format:"%.3f s",entry.totalTime)
+                         :entry.lapsBehindLeader>0 ? "+\(entry.lapsBehindLeader) lap\(entry.lapsBehindLeader==1 ? "":"s")"
+                         :String(format:"+%.3f s",entry.behindLeader)).frame(width:104,alignment:.leading)
+                    Text(entry.bestLap>0 ? String(format:"Best %.3f",entry.bestLap):"Best —")
+                        .frame(width:104,alignment:.leading)
+                    if entry.penaltyTime>0 { Text(String(format:"+%.2f pen",entry.penaltyTime)).foregroundStyle(.orange) }
+                    if entry.eliminated { Text("Out").foregroundStyle(.red) }
+                    else if !entry.finished { Text("Unclassified").foregroundStyle(.secondary) }
+                    Spacer()
+                }.font(.callout).monospacedDigit()
+            }
         }
     }
 }

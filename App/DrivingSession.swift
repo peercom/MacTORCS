@@ -79,8 +79,12 @@ private actor DrivingWorker {
     var selectedLaps=5
     /// Cars in a race, the human included. Practice and qualifying run alone.
     var selectedCars=3
+    /// How the grid is ordered, and the qualifying ranking built so far.
+    var weekend=try! RaceWeekend(cars:3)
+    var weekendMessage: String?
     var sessionBusy=false
     var lastResult: DrivingSessionResult?
+    var lastRaceResult: RaceResult?
     var paused=true
     var cameraPreferences=CameraPreferences()
     var cameraPreset: DrivingCameraPreset = .chase
@@ -163,8 +167,11 @@ private actor DrivingWorker {
             return (try DrivingWorker(content.simulation,configuration:configuration),
                     try DrivingRuntime(simulation:content.simulation,configuration:configuration).frame)
         }
-        let entries=(0..<selectedCars).map { index in
-            RaceEntry(parameters:content.carParameters,kind:index==0 ? .human:.bt,team:"bt",skillLevel:3)
+        // The grid is the starting order applied to the field: the entry on each
+        // slot from pole back. The human keeps its identity wherever it starts.
+        let grid=try weekend.grid()
+        let entries=grid.map { car in
+            RaceEntry(parameters:content.carParameters,kind:car==0 ? .human:.bt,team:"bt",skillLevel:3)
         }
         let race=try RaceRuntime(road:content.simulation.road,entries:entries,grid:try .quickRace(),
                                  configuration:configuration)
@@ -205,6 +212,17 @@ private actor DrivingWorker {
             } catch { guard generation==token else { return };message="Could not start a new session: \(error)" }
         }
     }
+    /// A finished qualifying session is one driver's run in the original's
+    /// sequence. Only the driver whose turn it is may be recorded.
+    private func recordQualifying(_ finished: DrivingFrame) {
+        guard finished.configuration.kind == .qualifying,let car=weekend.qualifying else { return }
+        do {
+            try weekend.recordQualifying(car:car,bestLapTime:Float(finished.result?.bestLap ?? 0))
+            weekendMessage=weekend.qualifyingComplete
+                ? "Qualifying complete. The grid is set."
+                : "Qualified. \(RaceWeekend.defaultName(weekend.qualifying!)) is next."
+        } catch { weekendMessage="Could not record qualifying: \(error)" }
+    }
     func endSession() {
         guard let worker,!sessionBusy,!captureBusy,frame?.result==nil else { return }
         suspend();sessionBusy=true;generation=UUID();let token=generation
@@ -213,7 +231,8 @@ private actor DrivingWorker {
             do {
                 let ended=try await worker.endSession()
                 guard generation==token else { return }
-                frame=ended;lastResult=ended.result;recording=false
+                frame=ended;lastResult=ended.result;lastRaceResult=ended.raceResult;recording=false
+                recordQualifying(ended)
             } catch { guard generation==token else { return };message="Could not finish session: \(error)" }
         }
     }
@@ -301,7 +320,7 @@ private actor DrivingWorker {
             do {
                 let result=try await worker.advance(elapsed:elapsed,command:command,paused:false)
                 guard token==generation else { return };frame=result
-                if result.result != nil { lastResult=result.result;suspend();if recording { recording=false;captureMessage="Telemetry saved." } }
+                if result.result != nil { lastResult=result.result;lastRaceResult=result.raceResult;suspend();if recording { recording=false;captureMessage="Telemetry saved." } }
             } catch {
                 guard token==generation else { return }
                 if recording { recording=false;captureMessage="Telemetry aborted; the destination was not replaced." }
@@ -421,6 +440,14 @@ struct DrivingScreen: View {
                     Button("End Session") { session.endSession() }.disabled(session.sessionBusy || session.captureBusy).padding(6)
                 }
             }
+            if let message=session.weekendMessage {
+                Text(message).font(.caption).foregroundStyle(.secondary).padding(.horizontal)
+            }
+            if session.selectedSessionKind == .qualifying,let next=session.weekend.qualifying,
+               session.weekend.startingOrder != .driversList {
+                Text("Qualifying \(RaceWeekend.defaultName(next)) — \(session.weekend.ranking.count) of \(session.weekend.cars) drivers have run")
+                    .font(.caption).foregroundStyle(.secondary).padding(.horizontal)
+            }
             if let message=session.captureMessage { Text(message).font(.caption).frame(maxWidth:.infinity,alignment:.leading).padding(.horizontal) }
             HStack {
                 Text(session.controllerName.map { "Controller: \($0)" } ?? "Keyboard · No game controller connected")
@@ -435,7 +462,12 @@ struct DrivingScreen: View {
         .sheet(isPresented:$showControls) { DrivingControlsEditor(session:session) }
         .sheet(isPresented:$showSetup) { DrivingSessionSetup(session:session) }
         .sheet(isPresented:$showResults) {
-            if let result=session.frame?.result ?? session.lastResult { DrivingResultsView(session:session,result:result) }
+            if let result=session.frame?.result ?? session.lastResult {
+                VStack(alignment:.leading,spacing:14) {
+                    if let race=session.frame?.raceResult ?? session.lastRaceResult { RaceClassificationView(race:race) }
+                    DrivingResultsView(session:session,result:result)
+                }
+            }
         }
         .onChange(of:session.frame?.phase) { _,phase in if phase == .results { showResults=true } }
         .onAppear { session.startTimer() }
