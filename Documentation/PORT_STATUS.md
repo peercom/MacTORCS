@@ -734,5 +734,10 @@ default. See GAMEPLAY.md for the session implementation and next steps.
 5. Resume graphical refinement after racing works, retaining the documented
    foliage/alpha-state limitations and required asset attribution work.
 
+The application is now a game shell — start screen, mode, circuit and car
+selection from a content library, options, HUD, pause menu, results with
+simulated opponent qualifying, settings — rather than a document window; see
+GAME_SHELL.md.
+
 The full specification remains open in IMPLEMENTATION_CHECKLIST.md. No phase is
 marked finished merely because a type, document or tool entry point exists.

@@ -5,11 +5,14 @@ import TORCSInput
 
 struct DrivingControlsEditor:View {
     let session:DrivingSession
+    /// Where the editor is a screen rather than a sheet, how it is left.
+    var onClose:(()->Void)?
     @Environment(\.dismiss) private var dismiss
     @State private var draft:InputConfiguration
     @State private var capture:DrivingAction?
     @State private var message:String?
-    init(session:DrivingSession) { self.session=session;_draft=State(initialValue:session.input.configuration) }
+    init(session:DrivingSession,onClose:(()->Void)?=nil) { self.session=session;self.onClose=onClose;_draft=State(initialValue:session.input.configuration) }
+    private func close() { if let onClose { onClose() } else { dismiss() } }
     var body:some View {
         VStack(alignment:.leading) {
             Text("Driving Controls").font(.title2.bold()).padding(.horizontal)
@@ -56,9 +59,9 @@ struct DrivingControlsEditor:View {
             if let message { Text(message).foregroundStyle(.red).font(.callout).textSelection(.enabled).padding(.horizontal) }
             HStack {
                 Button("Restore Defaults") { draft = .standard;message=nil }
-                Spacer();Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction)
+                Spacer();Button("Cancel") { close() }.keyboardShortcut(.cancelAction)
                 Button("Save") {
-                    do { try session.saveInput(draft);dismiss() }
+                    do { try session.saveInput(draft);close() }
                     catch { message=String(describing:error) }
                 }.keyboardShortcut(.defaultAction)
             }.padding()

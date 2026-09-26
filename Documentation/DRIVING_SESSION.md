@@ -16,9 +16,11 @@ python3 Scripts/prepare-driving-session.py /path/to/torcs-1.3.9 Artifacts/drivin
 open build/TORCSMac.app
 ```
 
-Choose **File → Open Driving Session…** (⇧⌘O) and select `Artifacts/driving-session`.
-Use **New Session…** to select practice/solo qualifying and a lap count.
-Click **Start**; the Metal view receives keyboard focus. Arrow keys or WASD control
+The game finds prepared sessions in the folders added under Settings › Content
+(or `--content DIR`); pick Training, a circuit, a car and the options, and the
+session starts on its first rendered frame (see GAME_SHELL.md; the File → Open
+flow below is the earlier window's). Click the track for keyboard focus if
+needed. Arrow keys or WASD control
 acceleration, braking and steering; Space also brakes. E shifts up, Q shifts down,
 C operates the clutch and P pauses/resumes. First gear is initially requested;
 gear requests clamp to the loaded car’s range, including neutral and reverse.

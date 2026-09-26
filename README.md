@@ -33,13 +33,14 @@ Open `Package.swift` in Xcode to develop the app. The packaging script creates a
 ad-hoc signed app under `build/`; see [distribution](Documentation/DISTRIBUTION.md)
 for Developer ID and notarization support. Those distribution paths are unverified.
 
-The app opens the driving window. Open a prepared session, choose **New Session…**
-for practice or solo qualifying and a lap count, then press **Start**. Click the
-Metal view for keyboard focus: arrows or WASD drive, E/Q shift, and P pauses.
-Controls… edits bindings. Results… reviews and exports lap times; Drive Again
-resets the car. Settings selects 60 or 120 Hz presentation; physics stays at
-500 Hz. The component inspector is available under Simulation → Open Component
-Lab. AI races are still pending; see [gameplay](Documentation/GAMEPLAY.md).
+The app opens as a game: a start screen with Training, Qualifying and Race,
+then a circuit, a car and the session options, then the race with a HUD, a
+pause menu (Escape) and results. Add a folder of prepared sessions under
+Settings › Content (or `--content DIR` for one launch) and its circuits and
+cars appear in the menus. Arrows or WASD drive, E/Q shift, P pauses, V steps
+the camera; Controls edits bindings. Qualifying runs the opponents' sessions
+headless after yours and sets the grid. See [game shell](Documentation/GAME_SHELL.md).
+The component inspector and model inspector are under the Developer menu.
 
 ## Reference comparison
 

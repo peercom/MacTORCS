@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 import SwiftUI
+import ImageIO
+import TORCSRaceEngine
 import MetalKit
 import TORCSCore
 import TORCSSimulation
@@ -54,7 +56,7 @@ import os
     @NSApplicationDelegateAdaptor(DrivingApplicationDelegate.self) private var applicationDelegate
     @State private var session = BenchSession()
     @State private var sceneSession = SceneInspectionSession()
-    @State private var drivingSession = DrivingSession()
+    @State private var flow: GameFlow
     @Environment(\.openWindow) private var openWindow
     init() {
         if let index=CommandLine.arguments.firstIndex(of:"--modern-race-test") {
@@ -79,33 +81,161 @@ import os
                 try ModernDrivingSmoke.run(session:URL(fileURLWithPath:CommandLine.arguments[index+1]),output:URL(fileURLWithPath:CommandLine.arguments[index+2]));exit(0)
             } catch { FileHandle.standardError.write(Data(String(describing:error).utf8));exit(1) }
         }
+        _flow=State(initialValue:GameFlow(session:DrivingSession()))
     }
     var body: some Scene {
-        Window("TORCS Driving",id:"driving") {
-            DrivingScreen(session:drivingSession)
-                .onAppear { applicationDelegate.session=drivingSession }
+        Window("TORCS",id:"game") {
+            GameShell(flow:flow)
+                .onAppear { applicationDelegate.session=flow.session }
         }
-        .defaultSize(width:1200,height:800)
+        .windowStyle(.hiddenTitleBar)
+        .defaultSize(width:1440,height:900)
         .commands {
-            CommandGroup(after:.newItem) {
-                Button("Open Driving Session…") {
-                    drivingSession.choose { openWindow(id:"driving") }
-                }.keyboardShortcut("o",modifiers:[.command,.shift])
-                Button("Open Compiled Scene…") {
-                    sceneSession.choose { openWindow(id:"scene-inspector") }
-                }.keyboardShortcut("o")
+            CommandGroup(replacing:.appSettings) {
+                Button("Settings…") { flow.open(.settings) }.keyboardShortcut(",")
             }
-            CommandMenu("Simulation") {
-                Button("Pause / Resume Driving") { drivingSession.togglePause() }
-                    .keyboardShortcut("p",modifiers:[.command,.shift]).disabled(drivingSession.content==nil)
-                Button("Pause / Resume Component Lab") { session.paused.toggle() }.keyboardShortcut("p")
+            CommandGroup(after:.newItem) {
+                Button("Add Content Folder…") { flow.addContentFolder() }.keyboardShortcut("o",modifiers:[.command,.shift])
+            }
+            CommandMenu("Game") {
+                Button("Main Menu") { flow.quitToMenu() }.keyboardShortcut("m",modifiers:[.command,.shift])
+                    .disabled(flow.screen == .menu)
+                Button("Pause / Resume") { flow.session.togglePause() }
+                    .keyboardShortcut("p",modifiers:[.command,.shift]).disabled(flow.session.content==nil)
+                Button("Next Camera") { flow.session.cycleCamera() }.keyboardShortcut("v",modifiers:[.command]).disabled(flow.session.content==nil)
                 Divider()
+                Button("Controls…") { flow.open(.controls) }
+            }
+            CommandMenu("Developer") {
+                Button("Open Compiled Scene…") { sceneSession.choose { openWindow(id:"scene-inspector") } }
                 Button("Open Component Lab") { openWindow(id:"component-lab") }
+                Button("Pause / Resume Component Lab") { session.paused.toggle() }
             }
         }
         Window("TORCS Scene Inspector",id:"scene-inspector") { SceneInspectorScreen(session:sceneSession) }
         Window("TORCS Mac — Component Lab",id:"component-lab") { BenchScreen(session:session).frame(minWidth:780,minHeight:520) }
-        Settings { SettingsScreen(drivingSession:drivingSession) }
+    }
+}
+
+/// One window, every screen: the backdrop, then whichever screen the flow is
+/// on. The driving screen stays mounted through the results so the renderer
+/// is not rebuilt for the sheet over it.
+struct GameShell: View {
+    let flow: GameFlow
+    var body: some View {
+        content
+            .task { await ScreenshotSupport.runIfRequested(flow:flow) { AnyView(content) } }
+    }
+    private var content: some View {
+        ZStack {
+            if flow.screen == .driving || flow.screen == .results { RaceScreen(flow:flow) }
+            else {
+                GameBackdrop(map:flow.plan.track?.map)
+                switch flow.screen {
+                case .menu: MainMenuScreen(flow:flow)
+                case .trackSelect: TrackSelectScreen(flow:flow)
+                case .carSelect: CarSelectScreen(flow:flow)
+                case .options: SessionOptionsScreen(flow:flow)
+                case .loading: LoadingScreen(flow:flow)
+                case .settings: SettingsScreen(flow:flow)
+                case .controls: ControlsScreen(flow:flow)
+                case .about: AboutScreen(flow:flow)
+                case .driving,.results: EmptyView()
+                }
+            }
+        }
+        .frame(minWidth:1100,minHeight:700)
+        .preferredColorScheme(.dark)
+        .tint(GameTheme.accent)
+        .animation(.easeInOut(duration:0.2),value:flow.screen)
+    }
+}
+
+/// `--render-icon PATH`: the application icon as a 1024-pixel PNG, for
+/// Scripts/build-app.sh to turn into the icon set.
+///
+/// `--autoplay SECONDS`: start a training session on the first pairing in
+/// the library through the real window path, drive nothing, and quit with
+/// status 0 once the session has started and its clock has run, or 1 if it
+/// has not within the time given. `--autoplay-race` adds opponents.
+///
+/// `--screenshot PATH [--size WxH] [--backdrop PNG]`: render the shell to a
+/// PNG once the content scan is done, then quit. For `--screen hud` the
+/// session's first frame is loaded and the HUD and pause menu are drawn over
+/// the backdrop image, since the renderer itself cannot be drawn this way.
+@MainActor enum ScreenshotSupport {
+    static func autoplay(flow: GameFlow,seconds: Double) async {
+        while flow.scanning { try? await Task.sleep(for:.milliseconds(50)) }
+        guard flow.entry != nil else { FileHandle.standardError.write(Data("autoplay: no content\n".utf8));exit(1) }
+        flow.choose(CommandLine.arguments.contains("--autoplay-race") ? .race:.practice)
+        flow.plan.laps=2;flow.plan.opponents=2
+        flow.startSession()
+        let deadline=Date().addingTimeInterval(seconds)
+        var started: Date?
+        while Date()<deadline {
+            try? await Task.sleep(for:.milliseconds(100))
+            if let message=flow.session.message ?? flow.message { FileHandle.standardError.write(Data("autoplay: \(message)\n".utf8));exit(1) }
+            if flow.sessionStarted,started==nil { started=Date();print("autoplay: started after \(String(format:"%.1f",Date().timeIntervalSince(deadline)+seconds)) s, screen=\(flow.screen)") }
+            if let frame=flow.session.frame,frame.time>2,!flow.session.paused {
+                print("autoplay: ok screen=\(flow.screen) time=\(String(format:"%.2f",frame.time)) raceTime=\(String(format:"%.2f",frame.raceTime)) phase=\(frame.phase) field=\(frame.field.count) standings=\(frame.standings.count) firstFrame=\(flow.session.firstFrameDrawn)")
+                flow.session.togglePause()
+                print("autoplay: paused=\(flow.session.paused)")
+                flow.quitToMenu()
+                print("autoplay: menu screen=\(flow.screen) content=\(flow.session.content==nil ? "unloaded":"loaded")")
+                exit(0)
+            }
+        }
+        FileHandle.standardError.write(Data("autoplay: timed out screen=\(flow.screen) started=\(flow.sessionStarted) firstFrame=\(flow.session.firstFrameDrawn) paused=\(flow.session.paused) time=\(flow.session.frame?.time ?? -1)\n".utf8))
+        exit(1)
+    }
+    static func runIfRequested(flow: GameFlow,content: @escaping @MainActor ()->AnyView) async {
+        let arguments=CommandLine.arguments
+        if let index=arguments.firstIndex(of:"--autoplay"),index+1<arguments.count,let seconds=Double(arguments[index+1]) {
+            await autoplay(flow:flow,seconds:seconds);return
+        }
+        if let index=arguments.firstIndex(of:"--render-icon"),index+1<arguments.count {
+            let renderer=ImageRenderer(content:AppIconArt().environment(\.colorScheme,.dark));renderer.scale=1
+            guard let image=renderer.cgImage,let destination=CGImageDestinationCreateWithURL(URL(fileURLWithPath:arguments[index+1]) as CFURL,"public.png" as CFString,1,nil) else { exit(2) }
+            CGImageDestinationAddImage(destination,image,nil);exit(CGImageDestinationFinalize(destination) ? 0:2)
+        }
+        guard let index=arguments.firstIndex(of:"--screenshot"),index+1<arguments.count else { return }
+        let output=URL(fileURLWithPath:arguments[index+1])
+        var size=CGSize(width:1440,height:900)
+        if let s=arguments.firstIndex(of:"--size"),s+1<arguments.count {
+            let parts=arguments[s+1].split(separator:"x").compactMap { Double($0) }
+            if parts.count==2 { size=CGSize(width:parts[0],height:parts[1]) }
+        }
+        let backdrop=arguments.firstIndex(of:"--backdrop").flatMap { $0+1<arguments.count ? NSImage(contentsOfFile:arguments[$0+1]):nil }
+        while flow.scanning { try? await Task.sleep(for:.milliseconds(50)) }
+        let screen=arguments.firstIndex(of:"--screen").flatMap { $0+1<arguments.count ? arguments[$0+1]:nil }
+        let view: AnyView
+        if screen=="pausemenu" {
+            view=AnyView(ZStack { GameBackdrop(map:nil);PauseMenu(flow:flow) }.frame(width:size.width,height:size.height))
+        } else if screen=="hud",let entry=flow.entry {
+            flow.session.selectedSessionKind=flow.plan.kind;flow.session.selectedLaps=flow.plan.laps;flow.session.selectedCars=flow.plan.cars
+            flow.session.weekend=(try? RaceWeekend(cars:flow.plan.cars)) ?? flow.session.weekend
+            guard await flow.session.load(entry.directory),let frame=flow.session.frame,let loaded=flow.session.content else {
+                FileHandle.standardError.write(Data("torcs: \(flow.session.message ?? "no frame")\n".utf8));exit(2)
+            }
+            let paused=arguments.contains("--paused")
+            view=AnyView(ZStack {
+                if let backdrop { Image(nsImage:backdrop).resizable().aspectRatio(contentMode:.fill) } else { GameBackdrop(map:nil) }
+                RaceHUD(session:flow.session,frame:frame,showStandings:true,track:entry.track.name,car:entry.car.name,
+                        redline:loaded.carParameters.section("Engine")?.number("revs limiter",unit:"rpm",default:9000) ?? 9000)
+                if paused { PauseMenu(flow:flow) }
+            }.frame(width:size.width,height:size.height).clipped())
+        } else {
+            view=AnyView(content().frame(width:size.width,height:size.height))
+        }
+        let renderer=ImageRenderer(content:view.preferredColorScheme(.dark).environment(\.colorScheme,.dark))
+        renderer.scale=2
+        guard let image=renderer.cgImage,let destination=CGImageDestinationCreateWithURL(output as CFURL,"public.png" as CFString,1,nil) else {
+            FileHandle.standardError.write(Data("torcs: screenshot could not be rendered\n".utf8));exit(2)
+        }
+        CGImageDestinationAddImage(destination,image,nil)
+        guard CGImageDestinationFinalize(destination) else { exit(2) }
+        print("screenshot \(output.path) \(image.width)x\(image.height)")
+        exit(0)
     }
 }
 
@@ -147,20 +277,6 @@ struct BenchScreen: View {
         }
         .onAppear { session.start() }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didResignActiveNotification)) { _ in session.releaseInput() }
-    }
-}
-
-struct SettingsScreen: View {
-    let drivingSession:DrivingSession
-    @State private var showControls=false
-    @AppStorage("renderRate") private var renderRate = 60
-    var body: some View {
-        Form {
-            Picker("Render rate", selection: $renderRate) { Text("60 Hz").tag(60); Text("120 Hz").tag(120) }
-            Text("Physics remains at 500 Hz. The display determines the available presentation rate.").font(.caption).foregroundStyle(.secondary)
-            Button("Driving Controls…") { drivingSession.suspend();showControls=true }
-        }.padding(24).frame(width: 420)
-            .sheet(isPresented:$showControls) { DrivingControlsEditor(session:drivingSession) }
     }
 }
 

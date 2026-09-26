@@ -60,6 +60,10 @@ directly: the field count, the viewer, the classification being a permutation of
 the field, the readouts describing the viewer's car, distinct per-car snapshots,
 and a pause consuming no simulation time.
 
+The window's controls have since become the game shell's screens — the
+setup sheet is the circuit, car and options screens, the status strip and
+board are the HUD — described in GAME_SHELL.md.
+
 ## Boundaries
 
 - **The on-screen layout has not been seen.** The window cannot be driven

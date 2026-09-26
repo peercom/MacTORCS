@@ -24,13 +24,26 @@ done
 # Prebuilt shader library: no compilation at launch, no stalls in a race.
 Scripts/build-shaders.sh "$app_dir/Contents/Resources/TORCSMac_TORCSRender.bundle/Shaders/TORCSRender.metallib"
 cp LICENSE THIRD_PARTY_NOTICES.md "$app_dir/Contents/Resources/"
+# The icon, drawn by the app itself so it matches the screens.
+iconset="$(mktemp -d)/AppIcon.iconset"
+mkdir -p "$iconset"
+"$bin_dir/TORCSMac" --render-icon "$iconset/icon_512x512@2x.png"
+for size in 16 32 128 256 512; do
+    sips -z $size $size "$iconset/icon_512x512@2x.png" --out "$iconset/icon_${size}x${size}.png" >/dev/null
+    double=$((size*2))
+    [[ $size -eq 512 ]] || sips -z $double $double "$iconset/icon_512x512@2x.png" --out "$iconset/icon_${size}x${size}@2x.png" >/dev/null
+done
+iconutil -c icns "$iconset" -o "$app_dir/Contents/Resources/AppIcon.icns"
+rm -rf "$(dirname "$iconset")"
 cat > "$app_dir/Contents/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
 <key>CFBundleExecutable</key><string>TORCSMac</string>
 <key>CFBundleIdentifier</key><string>org.torcs.mac</string>
-<key>CFBundleName</key><string>TORCS Mac</string>
+<key>CFBundleName</key><string>TORCS</string>
+<key>CFBundleDisplayName</key><string>TORCS</string>
+<key>CFBundleIconFile</key><string>AppIcon</string>
 <key>CFBundlePackageType</key><string>APPL</string>
 <key>CFBundleShortVersionString</key><string>0.1.0</string>
 <key>CFBundleVersion</key><string>1</string>

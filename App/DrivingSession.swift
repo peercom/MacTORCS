@@ -81,7 +81,6 @@ private actor DrivingWorker {
     var selectedCars=3
     /// How the grid is ordered, and the qualifying ranking built so far.
     var weekend=try! RaceWeekend(cars:3)
-    var weekendMessage: String?
     var sessionBusy=false
     var lastResult: DrivingSessionResult?
     var lastRaceResult: RaceResult?
@@ -99,11 +98,7 @@ private actor DrivingWorker {
         do { try CameraPreferencesStore().save(cameraPreferences);cameraMessage=nil }
         catch { cameraMessage="Camera settings could not be saved: \(error)" }
     }
-    var enhancedFiltering=false
-    var enhancedVegetation=false
-    var vegetationAvailable=false
-    var shadows=true
-    var mirrors=true
+    var mirrors=UserDefaults.standard.object(forKey:"mirrors") as? Bool ?? true
     /// Wet track: darkened, glossy road with puddles and spray. A visual
     /// condition only; the physics stays dry until the simulation has weather.
     var wet=false
@@ -111,8 +106,17 @@ private actor DrivingWorker {
     var rain=false
     /// Overcast: a cloud layer covers the sky and the sun is dimmed. Visual only.
     var overcast=false
-    var smoothEdges=false
-    let supportsEdgeSmoothing=MTLCreateSystemDefaultDevice()?.supportsTextureSampleCount(4) == true
+    /// The renderer has produced its first frame of this run: the loading
+    /// screen can go and the countdown can start.
+    var firstFrameDrawn=false
+    /// The quality preset the next renderer is built with.
+    var renderPreset: RenderSettings.Preset = RenderSettings.Preset(rawValue:UserDefaults.standard.string(forKey:"renderPreset") ?? "") ?? .m2Air
+    /// The driving views in the order the camera key steps through them.
+    static let cameraCycle: [DrivingCameraPreset]=[.chase,.near,.far,.low,.bonnet,.driver,.road,.trackAligned,.television]
+    func cycleCamera() {
+        let index=Self.cameraCycle.firstIndex(of:cameraPreset) ?? -1
+        selectCamera(Self.cameraCycle[(index+1)%Self.cameraCycle.count])
+    }
     var message: String?
     var requestedGear=1
     var focusRequested=false
@@ -145,21 +149,7 @@ private actor DrivingWorker {
     @ObservationIgnored private var timer: Timer?
     @ObservationIgnored private var pending=false
     @ObservationIgnored private var lastWall=ProcessInfo.processInfo.systemUptime
-    @ObservationIgnored private var loadTask: Task<Void,Never>?
     @ObservationIgnored private var captureTask: Task<Void,Never>?
-    func choose(onSelection: @escaping @MainActor ()->Void = {}) {
-        suspend()
-        let panel=NSOpenPanel();panel.canChooseFiles=false;panel.canChooseDirectories=true
-        panel.message="Choose a prepared driving session containing driving.json."
-        // Do not nest a modal loop inside a SwiftUI accessibility button action.
-        let completion: (NSApplication.ModalResponse)->Void = { [weak self] response in
-            guard response == .OK,let directory=panel.url else { return }
-            self?.load(directory)
-            onSelection()
-        }
-        if let window=NSApp.keyWindow { panel.beginSheetModal(for:window,completionHandler:completion) }
-        else { panel.begin(completionHandler:completion) }
-    }
     /// Practice and qualifying keep the single-car runtime; a race builds the
     /// authoritative race runtime with the human entry first on the grid.
     private func makeWorker(_ content: DrivingContent,configuration: RaceSessionConfiguration) throws -> (DrivingWorker,DrivingFrame) {
@@ -177,20 +167,27 @@ private actor DrivingWorker {
                                  configuration:configuration)
         return (DrivingWorker(race:race),race.frame)
     }
-    func load(_ directory: URL) {
-        stop();loadTask?.cancel();generation=UUID();let token=generation
-        content=nil;frame=nil;worker=nil;message=nil;loading=true;requestedGear=1
-        loadTask=Task {
-            do {
-                let result=try await Task.detached(priority:.userInitiated) { try DrivingContent.load(directory) }.value
-                guard !Task.isCancelled,generation==token else { return }
-                let configuration=try RaceSessionConfiguration(kind:selectedSessionKind,laps:selectedLaps)
-                content=result;contentDirectory=directory
-                let built=try makeWorker(result,configuration:configuration)
-                worker=built.0;frame=built.1
-                loading=false
-            } catch { guard generation==token else { return };message=String(describing:error);loading=false }
-        }
+    /// Load a prepared session folder and build its first run. False when it
+    /// failed; `message` then says why.
+    func load(_ directory: URL) async -> Bool {
+        stop();generation=UUID();let token=generation
+        content=nil;contentDirectory=nil;frame=nil;worker=nil;message=nil;loading=true;requestedGear=1
+        firstFrameDrawn=false;finishedReported=false;lastResult=nil;lastRaceResult=nil
+        do {
+            let result=try await Task.detached(priority:.userInitiated) { try DrivingContent.load(directory) }.value
+            guard generation==token else { return false }
+            let configuration=try RaceSessionConfiguration(kind:selectedSessionKind,laps:selectedLaps)
+            content=result;contentDirectory=directory
+            let built=try makeWorker(result,configuration:configuration)
+            worker=built.0;frame=built.1
+            loading=false;return true
+        } catch { guard generation==token else { return false };message=String(describing:error);loading=false;return false }
+    }
+    /// Leave the session: nothing loaded, nothing running.
+    func unload() {
+        stop();generation=UUID()
+        content=nil;contentDirectory=nil;frame=nil;worker=nil;message=nil;loading=false
+        lastResult=nil;lastRaceResult=nil;firstFrameDrawn=false;finishedReported=false;requestedGear=1
     }
     func restart() {
         guard let content,!sessionBusy,!captureBusy else { return }
@@ -208,20 +205,18 @@ private actor DrivingWorker {
                 let built=try makeWorker(content,configuration:configuration)
                 worker=built.0;frame=built.1
                 generation=UUID();requestedGear=1;message=nil;recording=false;captureMessage=nil
+                firstFrameDrawn=false;finishedReported=false
                 lastWall=ProcessInfo.processInfo.systemUptime;startTimer()
             } catch { guard generation==token else { return };message="Could not start a new session: \(error)" }
         }
     }
-    /// A finished qualifying session is one driver's run in the original's
-    /// sequence. Only the driver whose turn it is may be recorded.
-    private func recordQualifying(_ finished: DrivingFrame) {
-        guard finished.configuration.kind == .qualifying,let car=weekend.qualifying else { return }
-        do {
-            try weekend.recordQualifying(car:car,bestLapTime:Float(finished.result?.bestLap ?? 0))
-            weekendMessage=weekend.qualifyingComplete
-                ? "Qualifying complete. The grid is set."
-                : "Qualified. \(RaceWeekend.defaultName(weekend.qualifying!)) is next."
-        } catch { weekendMessage="Could not record qualifying: \(error)" }
+    /// Whoever runs the game hears once per run that it is over, whether it
+    /// finished, retired or was ended early.
+    @ObservationIgnored var onFinished: ((DrivingFrame)->Void)?
+    @ObservationIgnored private var finishedReported=false
+    private func reportFinished(_ frame: DrivingFrame) {
+        guard !finishedReported else { return }
+        finishedReported=true;onFinished?(frame)
     }
     func endSession() {
         guard let worker,!sessionBusy,!captureBusy,frame?.result==nil else { return }
@@ -232,7 +227,7 @@ private actor DrivingWorker {
                 let ended=try await worker.endSession()
                 guard generation==token else { return }
                 frame=ended;lastResult=ended.result;lastRaceResult=ended.raceResult;recording=false
-                recordQualifying(ended)
+                reportFinished(ended)
             } catch { guard generation==token else { return };message="Could not finish session: \(error)" }
         }
     }
@@ -320,7 +315,11 @@ private actor DrivingWorker {
             do {
                 let result=try await worker.advance(elapsed:elapsed,command:command,paused:false)
                 guard token==generation else { return };frame=result
-                if result.result != nil { lastResult=result.result;lastRaceResult=result.raceResult;suspend();if recording { recording=false;captureMessage="Telemetry saved." } }
+                if result.result != nil {
+                    lastResult=result.result;lastRaceResult=result.raceResult;suspend()
+                    if recording { recording=false;captureMessage="Telemetry saved." }
+                    reportFinished(result)
+                }
             } catch {
                 guard token==generation else { return }
                 if recording { recording=false;captureMessage="Telemetry aborted; the destination was not replaced." }
@@ -342,172 +341,6 @@ private actor DrivingWorker {
 
 }
 
-struct DrivingScreen: View {
-    let session: DrivingSession
-    @AppStorage("renderRate") private var renderRate=60
-    @State private var showControls=false
-    @State private var showSetup=false
-    @State private var showResults=false
-    var body: some View {
-        VStack(spacing:0) {
-            HStack {
-                Text(session.content?.name ?? "Driving Session").font(.headline)
-                Spacer()
-                Button(session.frame?.result != nil ? "Finished":session.paused ? (session.frame?.time==0 ? "Start":"Resume"):"Pause") { session.togglePause() }
-                    .disabled(session.content==nil || session.message != nil || session.captureBusy || session.sessionBusy || session.frame?.result != nil)
-                Button("New Session…") { session.suspend();showSetup=true }
-                    .disabled(session.content==nil || session.captureBusy || session.sessionBusy)
-                Button("Results…") { session.suspend();showResults=true }.disabled(session.frame?.result==nil && session.lastResult==nil)
-                Button(session.recording ? "Finish Recording":"Record Telemetry…") {
-                    if session.recording { session.finishRecording() } else { session.chooseCapture() }
-                }.disabled(session.content==nil || session.captureBusy || session.sessionBusy || session.frame?.result != nil
-                           || session.frame?.configuration.kind == .race)
-                    .help("Telemetry capture is available in practice and qualifying.")
-                Button("Controls…") { session.suspend();showControls=true }
-                Button("Open Session…") { session.choose() }.disabled(session.sessionBusy || session.captureBusy)
-            }.padding()
-            if let content=session.content {
-                DrivingMetalView(session:session,content:content,rate:renderRate,camera:session.cameraPreset,zoom:session.cameraZoom,mirrors:session.mirrors).id("\(session.generation)")
-                    .overlay {
-                        if let frame=session.frame,!session.paused,frame.result==nil,frame.raceTime<0.8 {
-                            Text(frame.phase == .prestart ? (frame.raceTime < -1 ? "Ready":"Set"):"Go!")
-                                .font(.system(size:56,weight:.bold,design:.rounded)).foregroundStyle(.white)
-                                .padding(24).background(.black.opacity(0.6),in:RoundedRectangle(cornerRadius:16))
-                                .allowsHitTesting(false)
-                        }
-                    }
-            } else if session.loading { ProgressView("Preparing car and track…").frame(maxWidth:.infinity,maxHeight:.infinity) }
-            else { ContentUnavailableView("Open a driving session",systemImage:"steeringwheel",description:Text("Choose a prepared car and track session to drive.")) }
-            HStack {
-                Picker("Camera",selection:Binding(get:{session.cameraPreset},set:{session.selectCamera($0)})) {
-                    ForEach(["Driving views","Side views","Overhead views","Circuit views","Trackside views"],id:\.self) { family in
-                        Section(family) {
-                            ForEach(DrivingCameraPreset.allCases.filter { $0.family==family },id:\.self) { Text($0.rawValue).tag($0) }
-                        }
-                    }
-                }.frame(width:235).help("Side views keep a fixed world direction. Overhead views use the original heights and orientations.")
-                ControlGroup {
-                    Button { session.adjustCameraZoom(.zoomIn) } label: { Label("Zoom in",systemImage:"plus.magnifyingglass") }
-                    Button { session.adjustCameraZoom(.zoomOut) } label: { Label("Zoom out",systemImage:"minus.magnifyingglass") }
-                }.labelStyle(.iconOnly)
-                Menu("Zoom options") {
-                    Button("Reset zoom") { session.adjustCameraZoom(.reset) }
-                    Button("Maximum zoom") { session.adjustCameraZoom(.minimum) }
-                    Button("Minimum zoom") { session.adjustCameraZoom(.maximum) }
-                }.fixedSize()
-                Spacer()
-            }.disabled(session.content==nil).padding(.horizontal).padding(.top,8)
-            if let cameraMessage=session.cameraMessage { Text(cameraMessage).foregroundStyle(.orange).padding(.horizontal) }
-            HStack {
-                Toggle("Rear-view mirror",isOn:Binding(get:{session.mirrors},set:{session.mirrors=$0}))
-                    .disabled(!session.cameraPreset.allowsMirror).help("Available in Driver, Bonnet and Road views.")
-                Toggle("Wet track",isOn:Binding(get:{session.wet},set:{session.wet=$0}))
-                    .help("Visual only: the road darkens, glosses and puddles, and the tyres throw spray. Grip is unchanged.")
-                Toggle("Overcast",isOn:Binding(get:{session.overcast},set:{session.overcast=$0}))
-                    .help("Visual only: a cloud layer covers the sky and dims the sun.")
-                Toggle("Rain",isOn:Binding(get:{session.rain},set:{session.rain=$0}))
-                    .help("Visual only: rain falls, the sun dims and the track is wet. Grip is unchanged.")
-                Spacer()
-            }.padding(.horizontal).padding(.top,8)
-            HStack(spacing:24) {
-                Text(session.frame?.result != nil ? "Session ended":session.paused ? "Paused":session.frame?.phase == .prestart ? ((session.frame?.raceTime ?? -2)<(-1) ? "Ready":"Set"):((session.frame?.raceTime ?? 1)<1 ? "Go!":"Driving"))
-                if let frame=session.frame {
-                    Text(String(format:"%.0f km/h",frame.speed*3.6));Text("Gear \(frame.gear) → \(session.requestedGear)")
-                    Text(String(format:"%.0f RPM",frame.rpm));Text(String(format:"%.2f s",max(0,frame.raceTime)))
-                    if frame.behind { Text("Catching up").foregroundStyle(.orange) }
-                }
-                Spacer()
-            }.monospacedDigit().padding(.horizontal).padding(.top,10)
-            if let frame=session.frame {
-                HStack(spacing:20) {
-                    Text(frame.configuration.kind == .qualifying ? "Qualifying":frame.configuration.kind == .race ? "Race":"Practice")
-                    if let mine=frame.standings.first(where:{ $0.car==frame.viewer }) {
-                        Text("P\(mine.position) of \(frame.standings.count)").bold()
-                    }
-                    Text(frame.result != nil ? "\(frame.completedLaps.count) / \(frame.timing.targetLaps) laps completed":frame.phase == .prestart ? "Starting…":frame.timing.laps==0 ? "Approaching start line":"Lap \(min(frame.timing.laps,frame.timing.targetLaps)) / \(frame.timing.targetLaps)")
-                    Text(frame.phase == .prestart ? "Current —":String(format:"Current %.3f s",frame.timing.currentLapTime))
-                    Text(frame.timing.lastLapTime>0 ? String(format:"Last %.3f s",frame.timing.lastLapTime):"Last —")
-                    Text(frame.timing.bestLapTime>0 ? String(format:"Best %.3f s",frame.timing.bestLapTime):"Best —")
-                    if !frame.timing.commitBestLapTime { Text("Invalid lap").foregroundStyle(.orange) }
-                    if let mine=frame.standings.first(where:{ $0.car==frame.viewer }) {
-                        if mine.penaltyTime>0 { Text(String(format:"Penalty +%.2f s",mine.penaltyTime)).foregroundStyle(.orange) }
-                        if mine.penalties>0 { Text("\(mine.penalties) penalty\(mine.penalties==1 ? "":"s") to serve").foregroundStyle(.red) }
-                    }
-                    Spacer()
-                }.monospacedDigit().font(.callout).padding(.horizontal).padding(.top,8)
-                if !frame.standings.isEmpty { RaceStandingsBoard(frame:frame) }
-                if frame.result==nil,frame.time>0 {
-                    Button("End Session") { session.endSession() }.disabled(session.sessionBusy || session.captureBusy).padding(6)
-                }
-            }
-            if let message=session.weekendMessage {
-                Text(message).font(.caption).foregroundStyle(.secondary).padding(.horizontal)
-            }
-            if session.selectedSessionKind == .qualifying,let next=session.weekend.qualifying,
-               session.weekend.startingOrder != .driversList {
-                Text("Qualifying \(RaceWeekend.defaultName(next)) — \(session.weekend.ranking.count) of \(session.weekend.cars) drivers have run")
-                    .font(.caption).foregroundStyle(.secondary).padding(.horizontal)
-            }
-            if let message=session.captureMessage { Text(message).font(.caption).frame(maxWidth:.infinity,alignment:.leading).padding(.horizontal) }
-            HStack {
-                Text(session.controllerName.map { "Controller: \($0)" } ?? "Keyboard · No game controller connected")
-                if session.controllerName != nil,!session.controllerReady { Text("Release controller controls to enable input").foregroundStyle(.secondary) }
-                Spacer()
-                Text("Configure keys and controller in Controls…")
-            }
-                .font(.caption).frame(maxWidth:.infinity,alignment:.leading).padding(.horizontal).padding(.vertical,8)
-            if let message=session.inputMessage { Text(message).font(.caption).padding(.horizontal) }
-            if let message=session.message { Text(message).font(.caption).textSelection(.enabled).padding() }
-        }.frame(minWidth:900,minHeight:650)
-        .sheet(isPresented:$showControls) { DrivingControlsEditor(session:session) }
-        .sheet(isPresented:$showSetup) { DrivingSessionSetup(session:session) }
-        .sheet(isPresented:$showResults) {
-            if let result=session.frame?.result ?? session.lastResult {
-                VStack(alignment:.leading,spacing:14) {
-                    if let race=session.frame?.raceResult ?? session.lastRaceResult { RaceClassificationView(race:race) }
-                    DrivingResultsView(session:session,result:result)
-                }
-            }
-        }
-        .onChange(of:session.frame?.phase) { _,phase in if phase == .results { showResults=true } }
-        .onAppear { session.startTimer() }
-        .onDisappear { session.stop() }
-        .onReceive(NotificationCenter.default.publisher(for:NSApplication.didResignActiveNotification)) { _ in session.suspend() }
-        .onReceive(NotificationCenter.default.publisher(for:NSWindow.didResignKeyNotification)) { _ in session.suspend() }
-    }
-}
-/// The live classification. Gaps are the original crossing-time differences, so
-/// they update as cars complete laps rather than continuously.
-struct RaceStandingsBoard: View {
-    let frame: DrivingFrame
-    private func gap(_ standing: RaceStanding) -> String {
-        if standing.position==1 { return "—" }
-        if standing.lapsBehindLeader>0 { return "+\(standing.lapsBehindLeader) lap\(standing.lapsBehindLeader==1 ? "":"s")" }
-        return standing.behindLeader>0 ? String(format:"+%.3f s",standing.behindLeader):"—"
-    }
-    var body: some View {
-        VStack(alignment:.leading,spacing:2) {
-            ForEach(frame.standings,id:\.car) { standing in
-                HStack(spacing:14) {
-                    Text("P\(standing.position)").frame(width:34,alignment:.leading)
-                    Text(standing.car==frame.viewer ? "You":"BT \(standing.car+1)").frame(width:66,alignment:.leading)
-                    Text("Lap \(standing.laps)").frame(width:58,alignment:.leading)
-                    Text(gap(standing)).frame(width:92,alignment:.leading)
-                    Text(standing.bestLap>0 ? String(format:"Best %.3f",standing.bestLap):"Best —")
-                        .frame(width:110,alignment:.leading)
-                    if standing.inPits { Text("In pits").foregroundStyle(.secondary) }
-                    if standing.penalties>0 { Text("Penalty").foregroundStyle(.red) }
-                    if standing.eliminated { Text("Out").foregroundStyle(.red) }
-                    else if standing.finished { Text("Finished").foregroundStyle(.green) }
-                    Spacer()
-                }
-                .font(.caption).monospacedDigit()
-                .fontWeight(standing.car==frame.viewer ? .bold: .regular)
-            }
-        }.padding(.horizontal).padding(.top,6)
-    }
-}
-
 @MainActor final class DrivingMetalNSView: MTKView {
     var session: DrivingSession?
     override var acceptsFirstResponder: Bool { true }
@@ -515,7 +348,10 @@ struct RaceStandingsBoard: View {
     override func mouseDown(with event: NSEvent) { window?.makeFirstResponder(self) }
     override func keyDown(with event: NSEvent) {
         if !event.modifierFlags.intersection([.command,.control,.option]).isEmpty { super.keyDown(with:event);return }
+        // Escape is the game's pause; a bound key drives; V steps the camera.
+        if event.keyCode==53 { if !event.isARepeat { session?.togglePause() };return }
         if session?.input.recognizes(event.keyCode)==true { session?.key(event.keyCode,pressed:true,repeating:event.isARepeat) }
+        else if event.keyCode==9 { if !event.isARepeat { session?.cycleCamera() } }
         else { super.keyDown(with:event) }
     }
     override func keyUp(with event: NSEvent) { session?.key(event.keyCode,pressed:false) }
@@ -604,6 +440,7 @@ struct DrivingMetalView: NSViewRepresentable {
                 }
                 modern.draw(in:view,field:field,camera:sceneCamera,viewer:viewer,particleSources:sources,skidSources:ModernDrivingRenderer.skidSources(pose:pose,snapshot:frame.current,speed:frame.speed),deltaTime:1/Float(max(view.preferredFramesPerSecond,1)))
                 if let error=modern.lastError { throw RenderError.unavailable(error) }
+                if !session.firstFrameDrawn { session.firstFrameDrawn=true }
             } catch { session.message=String(describing:error);session.stop() }
         }
     }
@@ -615,7 +452,7 @@ struct DrivingMetalView: NSViewRepresentable {
         view.setAccessibilityHelp("Use configured keyboard or controller bindings to drive. Open Controls to change bindings. Driving pauses when the window loses focus.")
         do {
             context.coordinator.world=try CameraWorld(bounds:content.simulation.road.bounds)
-            let modern=try ModernDrivingRenderer(content:content,materials:ModernDrivingRenderer.materialsDirectory(beside:session.contentDirectory))
+            let modern=try ModernDrivingRenderer(content:content,settings:RenderSettings(preset:session.renderPreset),materials:ModernDrivingRenderer.materialsDirectory(beside:session.contentDirectory))
             modern.configure(view)
             context.coordinator.modern=modern
             view.delegate=context.coordinator
