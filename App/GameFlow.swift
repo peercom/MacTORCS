@@ -269,7 +269,8 @@ import TORCSInput
         session.selectedSessionKind=plan.kind;session.selectedLaps=plan.laps;session.selectedCars=plan.cars
         session.wet=plan.conditions == .wet;session.rain=plan.conditions == .rain;session.overcast=plan.conditions == .overcast
         session.opponentPace=plan.difficulty.pace
-        UserDefaults.standard.set(plan.difficulty.rawValue,forKey:"difficulty")
+        // An unattended check's choices are not the player's.
+        if !CommandLine.arguments.contains("--autoplay") { UserDefaults.standard.set(plan.difficulty.rawValue,forKey:"difficulty") }
         // Who drives what: the distinct rival models after the player's,
         // and each entry's index into them.
         var rivals=rivalCars
