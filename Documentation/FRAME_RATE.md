@@ -96,15 +96,49 @@ within the first seconds.
 
 ## What is left
 
-**The window's own cost is unexplained.** The same frame takes 8.5 ms
-offscreen and 13.1 ms in the window, paced or not. The suspect is the system
-compositing a full-resolution game layer with the HUD's layers over it every
-frame, which also rules out direct display in full screen. The experiment is
-ready — `--autoplay … --fullscreen` and `--no-hud` under `TORCS_PASS_LOG=1`,
-at a fixed preset — but needs the display on, and it went to sleep before the
-runs: they presented no frames. If full screen without the HUD's layers
-comes back near the offscreen figure, drawing the HUD inside the frame is
-worth about a third of the frame, and native resolution would hold 60.
+**The window's own cost is not compositing.** The same frame took 8.5 ms
+offscreen and 13.1 ms in the window, and the suspect was the system
+compositing a full-resolution game layer with the HUD's layers over it. The
+experiment ran on 2026-11-27, Fanless preset at full resolution, one car,
+two runs of each variant, GPU median per frame:
+
+| | HUD | no HUD |
+|---|---|---|
+| Window, 2880 x 1720 | 12.3, 12.3 ms | 12.6, 12.6 ms |
+| Full screen | 12.7, 12.5 ms | 12.7, 13.4 ms |
+
+No difference in either direction. Drawing the HUD inside the Metal frame
+would save nothing, and full screen buys nothing either.
+
+What the gap is instead, as far as it is known:
+
+- **The window is bigger than the offscreen test was.** The display runs in
+  its default scaled mode: 1470 x 956 points, a 2940 x 1912 backing store on
+  a 2560 x 1664 panel. The game window is 2880 x 1720 pixels, 16% more than
+  the panel-sized offscreen frame. Offscreen at the window's size costs
+  9.0 ms, against 7.9 ms at the panel's size on the same day.
+- **The rest, about 3.5 ms, is in the forward pass**: 6.0 ms in the window
+  against 4.0 ms offscreen at the same size. The offscreen test looks at the
+  start grid; the window run drives the circuit. The view is the likely
+  difference and is untested.
+- **The GPU's cost per frame is not steady in the window.** At a light level
+  the frame log shows it climbing from 8 ms to 15 ms over eleven frames and
+  dropping back, again and again, in the window and in full screen. That
+  looks like the GPU clocking down while there is slack, which would make a
+  light frame measure dearer than it is. Unconfirmed.
+
+Two things follow from the display mode. At "100%" the game draws 32% more
+pixels than the panel has, and the system scales them down. The automatic
+level of 85% is the panel's own resolution to within 3%, so it is not the
+loss it sounds like.
+
+**Low Power Mode costs 60%.** The first runs of the experiment were on
+battery with Low Power Mode on, and the same frame took 17 to 23 ms instead
+of 12.5. Automatic quality held 60 there by dropping to 67% in the window
+and 50% in full screen. The level it settles on is now saved apart for Low
+Power Mode (`renderQualityLevelLowPower`), so a session on battery no longer
+sets where the next one on mains starts. That path was not exercised after
+the change: Low Power Mode was switched off before it could be.
 
 The forward pass is half the remaining frame and was not touched: its shader
 carries another line of work's uncommitted changes. The full-resolution chain

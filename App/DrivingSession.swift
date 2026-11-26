@@ -145,7 +145,7 @@ private actor DrivingWorker {
                 let before=governor.index
                 if let level=governor.record(frameRate:Double(meterFrames)/(now-meterStart),gpuSeconds:meterGPU) {
                     qualityLevel=level;presetChanged=true
-                    UserDefaults.standard.set(governor.index,forKey:"renderQualityLevel")
+                    UserDefaults.standard.set(governor.index,forKey:Self.settledQualityKey)
                     qualityNotice=governor.index<before ? "Quality lowered to hold \(Int(governor.targetRate)) fps":"Quality raised"
                     qualityNoticeStamp=now
                 }
@@ -206,6 +206,12 @@ private actor DrivingWorker {
     @ObservationIgnored private var qualityNoticeStamp=0.0
     @ObservationIgnored private var governor=QualityGovernor(index:0)
     static let deviceName=MTLCreateSystemDefaultDevice()?.name ?? ""
+    /// Where automatic quality last settled, kept apart for Low Power Mode.
+    /// The same machine draws a frame in about 13 ms on mains and 21 ms in
+    /// Low Power Mode, so a level learnt in one is wrong for the other.
+    static var settledQualityKey: String {
+        ProcessInfo.processInfo.isLowPowerModeEnabled ? "renderQualityLevelLowPower":"renderQualityLevel"
+    }
     /// Take the mode: a fixed preset as chosen; automatic from where it last
     /// settled on this machine, or from the machine's own starting point
     /// when asked to test again.
@@ -214,8 +220,8 @@ private actor DrivingWorker {
         if let fixed=RenderSettings.Preset(rawValue:qualityMode) {
             qualityLevel=QualityLevel(preset:fixed)
         } else {
-            if retest { UserDefaults.standard.removeObject(forKey:"renderQualityLevel") }
-            let settled=UserDefaults.standard.object(forKey:"renderQualityLevel") as? Int
+            if retest { for key in ["renderQualityLevel","renderQualityLevelLowPower"] { UserDefaults.standard.removeObject(forKey:key) } }
+            let settled=UserDefaults.standard.object(forKey:Self.settledQualityKey) as? Int
             governor=QualityGovernor(index:settled ?? QualityGovernor.start(deviceName:Self.deviceName),
                                      ceiling:QualityGovernor.recommended(deviceName:Self.deviceName),targetRate:rate)
             qualityLevel=governor.level
