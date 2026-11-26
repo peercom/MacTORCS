@@ -10,11 +10,27 @@ struct SettingsScreen: View {
     let flow: GameFlow
     var embedded=false
     @AppStorage("renderRate") private var renderRate=60
-    @AppStorage("renderPreset") private var renderPreset=RenderSettings.Preset.m2Air.rawValue
+    @AppStorage("hudFrameRate") private var showFrameRate=false
     @AppStorage("hudStandings") private var showStandings=true
     @AppStorage("mirrors") private var mirrors=true
+    @AppStorage("hudMap") private var showMap=true
+    @AppStorage("volume") private var volume=0.8
     private var session: DrivingSession { flow.session }
     private func close() { if embedded { flow.closeOverlay() } else { flow.back() } }
+    private func presetName(_ preset: RenderSettings.Preset) -> String {
+        switch preset { case .m2Air:"Fanless";case .balanced:"Balanced";case .high:"High" }
+    }
+    private var qualityDetail: String {
+        if session.automaticQuality {
+            let scale=session.qualityLevel.renderScale<1 ? ", \(Int(session.qualityLevel.renderScale*100))% resolution":""
+            return "Holds the frame rate: lowers effects and resolution when frames are dropped. Now at \(presetName(session.renderPreset))\(scale)."
+        }
+        return "Fixed at \(presetName(session.renderPreset)), whatever the frame rate. High needs a Max or Ultra chip."
+    }
+    private var librarySummary: String {
+        let tracks=flow.library.tracks.count,cars=flow.library.cars.count
+        return "\(tracks) circuit\(tracks==1 ? "":"s") and \(cars) car\(cars==1 ? "":"s")"
+    }
     var body: some View {
         VStack(alignment:.leading,spacing:22) {
             ScreenHeader(title:"Settings",back:embedded ? nil:{ flow.back() })
@@ -24,16 +40,24 @@ struct SettingsScreen: View {
                         row("Presentation rate","Physics stays at 500 Hz; the display sets what it can show.") {
                             ChoiceChips(options:[(60,"60 Hz"),(120,"120 Hz")],selection:$renderRate)
                         }
-                        row("Render quality",session.content==nil ? "The preset the renderer is built with.":"Applies to the next session.") {
-                            ChoiceChips(options:[(RenderSettings.Preset.m2Air.rawValue,"Fanless"),(RenderSettings.Preset.balanced.rawValue,"Balanced"),(RenderSettings.Preset.high.rawValue,"High")],selection:$renderPreset)
+                        row("Render quality",qualityDetail) {
+                            ChoiceChips(options:[("auto","Auto"),(RenderSettings.Preset.m2Air.rawValue,"Fanless"),(RenderSettings.Preset.balanced.rawValue,"Balanced"),(RenderSettings.Preset.high.rawValue,"High")],
+                                        selection:Binding(get:{ session.automaticQuality ? "auto":session.qualityMode },set:{ session.qualityMode=$0 }))
                         }
+                        row("Show frame rate","Frames per second and the GPU's time for a frame, on the HUD.") { ToggleChip(isOn:$showFrameRate) }
                         row("Full screen","⌃⌘F toggles it at any time.") {
                             Button(flow.isFullScreen ? "Leave Full Screen":"Enter Full Screen") { flow.toggleFullScreen() }.buttonStyle(SecondaryButtonStyle())
+                        }
+                    }
+                    section("Sound") {
+                        row("Volume","Engines, tyres, impacts and the menus.") {
+                            ChoiceChips(options:[(0.0,"Off"),(0.3,"Low"),(0.55,"Medium"),(0.8,"High"),(1.0,"Full")],selection:$volume)
                         }
                     }
                     section("Driving view") {
                         row("Rear-view mirror","In the Driver, Bonnet and Road views.") { ToggleChip(isOn:$mirrors) }
                         row("Standings on the HUD","The live classification in a race.") { ToggleChip(isOn:$showStandings) }
+                        row("Circuit map on the HUD","The outline with every car on it.") { ToggleChip(isOn:$showMap) }
                         row("Default camera","V steps through the driving views while driving.") {
                             ArrowChooser(options:DrivingCameraPreset.allCases,selection:Binding(get:{ session.cameraPreset },set:{ session.selectCamera($0) }),title:{ $0.rawValue },width:220)
                         }
@@ -41,7 +65,7 @@ struct SettingsScreen: View {
                     }
                 }.frame(maxWidth:.infinity)
                 section("Content") {
-                    Text("Folders searched for prepared sessions. Each session pairs a circuit with a car.")
+                    Text("Folders searched for prepared circuits and cars. Any car drives on any circuit.")
                         .font(GameTheme.label(13,weight:.medium)).foregroundStyle(GameTheme.textSecondary)
                     if flow.preferences.roots.isEmpty { Text("No folders yet.").font(GameTheme.label(14,weight:.semibold)).foregroundStyle(GameTheme.text) }
                     ForEach(flow.preferences.roots,id:\.self) { root in
@@ -57,7 +81,7 @@ struct SettingsScreen: View {
                         Button("Rescan") { flow.refreshLibrary() }.buttonStyle(SecondaryButtonStyle()).disabled(flow.scanning)
                         if flow.scanning { ProgressView().controlSize(.small) }
                     }
-                    Text("\(flow.library.tracks.count) circuit\(flow.library.tracks.count==1 ? "":"s"), \(flow.library.cars.count) car\(flow.library.cars.count==1 ? "":"s"), \(flow.library.entries.count) pairing\(flow.library.entries.count==1 ? "":"s")")
+                    Text(librarySummary)
                         .font(GameTheme.label(13,weight:.semibold)).foregroundStyle(GameTheme.text)
                     if !flow.libraryWarnings.isEmpty {
                         ScrollView { Text(flow.libraryWarnings.joined(separator:"\n")).font(GameTheme.mono(11,weight:.regular)).foregroundStyle(GameTheme.warn).textSelection(.enabled).frame(maxWidth:.infinity,alignment:.leading) }.frame(maxHeight:120)
@@ -71,7 +95,7 @@ struct SettingsScreen: View {
         }.padding(embedded ? 28:48).frame(maxWidth:embedded ? 1100:.infinity,maxHeight:embedded ? nil:.infinity,alignment:.topLeading)
         .background { if embedded { RoundedRectangle(cornerRadius:14,style:.continuous).fill(GameTheme.ink.opacity(0.96)).overlay(RoundedRectangle(cornerRadius:14,style:.continuous).stroke(GameTheme.stroke)) } }
         .onChange(of:mirrors) { _,value in session.mirrors=value }
-        .onChange(of:renderPreset) { _,value in session.renderPreset=RenderSettings.Preset(rawValue:value) ?? .m2Air }
+        .onChange(of:volume) { _,value in GameAudio.shared.volume=Float(value);GameAudio.shared.ui(.select) }
     }
     private func section<Content: View>(_ title: String,@ViewBuilder content: ()->Content) -> some View {
         VStack(alignment:.leading,spacing:14) {

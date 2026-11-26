@@ -8,8 +8,14 @@ import TORCSSimulation
 public struct DrivingFrameCar: Sendable {
     public let previous,current: VehicleVisualSnapshot
     public let presentation: RacePresentationCar
-    public init(previous: VehicleVisualSnapshot,current: VehicleVisualSnapshot,presentation: RacePresentationCar) {
+    /// What the car can be heard doing: engine speed in rad/s, the throttle
+    /// its driver holds, its gear and its speed along the road.
+    public let engineSpeed,throttle,speed: Float
+    public let gear: Int
+    public init(previous: VehicleVisualSnapshot,current: VehicleVisualSnapshot,presentation: RacePresentationCar,
+                engineSpeed: Float = 0,throttle: Float = 0,speed: Float = 0,gear: Int = 0) {
         self.previous=previous;self.current=current;self.presentation=presentation
+        self.engineSpeed=engineSpeed;self.throttle=throttle;self.speed=speed;self.gear=gear
     }
 }
 
@@ -66,7 +72,8 @@ public struct DrivingFrame: Sendable {
         self.rpm=rpm;self.fuel=fuel;self.gear=gear;self.trackSegment=trackSegment;self.damage=damage
         self.behind=behind;self.timing=timing;self.completedLaps=completedLaps;self.configuration=configuration
         self.phase=phase;self.result=result
-        self.field=field ?? [DrivingFrameCar(previous:previous,current:current,presentation:presentationCar)]
+        self.field=field ?? [DrivingFrameCar(previous:previous,current:current,presentation:presentationCar,
+                                             engineSpeed:rpm*2 * .pi/60,speed:speed,gear:gear)]
         self.viewer=viewer;self.standings=standings;self.raceResult=raceResult
     }
 }

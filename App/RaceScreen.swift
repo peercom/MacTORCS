@@ -10,8 +10,9 @@ struct RaceScreen: View {
     private var session: DrivingSession { flow.session }
     @AppStorage("renderRate") private var renderRate=60
     @AppStorage("hudStandings") private var showStandings=true
+    @AppStorage("hudMap") private var showMap=true
     private var pauseShown: Bool {
-        session.paused && session.firstFrameDrawn && flow.sessionStarted && session.frame?.result==nil && session.message==nil && flow.screen == .driving
+        session.paused && session.firstFrameDrawn && flow.sessionStarted && session.hudFrame?.result==nil && session.message==nil && flow.screen == .driving
     }
     var body: some View {
         ZStack {
@@ -19,8 +20,9 @@ struct RaceScreen: View {
             if let content=session.content {
                 DrivingMetalView(session:session,content:content,rate:renderRate,camera:session.cameraPreset,zoom:session.cameraZoom,mirrors:session.mirrors)
                     .id("\(session.generation)").ignoresSafeArea()
-                if let frame=session.frame,session.firstFrameDrawn,session.message==nil {
-                    RaceHUD(session:session,frame:frame,showStandings:showStandings,track:flow.plan.track?.name ?? content.name,car:flow.plan.car?.name ?? "",redline:content.carParameters.section("Engine")?.number("revs limiter",unit:"rpm",default:9000) ?? 9000)
+                if let frame=session.hudFrame,session.firstFrameDrawn,session.message==nil,!CommandLine.arguments.contains("--no-hud") {
+                    RaceHUD(session:session,frame:frame,showStandings:showStandings,track:flow.plan.track?.name ?? content.track.name,car:flow.plan.car?.name ?? content.car.name,redline:content.carParameters.section("Engine")?.number("revs limiter",unit:"rpm",default:9000) ?? 9000,
+                            map:showMap ? flow.plan.track?.map:nil,record:flow.plan.track.flatMap { track in flow.plan.car.flatMap { flow.records.best(track:track.id,car:$0.id)?.time } })
                         .allowsHitTesting(false)
                 }
                 if !session.firstFrameDrawn && session.message==nil {
@@ -64,6 +66,10 @@ struct RaceHUD: View {
     let showStandings: Bool
     let track,car: String
     let redline: Float
+    @AppStorage("hudFrameRate") private var showFrameRate=false
+    var map: TrackMap? = nil
+    /// The player's best lap for this circuit and car before this session.
+    var record: Double? = nil
     private var mine: RaceStanding? { frame.standings.first { $0.car==frame.viewer } }
     private var lapText: String {
         if frame.result != nil { return "\(frame.completedLaps.count) / \(frame.timing.targetLaps)" }
@@ -73,7 +79,8 @@ struct RaceHUD: View {
     private var centreMessage: (String,Color)? {
         if frame.result != nil { return ("SESSION OVER",GameTheme.text) }
         if session.paused { return nil }
-        if frame.raceTime<0.8 { return frame.phase == .prestart ? (frame.raceTime < -1 ? ("READY",GameTheme.warn):("SET",GameTheme.warn)):("GO!",GameTheme.good) }
+        if frame.phase == .prestart { return nil }
+        if frame.raceTime<1.2 { return ("GO!",GameTheme.good) }
         if let mine,mine.penalties>0 { return ("\(mine.penalties) PENALT\(mine.penalties==1 ? "Y":"IES") TO SERVE",GameTheme.bad) }
         if !frame.timing.commitBestLapTime,frame.timing.laps>0 { return ("LAP INVALID",GameTheme.bad) }
         if frame.behind { return ("CATCHING UP",GameTheme.warn) }
@@ -110,12 +117,16 @@ struct RaceHUD: View {
                         timeRow("CURRENT",frame.phase == .prestart ? 0:frame.timing.currentLapTime,large:true)
                         timeRow("LAST",frame.timing.lastLapTime)
                         timeRow("BEST",frame.timing.bestLapTime,tint:GameTheme.good)
+                        if let record { timeRow("RECORD",record,tint:GameTheme.accent) }
                         if let mine,mine.penaltyTime>0 { Text(String(format:"Penalty +%.2f s",mine.penaltyTime)).font(GameTheme.label(12,weight:.bold)).foregroundStyle(GameTheme.warn) }
                     }.padding(14).gamePanel(strong:true)
                 }
                 Spacer()
                 HStack(alignment:.bottom) {
-                    if showStandings,!frame.standings.isEmpty { StandingsPanel(frame:frame) }
+                    VStack(alignment:.leading,spacing:10) {
+                        if let map { CircuitMap(map:map,frame:frame) }
+                        if showStandings,!frame.standings.isEmpty { StandingsPanel(frame:frame,name:{ session.driverName($0) }) }
+                    }
                     Spacer()
                     SpeedGauge(speed:frame.speed,rpm:frame.rpm,redline:redline,gear:frame.gear,requestedGear:session.requestedGear,fuel:frame.fuel,damage:frame.damage)
                 }
@@ -127,6 +138,19 @@ struct RaceHUD: View {
                     .background(RoundedRectangle(cornerRadius:16,style:.continuous).fill(.black.opacity(0.45)))
                     .offset(y:-120)
                     .transition(.scale.combined(with:.opacity))
+            }
+            if frame.phase == .prestart,!session.paused,frame.result==nil {
+                StartLights(raceTime:frame.raceTime).offset(y:-150).transition(.opacity)
+            }
+            if showFrameRate || session.qualityNotice != nil {
+                VStack(spacing:4) {
+                    if showFrameRate {
+                        Text("\(session.frameRate) fps · GPU \(String(format:"%.1f",session.gpuMilliseconds)) ms")
+                            .font(GameTheme.mono(11)).foregroundStyle(session.frameRate>=50 ? GameTheme.textSecondary:GameTheme.warn)
+                    }
+                    if let notice=session.qualityNotice { Text(notice).font(GameTheme.label(12,weight:.bold)).foregroundStyle(GameTheme.warn) }
+                }.padding(.vertical,5).padding(.horizontal,10).background(Capsule().fill(.black.opacity(0.5)))
+                    .frame(maxWidth:.infinity,maxHeight:.infinity,alignment:.top).padding(.top,18)
             }
             if session.recording {
                 HStack(spacing:6) { Circle().fill(GameTheme.bad).frame(width:8,height:8);Text("REC").font(GameTheme.label(11,weight:.black)).tracking(1) }
@@ -144,8 +168,58 @@ struct RaceHUD: View {
 
 /// The live classification, as the original's crossing-time gaps: they move
 /// as cars complete laps.
+/// The original's two-second countdown as a row of start lights: they come
+/// on one by one and go out together when the clock reaches zero.
+struct StartLights: View {
+    let raceTime: Double
+    private var lit: Int { min(5,max(0,Int(((raceTime+2)/2*5).rounded(.down))+1)) }
+    var body: some View {
+        HStack(spacing:14) {
+            ForEach(0..<5,id:\.self) { index in
+                Circle().fill(index<lit ? GameTheme.bad:Color.white.opacity(0.10))
+                    .frame(width:34,height:34)
+                    .overlay(Circle().stroke(.black.opacity(0.5),lineWidth:2))
+                    .shadow(color:index<lit ? GameTheme.bad.opacity(0.9):.clear,radius:12)
+            }
+        }.padding(.vertical,14).padding(.horizontal,20)
+            .background(RoundedRectangle(cornerRadius:14,style:.continuous).fill(.black.opacity(0.7)))
+    }
+}
+
+/// The circuit's outline with every car on it: the player in the accent
+/// colour, on top.
+struct CircuitMap: View {
+    let map: TrackMap
+    let frame: DrivingFrame
+    var body: some View {
+        ZStack {
+            TrackMapView(map:map,lineWidth:3,color:.white.opacity(0.85),showStart:false)
+            Canvas { context,size in
+                let aspect=CGFloat(max(map.aspect,1e-3))
+                let inset: CGFloat = 4.5
+                let fit=min((size.width-2*inset)/min(aspect,1),(size.height-2*inset)/min(1/aspect,1))
+                func point(_ car: DrivingFrameCar) -> CGPoint {
+                    let p=map.project(SIMD2(Float(car.current.body.position.x),Float(car.current.body.position.y)))
+                    return CGPoint(x:(CGFloat(p.x)-0.5)*fit+size.width/2,y:(0.5-CGFloat(p.y))*fit+size.height/2)
+                }
+                for (index,car) in frame.field.enumerated() where index != frame.viewer {
+                    let c=point(car)
+                    context.fill(Path(ellipseIn:CGRect(x:c.x-3.5,y:c.y-3.5,width:7,height:7)),with:.color(.white))
+                    context.stroke(Path(ellipseIn:CGRect(x:c.x-3.5,y:c.y-3.5,width:7,height:7)),with:.color(.black.opacity(0.6)),lineWidth:1)
+                }
+                if frame.field.indices.contains(frame.viewer) {
+                    let c=point(frame.field[frame.viewer])
+                    context.fill(Path(ellipseIn:CGRect(x:c.x-5,y:c.y-5,width:10,height:10)),with:.color(GameTheme.accent))
+                    context.stroke(Path(ellipseIn:CGRect(x:c.x-5,y:c.y-5,width:10,height:10)),with:.color(.white),lineWidth:1.5)
+                }
+            }
+        }.frame(width:190,height:150).padding(8).gamePanel(strong:true)
+    }
+}
+
 struct StandingsPanel: View {
     let frame: DrivingFrame
+    var name: (Int)->String = { RaceWeekend.defaultName($0) }
     private var rows: [RaceStanding] {
         let top=Array(frame.standings.prefix(8))
         if let mine=frame.standings.first(where:{ $0.car==frame.viewer }),!top.contains(where:{ $0.car==mine.car }) { return top+[mine] }
@@ -162,7 +236,7 @@ struct StandingsPanel: View {
                 let mine=s.car==frame.viewer
                 HStack(spacing:10) {
                     Text("\(s.position)").font(GameTheme.mono(13,weight:.bold)).frame(width:22,alignment:.trailing).foregroundStyle(mine ? .black:GameTheme.text)
-                    Text(mine ? "YOU":RaceWeekend.defaultName(s.car).uppercased()).font(GameTheme.label(13,weight:.bold)).frame(width:54,alignment:.leading).foregroundStyle(mine ? .black:GameTheme.text)
+                    Text(mine ? "YOU":name(s.car).uppercased()).font(GameTheme.label(13,weight:.bold)).lineLimit(1).frame(width:104,alignment:.leading).foregroundStyle(mine ? .black:GameTheme.text)
                     Text(gap(s)).font(GameTheme.mono(12)).frame(width:78,alignment:.trailing).foregroundStyle(mine ? .black.opacity(0.7):GameTheme.textSecondary)
                     if s.inPits { tag("PIT",GameTheme.warn) }
                     if s.penalties>0 { tag("PEN",GameTheme.bad) }
@@ -202,7 +276,7 @@ struct SpeedGauge: View {
                 context.stroke(tick,with:.color(GameTheme.bad),lineWidth:3)
             }
             VStack(spacing:0) {
-                Text("\(Int((speed*3.6).rounded()))").font(GameTheme.mono(46,weight:.black)).foregroundStyle(GameTheme.text).monospacedDigit()
+                Text("\(Int((abs(speed)*3.6).rounded()))").font(GameTheme.mono(46,weight:.black)).foregroundStyle(GameTheme.text).monospacedDigit()
                 Text("KM/H").font(GameTheme.label(10,weight:.bold)).foregroundStyle(GameTheme.textSecondary).tracking(2)
                 HStack(spacing:6) {
                     Text(gearText).font(GameTheme.mono(30,weight:.black)).foregroundStyle(GameTheme.accent)
@@ -250,12 +324,12 @@ struct PauseMenu: View {
                 }.padding(.vertical,6).padding(.trailing,12)
                 Button("Settings") { flow.open(.settings) }.buttonStyle(MenuRowStyle())
                 Button("Controls") { flow.open(.controls) }.buttonStyle(MenuRowStyle())
-                if session.frame?.configuration.kind != .race {
+                if session.hudFrame?.configuration.kind != .race {
                     Button(session.recording ? "Finish Telemetry Recording":"Record Telemetry…") {
                         if session.recording { session.finishRecording() } else { session.chooseCapture() }
                     }.buttonStyle(MenuRowStyle()).disabled(session.captureBusy || session.sessionBusy)
                 }
-                if (session.frame?.time ?? 0)>0 {
+                if (session.hudFrame?.time ?? 0)>0 {
                     Button("End Session") { flow.endSession() }.buttonStyle(MenuRowStyle()).disabled(session.sessionBusy || session.captureBusy)
                 }
                 Button("Quit to Main Menu") { flow.quitToMenu() }.buttonStyle(MenuRowStyle())

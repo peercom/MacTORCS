@@ -66,7 +66,7 @@ final class ModernDrivingRenderer {
         var instances: [RenderInstance] = []
         if !viewerDrawsCar, field.indices.contains(viewer) {
             var body = vehicleInstances(field: [field[viewer]])
-                .filter { $0.resource == SessionRenderResources.bodyResource }
+                .filter { isBody($0.resource) }
             if !body.isEmpty { body[0].lightState = viewerLightState;body[0].drawsDriver = false }
             instances += body
         }
@@ -119,15 +119,15 @@ final class ModernDrivingRenderer {
         renderer.roadPaint.set(content.gridSlots.map { RoadPaint.Box(centre: $0.world, yaw: $0.yaw) })
     }
 
-    /// The generated material sets for a session: a `materials` folder beside
-    /// the session's content, or the directory `TORCS_MATERIALS` names, or
-    /// none. None keeps the original artwork rather than failing the session.
+    /// The generated material sets for a circuit: a `materials` folder in
+    /// its package, or shared by the library one or two levels up, or the
+    /// directory `TORCS_MATERIALS` names, or none. None keeps the original
+    /// artwork rather than failing the session.
     static func materialsDirectory(beside directory: URL?) -> URL? {
-        let candidates = [directory?.appendingPathComponent("materials"),
-                          ProcessInfo.processInfo.environment["TORCS_MATERIALS"].map { URL(fileURLWithPath: $0) }]
-        for candidate in candidates.compactMap({ $0 })
-        where FileManager.default.fileExists(atPath: candidate.appendingPathComponent("materials.json").path) {
-            return candidate
+        if let found = directory.flatMap({ TrackDescriptor.materialsDirectory(for: $0) }) { return found }
+        if let named = ProcessInfo.processInfo.environment["TORCS_MATERIALS"].map({ URL(fileURLWithPath: $0) }),
+           FileManager.default.fileExists(atPath: named.appendingPathComponent("materials.json").path) {
+            return named
         }
         return nil
     }
@@ -169,19 +169,23 @@ final class ModernDrivingRenderer {
     /// `VehiclePresentation` already pre-multiplies each wheel by the body
     /// matrix, so every transform here is world-space and there is no rig to
     /// maintain.
-    /// One car to draw this frame. Every car shares the session's meshes, so a
-    /// field differs only by pose and published light state. The viewer's own car
-    /// is the one a cockpit view hides and excludes from shadow casting; the rest
-    /// always draw and always cast.
+    /// One car to draw this frame: which of the session's car models it is,
+    /// its pose and its published light state. The viewer's own car is the one
+    /// a cockpit view hides and excludes from shadow casting; the rest always
+    /// draw and always cast.
     struct FieldCar {
+        /// 0 is the player's model; further models follow in the session's
+        /// `opponentCars` order.
+        var model = 0
         var pose: VehiclePresentation
         var brakeCommand: Float
         var lightCommand: UInt32
         var drawsCar: Bool
         var drawsDriver: Bool
         var castsShadow: Bool
-        init(pose: VehiclePresentation, brakeCommand: Float = 0, lightCommand: UInt32 = 0,
+        init(model: Int = 0, pose: VehiclePresentation, brakeCommand: Float = 0, lightCommand: UInt32 = 0,
              drawsCar: Bool = true, drawsDriver: Bool = true, castsShadow: Bool = true) {
+            self.model = model
             self.pose = pose
             self.brakeCommand = brakeCommand
             self.lightCommand = lightCommand
@@ -200,21 +204,38 @@ final class ModernDrivingRenderer {
         var instances: [RenderInstance] = []
         instances.reserveCapacity(field.count * instancesPerCar)
         for car in field where car.drawsCar {
-            instances.append(RenderInstance(resource: SessionRenderResources.bodyResource,
+            let resources = modelResources(car.model)
+            instances.append(RenderInstance(resource: resources.body,
                                             transform: car.pose.body, drawsDriver: car.drawsDriver,
                                             castsShadow: car.castsShadow, lightState: car.lightState))
             for index in 0 ..< 4 {
                 let wheel = car.pose.wheels[index]
                 for part in 0 ..< 3 {
-                    instances.append(RenderInstance(resource: SessionRenderResources.brakeResources[index * 3 + part],
+                    instances.append(RenderInstance(resource: resources.brakes + index * 3 + part,
                                                     transform: wheel.brakeTransform, castsShadow: car.castsShadow))
                 }
                 let level = min(max(wheel.level, 0), SessionRenderResources.wheelResources.count - 1)
-                instances.append(RenderInstance(resource: SessionRenderResources.wheelResources[level],
+                instances.append(RenderInstance(resource: resources.wheels + level,
                                                 transform: wheel.transform, castsShadow: car.castsShadow))
             }
         }
         return instances
+    }
+    /// Where a car model's resources start. The player's model keeps the
+    /// classic layout around the scenery (0 body, 1…4 wheels, 6…17 brakes);
+    /// each further model is seventeen in a row after it: body, wheels, brakes.
+    static func modelResources(_ model: Int) -> (body: Int, wheels: Int, brakes: Int) {
+        guard model > 0 else {
+            return (SessionRenderResources.bodyResource, SessionRenderResources.wheelResources[0],
+                    SessionRenderResources.brakeResources[0])
+        }
+        let first = DrivingContent.firstResource(model: model)
+        return (first, first + 1, first + 5)
+    }
+    /// Whether a resource is some model's body, for the mirror's own car.
+    static func isBody(_ resource: Int) -> Bool {
+        resource == SessionRenderResources.bodyResource
+            || (resource >= 18 && (resource - 18) % DrivingContent.scenesPerCarModel == 0)
     }
     static func vehicleInstances(_ pose: VehiclePresentation, drawsDriver: Bool,
                                  drawsCar: Bool, castsShadow: Bool,

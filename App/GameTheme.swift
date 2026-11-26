@@ -230,16 +230,29 @@ struct KeyboardList<Item: Identifiable & Equatable,Row: View>: View {
         guard !items.isEmpty else { return }
         let index=items.firstIndex { $0.id==selection } ?? -1
         let next=min(max(index+delta,0),items.count-1)
+        if items[next].id != selection { GameAudio.shared.ui(.move) }
         selection=items[next].id
     }
     /// Screenshots are rendered offscreen, where a scroll view draws nothing.
     nonisolated(unsafe) static var scrolls: Bool { !CommandLine.arguments.contains("--screenshot") }
+    /// Offscreen there is no scrolling, so a long list shows the rows around
+    /// the selection, as the scroll view would.
+    private var shown: [Item] {
+        guard !Self.scrolls,items.count>8 else { return items }
+        let index=items.firstIndex { $0.id==selection } ?? 0
+        let start=min(max(index-3,0),items.count-7)
+        return Array(items[start..<start+7])
+    }
     private var rows: some View {
         VStack(spacing:6) {
-            ForEach(items) { item in
+            ForEach(shown) { item in
                 row(item,item.id==selection).id(item.id).contentShape(Rectangle())
-                    .onTapGesture(count:2) { selection=item.id;activate(item) }
-                    .onTapGesture { selection=item.id;if activateOnClick { activate(item) } }
+                    .onTapGesture(count:2) { selection=item.id;GameAudio.shared.ui(.select);activate(item) }
+                    .onTapGesture {
+                        if selection != item.id { GameAudio.shared.ui(.move) }
+                        selection=item.id
+                        if activateOnClick { GameAudio.shared.ui(.select);activate(item) }
+                    }
             }
         }.padding(2)
     }
@@ -251,8 +264,13 @@ struct KeyboardList<Item: Identifiable & Equatable,Row: View>: View {
             .focusable().focusEffectDisabled().focused($focused)
             .onKeyPress(.upArrow) { move(-1);return .handled }
             .onKeyPress(.downArrow) { move(1);return .handled }
-            .onKeyPress(.return) { if let item=items.first(where:{ $0.id==selection }) { activate(item) };return .handled }
+            .onKeyPress(.return) { if let item=items.first(where:{ $0.id==selection }) { GameAudio.shared.ui(.select);activate(item) };return .handled }
             .onAppear { focused=true;if selection==nil { selection=items.first?.id } }
+            // A game controller's d-pad and south button, relayed by the flow.
+            .onReceive(NotificationCenter.default.publisher(for:GameFlow.menuMove)) { note in if let delta=note.object as? Int { move(delta) } }
+            .onReceive(NotificationCenter.default.publisher(for:GameFlow.menuActivate)) { _ in
+                if let item=items.first(where:{ $0.id==selection }) { GameAudio.shared.ui(.select);activate(item) }
+            }
             .onChange(of:selection) { _,id in if let id { withAnimation(.easeOut(duration:0.15)) { proxy.scrollTo(id,anchor:.center) } } }
         }
     }
@@ -353,5 +371,49 @@ struct AppIconArt: View {
                 Text("TORCS").font(GameTheme.display(150)).foregroundStyle(GameTheme.text).tracking(8).padding(.bottom,84)
             }
         }.frame(width:832,height:832).padding(96).frame(width:1024,height:1024)
+    }
+}
+
+/// Menu images, decoded once and kept while there is memory for them.
+@MainActor final class PreviewCache {
+    static let shared=PreviewCache()
+    private let cache=NSCache<NSURL,NSImage>()
+    func image(_ url: URL) -> NSImage? {
+        if let cached=cache.object(forKey:url as NSURL) { return cached }
+        guard let image=NSImage(contentsOf:url) else { return nil }
+        cache.setObject(image,forKey:url as NSURL)
+        return image
+    }
+}
+/// A package's prepared preview, filling its frame, or whatever stands in
+/// for one.
+struct PreviewImage<Placeholder: View>: View {
+    let url: URL?
+    @ViewBuilder var placeholder: ()->Placeholder
+    var body: some View {
+        if let url,let image=PreviewCache.shared.image(url) {
+            Image(nsImage:image).resizable().aspectRatio(contentMode:.fill)
+        } else { placeholder() }
+    }
+}
+/// A labelled bar for comparing one car's figure against the library's best.
+struct StatBar: View {
+    let label,value: String
+    let fraction: Double
+    var body: some View {
+        VStack(alignment:.leading,spacing:4) {
+            HStack {
+                Text(label.uppercased()).font(GameTheme.label(10,weight:.bold)).foregroundStyle(GameTheme.textSecondary).tracking(1.2)
+                Spacer()
+                Text(value).font(GameTheme.mono(13)).foregroundStyle(GameTheme.text)
+            }
+            GeometryReader { g in
+                ZStack(alignment:.leading) {
+                    Capsule().fill(Color.white.opacity(0.10))
+                    Capsule().fill(LinearGradient(colors:[GameTheme.accentDeep,GameTheme.accent],startPoint:.leading,endPoint:.trailing))
+                        .frame(width:max(6,g.size.width*min(max(fraction,0),1)))
+                }
+            }.frame(height:6)
+        }
     }
 }

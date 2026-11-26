@@ -51,6 +51,8 @@ cat > "$app_dir/Contents/Info.plist" <<'PLIST'
 <key>NSHighResolutionCapable</key><true/>
 <key>NSPrincipalClass</key><string>NSApplication</string>
 <key>LSApplicationCategoryType</key><string>public.app-category.racing-games</string>
+<key>LSSupportsGameMode</key><true/>
+<key>GCSupportsGameMode</key><true/>
 </dict></plist>
 PLIST
 if [[ -n "${TORCS_SIGN_IDENTITY:-}" ]]; then

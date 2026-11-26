@@ -25,12 +25,13 @@ public struct QualifyingSimulation: Sendable {
     /// `progress` receives the fraction of laps done as they complete;
     /// `cancelled` is polled so a player leaving the screen stops the work.
     public static func run(road: TrackRoad,parameters: ParameterDocument,laps: Int,skillLevel: Int = 3,
-                           seed: UInt32 = 12345,maximumTicks: Int = 4_000_000,
+                           seed: UInt32 = 12345,maximumTicks: Int = 4_000_000,pace: Float = 1,
                            progress: (@Sendable (Double)->Void)? = nil,
                            cancelled: (@Sendable ()->Bool)? = nil) throws -> Outcome {
         let configuration=try RaceSessionConfiguration(kind:.qualifying,laps:laps)
         let entry=RaceEntry(parameters:parameters,kind:.bt,team:"bt",skillLevel:skillLevel)
         var runtime=try RaceRuntime(road:road,entries:[entry],grid:try .quickRace(),configuration:configuration,seed:seed)
+        runtime.opponentPace=pace
         var ticks=0,reportedLaps=0
         while ticks<maximumTicks,!runtime.ended {
             try runtime.step();ticks += 1

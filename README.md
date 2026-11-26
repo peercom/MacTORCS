@@ -33,13 +33,20 @@ Open `Package.swift` in Xcode to develop the app. The packaging script creates a
 ad-hoc signed app under `build/`; see [distribution](Documentation/DISTRIBUTION.md)
 for Developer ID and notarization support. Those distribution paths are unverified.
 
-The app opens as a game: a start screen with Training, Qualifying and Race,
-then a circuit, a car and the session options, then the race with a HUD, a
-pause menu (Escape) and results. Add a folder of prepared sessions under
-Settings › Content (or `--content DIR` for one launch) and its circuits and
-cars appear in the menus. Arrows or WASD drive, E/Q shift, P pauses, V steps
-the camera; Controls edits bindings. Qualifying runs the opponents' sessions
-headless after yours and sets the grid. See [game shell](Documentation/GAME_SHELL.md).
+The app opens as a game: a start screen with Training, Qualifying, Race and
+Championship, then a circuit, a car and the options, then the race with a HUD,
+sound, a pause menu (Escape) and results. Any car drives on any circuit, and a
+field can mix car models. Build the library once from a local TORCS 1.3.9
+install:
+
+```sh
+swift build -c release
+python3 Scripts/prepare-content-library.py /path/to/torcs-1.3.9
+```
+
+Arrows or WASD drive, E/Q shift, P pauses, V steps the camera; Controls edits
+bindings. Render quality is automatic and holds the frame rate. See
+[game shell](Documentation/GAME_SHELL.md) and [frame rate](Documentation/FRAME_RATE.md).
 The component inspector and model inspector are under the Developer menu.
 
 ## Reference comparison

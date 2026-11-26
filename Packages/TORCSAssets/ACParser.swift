@@ -129,6 +129,10 @@ final class ACParser {
         for i in layer..<4 { texture[i]=nil }
         if layer==0 { mapCount=1;mapLevel=1;texture[0]=r[1] }
         else if !r[1].contains("empty_texture_no_mapping") { mapCount += 1;mapLevel |= 1<<layer;texture[layer]=r[1] }
+        // trackgen writes the literal "(null)" where a layer has no texture
+        // (street-1, g-track-3). The original fails to load a file of that
+        // name and draws the layer untextured; so does this.
+        if texture[layer]=="(null)" { texture[layer]=nil }
         if let name=texture[layer] {
             guard !name.isEmpty,!name.hasPrefix("/"),!name.contains("\\"),!name.split(separator:"/",omittingEmptySubsequences:false).contains(".."),!name.contains(":") else { throw fail("Unsafe texture path") }
         }
@@ -189,7 +193,10 @@ final class ACParser {
         let scale: Float=1/length;return v.map { $0*scale }
     }
     func emitIndexed(parent: Int) throws {
-        guard written.allSatisfy({ $0 }) else { throw fail("Indexed vertex has undefined original UV storage") }
+        // A vertex no surface references keeps the zero its UV storage was
+        // given here. The original leaves that storage uninitialised, but it
+        // is never drawn: no index reaches it. Several shipped circuits
+        // (brondehach, e-track-6, g-track-1, wheel-2) have such vertices.
         mapCount=min(mapCount,units)
         if car { mapLevel = -1;if units>2 { mapLevel = -3;mapCount=3 } }
         try emit(parent:parent,mesh:ACMesh(primitive:5,vertices:vertices,normals:usesNormals ? normals:[],uv:uv,colors:[],indices:indices,strips:strips,indexed:true,cull:flags & 32==0,mapCount:mapCount,mapLevel:mapLevel,states:[]))

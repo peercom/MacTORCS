@@ -16,16 +16,22 @@ struct MainMenuScreen: View {
         [Item(id:"training",title:"Training",detail:"Alone on the circuit, against the clock",symbol:"stopwatch") { $0.choose(.practice) },
          Item(id:"qualifying",title:"Qualifying",detail:"Set a time, watch the field qualify, then race from your slot",symbol:"flag.checkered") { $0.choose(.qualifying) },
          Item(id:"race",title:"Race",detail:"Line up against the field with the original rules",symbol:"flag.2.crossed") { $0.choose(.race) },
+         Item(id:"championship",title:"Championship",detail:seasonDetail,symbol:"trophy") { $0.openChampionship() },
          Item(id:"settings",title:"Settings",detail:"Display, graphics, view and content",symbol:"slider.horizontal.3") { $0.open(.settings) },
          Item(id:"controls",title:"Controls",detail:"Keyboard bindings and controller calibration",symbol:"gamecontroller") { $0.open(.controls) },
          Item(id:"about",title:"About",detail:"Credits and licences",symbol:"info.circle") { $0.open(.about) },
          Item(id:"quit",title:"Quit",detail:"",symbol:"power") { _ in NSApp.terminate(nil) }]
     }
+    private var seasonDetail: String {
+        guard let season=flow.championship else { return "A season across your circuits, points for the first eight" }
+        if season.isComplete { return "Season over · you finished P\(season.position(of:0))" }
+        return "Round \(season.roundsRun+1) of \(season.rounds.count) · you are P\(season.position(of:0))"
+    }
     @State private var selection: String? = "training"
     var body: some View {
         HStack(spacing:0) {
             VStack(alignment:.leading,spacing:0) {
-                Wordmark(size:72).padding(.bottom,42)
+                Wordmark(size:72).padding(.bottom,34)
                 KeyboardList(items:items,selection:$selection,activateOnClick:true,activate:{ $0.action(flow) }) { item,selected in
                     HStack(spacing:16) {
                         Image(systemName:item.symbol).font(.system(size:20,weight:.semibold)).frame(width:30)
@@ -52,9 +58,9 @@ struct MainMenuScreen: View {
             VStack(alignment:.leading,spacing:18) {
                 Image(systemName:"shippingbox").font(.system(size:44,weight:.light)).foregroundStyle(GameTheme.accent)
                 Text("No circuits yet").font(GameTheme.display(30)).foregroundStyle(GameTheme.text)
-                Text("Add a folder of prepared driving sessions and the circuits and cars in it appear here. Sessions are prepared from a local TORCS 1.3.9 install:")
+                Text("The circuits and cars are prepared from a local TORCS 1.3.9 install. One command builds the game's library; a folder prepared elsewhere can be added instead.")
                     .font(GameTheme.label(15,weight:.medium)).foregroundStyle(GameTheme.textSecondary).fixedSize(horizontal:false,vertical:true)
-                Text("python3 Scripts/prepare-driving-session.py <torcs-1.3.9> <folder> --track <name> --car <name>")
+                Text("python3 Scripts/prepare-content-library.py <torcs-1.3.9>")
                     .font(GameTheme.mono(12,weight:.regular)).foregroundStyle(GameTheme.text).textSelection(.enabled)
                     .padding(12).frame(maxWidth:.infinity,alignment:.leading).background(RoundedRectangle(cornerRadius:8).fill(.black.opacity(0.4)))
                 Button("Add Content Folder…") { flow.addContentFolder() }.buttonStyle(PrimaryButtonStyle())
@@ -64,17 +70,22 @@ struct MainMenuScreen: View {
             }.padding(28).frame(width:520).gamePanel(strong:true)
         } else if let track=flow.plan.track {
             VStack(alignment:.leading,spacing:14) {
-                Text("LAST DRIVEN").font(GameTheme.label(11,weight:.bold)).foregroundStyle(GameTheme.accent).tracking(1.5)
-                TrackMapView(map:track.map,lineWidth:5,color:GameTheme.text).frame(width:360,height:300)
+                Text(flow.preferences.lastTrack==nil ? "READY TO DRIVE":"LAST DRIVEN").font(GameTheme.label(11,weight:.bold)).foregroundStyle(GameTheme.accent).tracking(1.5)
+                ZStack(alignment:.bottomTrailing) {
+                    PreviewImage(url:flow.plan.car?.preview ?? track.preview) { Color.black.opacity(0.25) }
+                        .frame(width:520,height:292).clipped()
+                    TrackMapView(map:track.map,lineWidth:3,color:GameTheme.text).frame(width:150,height:120)
+                        .padding(10).background(RoundedRectangle(cornerRadius:10,style:.continuous).fill(.black.opacity(0.6))).padding(10)
+                }.clipShape(RoundedRectangle(cornerRadius:12,style:.continuous))
                 Text(track.name).font(GameTheme.display(30)).foregroundStyle(GameTheme.text)
                 HStack(spacing:10) {
                     StatChip(label:"Length",value:RaceFormat.distance(track.length))
-                    StatChip(label:"Type",value:track.categoryTitle)
                     if let car=flow.plan.car { StatChip(label:"Car",value:car.name) }
+                    if let car=flow.plan.car,let record=flow.records.best(track:track.id,car:car.id) { StatChip(label:"Your best",value:RaceFormat.lap(record.time)) }
                 }
                 Text("\(flow.library.tracks.count) circuit\(flow.library.tracks.count==1 ? "":"s") · \(flow.library.cars.count) car\(flow.library.cars.count==1 ? "":"s") in your library")
                     .font(GameTheme.label(13,weight:.medium)).foregroundStyle(GameTheme.textSecondary)
-            }.padding(28).gamePanel(strong:true)
+            }.padding(24).gamePanel(strong:true)
         }
     }
 }

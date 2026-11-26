@@ -33,7 +33,9 @@ public extension ForwardRenderer {
     @discardableResult
     func present(in view: MTKView, resources: [SceneResources], instances: [RenderInstance],
                  camera: RenderCamera, lighting: SunLighting, mirror: MirrorRequest? = nil) throws -> Bool {
+        let entered = CACurrentMediaTime()
         guard let drawable = view.currentDrawable else { return false }
+        let acquired = CACurrentMediaTime()
         let width = drawable.texture.width, height = drawable.texture.height
         guard width > 0, height > 0 else { return false }
         guard drawable.texture.pixelFormat == Self.drawableFormat else {
@@ -81,8 +83,98 @@ public extension ForwardRenderer {
             self.recordFrameTime(buffer.gpuEndTime - buffer.gpuStartTime)
         }
         commands.addCompletedHandler(recordTime)
+        // TORCS_FRAME_LOG=1: where each presented frame's time went, for a
+        // window of frames once the session has settled.
+        if FrameLog.enabled {
+            let index = FrameLog.next()
+            if let index {
+                let encoded = CACurrentMediaTime()
+                commands.addScheduledHandler { _ in FrameLog.note(index, scheduled: CACurrentMediaTime()) }
+                commands.addCompletedHandler { buffer in
+                    FrameLog.note(index, entered: entered, acquired: acquired, encoded: encoded,
+                                  gpuStart: buffer.gpuStartTime, gpuEnd: buffer.gpuEndTime,
+                                  kernelStart: buffer.kernelStartTime, kernelEnd: buffer.kernelEndTime)
+                }
+                drawable.addPresentedHandler { shown in FrameLog.note(index, presented: shown.presentedTime) }
+            }
+        }
         commands.present(drawable)
         commands.commit()
+        // With a pass timer set (a diagnostic) the frame is waited for so
+        // its stages can be read back before the next one reuses the samples.
+        if let passTimer {
+            commands.waitUntilCompleted()
+            FrameLog.note(passes: passTimer.resolve(), gpu: commands.gpuEndTime - commands.gpuStartTime)
+        }
         return true
+    }
+}
+
+
+/// A diagnostic record of a run of presented frames: when the draw began,
+/// when the drawable came, when encoding ended, when the GPU ran the buffer
+/// and when the frame reached the display.
+public enum FrameLog {
+    public static let enabled = ProcessInfo.processInfo.environment["TORCS_FRAME_LOG"] != nil
+    struct Entry { var entered = 0.0, acquired = 0.0, encoded = 0.0, scheduled = 0.0, gpuStart = 0.0, gpuEnd = 0.0, kernelStart = 0.0, kernelEnd = 0.0, presented = 0.0 }
+    nonisolated(unsafe) static var entries: [Entry] = []
+    nonisolated(unsafe) static var frame = 0
+    static let lock = NSLock()
+    static let first = 240, count = 40
+    static func next() -> Int? {
+        lock.lock(); defer { lock.unlock() }
+        frame += 1
+        guard frame > first, entries.count < count else { return nil }
+        entries.append(Entry()); return entries.count - 1
+    }
+    static func note(_ index: Int, scheduled: Double) { lock.lock(); entries[index].scheduled = scheduled; lock.unlock() }
+    static func note(_ index: Int, presented: Double) { lock.lock(); entries[index].presented = presented; lock.unlock() }
+    static func note(_ index: Int, entered: Double, acquired: Double, encoded: Double, gpuStart: Double, gpuEnd: Double,
+                     kernelStart: Double, kernelEnd: Double) {
+        lock.lock()
+        entries[index].entered = entered; entries[index].acquired = acquired; entries[index].encoded = encoded
+        entries[index].gpuStart = gpuStart; entries[index].gpuEnd = gpuEnd
+        entries[index].kernelStart = kernelStart; entries[index].kernelEnd = kernelEnd
+        lock.unlock()
+    }
+    nonisolated(unsafe) static var passSamples: [String: [Double]] = [:]
+    nonisolated(unsafe) static var passOrder: [String] = []
+    nonisolated(unsafe) static var gpuSamples: [Double] = []
+    nonisolated(unsafe) static var passFrames = 0
+    static func note(passes: [PassTimer.Sample], gpu: Double) {
+        lock.lock(); defer { lock.unlock() }
+        passFrames += 1
+        guard passFrames > 120 else { return }
+        gpuSamples.append(gpu * 1000)
+        for sample in passes where sample.seconds.isFinite {
+            if passSamples[sample.name] == nil { passOrder.append(sample.name) }
+            passSamples[sample.name, default: []].append(sample.seconds * 1000)
+        }
+    }
+    /// Median stage times of the presented frames, slowest first.
+    public static func passReport() -> String {
+        lock.lock(); defer { lock.unlock() }
+        func median(_ v: [Double]) -> Double { let s = v.sorted(); return s.isEmpty ? 0 : s[s.count / 2] }
+        var out = String(format: "presented frames: %d, gpu median %.2f ms\n", gpuSamples.count, median(gpuSamples))
+        for name in passOrder.sorted(by: { median(passSamples[$0]!) > median(passSamples[$1]!) }) {
+            out += String(format: "  %-30@ %6.2f ms\n", name as NSString, median(passSamples[name]!))
+        }
+        return out
+    }
+    /// The log as text, times in milliseconds from the first frame's draw.
+    public static func report() -> String {
+        lock.lock(); defer { lock.unlock() }
+        guard let origin = entries.first?.entered else { return "frame log: no frames" }
+        var out = "frame  enter  +drawable  +encode  +sched  gpuStart  gpuRun  kernelRun  presented  interval\n"
+        var previous = 0.0
+        for (i, e) in entries.enumerated() {
+            func ms(_ t: Double) -> String { t == 0 ? "     -" : String(format: "%6.1f", (t - origin) * 1000) }
+            out += String(format: "%3d  %@  %6.1f  %6.1f  %@  %@  %6.1f  %6.1f  %@  %6.1f\n", i, ms(e.entered),
+                          (e.acquired - e.entered) * 1000, (e.encoded - e.acquired) * 1000, ms(e.scheduled), ms(e.gpuStart),
+                          (e.gpuEnd - e.gpuStart) * 1000, (e.kernelEnd - e.kernelStart) * 1000, ms(e.presented),
+                          previous == 0 || e.presented == 0 ? 0 : (e.presented - previous) * 1000)
+            previous = e.presented
+        }
+        return out
     }
 }

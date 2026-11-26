@@ -59,6 +59,8 @@ import os
     @State private var flow: GameFlow
     @Environment(\.openWindow) private var openWindow
     init() {
+        GamePreview.runIfRequested()
+        GamePreview.costIfRequested()
         if let index=CommandLine.arguments.firstIndex(of:"--modern-race-test") {
             do {
                 guard CommandLine.arguments.count>=index+3 else { throw RenderError.unavailable("Usage: --modern-race-test session-directory new-output-directory [cars]") }
@@ -140,6 +142,8 @@ struct GameShell: View {
                 case .settings: SettingsScreen(flow:flow)
                 case .controls: ControlsScreen(flow:flow)
                 case .about: AboutScreen(flow:flow)
+                case .championship: ChampionshipScreen(flow:flow)
+                case .championshipSetup: ChampionshipSetupScreen(flow:flow)
                 case .driving,.results: EmptyView()
                 }
             }
@@ -164,20 +168,72 @@ struct GameShell: View {
 /// session's first frame is loaded and the HUD and pause menu are drawn over
 /// the backdrop image, since the renderer itself cannot be drawn this way.
 @MainActor enum ScreenshotSupport {
+    /// `--autoplay-season`: a one-round, one-lap championship with the robot
+    /// policy driving the player's car as well, through the real window: the
+    /// race runs to its finish, the results come up, the round goes into the
+    /// table and the season is saved. Status 0 when all of that happened.
+    static func autoplaySeason(flow: GameFlow,seconds: Double) async {
+        guard flow.championship==nil else { FileHandle.standardError.write(Data("autoplay: a championship is in progress; not replacing it\n".utf8));exit(1) }
+        flow.openChampionship()
+        guard let car=flow.plan.car else { FileHandle.standardError.write(Data("autoplay: no car\n".utf8));exit(1) }
+        flow.selectCar(car)
+        flow.seasonRounds=1;flow.plan.laps=1;flow.plan.opponents=2;flow.plan.difficulty = .hard
+        flow.startSeason()
+        guard let season=flow.championship else { FileHandle.standardError.write(Data("autoplay: season not created: \(flow.message ?? "")\n".utf8));exit(1) }
+        print("autoplay: season entrants=\(season.entrants.map { "\($0.name)/\($0.car)" }) round1=\(season.rounds[0].track) grid=\(season.grid)")
+        flow.session.autopilot=true
+        flow.startSeasonRound()
+        let deadline=Date().addingTimeInterval(seconds)
+        while Date()<deadline {
+            try? await Task.sleep(for:.milliseconds(200))
+            if flow.session.paused,flow.sessionStarted,flow.session.frame?.result==nil { flow.session.togglePause() }
+            if flow.screen == .results,let done=flow.championship {
+                let race=flow.session.lastRaceResult
+                print("autoplay: results reason=\(race.map { "\($0.reason)" } ?? "none") classification=\(race?.classification.map { flow.session.driverName($0) } ?? []) elapsed=\(String(format:"%.1f",race?.elapsed ?? 0))")
+                print("autoplay: table=\(done.standings.map { "\(done.entrants[$0.entrant].name):\($0.points)" }) complete=\(done.isComplete) champion=\(done.champion.map { done.entrants[$0].name } ?? "none") frameRate=\(flow.session.frameRate)")
+                let recorded=done.roundsRun==1
+                flow.showSeason()
+                print("autoplay: season screen=\(flow.screen)")
+                flow.abandonSeason()
+                exit(recorded ? 0:1)
+            }
+            if let message=flow.session.message { FileHandle.standardError.write(Data("autoplay: \(message)\n".utf8));flow.abandonSeason();exit(1) }
+        }
+        FileHandle.standardError.write(Data("autoplay: season timed out screen=\(flow.screen) time=\(flow.session.frame?.time ?? -1) laps=\(flow.session.frame?.standings.map(\.laps) ?? [])\n".utf8))
+        flow.abandonSeason();exit(1)
+    }
     static func autoplay(flow: GameFlow,seconds: Double) async {
         while flow.scanning { try? await Task.sleep(for:.milliseconds(50)) }
-        guard flow.entry != nil else { FileHandle.standardError.write(Data("autoplay: no content\n".utf8));exit(1) }
+        guard flow.ready else { FileHandle.standardError.write(Data("autoplay: no content\n".utf8));exit(1) }
+        if !CommandLine.arguments.contains("--sound") { GameAudio.shared.volume=0 }
+        if CommandLine.arguments.contains("--autoplay-season") { await autoplaySeason(flow:flow,seconds:seconds);return }
+        // A check, not a performance: silent unless asked for sound.
+        if !CommandLine.arguments.contains("--sound") { GameAudio.shared.volume=0 }
         flow.choose(CommandLine.arguments.contains("--autoplay-race") ? .race:.practice)
         flow.plan.laps=2;flow.plan.opponents=2
+        if let index=CommandLine.arguments.firstIndex(of:"--autoplay-cars"),index+1<CommandLine.arguments.count,let cars=Int(CommandLine.arguments[index+1]) { flow.plan.opponents=max(0,cars-1) }
+        let measure=CommandLine.arguments.firstIndex(of:"--autoplay-measure").flatMap { $0+1<CommandLine.arguments.count ? Double(CommandLine.arguments[$0+1]):nil } ?? 0
+        if let index=CommandLine.arguments.firstIndex(of:"--window"),index+1<CommandLine.arguments.count {
+            let parts=CommandLine.arguments[index+1].split(separator:"x").compactMap { Double($0) }
+            if parts.count==2,let window=NSApp.windows.first(where:{ $0.contentView != nil && $0.isVisible }) {
+                window.setContentSize(NSSize(width:parts[0],height:parts[1]))
+            }
+        }
         flow.startSession()
         let deadline=Date().addingTimeInterval(seconds)
         var started: Date?
         while Date()<deadline {
             try? await Task.sleep(for:.milliseconds(100))
             if let message=flow.session.message ?? flow.message { FileHandle.standardError.write(Data("autoplay: \(message)\n".utf8));exit(1) }
+            // A measurement outlasts a lost focus: the session is sent on again.
+            if measure>0,flow.sessionStarted,flow.session.paused,flow.session.frame?.result==nil { flow.session.togglePause() }
             if flow.sessionStarted,started==nil { started=Date();print("autoplay: started after \(String(format:"%.1f",Date().timeIntervalSince(deadline)+seconds)) s, screen=\(flow.screen)") }
-            if let frame=flow.session.frame,frame.time>2,!flow.session.paused {
+            if let frame=flow.session.frame,frame.time>2+measure,!flow.session.paused {
+                if FrameLog.enabled { print(FrameLog.report()) }
+                if ProcessInfo.processInfo.environment["TORCS_PASS_LOG"] != nil { print(FrameLog.passReport()) }
+                if measure>0 { print("autoplay: frameRate=\(flow.session.frameRate) drawMilliseconds=\(String(format:"%.2f",flow.session.drawMilliseconds)) gpuMilliseconds=\(String(format:"%.2f",flow.session.gpuMilliseconds)) scale=\(flow.session.renderScale) quality=\(flow.session.qualityMode)/\(flow.session.renderPreset.rawValue)@\(flow.session.qualityLevel.renderScale) cars=\(frame.field.count) models=\(flow.session.content?.models.count ?? 0)") }
                 print("autoplay: ok screen=\(flow.screen) time=\(String(format:"%.2f",frame.time)) raceTime=\(String(format:"%.2f",frame.raceTime)) phase=\(frame.phase) field=\(frame.field.count) standings=\(frame.standings.count) firstFrame=\(flow.session.firstFrameDrawn)")
+                print("autoplay: \(GameAudio.shared.status)")
                 flow.session.togglePause()
                 print("autoplay: paused=\(flow.session.paused)")
                 flow.quitToMenu()
@@ -211,16 +267,16 @@ struct GameShell: View {
         let view: AnyView
         if screen=="pausemenu" {
             view=AnyView(ZStack { GameBackdrop(map:nil);PauseMenu(flow:flow) }.frame(width:size.width,height:size.height))
-        } else if screen=="hud",let entry=flow.entry {
+        } else if screen=="hud",let track=flow.plan.track,let car=flow.plan.car {
             flow.session.selectedSessionKind=flow.plan.kind;flow.session.selectedLaps=flow.plan.laps;flow.session.selectedCars=flow.plan.cars
             flow.session.weekend=(try? RaceWeekend(cars:flow.plan.cars)) ?? flow.session.weekend
-            guard await flow.session.load(entry.directory),let frame=flow.session.frame,let loaded=flow.session.content else {
+            guard await flow.session.load(track:track.directory,car:car.directory),let frame=flow.session.frame,let loaded=flow.session.content else {
                 FileHandle.standardError.write(Data("torcs: \(flow.session.message ?? "no frame")\n".utf8));exit(2)
             }
             let paused=arguments.contains("--paused")
             view=AnyView(ZStack {
                 if let backdrop { Image(nsImage:backdrop).resizable().aspectRatio(contentMode:.fill) } else { GameBackdrop(map:nil) }
-                RaceHUD(session:flow.session,frame:frame,showStandings:true,track:entry.track.name,car:entry.car.name,
+                RaceHUD(session:flow.session,frame:frame,showStandings:true,track:track.name,car:car.name,
                         redline:loaded.carParameters.section("Engine")?.number("revs limiter",unit:"rpm",default:9000) ?? 9000)
                 if paused { PauseMenu(flow:flow) }
             }.frame(width:size.width,height:size.height).clipped())

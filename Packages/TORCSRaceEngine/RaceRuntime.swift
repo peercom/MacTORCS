@@ -94,6 +94,11 @@ public struct RaceRuntime: Sendable {
     /// Which car the window follows. The human entry when there is one.
     public let viewer: Int
     public private(set) var result: RaceResult?
+    /// A handicap for the robot drivers: the share of the throttle they ask
+    /// for that they get, 1 for the original's pace. The original has no
+    /// difficulty setting; a game needs one, and easing the throttle slows a
+    /// driver on the straights while leaving its lines and braking its own.
+    public var opponentPace: Float = 1
     public let maximumDamage: Int32
     public var raceTime: Double { clock.time }
     public var carCount: Int { simulation.cars.count }
@@ -209,6 +214,7 @@ public struct RaceRuntime: Sendable {
                     let field=simulation.cars.indices.filter { $0 != car }.map { carState($0) }
                     let decision=try drivers[car]!.drive(observation(car:car),field:field,deltaTime:lastRobotDelta)
                     commands[car]=decision.command;pitRequests[car]=decision.pitRequested
+                    if opponentPace<1 { commands[car].throttle *= max(0,opponentPace) }
                     try pits.setCommand(car:car,raceCommand:decision.pitRequested ? 1:0,service:pits.cars[car].command)
                 }
                 driveCalls[car] += 1
@@ -306,7 +312,9 @@ public struct RaceRuntime: Sendable {
     public var frame: DrivingFrame {
         let car=simulation.cars[viewer],timing=progress.timing[viewer]
         let field=simulation.cars.indices.map {
-            DrivingFrameCar(previous:previousSnapshots[$0],current:currentSnapshots[$0],presentation:presentationCar($0))
+            DrivingFrameCar(previous:previousSnapshots[$0],current:currentSnapshots[$0],presentation:presentationCar($0),
+                            engineSpeed:simulation.cars[$0].engine.speed,throttle:commands[$0].throttle,
+                            speed:simulation.cars[$0].chassis.body.velocity.x,gear:simulation.cars[$0].transmission.gear)
         }
         return DrivingFrame(previous:previousSnapshots[viewer],current:currentSnapshots[viewer],
             interpolation:result != nil ? 1:Float(stepClock.interpolation),time:stepClock.time,raceTime:raceTime,

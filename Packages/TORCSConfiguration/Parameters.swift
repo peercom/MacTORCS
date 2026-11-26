@@ -43,7 +43,11 @@ public struct ParameterDocument: Equatable, Sendable {
     public func section(_ path: String) -> ParameterSection? { root.section(path) }
 
     /// Safe external entities are explicit in-memory entries, keyed by entity name.
-    /// External DTDs are never fetched. Unknown entities are errors, never dropped.
+    /// External DTDs are never fetched. A declared entity with no entry is an
+    /// error. A reference to an entity the document never declares is skipped,
+    /// as the original's parser skips it in a document with an external DTD:
+    /// e-track-4 references `&default-objects;` without declaring it, and loads
+    /// upstream with no objects from it.
     public static func parse(_ data: Data, entities: [String: Data] = [:], allowLegacyLatin1: Bool = false) throws -> Self {
         func decode(_ data: Data) -> String? {
             String(data: data, encoding: .utf8) ?? (allowLegacyLatin1 ? String(data: data, encoding: .isoLatin1) : nil)
@@ -89,6 +93,17 @@ public struct ParameterDocument: Equatable, Sendable {
                     throw ParameterError.invalid("Expanded XML exceeds 16 MiB")
                 }
                 xml = xml.replacingOccurrences(of: "&\(name);", with: expansion)
+            }
+            // What is left are undeclared references: skipped, except the
+            // five predefined entities and character references.
+            let declared = Set(matches.map { String(dtd[Range($0.range(at: 1), in: dtd)!]) })
+            let reference = try NSRegularExpression(pattern: "&([A-Za-z_][A-Za-z0-9_.-]*);")
+            let predefined: Set<String> = ["amp", "lt", "gt", "quot", "apos"]
+            for match in reference.matches(in: xml, range: NSRange(xml.startIndex..., in: xml)).reversed() {
+                let name = String(xml[Range(match.range(at: 1), in: xml)!])
+                if !predefined.contains(name), !declared.contains(name) {
+                    xml.removeSubrange(Range(match.range, in: xml)!)
+                }
             }
         }
         let delegate = ParameterParser()
@@ -147,7 +162,18 @@ private final class ParameterParser: NSObject, XMLParserDelegate {
     var count = 0
     func numeric(_ text: String) -> Float? {
         if text.hasPrefix("0x"), let integer = UInt64(text.dropFirst(2), radix: 16) { return Float(integer) }
-        return Float(text)
+        if let value = Float(text) { return value }
+        // The original reads numbers with sscanf("%g"), which takes the
+        // longest leading number and ignores what follows. Shipped content
+        // relies on it: car3-trb1 bounds a torque point with max="350.0.0".
+        // No leading number at all is still an error.
+        var best: Float?
+        var index = text.startIndex
+        while index < text.endIndex {
+            index = text.index(after: index)
+            if let value = Float(text[text.startIndex..<index]) { best = value }
+        }
+        return best
     }
     func fail(_ parser: XMLParser, _ message: String) { failure = .invalid("Line \(parser.lineNumber): \(message)"); parser.abortParsing() }
 
@@ -207,7 +233,9 @@ private final class ParameterParser: NSObject, XMLParserDelegate {
         }
     }
     func parser(_ parser: XMLParser, foundCharacters string: String) {
-        if !string.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { fail(parser, "Unexpected text") }
+        // The original registers no character-data handler, so text between
+        // elements is ignored. Shipped content has some: corkscrew's nested
+        // comment leaves a stray "-->" in a section.
     }
     func parser(_ parser: XMLParser, resolveExternalEntityName name: String, systemID: String?) -> Data? {
         fail(parser, "Unresolved external entity \(name)"); return nil

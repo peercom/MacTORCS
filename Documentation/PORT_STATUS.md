@@ -737,7 +737,11 @@ default. See GAMEPLAY.md for the session implementation and next steps.
 The application is now a game shell — start screen, mode, circuit and car
 selection from a content library, options, HUD, pause menu, results with
 simulated opponent qualifying, settings — rather than a document window; see
-GAME_SHELL.md.
+GAME_SHELL.md. Circuits and cars are separate packages that combine freely
+(18 circuits and 22 cars prepared from a local install), fields mix car
+models, and there are a championship, lap records, a difficulty setting and
+sound from the original's car sound model. Render quality is automatic and
+holds 60 fps in the window where a fixed preset ran at 33; see FRAME_RATE.md.
 
 The full specification remains open in IMPLEMENTATION_CHECKLIST.md. No phase is
 marked finished merely because a type, document or tool entry point exists.
