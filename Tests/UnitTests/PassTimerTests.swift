@@ -29,7 +29,7 @@ final class PassTimerTests: XCTestCase {
         let passes = renderer.lastPassTimes
         let names = passes.map(\.name)
         for expected in ["Shadow cascade 0", "Depth prepass", "Sky and forward opaque",
-                         "Reflection trace", "Reflection composite", "Motion blur", "Tonemap resolve"] {
+                         "Reflection trace", "Scene composite", "Tonemap resolve"] {
             XCTAssertTrue(names.contains(expected), "no timing for \(expected): \(names)")
         }
         XCTAssertTrue(names.contains { $0.hasPrefix("Bloom") })

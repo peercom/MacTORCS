@@ -8,6 +8,7 @@
 #include "Bloom.metal"
 #include "DepthOfField.metal"
 #include "Exposure.metal"
+#include "MotionBlur.metal"
 using namespace metal;
 
 struct GlareUniforms {
@@ -143,16 +144,20 @@ vertex ResolveVarying resolveVertex(uint id [[vertex_id]],
     return out;
 }
 
-/// Maps the HDR scene target to the display. Bloom, motion blur and temporal
-/// upscaling insert themselves ahead of this in later phases.
+/// Maps the HDR scene target to the display, and is the one pass between
+/// the scene and the picture: it reads the scene blurred along its motion
+/// and filtered up to the picture's size (see MotionBlur.metal), then adds
+/// the lens blur, the glare and the bloom and tonemaps the sum.
 fragment float4 resolveFragment(ResolveVarying in [[stage_in]],
                                 texture2d<float> scene [[texture(0)]],
                                 texture2d<float> bloom [[texture(1)]],
                                 texture2d<float> depth [[texture(2)]],
                                 texture2d<float> blurred [[texture(3)]],
+                                texture2d<float> velocity [[texture(4)]],
                                 constant ExposureState &exposure [[buffer(0)]],
                                 constant float &bloomStrength [[buffer(1)]],
-                                constant GlareUniforms &glare [[buffer(2)]]) {
+                                constant GlareUniforms &glare [[buffer(2)]],
+                                constant MotionBlurUniforms &motion [[buffer(3)]]) {
     constexpr sampler pointSampler(coord::normalized, address::clamp_to_edge, filter::nearest);
     constexpr sampler linearSampler(coord::normalized, address::clamp_to_edge, filter::linear);
     float exposureScale = exposure.scale;
@@ -169,7 +174,7 @@ fragment float4 resolveFragment(ResolveVarying in [[stage_in]],
     }
     // The pyramid was built from exposed values (see bloomPrefilter), so the
     // scene is exposed here to match and the tonemapper is given unit scale.
-    float3 radiance = scene.sample(pointSampler, sceneUV).rgb * exposureScale;
+    float3 radiance = sceneRadiance(scene, velocity, sceneUV, in.position.xy, motion, exposureScale) * exposureScale;
     if (glare.focus.w > 0.0f) {
         // The blurred half-resolution image where this pixel's own circle is
         // wider than a texel of it; the sharp one where it is not.

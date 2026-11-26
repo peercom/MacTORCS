@@ -340,6 +340,44 @@ final class TemporalUpscalingTests: XCTestCase {
         XCTAssertNotNil(targets.upscaled)
     }
 
+    /// The tonemap pass scales a smaller scene up by itself: no scaler is
+    /// built and no scaler target allocated, the picture comes out at the
+    /// output size, repeats, and is the native picture but for its edges.
+    func testResolveModeScalesInTheTonemapPassWithoutAScaler() throws {
+        guard MTLCreateSystemDefaultDevice() != nil else { throw XCTSkip("Metal device unavailable") }
+        func renderer(scale: Float) throws -> ForwardRenderer {
+            var settings = RenderSettings()
+            settings.upscaling = true
+            settings.upscalingMode = .resolve
+            settings.dynamicResolution = false
+            settings.renderScale = scale
+            settings.bloom = false; settings.autoExposure = false
+            return try ForwardRenderer(settings: settings)
+        }
+        let url = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+            .appendingPathComponent("Fixtures/Artwork/155-DTM/155-DTM.acc")
+        let camera = RenderCamera(eye: SIMD3(6, -5, 2), target: SIMD3(0, 0, 0.5))
+        func picture(_ renderer: ForwardRenderer) throws -> [UInt8] {
+            let scene = try SceneResources(device: renderer.device,
+                                           scene: RenderScene(ACScene.parse(Data(contentsOf: url), car: true)))
+            return try renderer.render(scene: scene, camera: camera, lighting: SunLighting(), width: 256, height: 160)
+        }
+        let scaled = try renderer(scale: 0.5), native = try renderer(scale: 1)
+        let a = try picture(scaled), b = try picture(scaled), full = try picture(native)
+        XCTAssertEqual(a.count, 256 * 160 * 4)
+        XCTAssertEqual(a, b, "no history, so identical")
+        XCTAssertEqual(scaled.currentJitter, SIMD2(0, 0))
+        XCTAssertEqual(scaled.upscalerBuildCount, 0, "no MetalFX scaler is involved")
+        let targets = try scaled.targets(outputWidth: 256, outputHeight: 160)
+        XCTAssertEqual(targets.renderWidth, 128)
+        XCTAssertNil(targets.upscaled, "the tonemap pass reads the scene directly")
+        // Half the resolution each way is a softer picture, not a different
+        // one: the mean difference from native is a few steps of 255.
+        let difference = zip(a, full).reduce(0.0) { $0 + abs(Double($1.0) - Double($1.1)) } / Double(a.count)
+        XCTAssertLessThan(difference, 6, "scaled picture strays from native by \(difference)")
+        XCTAssertGreaterThan(difference, 0, "it did render at the lower resolution")
+    }
+
     /// Every preset renders native at rest; the temporal scaler, which
     /// measured as a net loss twice, is nobody's default.
     func testEveryPresetRendersNativeAtRestAndNoneDefaultsToTemporal() {

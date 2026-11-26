@@ -37,7 +37,6 @@ final class MotionBlurTests: XCTestCase {
         let a = try render(blurred, still), b = try render(blurred, still)
         XCTAssertEqual(a, b)
         XCTAssertEqual(a, try render(plain, still), "a still frame must not change with motion blur on")
-        XCTAssertNotNil(blurred.motionBlur.result, "the pass ran, even if it changed nothing")
     }
 
     /// Camera motion between two frames gives every static pixel a velocity,
@@ -80,12 +79,9 @@ final class MotionBlurTests: XCTestCase {
         _ = try render(renderer, still)
         let on = try renderer.targets(outputWidth: 256, outputHeight: 160)
         XCTAssertNotNil(on.velocity, "motion blur needs the velocity stored even without upscaling")
-        XCTAssertNotNil(on.postColour)
         renderer.settings.motionBlur = false
         _ = try render(renderer, still)
         let off = try renderer.targets(outputWidth: 256, outputHeight: 160)
         XCTAssertNil(off.velocity)
-        XCTAssertNil(off.postColour)
-        XCTAssertNil(renderer.motionBlur.result)
     }
 }

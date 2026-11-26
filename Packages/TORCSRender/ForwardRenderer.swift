@@ -231,7 +231,6 @@ public final class ForwardRenderer {
     /// draws the same set.
     public var roadPaint: RoadPaint
     /// Whether motion blur wrote the post-colour target this frame.
-    private var postProduced = false
     /// Bound at the occlusion slot when the pass is off, so the shader never
     /// samples an unbound texture. White: nothing occluded.
     private let neutralOcclusion: MTLTexture
@@ -430,7 +429,7 @@ public final class ForwardRenderer {
         exposureMeter = try ExposureMeter(device: device, library: library, archive: archive)
         occlusion = try OcclusionRenderer(device: device, library: library, archive: archive)
         reflections = try ReflectionRenderer(device: device, library: library, archive: archive)
-        motionBlur = try MotionBlurRenderer(device: device, library: library, archive: archive)
+        motionBlur = MotionBlurRenderer()
         particles = try ParticleSystem(device: device)
         particleRenderer = try ParticleRenderer(device: device, library: library, archive: archive)
         skidMarks = try SkidMarks(device: device)
@@ -575,17 +574,18 @@ public final class ForwardRenderer {
         let renderWidth = upscaling ? render.width : outputWidth
         let renderHeight = upscaling ? render.height : outputHeight
         let reflections = settings.screenSpaceReflections != .off
-        let postEarly = upscaling && settings.upscalingMode == .spatial
+        // A MetalFX scaler needs its own output target; the tonemap pass's
+        // filter reads the smaller scene directly and needs none.
+        let scaler = upscaling && settings.upscalingMode != .resolve
         if let existing = cachedTargets, existing.matches(renderWidth: renderWidth, renderHeight: renderHeight,
                                                     outputWidth: outputWidth, outputHeight: outputHeight,
-                                                    upscaling: upscaling, reflections: reflections,
-                                                    motionBlur: settings.motionBlur, postAtRenderResolution: postEarly) {
+                                                    upscaling: scaler, reflections: reflections,
+                                                    motionBlur: settings.motionBlur) {
             return existing
         }
         let fresh = try FrameTargets(device: device, renderWidth: renderWidth, renderHeight: renderHeight,
-                                     outputWidth: outputWidth, outputHeight: outputHeight, upscaling: upscaling,
-                                     reflections: reflections, motionBlur: settings.motionBlur,
-                                     postAtRenderResolution: postEarly)
+                                     outputWidth: outputWidth, outputHeight: outputHeight, upscaling: scaler,
+                                     reflections: reflections, motionBlur: settings.motionBlur)
         cachedTargets = fresh
         // Resolution changes invalidate the accumulated history.
         upscaler = nil
@@ -633,7 +633,7 @@ public final class ForwardRenderer {
         encodeFrame(into: commands, targets: targets, resources: resources, instances: instances,
                     camera: camera, lighting: lighting, aspect: Float(width) / Float(max(height, 1)))
         encodeResolve(into: commands, source: tonemapSource(targets), destination: targets.display,
-                      lighting: lighting, depthOfField: depthOfFieldRenderer.result)
+                      lighting: lighting, depthOfField: depthOfFieldRenderer.result, velocity: targets.velocity)
         if let mirror, let mirrorView {
             encodeMirrorComposite(into: commands, mirror: mirrorView, destination: targets.display, rect: mirror.rect)
         }
@@ -674,7 +674,7 @@ public final class ForwardRenderer {
         encodeFrame(into: commands, targets: targets, resources: resources, instances: instances,
                     camera: camera, lighting: lighting, aspect: Float(width) / Float(max(height, 1)))
         encodeResolve(into: commands, source: tonemapSource(targets), destination: targets.display,
-                      lighting: lighting, depthOfField: depthOfFieldRenderer.result)
+                      lighting: lighting, depthOfField: depthOfFieldRenderer.result, velocity: targets.velocity)
         if let mirror, let mirrorView {
             encodeMirrorComposite(into: commands, mirror: mirrorView, destination: targets.display, rect: mirror.rect)
         }
@@ -702,7 +702,6 @@ public final class ForwardRenderer {
         currentJitter = targets.upscaled != nil && settings.upscalingMode == .temporal
             ? jitterSequence.next() : SIMD2(0, 0)
         upscaleProduced = false
-        postProduced = false
         passTimer?.beginFrame()
         atmosphere.update(into: commands, lighting: lighting, cameraAltitude: camera.eye.z, timer: passTimer)
         let cascades = ShadowCascades(camera: camera, sunDirection: lighting.direction,
@@ -718,11 +717,6 @@ public final class ForwardRenderer {
                camera: camera, lighting: lighting, cascades: sampled, aspect: aspect)
 
         if targets.upscaled != nil && settings.upscalingMode == .spatial {
-            // Blur before the scaler: a quarter of the pixels, and the scaler
-            // keeps no history the blur could corrupt.
-            if settings.motionBlur, targets.postAtRenderResolution, targets.velocity != nil, targets.postColour != nil {
-                postProduced = motionBlur.encode(into: commands, targets: targets, source: targets.colour, exposureScale: motionBlurExposureScale, timer: passTimer) != nil
-            }
             do {
                 let key = SIMD2(targets.renderWidth, targets.renderHeight)
                 if spatialUpscalers[key]?.matches(renderWidth: targets.renderWidth, renderHeight: targets.renderHeight,
@@ -733,8 +727,7 @@ public final class ForwardRenderer {
                     upscalerBuildCount += 1
                 }
                 spatialUpscaler = spatialUpscalers[key]
-                try spatialUpscaler?.encode(into: commands, targets: targets,
-                                            source: postProduced ? targets.postColour! : targets.colour)
+                try spatialUpscaler?.encode(into: commands, targets: targets, source: targets.colour)
                 upscaleProduced = spatialUpscaler != nil
             } catch {
                 spatialUpscaler = nil
@@ -764,14 +757,8 @@ public final class ForwardRenderer {
             }
         }
 
-        // Motion blur after the upscaler and before bloom: the glow should
-        // streak with the object, and the tonemapper should see the blur.
-        if settings.motionBlur, !targets.postAtRenderResolution, targets.velocity != nil, targets.postColour != nil {
-            let source = upscaleProduced ? (targets.upscaled ?? targets.colour) : targets.colour
-            postProduced = motionBlur.encode(into: commands, targets: targets, source: source, exposureScale: motionBlurExposureScale, timer: passTimer) != nil
-        } else if !settings.motionBlur {
-            motionBlur.discard()
-        }
+        // Motion blur is not a pass here: the tonemap pass takes it as it
+        // reads the scene (see encodeResolve), after any scaler.
 
         // Meter the frame before anything reads the exposure: a cold render
         // snaps to what it meters, an interactive one adapts.
@@ -1089,34 +1076,48 @@ public final class ForwardRenderer {
                      mirroredInstance: simd_determinant(instance.transform) < 0, forceTwoSided: true)
             }
         }
+        // Paint and skid marks last in the pass, over everything, and before
+        // the reflections trace reads the scene, so a mark shows in the paint
+        // of a car standing on it. In this pass rather than their own: see
+        // SkidMarkRenderer.declareSceneAttachments.
+        if settings.skidMarks {
+            skidMarkRenderer.drawPaint(on: encoder, paint: roadPaint, frame: &frame,
+                                       shadow: shadowUniforms, shadowMap: shadows.map,
+                                       shadowSampler: shadows.comparisonSampler, irradiance: atmosphere.irradiance)
+            skidMarkRenderer.draw(on: encoder, marks: skidMarks, frame: &frame)
+        }
         encoder.endEncoding()
 
-        // Skid marks darken the road before the reflections trace reads it,
-        // so a mark shows in the paint of a car standing on it.
-        if settings.skidMarks {
-            skidMarkRenderer.encodePaint(into: commands, targets: targets, paint: roadPaint, frame: &frame,
-                                         shadow: shadowUniforms, shadowMap: shadows.map,
-                                         shadowSampler: shadows.comparisonSampler, irradiance: atmosphere.irradiance,
-                                         timer: passTimer)
-            skidMarkRenderer.encode(into: commands, targets: targets, marks: skidMarks, frame: &frame, timer: passTimer)
-        }
-
+        var reflected = false
         if settings.screenSpaceReflections != .off {
-            reflections.encode(into: commands, targets: targets, projection: projection, view: camera.view(),
+            reflected = reflections.encode(into: commands, targets: targets, projection: projection, view: camera.view(),
                                sunDirection: lighting.direction, roughnessCutoff: settings.reflectionRoughnessCutoff,
                                quality: settings.screenSpaceReflections, skyView: atmosphere.skyView,
                                viewProjection: unjittered, previousViewProjection: previousViewProjection ?? unjittered,
-                               temporal: settings.reflectionTemporal, timer: passTimer)
+                               temporal: settings.reflectionTemporal, timer: passTimer) != nil
         } else {
             reflections.discard()
         }
 
-        // Smoke and dust over the opaque scene, after the reflections so a
-        // puff never leaves a ghost in the road: depth-tested by hand against
-        // the stored opaque depth, colour only.
-        if settings.particles {
-            particleRenderer.encode(into: commands, targets: targets, system: particles, frame: &frame, near: camera.near, timer: passTimer)
-        }
+        // Smoke and dust, depth-tested by hand against the stored opaque
+        // depth into their own half-resolution target.
+        let puffs = settings.particles
+            && particleRenderer.encode(into: commands, targets: targets, system: particles, frame: &frame, near: camera.near, timer: passTimer)
+
+        // One pass over the scene colour for both: the reflections first,
+        // then the smoke over them, so a puff never leaves a ghost in the
+        // road. Each used to load and store the whole target for itself.
+        guard reflected || puffs else { return }
+        let over = MTLRenderPassDescriptor()
+        over.colorAttachments[0].texture = targets.colour
+        over.colorAttachments[0].loadAction = .load
+        over.colorAttachments[0].storeAction = .store
+        passTimer?.attach(over, "Scene composite")
+        guard let compositor = commands.makeRenderCommandEncoder(descriptor: over) else { return }
+        compositor.label = "Scene composite"
+        if reflected { reflections.drawComposite(on: compositor, targets: targets) }
+        if puffs { particleRenderer.drawComposite(on: compositor) }
+        compositor.endEncoding()
     }
 
     /// Depth-only draws of everything opaque that will later shade. Shared by
@@ -1215,13 +1216,11 @@ public final class ForwardRenderer {
         lastTriangleCount += batch.indexCount / 3
     }
 
-    /// The texture the resolve should tonemap: the upscaler's output when it
-    /// ran this frame, otherwise the render-resolution scene colour.
+    /// The texture the resolve should tonemap: a MetalFX scaler's output
+    /// when one ran this frame, otherwise the render-resolution scene
+    /// colour, which the resolve filters up itself if it is the smaller.
     public func tonemapSource(_ targets: FrameTargets) -> MTLTexture {
-        // A post target at render resolution has already been scaled.
-        if postProduced, !targets.postAtRenderResolution, let post = targets.postColour { return post }
         if upscaleProduced, let upscaled = targets.upscaled { return upscaled }
-        if postProduced, let post = targets.postColour { return post }
         return targets.colour
     }
 
@@ -1259,7 +1258,8 @@ public final class ForwardRenderer {
                                     instances: mirror.instances, camera: mirror.camera, lighting: lighting,
                                     aspect: Float(mirror.width) / Float(max(mirror.height, 1)))
         mirror.renderer.encodeResolve(into: commands, source: mirror.renderer.tonemapSource(targets),
-                                      destination: targets.display, lighting: lighting, exposure: exposureMeter.state)
+                                      destination: targets.display, lighting: lighting, exposure: exposureMeter.state,
+                                      velocity: targets.velocity)
         return targets.display
     }
 
@@ -1292,10 +1292,14 @@ public final class ForwardRenderer {
         encoder.endEncoding()
     }
 
-    /// Tonemaps HDR scene colour into a display-format target.
+    /// Tonemaps HDR scene colour into a display-format target: the one pass
+    /// between the scene and the picture. With `velocity` and motion blur
+    /// on it blurs as it reads the scene, and a `source` smaller than the
+    /// `destination` is filtered up to it.
     public func encodeResolve(into commands: MTLCommandBuffer, source: MTLTexture,
                               destination: MTLTexture, lighting: SunLighting,
-                              depthOfField blurred: MTLTexture? = nil, exposure: MTLBuffer? = nil) {
+                              depthOfField blurred: MTLTexture? = nil, exposure: MTLBuffer? = nil,
+                              velocity: MTLTexture? = nil) {
         let resolvePass = MTLRenderPassDescriptor()
         resolvePass.colorAttachments[0].texture = destination
         resolvePass.colorAttachments[0].loadAction = .dontCare
@@ -1305,6 +1309,11 @@ public final class ForwardRenderer {
             encoder.label = "Tonemap resolve"
             encoder.setRenderPipelineState(resolve)
             encoder.setFragmentTexture(source, index: 0)
+            let moving = settings.motionBlur ? velocity : nil
+            var motion = motionBlur.uniforms(scene: source, velocity: moving, destination: destination,
+                                             exposureScale: motionBlurExposureScale)
+            encoder.setFragmentTexture(moving ?? source, index: 4)
+            encoder.setFragmentBytes(&motion, length: MemoryLayout<MotionBlurUniforms>.stride, index: 3)
             // The metered state, or a caller's — the mirror takes the main
             // view's so both halves of the picture agree.
             encoder.setFragmentBuffer(exposure ?? exposureMeter.state, offset: 0, index: 0)

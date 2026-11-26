@@ -965,7 +965,7 @@ do {
       scalerBuilds  \(renderer.upscalerBuildCount)\(renderer.lastUpscalerError.map { " error: " + $0 } ?? "")
       bloom         \(settings.bloom ? "on, strength \(settings.bloomStrength), threshold \(settings.bloomThreshold) exposed, \(renderer.bloom.levelCount) levels" : "off")
       occlusion     ao \(String(describing: settings.ambientOcclusion)), contact \(settings.contactShadows ? "on" : "off")\(renderer.occlusion.result.map { ", \($0.width)x\($0.height)" } ?? "")
-      motion blur   \(settings.motionBlur ? "on" : "off")\(renderer.motionBlur.result != nil ? ", applied" : "")
+      motion blur   \(settings.motionBlur ? "on, in the tonemap pass" : "off")
       reflections   \(String(describing: settings.screenSpaceReflections))\(renderer.reflections.result.map { ", \($0.width)x\($0.height)" } ?? "")
       upscaling     \(settings.upscaling ? "\(settings.upscalingMode.rawValue), render \(settings.renderSize(output: (options.width, options.height)).width)x\(settings.renderSize(output: (options.width, options.height)).height)" : "off")
       textures      \(textures.count) uploaded, \(String(format: "%.1f", Double(textures.uploadedBytes) / 1_048_576)) MiB

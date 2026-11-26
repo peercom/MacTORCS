@@ -246,6 +246,9 @@ private actor DrivingWorker {
     var renderSettings: RenderSettings {
         // Automatic quality owns the resolution; a fixed preset is the renderer's own.
         var settings=automaticQuality ? qualityLevel.settings(wetRoad:wet || rain):RenderSettings(preset:renderPreset)
+        // Whatever lowers the resolution, the tonemap pass scales it back up:
+        // the MetalFX scaler costs more than a lower resolution saves here.
+        settings.upscalingMode = .resolve
         Self.applyRenderOff(&settings)
         return settings
     }
@@ -271,6 +274,7 @@ private actor DrivingWorker {
             case "shadows": settings.shadowCascades=1;settings.shadowResolution=512
             case "cascades3": settings.shadowCascades=3
             case "shadow1024": settings.shadowResolution=1024
+            case "metalfx": settings.upscalingMode = .spatial
             case "s85": settings.renderScale=0.85;settings.upscaling=true;settings.dynamicResolution=false
             case "s67": settings.renderScale=0.67;settings.upscaling=true;settings.dynamicResolution=false
             case "half": settings.renderScale=0.5;settings.upscaling=true;settings.dynamicResolution=false

@@ -20,6 +20,11 @@ public struct RenderSettings: Sendable, Equatable {
 
     public enum UpscalingMode: String, Sendable, CaseIterable {
         case temporal, spatial
+        /// No scaler at all: the tonemap pass filters the smaller scene up
+        /// as it reads it (see MotionBlur.metal). Five taps in a pass that
+        /// runs anyway, where the MetalFX spatial scaler measured 2.4 ms at
+        /// 2880x1720 — more than rendering at 85% saves.
+        case resolve
     }
 
     public enum Quality: Int, Sendable, Comparable, CaseIterable {

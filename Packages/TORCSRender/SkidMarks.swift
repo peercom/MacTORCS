@@ -159,7 +159,7 @@ public final class SkidMarkRenderer {
         colour.destinationRGBBlendFactor = .oneMinusSourceColor
         colour.sourceAlphaBlendFactor = .zero
         colour.destinationAlphaBlendFactor = .one
-        descriptor.depthAttachmentPixelFormat = FrameTargets.depthFormat
+        Self.declareSceneAttachments(descriptor)
         pipeline = try PipelineArchive.make(descriptor, device: device, archive: archive)
 
         // Paint: straight alpha over the road, same vertex layout.
@@ -174,7 +174,7 @@ public final class SkidMarkRenderer {
         paint.destinationRGBBlendFactor = .oneMinusSourceAlpha
         paint.sourceAlphaBlendFactor = .zero
         paint.destinationAlphaBlendFactor = .one
-        paintDescriptor.depthAttachmentPixelFormat = FrameTargets.depthFormat
+        Self.declareSceneAttachments(paintDescriptor)
         paintPipeline = try PipelineArchive.make(paintDescriptor, device: device, archive: archive)
         let depth = MTLDepthStencilDescriptor()
         depth.depthCompareFunction = .greaterEqual
@@ -185,20 +185,23 @@ public final class SkidMarkRenderer {
         self.depthState = depthState
     }
 
-    public func encode(into commands: MTLCommandBuffer, targets: FrameTargets,
-                       marks: SkidMarks, frame: inout FrameUniforms, timer: PassTimer? = nil) {
+    /// The decals are drawn at the end of the scene pass, not in passes of
+    /// their own: a pass on the scene target loads and stores five million
+    /// HDR pixels and their depth, which for a few quads of paint was all of
+    /// its quarter millisecond. So their pipelines declare that pass's
+    /// attachments, and write only the colour.
+    static func declareSceneAttachments(_ descriptor: MTLRenderPipelineDescriptor) {
+        descriptor.colorAttachments[1].pixelFormat = FrameTargets.velocityFormat
+        descriptor.colorAttachments[1].writeMask = []
+        descriptor.colorAttachments[2].pixelFormat = FrameTargets.reflectionSurfaceFormat
+        descriptor.colorAttachments[2].writeMask = []
+        descriptor.depthAttachmentPixelFormat = FrameTargets.depthFormat
+    }
+
+    /// Draws the marks on the scene pass's encoder, after everything else in it.
+    public func draw(on encoder: MTLRenderCommandEncoder, marks: SkidMarks, frame: inout FrameUniforms) {
         lastDrawnQuads = 0
         guard let buffer = marks.buffer, marks.quadCount > 0 else { return }
-        let pass = MTLRenderPassDescriptor()
-        pass.colorAttachments[0].texture = targets.colour
-        pass.colorAttachments[0].loadAction = .load
-        pass.colorAttachments[0].storeAction = .store
-        pass.depthAttachment.texture = targets.depth
-        pass.depthAttachment.loadAction = .load
-        pass.depthAttachment.storeAction = .store
-        timer?.attach(pass, "Skid marks")
-        guard let encoder = commands.makeRenderCommandEncoder(descriptor: pass) else { return }
-        encoder.label = "Skid marks"
         encoder.setRenderPipelineState(pipeline)
         encoder.setDepthStencilState(depthState)
         Self.biasDecal(encoder)
@@ -207,7 +210,6 @@ public final class SkidMarkRenderer {
         encoder.setVertexBytes(&frame, length: MemoryLayout<FrameUniforms>.stride, index: 1)
         encoder.setFragmentBytes(&frame, length: MemoryLayout<FrameUniforms>.stride, index: 1)
         encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: marks.quadCount * 6)
-        encoder.endEncoding()
         lastDrawnQuads = marks.quadCount
     }
 
@@ -220,22 +222,12 @@ public final class SkidMarkRenderer {
         encoder.setDepthBias(4, slopeScale: 2, clamp: 0)
     }
 
-    public func encodePaint(into commands: MTLCommandBuffer, targets: FrameTargets,
-                            paint: RoadPaint, frame: inout FrameUniforms, lineWidth: Float = 0.12,
-                            shadow: ShadowUniforms, shadowMap: MTLTexture, shadowSampler: MTLSamplerState,
-                            irradiance: MTLBuffer, timer: PassTimer? = nil) {
+    public func drawPaint(on encoder: MTLRenderCommandEncoder,
+                          paint: RoadPaint, frame: inout FrameUniforms, lineWidth: Float = 0.12,
+                          shadow: ShadowUniforms, shadowMap: MTLTexture, shadowSampler: MTLSamplerState,
+                          irradiance: MTLBuffer) {
         lastPaintedBoxes = 0
         guard let buffer = paint.buffer, paint.quadCount > 0 else { return }
-        let pass = MTLRenderPassDescriptor()
-        pass.colorAttachments[0].texture = targets.colour
-        pass.colorAttachments[0].loadAction = .load
-        pass.colorAttachments[0].storeAction = .store
-        pass.depthAttachment.texture = targets.depth
-        pass.depthAttachment.loadAction = .load
-        pass.depthAttachment.storeAction = .store
-        timer?.attach(pass, "Road paint")
-        guard let encoder = commands.makeRenderCommandEncoder(descriptor: pass) else { return }
-        encoder.label = "Road paint"
         encoder.setRenderPipelineState(paintPipeline)
         encoder.setDepthStencilState(depthState)
         encoder.setCullMode(.none)
@@ -254,7 +246,6 @@ public final class SkidMarkRenderer {
             encoder.setFragmentBytes(&parameters, length: MemoryLayout<SIMD4<Float>>.stride, index: 2)
             encoder.drawPrimitives(type: .triangle, vertexStart: i * 6, vertexCount: 6)
         }
-        encoder.endEncoding()
         lastPaintedBoxes = paint.quadCount
     }
 }

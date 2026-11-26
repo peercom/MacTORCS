@@ -207,24 +207,28 @@ public final class ReflectionRenderer {
             historyValid = false
         }
 
-        let compositePass = MTLRenderPassDescriptor()
-        compositePass.colorAttachments[0].texture = targets.colour
-        compositePass.colorAttachments[0].loadAction = .load
-        compositePass.colorAttachments[0].storeAction = .store
-        timer?.attach(compositePass, "Reflection composite")
-        if let encoder = commands.makeRenderCommandEncoder(descriptor: compositePass) {
-            encoder.label = "Reflection composite"
-            encoder.setRenderPipelineState(composite)
-            encoder.setFragmentTexture(compositeSource, index: 0)
-            encoder.setFragmentTexture(targets.reflectionSurface, index: 1)
-            encoder.setFragmentTexture(targets.depth, index: 2)
-            encoder.setFragmentTexture(skyView, index: 3)
-            encoder.setFragmentBytes(&uniforms, length: MemoryLayout<ReflectionUniforms>.stride, index: 0)
-            encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
-            encoder.endEncoding()
-        }
+        compositeUniforms = uniforms
+        compositeSkyView = skyView
         result = compositeSource
         return compositeSource
+    }
+
+    private var compositeUniforms: ReflectionUniforms?
+    private var compositeSkyView: MTLTexture?
+
+    /// Adds the reflections this frame's `encode` resolved onto the scene
+    /// colour, as a draw on a pass the caller has open on that target. The
+    /// caller owns the pass so that whatever else goes over the scene before
+    /// it is scaled and tonemapped shares one load and store of it.
+    public func drawComposite(on encoder: MTLRenderCommandEncoder, targets: FrameTargets) {
+        guard let source = result, var uniforms = compositeUniforms, let skyView = compositeSkyView else { return }
+        encoder.setRenderPipelineState(composite)
+        encoder.setFragmentTexture(source, index: 0)
+        encoder.setFragmentTexture(targets.reflectionSurface, index: 1)
+        encoder.setFragmentTexture(targets.depth, index: 2)
+        encoder.setFragmentTexture(skyView, index: 3)
+        encoder.setFragmentBytes(&uniforms, length: MemoryLayout<ReflectionUniforms>.stride, index: 0)
+        encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
     }
 
     public func discard() { result = nil; historyValid = false }

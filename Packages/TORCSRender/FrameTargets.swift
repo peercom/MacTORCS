@@ -21,14 +21,8 @@ public final class FrameTargets {
     /// Per-pixel offset to where this pixel was last frame, in render pixels.
     /// Allocated when temporal upscaling or motion blur is on; both read it.
     public let velocity: MTLTexture?
-    /// Post-processed colour, written by motion blur and read by whatever
-    /// follows it in its place. At output resolution, except under spatial
-    /// upscaling, where the blur runs before the scaler at render resolution
-    /// — the scaler has no history to protect and the blur costs a quarter
-    /// there. Nil when motion blur is off.
-    public let postColour: MTLTexture?
-    /// Whether `postColour` is at render rather than output resolution.
-    public let postAtRenderResolution: Bool
+    /// Whether motion blur wants the velocity stored. The blur itself is
+    /// taken by the tonemap pass and has no target of its own.
     public let motionBlur: Bool
     /// What the scene pass binds at attachment 1: `velocity`, or a memoryless
     /// stand-in when upscaling is off. Every scene pipeline declares the
@@ -36,8 +30,9 @@ public final class FrameTargets {
     /// undefined — on this GPU the later attachments shift down a slot, and
     /// the reflection surface received the motion vectors.
     public let velocityAttachment: MTLTexture
-    /// Upscaler output, at output resolution. Nil when upscaling is off, in
-    /// which case the tonemapper reads `colour` directly.
+    /// A MetalFX scaler's output, at output resolution. Nil when there is no
+    /// such scaler — upscaling off, or left to the tonemap pass's own filter
+    /// — in which case the tonemapper reads `colour` directly.
     public let upscaled: MTLTexture?
     /// Display-referred output. Bound as sRGB so the hardware applies the
     /// transfer function on write; the shader therefore emits linear.
@@ -57,10 +52,9 @@ public final class FrameTargets {
 
     init(device: MTLDevice, renderWidth: Int, renderHeight: Int,
          outputWidth: Int, outputHeight: Int, upscaling: Bool, reflections: Bool = false,
-         motionBlur: Bool = false, postAtRenderResolution: Bool = false) throws {
+         motionBlur: Bool = false) throws {
         self.reflections = reflections
         self.motionBlur = motionBlur
-        self.postAtRenderResolution = postAtRenderResolution
         let rw = max(1, renderWidth), rh = max(1, renderHeight)
         let ow = max(1, outputWidth), oh = max(1, outputHeight)
         self.renderWidth = rw; self.renderHeight = rh
@@ -88,10 +82,6 @@ public final class FrameTargets {
         velocity = upscaling || motionBlur
             ? try make(Self.velocityFormat, rw, rh, usage: [.renderTarget, .shaderRead], storage: .private)
             : nil
-        postColour = motionBlur
-            ? try make(Self.colourFormat, postAtRenderResolution ? rw : ow, postAtRenderResolution ? rh : oh,
-                       usage: [.renderTarget, .shaderRead], storage: .private)
-            : nil
         velocityAttachment = try velocity ?? make(Self.velocityFormat, rw, rh, usage: .renderTarget, storage: .memoryless)
         upscaled = upscaling
             ? try make(Self.colourFormat, ow, oh, usage: [.shaderRead, .shaderWrite], storage: .private)
@@ -105,19 +95,17 @@ public final class FrameTargets {
     }
 
     func matches(renderWidth: Int, renderHeight: Int, outputWidth: Int, outputHeight: Int,
-                 upscaling: Bool, reflections: Bool = false, motionBlur: Bool = false,
-                 postAtRenderResolution: Bool = false) -> Bool {
+                 upscaling: Bool, reflections: Bool = false, motionBlur: Bool = false) -> Bool {
         self.renderWidth == max(1, renderWidth) && self.renderHeight == max(1, renderHeight)
             && self.outputWidth == max(1, outputWidth) && self.outputHeight == max(1, outputHeight)
             && (upscaled != nil) == upscaling && (velocity != nil) == (upscaling || motionBlur)
             && self.reflections == reflections && self.motionBlur == motionBlur
-            && self.postAtRenderResolution == postAtRenderResolution
     }
 
     /// Bytes the targets occupy, for the memory budget check.
     public var byteCount: Int {
         let render = renderWidth * renderHeight * (8 + 4 + (velocity != nil ? 4 : 0) + (reflections ? 8 : 0))
-        let output = outputWidth * outputHeight * (4 + (upscaled != nil ? 8 : 0) + (postColour != nil ? 8 : 0))
+        let output = outputWidth * outputHeight * (4 + (upscaled != nil ? 8 : 0))
         return render + output
     }
 }

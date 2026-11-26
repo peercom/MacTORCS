@@ -56,6 +56,7 @@ import TORCSTrackMesh
                 ? try PipelineArchive(device:MTLCreateSystemDefaultDevice()!,directory:FileManager.default.url(for:.applicationSupportDirectory,in:.userDomainMask,appropriateFor:nil,create:true).appendingPathComponent("TORCSMac",isDirectory:true))
                 : nil
             var settings=RenderSettings(preset:preset)
+            settings.upscalingMode = .resolve   // as the game sets it; `--render-off metalfx` for the scaler
             DrivingSession.applyRenderOff(&settings)
             let renderer=try ForwardRenderer(settings:settings,archive:archive)
             if let archive { print("archive \(archive.url.lastPathComponent) loaded=\(archive.loaded)") }
@@ -65,6 +66,7 @@ import TORCSTrackMesh
                 road:content.simulation.road.geometry,pits:content.simulation.road.pits,terrain:TerrainParameters(),
                 materials:ModernDrivingRenderer.materialsDirectory(beside:track))
             let lighting=ModernDrivingRenderer.lighting(from:content.graphics)
+            renderer.roadPaint.set(content.gridSlots.map { RoadPaint.Box(centre:$0.world,yaw:$0.yaw) })
             let pose=try VehiclePresentation(content.simulation.visualSnapshot)
             let body=pose.body
             let centre=SIMD3(body[3].x,body[3].y,body[3].z),forward=simd_normalize(SIMD3(body[0].x,body[0].y,body[0].z))
@@ -113,6 +115,7 @@ import TORCSTrackMesh
                 }
             }
             let perView=18
+            let speed=arguments.firstIndex(of:"--speed").flatMap { $0+1<arguments.count ? Float(arguments[$0+1]):nil } ?? 0
             let dump=arguments.firstIndex(of:"--dump").flatMap { $0+1<arguments.count ? URL(fileURLWithPath:arguments[$0+1],isDirectory:true):nil }
             if let dump { try FileManager.default.createDirectory(at:dump,withIntermediateDirectories:true) }
             let total=views.isEmpty ? (pace==nil ? 60:240):views.count*perView
@@ -120,6 +123,12 @@ import TORCSTrackMesh
             for frame in 0..<total {
                 if !views.isEmpty {
                     camera=views[frame/perView]
+                    // `--speed MPS`: the viewpoint travels forward at that
+                    // speed, so the frame has motion to blur as a drive does.
+                    if speed != 0 {
+                        let step=simd_normalize(camera.target-camera.eye)*(speed/60*Float(frame%perView))
+                        camera.eye += step;camera.target += step
+                    }
                     if frame%perView==0 { renderer.resetHistory() }
                 }
                 if let pace {

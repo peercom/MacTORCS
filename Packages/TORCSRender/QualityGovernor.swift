@@ -24,6 +24,9 @@ public struct QualityLevel: Sendable, Equatable {
         if preset == .m2Air {
             settings.renderScale = renderScale
             settings.upscaling = true
+            // Scaled by the tonemap pass's own filter: with a MetalFX scaler
+            // between them the 85% and 67% rungs cost as much as native.
+            settings.upscalingMode = .resolve
             settings.dynamicResolution = false
             if !wetRoad { settings.screenSpaceReflections = .off }
         }

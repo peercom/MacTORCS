@@ -3,17 +3,16 @@ import Foundation
 import Metal
 import simd
 
-/// Per-pixel motion blur from the velocity buffer, applied after the
-/// upscaler and before bloom so both the glow and the tonemapper see the
-/// blurred image.
+/// Per-pixel motion blur from the velocity buffer: its settings, and the
+/// uniforms the tonemap pass reads the scene through.
 ///
-/// Reads the tonemap source and writes `FrameTargets.postColour`; the
-/// tonemap source then becomes that texture. One gather along the centre
-/// pixel's velocity, jittered to avoid banding.
+/// It is not a pass. One gather along the centre pixel's velocity, jittered
+/// to avoid banding, taken by the resolve as it samples the scene (see
+/// MotionBlur.metal); a pass of its own wrote a second scene-sized HDR
+/// target only for the resolve to read it back. The bloom and the lens blur
+/// are therefore built from the unblurred scene, which at their widths
+/// cannot be told apart.
 public final class MotionBlurRenderer {
-    private let device: MTLDevice
-    private let pipeline: MTLRenderPipelineState
-
     /// Fraction of the frame interval the shutter is open. Half is the film
     /// convention (a 180° shutter) and reads as motion without smearing the
     /// frame into soup.
@@ -24,57 +23,27 @@ public final class MotionBlurRenderer {
     /// the machine slows — the caller scales the shutter by this over the
     /// measured interval, so the exposure stays a sixtieth of a second.
     public static let nominalFrameInterval: Double = 1.0 / 60.0
-    /// Longest blur, as a fraction of the output height. Wheels and close
+    /// Longest blur, as a fraction of the scene's height. Wheels and close
     /// barriers can exceed a whole frame of motion; past this they smear
     /// into mush rather than read faster.
     public var maximumRadius: Float = 0.02
     public var taps: Int = 8
 
-    public private(set) var result: MTLTexture?
+    public init() {}
 
-    public init(device: MTLDevice, library: MTLLibrary, archive: PipelineArchive? = nil) throws {
-        self.device = device
-        let descriptor = MTLRenderPipelineDescriptor()
-        descriptor.label = "motionBlurFragment"
-        descriptor.vertexFunction = library.makeFunction(name: "fullscreenVertex")
-        descriptor.fragmentFunction = library.makeFunction(name: "motionBlurFragment")
-        descriptor.colorAttachments[0].pixelFormat = FrameTargets.colourFormat
-        pipeline = try PipelineArchive.make(descriptor, device: device, archive: archive)
+    /// How the resolve is to read `scene` on its way to `destination`:
+    /// blurred by `velocity` when there is one, and filtered up when the
+    /// scene is the smaller of the two.
+    func uniforms(scene: MTLTexture, velocity: MTLTexture?, destination: MTLTexture,
+                  exposureScale: Float = 1) -> MotionBlurUniforms {
+        let ratio = velocity.map { SIMD2(Float(scene.width) / Float($0.width), Float(scene.height) / Float($0.height)) }
+            ?? SIMD2(1, 1)
+        let smaller = scene.width < destination.width || scene.height < destination.height
+        return MotionBlurUniforms(
+            parameters: SIMD4(1 / Float(scene.width), 1 / Float(scene.height),
+                              shutter * exposureScale, maximumRadius * Float(scene.height)),
+            scale: SIMD4(ratio.x, ratio.y, velocity == nil ? 0 : Float(taps), smaller ? 1 : 0))
     }
-
-    /// Blurs `source` (at the output resolution) by `velocity` (at the render
-    /// resolution) into `targets.postColour`. Returns nil, and clears
-    /// `result`, when the targets carry no velocity or post texture.
-    @discardableResult
-    public func encode(into commands: MTLCommandBuffer, targets: FrameTargets, source: MTLTexture,
-                       exposureScale: Float = 1, timer: PassTimer? = nil) -> MTLTexture? {
-        guard let velocity = targets.velocity, let destination = targets.postColour else {
-            result = nil
-            return nil
-        }
-        var uniforms = MotionBlurUniforms(
-            parameters: SIMD4(1 / Float(destination.width), 1 / Float(destination.height),
-                              shutter * exposureScale, maximumRadius * Float(destination.height)),
-            scale: SIMD4(Float(destination.width) / Float(velocity.width),
-                         Float(destination.height) / Float(velocity.height), Float(taps), 0))
-        let pass = MTLRenderPassDescriptor()
-        pass.colorAttachments[0].texture = destination
-        pass.colorAttachments[0].loadAction = .dontCare
-        pass.colorAttachments[0].storeAction = .store
-        timer?.attach(pass, "Motion blur")
-        guard let encoder = commands.makeRenderCommandEncoder(descriptor: pass) else { result = nil; return nil }
-        encoder.label = "Motion blur"
-        encoder.setRenderPipelineState(pipeline)
-        encoder.setFragmentTexture(source, index: 0)
-        encoder.setFragmentTexture(velocity, index: 1)
-        encoder.setFragmentBytes(&uniforms, length: MemoryLayout<MotionBlurUniforms>.stride, index: 0)
-        encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
-        encoder.endEncoding()
-        result = destination
-        return destination
-    }
-
-    public func discard() { result = nil }
 }
 
 /// Mirrors `MotionBlurUniforms` in `MotionBlur.metal`.

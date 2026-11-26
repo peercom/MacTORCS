@@ -55,7 +55,7 @@ million HDR pixels. The scene itself is about 200,000 triangles in 300 draws.
 **Automatic quality** (the default; the old preset setting is no longer
 read). `QualityGovernor` is fed what the player sees — frames presented in
 the last second — once a second while a session runs. Its ladder, lightest first: the fanless preset at 50, 67, 85
-and 100% resolution (scaled up by the spatial scaler), then balanced, then
+and 100% resolution (scaled up by the tonemap pass), then balanced, then
 high. Three slow seconds in a row move it down a rung; twenty steady seconds
 at the full rate move it up one as a trial, a rung climbed to that then fails
 is not tried again (in that session or later ones, until the mode is chosen
@@ -95,7 +95,8 @@ within the first seconds.
 - `--frame-cost <track> <car> [WxH] [preset] [--chase] [--pace HZ]
   [--render-off a,b]` times a frame's passes offscreen. With `--lap N` it
   does so from N viewpoints round the circuit instead of the start grid, and
-  `--dump DIR` writes each viewpoint's picture. Unpaced, the timing repeats
+  `--dump DIR` writes each viewpoint's picture; `--speed MPS` moves the
+  viewpoints forward at that speed, so there is motion to blur. Unpaced, the timing repeats
   to a hundredth of a millisecond and the pictures bit for bit, which is
   what makes a shader change measurable: time and picture, before and after.
 - `--render-off` switches effects off in the window as well.
@@ -126,6 +127,19 @@ What the gap is instead, as far as it is known:
 - **The rest is the GPU's clock, not the view.** Viewpoints round the lap
   cost no more offscreen than the grid does (3.4 ms for the scene pass
   against 4.0). See the next section.
+
+Two things follow from the display mode. At "100%" the game draws 32% more
+pixels than the panel has, and the system scales them down. The automatic
+level of 85% is the panel's own resolution to within 3%, so it is not the
+loss it sounds like.
+
+**Low Power Mode costs 60%.** The first runs of the experiment were on
+battery with Low Power Mode on, and the same frame took 17 to 23 ms instead
+of 12.5. Automatic quality held 60 there by dropping to 67% in the window
+and 50% in full screen. The level it settles on is now saved apart for Low
+Power Mode (`renderQualityLevelLowPower`), so a session on battery no longer
+sets where the next one on mains starts. That path was not exercised after
+the change: Low Power Mode was switched off before it could be.
 
 ## The GPU's clock
 
@@ -201,24 +215,64 @@ the bounce.
 What is left in the pass is many parts of 0.1 to 0.3 ms each, none of which
 gave way to rearranging. The next real saving there is shading fewer pixels.
 
-Two things follow from the display mode. At "100%" the game draws 32% more
-pixels than the panel has, and the system scales them down. The automatic
-level of 85% is the panel's own resolution to within 3%, so it is not the
-loss it sounds like.
+## After the scene: one pass
 
-**Low Power Mode costs 60%.** The first runs of the experiment were on
-battery with Low Power Mode on, and the same frame took 17 to 23 ms instead
-of 12.5. Automatic quality held 60 there by dropping to 67% in the window
-and 50% in full screen. The level it settles on is now saved apart for Low
-Power Mode (`renderQualityLevelLowPower`), so a session on battery no longer
-sets where the next one on mains starts. That path was not exercised after
-the change: Low Power Mode was switched off before it could be.
+Between the scene and the picture there were up to six passes that each
+loaded and stored the scene-sized HDR target: road paint, skid marks, the
+reflection composite, the particle composite, motion blur, and the scaler.
+There is now one that does (the reflections and the smoke together, and only
+when there are any), and the tonemap pass does the rest as it reads the
+scene.
+
+- **Road paint and skid marks are drawn at the end of the scene pass.** The
+  paint is a few quads at the start grid; its own pass cost a quarter of a
+  millisecond every frame of the lap, all of it loading and storing five
+  million pixels and their depth. The picture is bit for bit the same.
+- **Reflections and particles share one pass** over the scene colour, in the
+  order they had.
+- **Motion blur is taken by the tonemap pass**, along with the scale. Its
+  target, a second scene-sized HDR texture, is gone. The bloom and the lens
+  blur are now built from the unblurred scene.
+- **A lower resolution is scaled up by the tonemap pass's own filter**
+  (`UpscalingMode.resolve`): Catmull-Rom from five taps, on exposed values
+  through a reversible tonemap so the sun's disc does not ring. The game
+  uses it for every level and preset. MetalFX stays in the renderer as
+  `.spatial` and `.temporal`; `--render-off metalfx` puts it back for a
+  comparison.
+
+Measured offscreen with the viewpoint travelling at 50 m/s, 2880 x 1720,
+Fanless preset, reflections off, whole frame:
+
+| Resolution | Before | After |
+|---|---|---|
+| 100% | 6.4 ms | 6.4 ms |
+| 85% | 7.5 ms | 5.5 ms |
+| 67% | 6.2 ms | 4.5 ms |
+| 50% | 5.3 ms | 3.8 ms |
+
+Two findings in that table.
+
+- **The MetalFX spatial scaler cost 2.4 ms at this size**, more than
+  rendering at 85% saved. The 85% level was dearer than native and the 67%
+  level no cheaper: automatic quality's first two steps down bought
+  nothing. The levels now cost what their order says.
+- **At 100% the merge saved nothing.** Blur and tonemap were 0.93 and
+  0.80 ms apart and are 1.74 ms together. A pass that only reads the scene
+  and writes another target is cheap on this GPU; the blur's cost is its
+  taps, about 0.6 ms for the half of the frame that moves, and neither
+  fewer taps for short streaks nor wider spacing changed that by more than
+  0.1 ms. What is saved at 100% is the paint's quarter millisecond and
+  40 MB of target.
+
+Side by side on still views of Alpine 1, 85% through the new filter is as
+sharp as 85% through MetalFX and close to native; at 67% MetalFX holds
+painted lines a little crisper.
 
 ## What is left
 
-The full-resolution chain
-after the scene pass — reflection composite, motion blur, tonemap — is three passes that
-each read and write the whole HDR target and could be one. The HUD costs
+The tonemap pass is now the second dearest thing in the frame: 0.72 ms to
+tonemap and store, 0.76 for the blur, 0.19 for the heat haze and 0.15 for
+the bloom. The blur could be taken from a half-resolution copy of the scene
+where a streak is long. The HUD costs
 about a fifth of the main thread through SwiftUI layout at twenty updates a
-second, which matters to nothing while the GPU is the limit. None of this was
-needed to reach 60, and all of it is where the next milliseconds are.
+second, which matters to nothing while the GPU is the limit.

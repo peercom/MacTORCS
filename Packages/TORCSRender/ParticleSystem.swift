@@ -338,12 +338,15 @@ public final class ParticleRenderer {
         return target
     }
 
-    /// Draws into `targets.colour` over the opaque scene. `frame` must be the
-    /// scene pass's uniforms so the billboards land where the geometry did.
+    /// Draws the billboards into the half-resolution target. `frame` must be
+    /// the scene pass's uniforms so they land where the geometry did. Returns
+    /// whether there is anything for `drawComposite` to put over the scene.
+    @discardableResult
     public func encode(into commands: MTLCommandBuffer, targets: FrameTargets,
-                       system: ParticleSystem, frame: inout FrameUniforms, near: Float, timer: PassTimer? = nil) {
+                       system: ParticleSystem, frame: inout FrameUniforms, near: Float, timer: PassTimer? = nil) -> Bool {
         lastDrawnCount = 0
-        guard let buffer = system.buffer, system.count > 0, let half = target(for: targets) else { return }
+        drawn = nil
+        guard let buffer = system.buffer, system.count > 0, let half = target(for: targets) else { return false }
 
         let pass = MTLRenderPassDescriptor()
         pass.colorAttachments[0].texture = half
@@ -351,7 +354,7 @@ public final class ParticleRenderer {
         pass.colorAttachments[0].clearColor = MTLClearColor(red: 0, green: 0, blue: 0, alpha: 0)
         pass.colorAttachments[0].storeAction = .store
         timer?.attach(pass, "Particles")
-        guard let encoder = commands.makeRenderCommandEncoder(descriptor: pass) else { return }
+        guard let encoder = commands.makeRenderCommandEncoder(descriptor: pass) else { return false }
         encoder.label = "Particles"
         encoder.setRenderPipelineState(pipeline)
         var uniforms = ParticleUniforms(parameters: SIMD4(near, 0.6, Float(half.width), Float(half.height)))
@@ -363,20 +366,21 @@ public final class ParticleRenderer {
         encoder.setFragmentSamplerState(pointSampler, index: 0)
         encoder.drawPrimitives(type: .triangleStrip, vertexStart: 0, vertexCount: 4, instanceCount: system.count)
         encoder.endEncoding()
-
-        let over = MTLRenderPassDescriptor()
-        over.colorAttachments[0].texture = targets.colour
-        over.colorAttachments[0].loadAction = .load
-        over.colorAttachments[0].storeAction = .store
-        timer?.attach(over, "Particle composite")
-        guard let compositor = commands.makeRenderCommandEncoder(descriptor: over) else { return }
-        compositor.label = "Particle composite"
-        compositor.setRenderPipelineState(composite)
-        compositor.setFragmentTexture(half, index: 0)
-        compositor.setFragmentSamplerState(linearSampler, index: 0)
-        compositor.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
-        compositor.endEncoding()
+        drawn = half
         lastDrawnCount = system.count
+        return true
+    }
+
+    private var drawn: MTLTexture?
+
+    /// Puts this frame's billboards over the scene colour, as a draw on a
+    /// pass the caller has open on that target.
+    public func drawComposite(on encoder: MTLRenderCommandEncoder) {
+        guard let half = drawn else { return }
+        encoder.setRenderPipelineState(composite)
+        encoder.setFragmentTexture(half, index: 0)
+        encoder.setFragmentSamplerState(linearSampler, index: 0)
+        encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
     }
 }
 
