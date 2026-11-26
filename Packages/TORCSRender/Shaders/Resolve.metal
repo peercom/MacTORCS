@@ -154,6 +154,7 @@ fragment float4 resolveFragment(ResolveVarying in [[stage_in]],
                                 texture2d<float> depth [[texture(2)]],
                                 texture2d<float> blurred [[texture(3)]],
                                 texture2d<float> velocity [[texture(4)]],
+                                texture2d<float> sceneHalf [[texture(5)]],
                                 constant ExposureState &exposure [[buffer(0)]],
                                 constant float &bloomStrength [[buffer(1)]],
                                 constant GlareUniforms &glare [[buffer(2)]],
@@ -174,7 +175,7 @@ fragment float4 resolveFragment(ResolveVarying in [[stage_in]],
     }
     // The pyramid was built from exposed values (see bloomPrefilter), so the
     // scene is exposed here to match and the tonemapper is given unit scale.
-    float3 radiance = sceneRadiance(scene, velocity, sceneUV, in.position.xy, motion, exposureScale) * exposureScale;
+    float3 radiance = sceneRadiance(scene, sceneHalf, velocity, sceneUV, in.position.xy, motion, exposureScale) * exposureScale;
     if (glare.focus.w > 0.0f) {
         // The blurred half-resolution image where this pixel's own circle is
         // wider than a texel of it; the sharp one where it is not.

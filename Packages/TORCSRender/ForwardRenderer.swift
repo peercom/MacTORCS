@@ -429,7 +429,7 @@ public final class ForwardRenderer {
         exposureMeter = try ExposureMeter(device: device, library: library, archive: archive)
         occlusion = try OcclusionRenderer(device: device, library: library, archive: archive)
         reflections = try ReflectionRenderer(device: device, library: library, archive: archive)
-        motionBlur = MotionBlurRenderer()
+        motionBlur = try MotionBlurRenderer(device: device, library: library, archive: archive)
         particles = try ParticleSystem(device: device)
         particleRenderer = try ParticleRenderer(device: device, library: library, archive: archive)
         skidMarks = try SkidMarks(device: device)
@@ -758,7 +758,14 @@ public final class ForwardRenderer {
         }
 
         // Motion blur is not a pass here: the tonemap pass takes it as it
-        // reads the scene (see encodeResolve), after any scaler.
+        // reads the scene (see encodeResolve), after any scaler. What it
+        // needs made ahead is the half-resolution copy its long streaks are
+        // gathered from.
+        if settings.motionBlur, targets.velocity != nil {
+            motionBlur.encodeHalf(into: commands, scene: tonemapSource(targets), timer: passTimer)
+        } else {
+            motionBlur.discard()
+        }
 
         // Meter the frame before anything reads the exposure: a cold render
         // snaps to what it meters, an interactive one adapts.
@@ -1313,6 +1320,7 @@ public final class ForwardRenderer {
             var motion = motionBlur.uniforms(scene: source, velocity: moving, destination: destination,
                                              exposureScale: motionBlurExposureScale)
             encoder.setFragmentTexture(moving ?? source, index: 4)
+            encoder.setFragmentTexture(moving != nil ? motionBlur.halfScene ?? source : source, index: 5)
             encoder.setFragmentBytes(&motion, length: MemoryLayout<MotionBlurUniforms>.stride, index: 3)
             // The metered state, or a caller's — the mirror takes the main
             // view's so both halves of the picture agree.

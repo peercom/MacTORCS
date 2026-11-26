@@ -74,6 +74,37 @@ final class MotionBlurTests: XCTestCase {
         XCTAssertEqual(fast, nominal, accuracy: nominal * 0.05, "never more than a frame's worth")
     }
 
+    /// Long streaks are gathered from a half-resolution copy of the scene.
+    /// That is a cheaper way to the same picture, not another picture: the
+    /// copy exists only while the blur is on, a still frame never reads it,
+    /// and a moving frame with it is the moving frame without it to within
+    /// the softness of a texel.
+    func testLongStreaksComeFromAHalfResolutionCopy() throws {
+        let fast = RenderCamera(eye: SIMD3(4.6, -6.2, 2), target: SIMD3(0, 0, 0.5))
+        func frames(half: Bool) throws -> (still: [UInt8], moving: [UInt8], renderer: ForwardRenderer) {
+            let renderer = try makeRenderer { $0.motionBlur = true }
+            renderer.motionBlur.usesHalfResolution = half
+            // Short enough streaks at this size that the copy would never
+            // be asked for otherwise.
+            renderer.motionBlur.halfResolutionStreak = 1 ... 2
+            let first = try render(renderer, still)
+            return (first, try render(renderer, fast), renderer)
+        }
+        let with = try frames(half: true), without = try frames(half: false)
+        let copy = try XCTUnwrap(with.renderer.motionBlur.halfScene)
+        XCTAssertEqual(copy.width, 128); XCTAssertEqual(copy.height, 80)
+        XCTAssertNil(without.renderer.motionBlur.halfScene)
+        XCTAssertEqual(with.still, without.still, "a still frame has no streaks to take from the copy")
+        XCTAssertNotEqual(with.moving, without.moving, "the copy was not used")
+        let difference = zip(with.moving, without.moving).reduce(0.0) { $0 + abs(Double($1.0) - Double($1.1)) }
+            / Double(with.moving.count)
+        XCTAssertLessThan(difference, 3, "the two gathers differ by \(difference) steps of 255 on average")
+        // Blur off: no copy is made.
+        with.renderer.settings.motionBlur = false
+        _ = try render(with.renderer, still)
+        XCTAssertNil(with.renderer.motionBlur.halfScene)
+    }
+
     func testTargetsFollowTheSetting() throws {
         let renderer = try makeRenderer { $0.motionBlur = true }
         _ = try render(renderer, still)

@@ -96,7 +96,8 @@ within the first seconds.
   [--render-off a,b]` times a frame's passes offscreen. With `--lap N` it
   does so from N viewpoints round the circuit instead of the start grid, and
   `--dump DIR` writes each viewpoint's picture; `--speed MPS` moves the
-  viewpoints forward at that speed, so there is motion to blur. Unpaced, the timing repeats
+  viewpoints forward at that speed, so there is motion to blur, and
+  `--full-blur` gathers every streak from the scene itself. Unpaced, the timing repeats
   to a hundredth of a millisecond and the pictures bit for bit, which is
   what makes a shader change measurable: time and picture, before and after.
 - `--render-off` switches effects off in the window as well.
@@ -268,11 +269,39 @@ Side by side on still views of Alpine 1, 85% through the new filter is as
 sharp as 85% through MetalFX and close to native; at 67% MetalFX holds
 painted lines a little crisper.
 
+## The blur's long streaks, from a half-resolution copy
+
+A streak of more than a few pixels is gathered from a copy of the scene at
+half its size each way, with four taps where the scene took eight. Streaks
+under four pixels stay on the scene; between four and eight the choice is
+dithered per pixel.
+
+The saving is not where it was expected. A tap costs the same from either
+texture, in a 64-bit or a 32-bit format: this GPU's cost is per filtered
+sample, not per byte fetched. With all eight taps on the copy the tonemap
+pass fell from 1.74 to 1.67 ms and the copy's own pass cost 0.24 ms, a net
+loss. The copy pays only because its texels are already averages of four,
+so half the taps cover a streak as closely.
+
+Whole frame, viewpoint at 50 m/s, the same binary with the copy and with
+`--full-blur`, two runs each:
+
+| Resolution | Scene only | With the copy |
+|---|---|---|
+| 100% | 6.56, 6.49 ms | 6.33, 6.34 ms |
+| 85% | 5.50, 5.50 ms | 5.35, 5.37 ms |
+| 67% | 4.45, 4.47 ms | 4.35, 4.30 ms |
+| 50% | 3.80, 3.77 ms | 3.64, 3.62 ms |
+
+About 0.15 ms, 2 to 4% of the frame. The streaks are a little smoother
+across their length and otherwise the same picture; the copy is 10 MB at
+2880 x 1720.
+
 ## What is left
 
-The tonemap pass is now the second dearest thing in the frame: 0.72 ms to
-tonemap and store, 0.76 for the blur, 0.19 for the heat haze and 0.15 for
-the bloom. The blur could be taken from a half-resolution copy of the scene
-where a streak is long. The HUD costs
+The tonemap pass is still the second dearest thing in the frame at about
+1.5 ms: 0.72 to tonemap and store, 0.5 for the blur, 0.19 for the heat haze
+and 0.15 for the bloom. Nothing in it is large enough to be worth another
+target. The HUD costs
 about a fifth of the main thread through SwiftUI layout at twenty updates a
 second, which matters to nothing while the GPU is the limit.

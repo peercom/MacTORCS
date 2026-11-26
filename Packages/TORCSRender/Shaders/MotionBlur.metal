@@ -32,7 +32,21 @@ struct MotionBlurUniforms {
     /// this changes it), z tap count or 0 for no blur, w nonzero when the
     /// scene is smaller than the picture and is to be filtered up to it.
     float4 scale;
+    /// The half-resolution copy of the scene: x nonzero when one is bound,
+    /// y and z the streak lengths in scene pixels between which the taps
+    /// move over to it.
+    float4 coarse;
 };
+
+/// The scene at half its size each way, for the blur's long streaks: one
+/// bilinear sample at the middle of each two-by-two block. Bright values are
+/// clamped here as the blur clamps its taps, so a sun glint does not streak
+/// across the frame with more energy than it had.
+fragment float4 sceneHalveFragment(FullscreenVarying in [[stage_in]],
+                                   texture2d<float> scene [[texture(0)]]) {
+    constexpr sampler linearSampler(coord::normalized, address::clamp_to_edge, filter::linear);
+    return float4(min(scene.sample(linearSampler, in.uv, level(0.0f)).rgb, float3(64.0f)), 1.0f);
+}
 
 /// Catmull-Rom from five bilinear taps: the cross of the nine-tap form, the
 /// corners left out and the weights renormalised. Sharper than a bilinear
@@ -73,8 +87,8 @@ inline float3 sampleSceneFiltered(texture2d<float> scene, float2 uv, float2 size
 /// The scene's radiance at `uv` as the tonemapper should see it: blurred
 /// along the pixel's motion where it moves, filtered up where the scene is
 /// smaller than the picture, and otherwise the texel itself.
-inline float3 sceneRadiance(texture2d<float> scene, texture2d<float> velocity, float2 uv, float2 pixel,
-                            constant MotionBlurUniforms &u, float exposure) {
+inline float3 sceneRadiance(texture2d<float> scene, texture2d<float> sceneHalf, texture2d<float> velocity,
+                            float2 uv, float2 pixel, constant MotionBlurUniforms &u, float exposure) {
     constexpr sampler linearSampler(coord::normalized, address::clamp_to_edge, filter::linear);
     constexpr sampler pointSampler(coord::normalized, address::clamp_to_edge, filter::nearest);
     // Every sample here names its level. None of these textures has mips,
@@ -90,16 +104,33 @@ inline float3 sceneRadiance(texture2d<float> scene, texture2d<float> velocity, f
             float lengthPixels = sqrt(length2);
             if (lengthPixels > u.parameters.w) { v *= u.parameters.w / lengthPixels; }
             float2 stepUV = v * u.parameters.xy;
-            // As many taps as the streak is long, up to the setting's count:
-            // one every two pixels is as fine as linear sampling resolves,
-            // and most of a frame moves a few pixels, not the full radius.
-            // Eight for every moving pixel was the whole cost of the blur.
-            int taps = clamp(int(ceil(lengthPixels * 0.5f)) + 1, 2, max(int(u.scale.z), 2));
+            int most = max(int(u.scale.z), 2);
             // Jittered start so the taps do not band; the pattern is smooth
             // enough that a temporal history would average it, and coarse
             // enough not to need one.
             float jitter = fract(52.9829189f * fract(dot(floor(pixel), float2(0.06711056f, 0.00583715f))));
             float3 total = 0.0f;
+            // A long streak is gathered from the half-resolution copy, with
+            // half the taps. A tap costs the same from either texture — the
+            // copy with all eight measured slower than no copy, by the
+            // copy's own pass — so the saving is in needing fewer: a texel
+            // there is already the average of four, and four taps cover the
+            // longest streak as closely as eight did on the scene. Short
+            // streaks stay on the scene itself, which a copy at half size
+            // would only soften. Between the two lengths the choice is
+            // dithered per pixel, so no line shows where one takes over.
+            float choose = fract(jitter * 7.31f + 0.37f);
+            if (u.coarse.x > 0.0f && lengthPixels >= mix(u.coarse.y, u.coarse.z, choose)) {
+                int taps = clamp(int(ceil(lengthPixels * 0.25f)) + 1, 2, max(most / 2, 2));
+                for (int i = 0; i < taps; ++i) {
+                    float t = (float(i) + jitter) / float(taps) - 0.5f;
+                    total += sceneHalf.sample(linearSampler, uv + stepUV * t, level(0.0f)).rgb;
+                }
+                return total / float(taps);
+            }
+            // As many taps as the streak is long: one every two pixels is as
+            // fine as linear sampling resolves.
+            int taps = clamp(int(ceil(lengthPixels * 0.5f)) + 1, 2, most);
             for (int i = 0; i < taps; ++i) {
                 float t = (float(i) + jitter) / float(taps) - 0.5f;
                 float3 sample = scene.sample(linearSampler, uv + stepUV * t, level(0.0f)).rgb;

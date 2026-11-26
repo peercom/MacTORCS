@@ -61,6 +61,8 @@ import TORCSTrackMesh
             let renderer=try ForwardRenderer(settings:settings,archive:archive)
             if let archive { print("archive \(archive.url.lastPathComponent) loaded=\(archive.loaded)") }
             renderer.passTimer=try PassTimer(device:renderer.device)
+            // `--full-blur`: every streak gathered from the scene itself, to compare.
+            if arguments.contains("--full-blur") { renderer.motionBlur.usesHalfResolution=false }
             let resources=try SessionRenderResources(
                 device:renderer.device,scenes:content.renderScenes,
                 road:content.simulation.road.geometry,pits:content.simulation.road.pits,terrain:TerrainParameters(),
