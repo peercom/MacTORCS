@@ -109,10 +109,16 @@ inline float sampleShadow(constant ShadowUniforms &shadow,
     float bias = biasMetres / shadow.depthRanges[cascade];
     float reference = projected.z - bias;
 
+    // Fade the last cascade out rather than ending it with a hard line.
+    float lastSplit = shadow.splitDistances[count - 1];
+    float fade = saturate((viewDepth - lastSplit * 0.85f) / max(lastSplit * 0.15f, 1e-3f));
+    if (fade >= 1.0f) { return 1.0f; }
+
+    // The first four taps ring the disc, one to a quadrant; the last four
+    // fill it in.
     constexpr float2 poisson[8] = {
-        float2(-0.7071f, 0.7071f), float2(0.0f, -0.8750f), float2(0.5303f, 0.5303f),
-        float2(-0.625f, 0.0f), float2(0.3536f, -0.3536f), float2(0.75f, 0.0f),
-        float2(-0.4243f, -0.4243f), float2(0.0f, 0.875f)
+        float2(-0.7071f, 0.7071f), float2(0.0f, -0.8750f), float2(0.75f, 0.0f), float2(-0.625f, 0.0f),
+        float2(0.5303f, 0.5303f), float2(0.3536f, -0.3536f), float2(-0.4243f, -0.4243f), float2(0.0f, 0.875f)
     };
     float angle = fract(52.9829189f * fract(dot(screenPixel, float2(0.06711056f, 0.00583715f)))) * 6.2831853f;
     float sinAngle = sin(angle), cosAngle = cos(angle);
@@ -120,16 +126,23 @@ inline float sampleShadow(constant ShadowUniforms &shadow,
 
     float radius = shadow.parameters.w / float(shadowMap.get_width());
     float sum = 0.0f;
-    for (uint i = 0; i < 8; ++i) {
+    for (uint i = 0; i < 4; ++i) {
         float2 tap = uv + rotation * poisson[i] * radius;
         // Hardware comparison gives a free 2x2 within each tap.
         sum += shadowMap.sample_compare(shadowSampler, tap, cascade, reference);
     }
-    float visibility = sum * (1.0f / 8.0f);
-
-    // Fade the last cascade out rather than ending it with a hard line.
-    float lastSplit = shadow.splitDistances[count - 1];
-    float fade = saturate((viewDepth - lastSplit * 0.85f) / max(lastSplit * 0.15f, 1e-3f));
+    // Most of a frame is nowhere near a shadow's edge. When the ring agrees,
+    // sixteen texels round this point are all lit or all dark and the inner
+    // taps would only say so again; they are taken in the penumbra alone,
+    // where the result is the same eight-tap average as before.
+    float visibility = sum * 0.25f;
+    if (sum > 0.0f && sum < 4.0f) {
+        for (uint i = 4; i < 8; ++i) {
+            float2 tap = uv + rotation * poisson[i] * radius;
+            sum += shadowMap.sample_compare(shadowSampler, tap, cascade, reference);
+        }
+        visibility = sum * (1.0f / 8.0f);
+    }
     return mix(visibility, 1.0f, fade);
 }
 

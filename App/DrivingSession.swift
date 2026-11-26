@@ -143,9 +143,10 @@ private actor DrivingWorker {
             if automaticQuality,!paused,firstFrameDrawn,frame?.result==nil {
                 governor.targetRate=Double(UserDefaults.standard.object(forKey:"renderRate") as? Int ?? 60)
                 let before=governor.index
-                if let level=governor.record(frameRate:Double(meterFrames)/(now-meterStart),gpuSeconds:meterGPU) {
+                if let level=governor.record(frameRate:Double(meterFrames)/(now-meterStart)) {
                     qualityLevel=level;presetChanged=true
                     UserDefaults.standard.set(governor.index,forKey:Self.settledQualityKey)
+                    UserDefaults.standard.set(governor.ceiling,forKey:Self.settledQualityKey+"Ceiling")
                     qualityNotice=governor.index<before ? "Quality lowered to hold \(Int(governor.targetRate)) fps":"Quality raised"
                     qualityNoticeStamp=now
                 }
@@ -220,10 +221,19 @@ private actor DrivingWorker {
         if let fixed=RenderSettings.Preset(rawValue:qualityMode) {
             qualityLevel=QualityLevel(preset:fixed)
         } else {
-            if retest { for key in ["renderQualityLevel","renderQualityLevelLowPower"] { UserDefaults.standard.removeObject(forKey:key) } }
+            if retest {
+                for key in ["renderQualityLevel","renderQualityLevelLowPower"] {
+                    UserDefaults.standard.removeObject(forKey:key);UserDefaults.standard.removeObject(forKey:key+"Ceiling")
+                }
+            }
             let settled=UserDefaults.standard.object(forKey:Self.settledQualityKey) as? Int
+            // A rung that was climbed to and failed stays ruled out between
+            // sessions, so the trial is not repeated every race. Choosing
+            // the mode again in Settings tests afresh.
+            let top=QualityGovernor.recommended(deviceName:Self.deviceName)
+            let ceiling=min(UserDefaults.standard.object(forKey:Self.settledQualityKey+"Ceiling") as? Int ?? top,top)
             governor=QualityGovernor(index:settled ?? QualityGovernor.start(deviceName:Self.deviceName),
-                                     ceiling:QualityGovernor.recommended(deviceName:Self.deviceName),targetRate:rate)
+                                     ceiling:ceiling,targetRate:rate)
             qualityLevel=governor.level
         }
         presetChanged=true

@@ -965,6 +965,10 @@ public final class ForwardRenderer {
                 encoder.setVertexBytes(&frame, length: MemoryLayout<FrameUniforms>.stride, index: 1)
                 encoder.setFragmentBytes(&frame, length: MemoryLayout<FrameUniforms>.stride, index: 1)
                 encoder.setFragmentSamplerState(sampler, index: 0)
+                // The vertex stage reads the atmosphere's tables in every
+                // pipeline that shares it, this depth-only one included.
+                encoder.setVertexTexture(atmosphere.transmittance, index: 3)
+                encoder.setVertexTexture(atmosphere.multiScatter, index: 4)
                 encodePrepassDraws(on: encoder, resources: resources, instances: instances, eye: camera.eye, frustum: frustum)
                 encoder.endEncoding()
             }
@@ -986,6 +990,9 @@ public final class ForwardRenderer {
         encoder.setFragmentSamplerState(sampler, index: 0)
         encoder.setFragmentSamplerState(detailSampler(), index: 2)
         encoder.setFragmentTexture(occlusion.result ?? neutralOcclusion, index: 7)
+        // Aerial perspective is evaluated per vertex, from these two tables.
+        encoder.setVertexTexture(atmosphere.transmittance, index: 3)
+        encoder.setVertexTexture(atmosphere.multiScatter, index: 4)
 
         // Optional depth-only prepass. Everything that will shade writes depth
         // first, so the shading pass touches each visible pixel once.
@@ -998,8 +1005,6 @@ public final class ForwardRenderer {
         // counter-clockwise. Metal defaults to clockwise, so without this
         // every culled mesh keeps its back faces and discards its front ones.
         encoder.setFrontFacing(.counterClockwise)
-        encoder.setFragmentTexture(atmosphere.transmittance, index: 3)
-        encoder.setFragmentTexture(atmosphere.multiScatter, index: 4)
         encoder.setFragmentTexture(atmosphere.skyView, index: 5)
         encoder.setFragmentBuffer(atmosphere.irradiance, offset: 0, index: 3)
         encoder.setFragmentTexture(shadows.map, index: 6)

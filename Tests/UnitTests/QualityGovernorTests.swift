@@ -30,7 +30,7 @@ final class QualityGovernorTests: XCTestCase {
     }
     func testHoldsWhenTheRateIsMetAndIgnoresNonsense() {
         var governor=QualityGovernor(index:QualityGovernor.index(of:.balanced))
-        for _ in 0..<60 { XCTAssertNil(governor.record(frameRate:58,gpuSeconds:0.012)) }   // within tolerance, no headroom
+        for _ in 0..<60 { XCTAssertNil(governor.record(frameRate:58)) }   // within tolerance, short of steady
         for value in [Double.nan,.infinity,0,-5] { XCTAssertNil(governor.record(frameRate:value)) }
         XCTAssertEqual(governor.level.preset,.balanced)
         // A reset forgets a run of slow seconds.
@@ -45,28 +45,49 @@ final class QualityGovernorTests: XCTestCase {
         for _ in 0..<2 { XCTAssertNil(fast.record(frameRate:60)) }
         XCTAssertEqual(fast.record(frameRate:60)?.preset,.balanced)
     }
-    func testClimbsOnlyWithHeadroomUpToTheCeilingAndRemembersAFailedRung() {
+    func testClimbsAfterASteadyStretchUpToTheCeilingAndRemembersAFailedRung() {
         let fanless=QualityGovernor.index(of:.m2Air)
         var governor=QualityGovernor(index:1,ceiling:fanless)
         settle(&governor)
-        // Steady at the target but the GPU busy: no climb.
-        for _ in 0..<60 { XCTAssertNil(governor.record(frameRate:60,gpuSeconds:0.012)) }
-        // Steady with the GPU under half its interval: one rung after the steady stretch.
-        for _ in 0..<QualityGovernor.steadySeconds-1 { XCTAssertNil(governor.record(frameRate:60,gpuSeconds:0.006)) }
-        XCTAssertEqual(governor.record(frameRate:60,gpuSeconds:0.006),QualityLevel(preset:.m2Air,renderScale:0.85))
+        // Holding the target, but only just: no climb.
+        for _ in 0..<60 { XCTAssertNil(governor.record(frameRate:57)) }
+        // Steady at the full rate: one rung, as a trial, after the steady stretch.
+        for _ in 0..<QualityGovernor.steadySeconds-1 { XCTAssertNil(governor.record(frameRate:60)) }
+        XCTAssertEqual(governor.record(frameRate:60),QualityLevel(preset:.m2Air,renderScale:0.85))
         // The new rung drops frames: back down, and that rung is not tried again.
         settle(&governor,rate:40)
-        for _ in 0..<QualityGovernor.slowSeconds-1 { XCTAssertNil(governor.record(frameRate:40,gpuSeconds:0.02)) }
-        XCTAssertEqual(governor.record(frameRate:40,gpuSeconds:0.02)?.renderScale,0.67)
+        for _ in 0..<QualityGovernor.slowSeconds-1 { XCTAssertNil(governor.record(frameRate:40)) }
+        XCTAssertEqual(governor.record(frameRate:40)?.renderScale,0.67)
         XCTAssertEqual(governor.ceiling,1)
         settle(&governor)
-        for _ in 0..<200 { XCTAssertNil(governor.record(frameRate:60,gpuSeconds:0.004)) }
+        for _ in 0..<200 { XCTAssertNil(governor.record(frameRate:60)) }
         XCTAssertEqual(governor.index,1)
-        // A climb that holds past its trial keeps the ceiling, and stops at it.
+        // A climb that holds keeps the ceiling, and stops at it.
         var steady=QualityGovernor(index:fanless-1,ceiling:fanless)
         var changes=0
-        for _ in 0..<400 { if steady.record(frameRate:60,gpuSeconds:0.005) != nil { changes += 1 } }
+        for _ in 0..<400 { if steady.record(frameRate:60) != nil { changes += 1 } }
         XCTAssertEqual(changes,1);XCTAssertEqual(steady.index,fanless);XCTAssertEqual(steady.ceiling,fanless)
+        // However long it held, a rung climbed to that then fails is not climbed to again.
+        for _ in 0..<QualityGovernor.slowSeconds-1 { XCTAssertNil(steady.record(frameRate:45)) }
+        XCTAssertEqual(steady.record(frameRate:45)?.renderScale,0.85)
+        XCTAssertEqual(steady.ceiling,fanless-1)
+        for _ in 0..<200 { XCTAssertNil(steady.record(frameRate:60)) }
+    }
+    func testARungItStartedOnIsTriedOnceMoreAfterFailing() {
+        // Nothing says a rung the run began on cannot be afforded: one slow
+        // spell steps down from it, a steady stretch climbs back, and only a
+        // second failure rules it out.
+        let fanless=QualityGovernor.index(of:.m2Air)
+        var governor=QualityGovernor(index:fanless,ceiling:fanless)
+        settle(&governor)
+        for _ in 0..<QualityGovernor.slowSeconds-1 { XCTAssertNil(governor.record(frameRate:40)) }
+        XCTAssertEqual(governor.record(frameRate:40)?.renderScale,0.85)
+        XCTAssertEqual(governor.ceiling,fanless)
+        var changes: [Float]=[]
+        for _ in 0..<60 { if let level=governor.record(frameRate:60) { changes.append(level.renderScale) } }
+        XCTAssertEqual(changes,[1])
+        for _ in 0..<QualityGovernor.settleSeconds+QualityGovernor.slowSeconds { if let level=governor.record(frameRate:40) { changes.append(level.renderScale) } }
+        XCTAssertEqual(changes,[1,0.85]);XCTAssertEqual(governor.ceiling,fanless-1)
     }
     func testLevelsAndRecommendationFollowTheChip() {
         let fanless=QualityGovernor.index(of:.m2Air)

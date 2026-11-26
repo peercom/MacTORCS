@@ -54,13 +54,15 @@ million HDR pixels. The scene itself is about 200,000 triangles in 300 draws.
 
 **Automatic quality** (the default; the old preset setting is no longer
 read). `QualityGovernor` is fed what the player sees — frames presented in
-the last second — and the GPU's span for a frame, once a second while a
-session runs. Its ladder, lightest first: the fanless preset at 50, 67, 85
+the last second — once a second while a session runs. Its ladder, lightest first: the fanless preset at 50, 67, 85
 and 100% resolution (scaled up by the spatial scaler), then balanced, then
 high. Three slow seconds in a row move it down a rung; twenty steady seconds
-with the GPU under half its interval move it up one, a rung that then fails
-is not tried again, and it never climbs above the machine's ceiling (high for
-Max and Ultra chips, balanced for Pro, fanless otherwise). A base chip starts
+at the full rate move it up one as a trial, a rung climbed to that then fails
+is not tried again (in that session or later ones, until the mode is chosen
+again in Settings), and it never climbs above the machine's ceiling (high for
+Max and Ultra chips, balanced for Pro, fanless otherwise). It does not wait
+for the GPU's time to fall before climbing; see "The GPU's clock" below for
+why that never happened. A base chip starts
 one rung under its ceiling. The new settings are applied to the running
 renderer; where it settled is remembered. The HUD says when it moves, and can
 show the frame rate and GPU time.
@@ -91,10 +93,14 @@ within the first seconds.
 - `TORCS_PASS_LOG=1` times each pass of the presented frames (the frame is
   waited for, so the frame rate under it is not the game's).
 - `--frame-cost <track> <car> [WxH] [preset] [--chase] [--pace HZ]
-  [--render-off a,b]` times a frame's passes offscreen.
+  [--render-off a,b]` times a frame's passes offscreen. With `--lap N` it
+  does so from N viewpoints round the circuit instead of the start grid, and
+  `--dump DIR` writes each viewpoint's picture. Unpaced, the timing repeats
+  to a hundredth of a millisecond and the pictures bit for bit, which is
+  what makes a shader change measurable: time and picture, before and after.
 - `--render-off` switches effects off in the window as well.
 
-## What is left
+## The window against the offscreen frame
 
 **The window's own cost is not compositing.** The same frame took 8.5 ms
 offscreen and 13.1 ms in the window, and the suspect was the system
@@ -117,15 +123,83 @@ What the gap is instead, as far as it is known:
   a 2560 x 1664 panel. The game window is 2880 x 1720 pixels, 16% more than
   the panel-sized offscreen frame. Offscreen at the window's size costs
   9.0 ms, against 7.9 ms at the panel's size on the same day.
-- **The rest, about 3.5 ms, is in the forward pass**: 6.0 ms in the window
-  against 4.0 ms offscreen at the same size. The offscreen test looks at the
-  start grid; the window run drives the circuit. The view is the likely
-  difference and is untested.
-- **The GPU's cost per frame is not steady in the window.** At a light level
-  the frame log shows it climbing from 8 ms to 15 ms over eleven frames and
-  dropping back, again and again, in the window and in full screen. That
-  looks like the GPU clocking down while there is slack, which would make a
-  light frame measure dearer than it is. Unconfirmed.
+- **The rest is the GPU's clock, not the view.** Viewpoints round the lap
+  cost no more offscreen than the grid does (3.4 ms for the scene pass
+  against 4.0). See the next section.
+
+## The GPU's clock
+
+The GPU slows down when it has time to spare, so a frame's GPU time in a
+window says little about the work in it. The same offscreen frame, 2880 x
+1720, Fanless preset:
+
+| | Whole frame | Scene pass |
+|---|---|---|
+| Back to back | 8.1 ms | 3.4 ms |
+| Paced at 60 Hz | 8.1 ms | 3.4 ms |
+| Paced at 30 Hz | 15.0 ms | 7.0 ms |
+
+In the window the reported span sits near 15 ms whatever the load: 15.9 ms
+at full resolution and 15.1 ms at half. Two things follow.
+
+- **Measure offscreen and unpaced.** In-window GPU times, the pass log
+  included, are for comparing like with like on one day, not for costing
+  work.
+- **Automatic quality could never climb.** It waited for twenty steady
+  seconds with the GPU under half its interval, and the span never falls
+  that far. Started at 50% it sat there for 70 seconds at a steady 60. It
+  now climbs by trial (see above): started at 50% it reached 100% in under
+  two minutes and held 60 there.
+
+## The scene pass
+
+Measured back to back over twelve viewpoints of a lap, with each part of the
+fragment shader removed in turn, the 3.4 ms of the scene pass at 2880 x 1720
+divided like this (each part timed by its own removal, so they overlap a
+little and add up to slightly more than the pass):
+
+| Part | ms |
+|---|---|
+| Sun shadow, eight filtered taps | 0.72 |
+| Aerial perspective | 0.52 |
+| Normal map | 0.30 |
+| Sky reflection lookup | 0.29 |
+| Sun's direct light | 0.25 |
+| Road markings and rubber | 0.23 |
+| Sky light, diffuse and specular weights | 0.37 |
+| Roughness map, occlusion lookup | 0.29 |
+| Everything else: rasterising, base colour, three targets, the sky | 0.69 |
+
+Three changes took it to 2.7 ms, a fifth less, and between 20 and 24% less
+on each of the six circuits tried (CG Speedway, Alpine 1, E-Track 3,
+Street 1, Wheel 2, Forza):
+
+- **Aerial perspective per vertex.** The air's effect over the length of a
+  circuit is within a part in a thousand of linear in distance, so it is
+  evaluated in the vertex stage and interpolated. 0.52 ms became 0.04.
+- **The shadow filter stops early.** Four taps ring the filter disc; where
+  they agree, sixteen texels are all lit or all dark and the other four taps
+  are not taken. A surface turned away from the sun is not filtered at all.
+  The arithmetic round the taps turned out not to matter: five variants of
+  it measured within 0.04 ms.
+- **The sky lookup's two inverse trigonometric functions are polynomials**,
+  good to a ten-thousandth of a radian. 0.06 ms.
+
+The pictures before and after differ in single pixels along the soft edges
+of dappled shadow, where the ring of four misses a fringe the inner four
+would have caught: under 0.3% of pixels by more than two steps of 255 on the
+worst view of the six circuits.
+
+Moving the aerial perspective showed up a fault it had always had. The
+integrator it shares with the sky adds sunlit bare earth wherever a ray ends
+below sea level, which is right for the sky's table and wrong for a ray that
+ends on scenery: far scenery set below sea level was lit as earth. Per pixel
+that was a few pixels; per vertex it spread over whole triangles (a tunnel
+mouth on Alpine 1 came out orange). Aerial perspective no longer asks for
+the bounce.
+
+What is left in the pass is many parts of 0.1 to 0.3 ms each, none of which
+gave way to rearranging. The next real saving there is shading fewer pixels.
 
 Two things follow from the display mode. At "100%" the game draws 32% more
 pixels than the panel has, and the system scales them down. The automatic
@@ -140,9 +214,10 @@ Power Mode (`renderQualityLevelLowPower`), so a session on battery no longer
 sets where the next one on mains starts. That path was not exercised after
 the change: Low Power Mode was switched off before it could be.
 
-The forward pass is half the remaining frame and was not touched: its shader
-carries another line of work's uncommitted changes. The full-resolution chain
-after it — reflection composite, motion blur, tonemap — is three passes that
+## What is left
+
+The full-resolution chain
+after the scene pass — reflection composite, motion blur, tonemap — is three passes that
 each read and write the whole HDR target and could be one. The HUD costs
 about a fifth of the main thread through SwiftUI layout at twenty updates a
 second, which matters to nothing while the GPU is the limit. None of this was

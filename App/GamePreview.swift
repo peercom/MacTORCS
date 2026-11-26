@@ -10,6 +10,7 @@ import TORCSAssets
 import TORCSPresentation
 import TORCSRaceEngine
 import TORCSRender
+import TORCSTrack
 import TORCSTrackMesh
 
 @MainActor enum GamePreview {
@@ -92,9 +93,35 @@ import TORCSTrackMesh
             // With `--pace HZ` a frame is rendered once per interval and the
             // GPU idles in between, as it does behind a display.
             let pace=arguments.firstIndex(of:"--pace").flatMap { $0+1<arguments.count ? Double(arguments[$0+1]):nil }
-            let total=pace==nil ? 60:240
+            // With `--lap N` the frame is measured from N viewpoints spread
+            // round the circuit, behind and above the centreline as the chase
+            // camera sits, instead of from the start grid alone: what a lap
+            // costs, not what the grid costs.
+            var views: [RenderCamera]=[]
+            if let n=arguments.firstIndex(of:"--lap").flatMap({ $0+1<arguments.count ? Int(arguments[$0+1]):nil }),n>0 {
+                let geometry=content.simulation.road.geometry
+                let main=geometry.segments.indices.filter { geometry.segments[$0].role == .main }
+                let lapLength=main.reduce(Float(0)) { $0+geometry.segments[$1].length }
+                for k in 0..<n {
+                    let target=lapLength*Float(k)/Float(n)
+                    guard let index=main.last(where:{ geometry.segments[$0].distanceFromStart<=target }) ?? main.first else { continue }
+                    let local=TrackLocalPosition(segment:index,toStart:0)
+                    let ground=geometry.localToGlobal(local,origin:.middle),heading=geometry.tangent(local)
+                    let at=SIMD3(ground.x,ground.y,(try? geometry.height(at:ground,startingAt:index)) ?? 0)
+                    let along=SIMD3(cos(heading),sin(heading),0)
+                    views.append(RenderCamera(eye:at-along*6+SIMD3(0,0,2),target:at+along*10,verticalFieldOfView:camera.verticalFieldOfView,near:camera.near,far:camera.far))
+                }
+            }
+            let perView=18
+            let dump=arguments.firstIndex(of:"--dump").flatMap { $0+1<arguments.count ? URL(fileURLWithPath:arguments[$0+1],isDirectory:true):nil }
+            if let dump { try FileManager.default.createDirectory(at:dump,withIntermediateDirectories:true) }
+            let total=views.isEmpty ? (pace==nil ? 60:240):views.count*perView
             var next=ProcessInfo.processInfo.systemUptime
             for frame in 0..<total {
+                if !views.isEmpty {
+                    camera=views[frame/perView]
+                    if frame%perView==0 { renderer.resetHistory() }
+                }
                 if let pace {
                     next += 1/pace
                     let wait=next-ProcessInfo.processInfo.systemUptime
@@ -102,8 +129,13 @@ import TORCSTrackMesh
                 }
                 // `--uptime` starts time where the window's does: at the machine's uptime.
                 if animate { renderer.animationTime=Double(frame)/60+(arguments.contains("--uptime") ? CACurrentMediaTime():1) }
-                _=try renderer.render(resources:resources.resources,instances:instances,camera:camera,lighting:lighting,width:width,height:height)
-                guard frame>=total/3 else { continue }
+                let pixels=try renderer.render(resources:resources.resources,instances:instances,camera:camera,lighting:lighting,width:width,height:height)
+                // `--dump DIR`: the last frame of each viewpoint as a PNG, for
+                // comparing the picture before and after a change to the shaders.
+                if let dump,!views.isEmpty,frame%perView==perView-1 {
+                    try writePNG(Data(pixels),width:width,height:height,output:dump.appendingPathComponent(String(format:"view-%02d.png",frame/perView)))
+                }
+                guard views.isEmpty ? frame>=total/3:frame%perView>=perView/3 else { continue }
                 frames.append(renderer.lastGPUTime*1000)
                 for sample in renderer.lastPassTimes {
                     if passes[sample.name]==nil { order.append(sample.name) }

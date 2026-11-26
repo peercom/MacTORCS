@@ -98,6 +98,28 @@ inline float groundNoise(float2 p) {
     return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
 }
 
+/// `skyViewUV` for a direction already of unit length, with the two inverse
+/// trigonometric functions as polynomials (Abramowitz and Stegun 4.4.45 and
+/// a degree-eleven odd fit). They are within a ten-thousandth of a radian,
+/// a few thousandths of a texel of the sky table, and the lookup runs once
+/// or twice for every pixel of the scene.
+inline float2 skyViewUVFast(float3 d) {
+    float ax = abs(d.x), ay = abs(d.y);
+    float z = min(ax, ay) / max(max(ax, ay), 1e-12f);
+    float z2 = z * z;
+    float a = z * (0.99997726f + z2 * (-0.33262347f + z2 * (0.19354346f + z2 * (-0.11643287f
+            + z2 * (0.05265332f - 0.01172120f * z2)))));
+    a = ay > ax ? kAtmospherePi * 0.5f - a : a;
+    a = d.x < 0.0f ? kAtmospherePi - a : a;
+    float azimuth = d.y < 0.0f ? -a : a;
+    float c = clamp(d.z, -1.0f, 1.0f), ac = abs(c);
+    float zenith = sqrt(1.0f - ac) * (1.5707288f + ac * (-0.2121144f + ac * (0.0742610f - 0.0187293f * ac)));
+    zenith = c < 0.0f ? kAtmospherePi - zenith : zenith;
+    float v = (zenith - kAtmospherePi * 0.5f) / (kAtmospherePi * 0.5f);
+    float mapped = sqrt(abs(v)) * (v < 0.0f ? -1.0f : 1.0f);
+    return float2(azimuth / (2.0f * kAtmospherePi) + 0.5f, mapped * 0.5f + 0.5f);
+}
+
 struct ForwardVarying {
     // Invariant so the depth prepass and this pass agree exactly, which the
     // temporal path depends on.
@@ -115,6 +137,10 @@ struct ForwardVarying {
     /// Unjittered clip positions, for the motion vector.
     float4 currentClip;
     float4 previousClip;
+    /// Aerial perspective between the eye and this vertex: the light the air
+    /// scatters into the ray, and what it lets through. See forwardVertex.
+    float3 inScatter;
+    float3 transmittance;
 };
 
 /// Converts a pair of clip positions into the motion vector MetalFX expects:
@@ -151,7 +177,9 @@ vertex ForwardVarying forwardVertex(uint id [[vertex_id]],
                                     const device PackedVertex *vertices [[buffer(0)]],
                                     constant FrameUniforms &frame [[buffer(1)]],
                                     constant DrawUniforms &draw [[buffer(2)]],
-                                    constant InstanceUniforms &instance [[buffer(5)]]) {
+                                    constant InstanceUniforms &instance [[buffer(5)]],
+                                    texture2d<float> transmittanceLUT [[texture(3)]],
+                                    texture2d<float> multiScatterLUT [[texture(4)]]) {
     PackedVertex v = vertices[id];
     float4 world = instance.model * draw.model * float4(float3(v.position), 1.0f);
     if (draw.maps.w & 4u) {
@@ -189,6 +217,16 @@ vertex ForwardVarying forwardVertex(uint id [[vertex_id]],
     out.currentClip = frame.unjitteredViewProjection * world;
     out.previousClip = frame.previousViewProjection * instance.previousModel * draw.model
                      * float4(float3(v.position), 1.0f);
+    // Aerial perspective, from the same medium the sky uses, in place of the
+    // classic path's per-camera linear fog. Evaluated here and interpolated
+    // rather than per pixel: over the length of a circuit the air's effect is
+    // within a part in a thousand of linear in distance, so the two agree to
+    // less than a display step, and this was a sixth of the scene pass at
+    // five million pixels. The widest error is the forward-scattering peak a
+    // few degrees round the sun, which a triangle wider than that smooths.
+    out.inScatter = aerialPerspective(world.xyz, frame.cameraPosition.xyz,
+                                      normalize(frame.sunDirection.xyz), frame.sunIlluminance.rgb,
+                                      transmittanceLUT, multiScatterLUT, out.transmittance);
     return out;
 }
 
@@ -198,8 +236,6 @@ fragment ForwardOutput forwardFragment(ForwardVarying in [[stage_in]],
                                 texture2d<float> albedoMap [[texture(0)]],
                                 texture2d<float> normalMap [[texture(1)]],
                                 texture2d<float> ormMap [[texture(2)]],
-                                texture2d<float> transmittanceLUT [[texture(3)]],
-                                texture2d<float> multiScatterLUT [[texture(4)]],
                                 texture2d<float> skyViewLUT [[texture(5)]],
                                 constant SkyIrradiance &skyIrradiance [[buffer(3)]],
                                 constant ShadowUniforms &shadow [[buffer(4)]],
@@ -350,8 +386,14 @@ fragment ForwardOutput forwardFragment(ForwardVarying in [[stage_in]],
 
     // View-space depth selects the cascade. The camera looks down -Z.
     float viewDepth = -(frame.view * float4(in.worldPosition, 1.0f)).z;
-    float visibility = sampleShadow(shadow, shadowMap, shadowSampler, in.worldPosition,
-                                    basis[2], sunDirection, viewDepth, in.position.xy);
+    // Only where the sun can reach: a surface turned away from it has no
+    // direct light for a shadow to remove, and the filter is the dearest
+    // thing in this shader. A leaf is the exception, lit through its back.
+    float visibility = 1.0f;
+    if ((draw.maps.w & 4u) || dot(normal, sunDirection) > 0.0f) {
+        visibility = sampleShadow(shadow, shadowMap, shadowSampler, in.worldPosition,
+                                  basis[2], sunDirection, viewDepth, in.position.xy);
+    }
 
     // Screen-space occlusion, computed from the depth prepass: red is sky
     // visibility, green is sun visibility over the first few decimetres. Only
@@ -373,7 +415,7 @@ fragment ForwardOutput forwardFragment(ForwardVarying in [[stage_in]],
     float3 irradiance = evaluateSkyIrradiance(skyIrradiance, normal);
     float3 reflection = reflect(-view, normal);
     float mipCount = float(max(skyViewLUT.get_num_mip_levels(), 1u) - 1u);
-    float3 prefiltered = skyViewLUT.sample(skySampler, skyViewUV(reflection),
+    float3 prefiltered = skyViewLUT.sample(skySampler, skyViewUVFast(reflection),
                                            level(surface.perceptualRoughness * mipCount)).rgb;
     // Under cloud the skylight is the sun's light diffused by the layer:
     // greyer than the clear sky's blue and, with the sun dimmed to match,
@@ -393,7 +435,7 @@ fragment ForwardOutput forwardFragment(ForwardVarying in [[stage_in]],
         ? max(surface.clearcoatRoughness, kMinPerceptualRoughness) : surface.perceptualRoughness;
     float3 prefilteredCoat = prefiltered;
     if (surface.clearcoat > 0.0f) {
-        prefilteredCoat = skyViewLUT.sample(skySampler, skyViewUV(reflect(-view, sharpNormal)),
+        prefilteredCoat = skyViewLUT.sample(skySampler, skyViewUVFast(reflect(-view, sharpNormal)),
                                             level(sharpRoughness * mipCount)).rgb;
     }
     colour += evaluateImageBasedLight(surface, view, irradiance, prefiltered, prefilteredCoat);
@@ -408,14 +450,11 @@ fragment ForwardOutput forwardFragment(ForwardVarying in [[stage_in]],
     }
     sharpWeight *= surface.ambientOcclusion;
 
-    // Aerial perspective, from the same medium the sky uses. This replaces the
-    // classic path's per-camera linear fog, whose range was authored separately
-    // for each of the 31 cameras and could never agree with the sky behind it.
-    float3 transmittance;
-    float3 inScatter = aerialPerspective(in.worldPosition, frame.cameraPosition.xyz,
-                                         normalize(frame.sunDirection.xyz), frame.sunIlluminance.rgb,
-                                         transmittanceLUT, multiScatterLUT, transmittance);
-    colour = colour * transmittance + inScatter;
+    // Aerial perspective, evaluated per vertex. It replaces the classic
+    // path's per-camera linear fog, whose range was authored separately for
+    // each of the 31 cameras and could never agree with the sky behind it.
+    float3 transmittance = in.transmittance;
+    colour = colour * transmittance + in.inScatter;
 
     ForwardOutput out;
     out.colour = float4(colour, albedo.a);

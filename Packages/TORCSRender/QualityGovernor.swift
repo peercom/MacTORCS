@@ -42,11 +42,16 @@ public struct QualityLevel: Sendable, Equatable {
 /// cannot rescue it in a window: it is fed command-buffer spans, which
 /// overlapping frames inflate, so it steps down, sees no gain and reverts.
 ///
-/// The governor is fed what the player sees — frames presented in the last
-/// second — together with the GPU's span for a frame. Dropped frames move
-/// it down after a few seconds; a long steady stretch with the GPU under
-/// half its interval moves it up one rung, and a rung that then fails is
-/// not tried again.
+/// The governor is fed what the player sees: frames presented in the last
+/// second. Dropped frames move it down after a few seconds; a long steady
+/// stretch moves it up one rung, as a trial, and a rung reached that way
+/// which then fails is not tried again.
+///
+/// It does not ask the GPU how busy it is. In a window the GPU slows its
+/// clock to fill the time it has: the same frame measures 8 ms rendered
+/// back to back and 15 ms paced at 30 Hz, and a frame at half resolution
+/// still reports 15 ms of a 16.7 ms interval. A climb that waited for the
+/// span to fall never came.
 public struct QualityGovernor: Sendable, Equatable {
     /// Lightest first: the fanless preset at rising resolution, then the
     /// heavier presets at native. The scales are rungs of the renderer's own
@@ -70,15 +75,14 @@ public struct QualityGovernor: Sendable, Equatable {
     public static let settleSeconds = 3
     /// Consecutive slow seconds before a step down.
     public static let slowSeconds = 3
-    /// Consecutive steady seconds, with the GPU under `headroom` of its
-    /// interval, before a step up.
+    /// Consecutive steady seconds before a step up is tried.
     public static let steadySeconds = 20
-    public static let headroom = 0.5
-    /// A step up that is undone within this many seconds has failed.
-    public static let trialSeconds = 30
     private var settling = QualityGovernor.settleSeconds
     private var slow = 0, steady = 0
-    private var trial = 0
+    /// Rungs reached by climbing in this run. One that later fails, however
+    /// long it held, lowers the ceiling: without that a rung that is only
+    /// nearly affordable would be climbed to and dropped from all race long.
+    private var climbed: Set<Int> = []
 
     public init(index: Int, ceiling: Int? = nil, targetRate: Double = 60) {
         let top = Self.ladder.count - 1
@@ -110,28 +114,26 @@ public struct QualityGovernor: Sendable, Equatable {
         return top == index(of: .m2Air) ? top - 1 : top
     }
 
-    /// One second of a running session: the frames presented in it and the
-    /// GPU's time for a frame. Returns the level to switch to, if any.
-    public mutating func record(frameRate: Double, gpuSeconds: Double = 0) -> QualityLevel? {
+    /// One second of a running session: the frames presented in it.
+    /// Returns the level to switch to, if any.
+    public mutating func record(frameRate: Double) -> QualityLevel? {
         guard frameRate.isFinite, frameRate > 0 else { return nil }
         if settling > 0 { settling -= 1; return nil }
-        if trial > 0 { trial -= 1 }
         if frameRate < targetRate * Self.tolerance {
             slow += 1; steady = 0
             guard slow >= Self.slowSeconds, index > 0 else { return nil }
             // A rung reached by climbing that did not hold is not climbed to again.
-            if trial > 0 { ceiling = index - 1 }
+            if climbed.contains(index) { ceiling = index - 1 }
             index -= 1
-            slow = 0; trial = 0; settling = Self.settleSeconds
+            slow = 0; settling = Self.settleSeconds
             return level
         }
         slow = 0
-        let interval = 1 / targetRate
-        let roomy = frameRate >= targetRate * 0.97 && gpuSeconds > 0 && gpuSeconds <= interval * Self.headroom
-        steady = roomy ? steady + 1 : 0
+        steady = frameRate >= targetRate * 0.97 ? steady + 1 : 0
         guard steady >= Self.steadySeconds, index < ceiling else { return nil }
         index += 1
-        steady = 0; trial = Self.trialSeconds; settling = Self.settleSeconds
+        climbed.insert(index)
+        steady = 0; settling = Self.settleSeconds
         return level
     }
 

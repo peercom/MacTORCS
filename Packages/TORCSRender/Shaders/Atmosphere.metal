@@ -229,7 +229,7 @@ inline float3 integrateScattering(AtmosphereMedium m, float3 origin, float3 dire
                                   float maxDistance, uint steps,
                                   texture2d<float> transmittanceLUT,
                                   texture2d<float> multiScatterLUT,
-                                  thread float3 &throughputOut) {
+                                  thread float3 &throughputOut, bool groundBounce = true) {
     constexpr sampler lut(coord::normalized, address::clamp_to_edge, filter::linear);
 
     float top = raySphere(origin, direction, kAtmosphereRadius);
@@ -246,7 +246,10 @@ inline float3 integrateScattering(AtmosphereMedium m, float3 origin, float3 dire
     // Hillaire's technique includes this; without it every downward ray returns
     // black, and any part of the frame not covered by scene geometry reads as a
     // void rather than as ground.
-    bool hitsGround = ground > 0.0f && ground <= maxDistance;
+    // A ray that ends on scene geometry asks for no bounce: the surface there
+    // is shaded by the scene, and scenery set below sea level would otherwise
+    // be lit as bare earth.
+    bool hitsGround = groundBounce && ground > 0.0f && ground <= maxDistance;
 
     float3 luminance = float3(0.0f), throughput = float3(1.0f);
     float step = distance / float(steps);
@@ -380,7 +383,7 @@ inline float3 aerialPerspective(float3 worldPosition, float3 cameraPosition,
     uint steps = distance < 1.0f ? 4u : 8u;
     return integrateScattering(defaultMedium(), origin, normalize(offset), sunDirection,
                                sunIlluminance, distance, steps, transmittanceLUT, multiScatterLUT,
-                               transmittanceOut);
+                               transmittanceOut, false);
 }
 
 
