@@ -96,6 +96,16 @@ within the first seconds.
 
 ## What is left
 
+**The window's own cost is unexplained.** The same frame takes 8.5 ms
+offscreen and 13.1 ms in the window, paced or not. The suspect is the system
+compositing a full-resolution game layer with the HUD's layers over it every
+frame, which also rules out direct display in full screen. The experiment is
+ready — `--autoplay … --fullscreen` and `--no-hud` under `TORCS_PASS_LOG=1`,
+at a fixed preset — but needs the display on, and it went to sleep before the
+runs: they presented no frames. If full screen without the HUD's layers
+comes back near the offscreen figure, drawing the HUD inside the frame is
+worth about a third of the frame, and native resolution would hold 60.
+
 The forward pass is half the remaining frame and was not touched: its shader
 carries another line of work's uncommitted changes. The full-resolution chain
 after it — reflection composite, motion blur, tonemap — is three passes that

@@ -219,6 +219,11 @@ struct GameShell: View {
                 window.setContentSize(NSSize(width:parts[0],height:parts[1]))
             }
         }
+        if CommandLine.arguments.contains("--fullscreen"),let window=NSApp.windows.first(where:{ $0.contentView != nil && $0.isVisible }),
+           !window.styleMask.contains(.fullScreen) {
+            window.toggleFullScreen(nil)
+            try? await Task.sleep(for:.seconds(2))
+        }
         flow.startSession()
         let deadline=Date().addingTimeInterval(seconds)
         var started: Date?
