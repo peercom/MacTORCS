@@ -191,4 +191,39 @@ final class MaterialGenerationTests: XCTestCase {
         XCTAssertGreaterThan(rockHigh - rockLow, 80, "a rock face has joints and faces")
         XCTAssertGreaterThan(high - low + 1, 0)
     }
+
+    /// The road's layer of wear: reproducible, continuous where it comes
+    /// round, mostly saying nothing, with tar in thin lines and grime only
+    /// along the two edges.
+    func testRoadWearIsSparseAndComesRoundWithoutASeam() throws {
+        let width = 512, height = 128
+        let wear = RoadWear.generate(width: width, height: height, seed: 1)
+        XCTAssertEqual(wear.count, width * height * 4)
+        XCTAssertEqual(wear, RoadWear.generate(width: width, height: height, seed: 1), "reproducible")
+        XCTAssertNotEqual(wear, RoadWear.generate(width: width, height: height, seed: 2))
+        XCTAssertEqual(RoadWear.length, 96)
+        func value(_ x: Int, _ y: Int, _ channel: Int) -> Int { Int(wear[(y * width + x) * 4 + channel]) }
+        var tone = 0.0, tarred = 0, grimeMiddle = 0, grimeEdge = 0, seam = 0.0, within = 0.0
+        for y in 0 ..< height {
+            for x in 0 ..< width {
+                tone += Double(value(x, y, 0))
+                if value(x, y, 2) > 128 { tarred += 1 }
+                if y > height / 4 && y < height * 3 / 4 { grimeMiddle = max(grimeMiddle, value(x, y, 3)) }
+                if y == 0 || y == height - 1 { grimeEdge += value(x, y, 3) }
+            }
+            // Where the map comes round, against the day joint a quarter of
+            // the way along: it is a joint like that one and no more.
+            seam += Double(abs(value(2, y, 0) - value(width - 3, y, 0)))
+            let joint = Int(0.23 * Double(width))
+            within += Double(abs(value(joint + 2, y, 0) - value(joint - 3, y, 0)))
+        }
+        XCTAssertEqual(tone / Double(width * height), 128, accuracy: 14, "mostly the asphalt as it is")
+        let share = Double(tarred) / Double(width * height)
+        XCTAssertGreaterThan(share, 0.001, "there are sealed joints and cracks")
+        XCTAssertLessThan(share, 0.06, "and they are lines, not areas: \(share)")
+        XCTAssertEqual(grimeMiddle, 0, "no grime where the tyres run")
+        XCTAssertGreaterThan(grimeEdge / (2 * width), 60, "grime along both edges")
+        XCTAssertLessThan(seam / Double(height), within / Double(height) * 2 + 8,
+                          "where it comes round is one more day's joint")
+    }
 }

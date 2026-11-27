@@ -31,12 +31,12 @@ public enum MaterialRecipes {
         case "asphalt-patched": return asphaltPatched(size: size, seed: seed &+ 23)
         case "grass": return turf(size: size, seed: seed, dryness: 0)
         case "grass-dry": return turf(size: size, seed: seed &+ 29, dryness: 0.45)
-        case "concrete": return concrete(size: size, seed: seed)
+        case "concrete": return weatheredConcrete(size: size, seed: seed)
         case "kerb": return kerb(size: size, seed: seed)
         case "gravel": return gravel(size: size, seed: seed)
         case "dirt": return dirt(size: size, seed: seed)
         case "mud": return mud(size: size, seed: seed &+ 31)
-        case "sand": return sand(size: size, seed: seed &+ 37)
+        case "sand": return runOffSand(size: size, seed: seed &+ 37)
         case "rock": return rock(size: size, seed: seed &+ 107)
         case "snow": return snow(size: size, seed: seed &+ 109)
         case "grass-cards": return grassCards(size: size, seed: seed)
@@ -187,35 +187,7 @@ public enum MaterialRecipes {
                                  worldSize: 1)
     }
 
-    // MARK: - Concrete, kerb, gravel, dirt
-
-    static func concrete(size: Int, seed: UInt32) -> GeneratedMaterial {
-        var height = ScalarField(size: size) { x, y in
-            let fine = Noise.fractal(Float(x) / Float(size) * 90, Float(y) / Float(size) * 90,
-                                     period: 90, octaves: 4, gain: 0.5, seed: seed)
-            let pores = 1 - Noise.worley(Float(x) / Float(size) * 40, Float(y) / Float(size) * 40,
-                                         period: 40, seed: seed &+ 5)
-            // Air pockets in the pour read as small dark pits.
-            return fine * 0.7 + pow(pores, 6) * 0.3
-        }
-        height.normalise()
-        let occlusion = MaterialSynthesis.ambientOcclusion(from: height, radius: 4, strength: 1.8)
-        let normals = MaterialSynthesis.normals(from: height, strength: Float(size) / 200)
-        var roughness = ScalarField(size: size) { x, y in 0.82 + height[x, y] * 0.12 }
-        roughness.map { min(max($0, 0.5), 1) }
-        let albedo = (0 ..< size * size).map { index -> SIMD3<Float> in
-            let x = index % size, y = index / size
-            let tone = 0.155 + height[x, y] * 0.035
-            let stain = Noise.fractal(Float(x) / Float(size) * 3, Float(y) / Float(size) * 3,
-                                      period: 3, octaves: 3, seed: seed &+ 77) * 0.03
-            return SIMD3(tone - stain, tone - stain * 0.95, tone - stain * 0.85)
-        }
-        return GeneratedMaterial(name: "concrete", size: size,
-                                 albedo: MaterialPacking.albedo(albedo),
-                                 normal: MaterialPacking.normal(normals),
-                                 orm: MaterialPacking.orm(occlusion: occlusion, roughness: roughness, metalness: 0),
-                                 worldSize: 2.5)
-    }
+    // MARK: - Kerb, gravel, dirt
 
     /// Painted kerb stone. The paint is a hard-edged stripe, and it wears off
     /// the raised parts first, which is where the height field earns its keep.

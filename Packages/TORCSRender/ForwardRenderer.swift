@@ -20,6 +20,9 @@ public final class SceneResources {
         /// A generated set's normal, roughness and occlusion in one texture
         /// (`StructureMap`), when one was substituted or laid under as detail.
         let structure: MTLTexture?
+        /// The road's layer of wear (`RoadWear`), on a road that paints
+        /// markings and has a generated surface under them.
+        let wear: MTLTexture?
         let culls: Bool
         let isDriver: Bool
         let blends: Bool
@@ -169,6 +172,8 @@ public final class SceneResources {
                                    macroVariation: generated?.macroVariation ?? 0),
                 needsAlphaTest: batch.alphaTestThreshold != nil,
                 structure: structure?.structure,
+                wear: batch.paintsRoadMarkings && generated != nil
+                    ? materialDirectory.flatMap { materials?.roadWear(directory: $0) } : nil,
                 culls: batch.culls,
                 isDriver: batch.isDriver,
                 blends: batch.blends,
@@ -268,6 +273,9 @@ public final class ForwardRenderer {
     /// Bound at the occlusion slot when the pass is off, so the shader never
     /// samples an unbound texture. White: nothing occluded.
     private let neutralOcclusion: MTLTexture
+    /// A road wear map that says nothing: mid tone, mid roughness, no tar,
+    /// no grime. Bound for a road that has no layer of its own.
+    private let neutralRoadWear: MTLTexture
     /// Whether the last frame ran a depth prepass, whether from the setting or
     /// because screen-space occlusion required one.
     public private(set) var lastFrameUsedDepthPrepass = false
@@ -482,6 +490,14 @@ public final class ForwardRenderer {
         var white: [UInt8] = [255, 255]
         neutralOcclusion.replace(region: MTLRegionMake2D(0, 0, 1, 1), mipmapLevel: 0, withBytes: &white, bytesPerRow: 2)
         self.neutralOcclusion = neutralOcclusion
+        let plain = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: .rgba8Unorm, width: 1, height: 1, mipmapped: false)
+        plain.usage = .shaderRead
+        guard let neutralRoadWear = device.makeTexture(descriptor: plain) else {
+            throw RenderError.unavailable("Could not allocate the neutral road wear texture")
+        }
+        var none: [UInt8] = [128, 128, 0, 0]
+        neutralRoadWear.replace(region: MTLRegionMake2D(0, 0, 1, 1), mipmapLevel: 0, withBytes: &none, bytesPerRow: 4)
+        self.neutralRoadWear = neutralRoadWear
         shadows = try ShadowRenderer(device: device, library: library,
                                      resolution: settings.shadowResolution,
                                      cascadeCount: settings.shadowCascades, archive: archive)
@@ -1036,6 +1052,7 @@ public final class ForwardRenderer {
         encoder.setFragmentSamplerState(sampler, index: 0)
         encoder.setFragmentSamplerState(detailSampler(), index: 2)
         encoder.setFragmentTexture(occlusion.result ?? neutralOcclusion, index: 7)
+        encoder.setFragmentTexture(neutralRoadWear, index: 2)
         // Aerial perspective is evaluated per vertex, from these two tables.
         encoder.setVertexTexture(atmosphere.transmittance, index: 3)
         encoder.setVertexTexture(atmosphere.multiScatter, index: 4)
@@ -1263,6 +1280,9 @@ public final class ForwardRenderer {
         draw.setFade(fade)
         if let albedo = batch.albedo { encoder.setFragmentTexture(albedo, index: 0) }
         if let structure = batch.structure { encoder.setFragmentTexture(structure, index: 1) }
+        // A road without the layer takes the neutral one: no wear, rather
+        // than the last road's.
+        if variant.contains(.roadPaint) { encoder.setFragmentTexture(batch.wear ?? neutralRoadWear, index: 2) }
         encoder.setVertexBuffer(batch.vertices, offset: 0, index: 0)
         encoder.setVertexBytes(&draw, length: MemoryLayout<DrawUniforms>.stride, index: 2)
         encoder.setFragmentBytes(&draw, length: MemoryLayout<DrawUniforms>.stride, index: 2)

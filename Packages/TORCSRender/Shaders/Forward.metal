@@ -284,6 +284,7 @@ fragment ForwardOutput forwardFragment(ForwardVarying in [[stage_in]],
                                 constant DrawUniforms &draw [[buffer(2)]],
                                 texture2d<float> albedoMap [[texture(0)]],
                                 texture2d<float> structureMap [[texture(1)]],
+                                texture2d<float> roadWear [[texture(2)]],
                                 texture2d<float> skyViewLUT [[texture(5)]],
                                 constant SkyIrradiance &skyIrradiance [[buffer(3)]],
                                 constant ShadowUniforms &shadow [[buffer(4)]],
@@ -353,6 +354,26 @@ fragment ForwardOutput forwardFragment(ForwardVarying in [[stage_in]],
         // of the quad to have got here.
         float aa = max(fwidth(fromRight), 1e-4f);
         if (role < 0.5f) {
+            // What years of use have left on the road, under its paint: a
+            // map laid along the road and across it, a repeat every 96 m
+            // and edge to edge (see RoadWear). Its red is the surface's
+            // tone about mid grey, joints and patches and spills; green its
+            // roughness; blue tar, in a sealed joint or crack, near black
+            // and glossy; alpha the dust and clippings along the edges.
+            // Taken with the albedo's sampler: seen down the road it is
+            // foreshortened many times over, and a seam is two fingers wide.
+            float4 wear = roadWear.sample(surfaceSampler, float2(along * (1.0f / 96.0f), in.attributes.x));
+            // Heavier on some stretches of the lap than on others, by the
+            // ground's own drift: the same joints come round every 96 m,
+            // and a stretch where they are faint is what keeps the eye from
+            // counting them.
+            float worn = saturate(0.72f + in.drift * 1.5f);
+            albedo.rgb *= 1.0f + (wear.r - 0.5f) * 2.4f * worn;
+            roughness = saturate(roughness + (wear.g - 0.5f) * 0.8f * worn);
+            albedo.rgb = mix(albedo.rgb, float3(0.012f, 0.012f, 0.013f), wear.b * 0.78f * worn);
+            roughness = mix(roughness, 0.32f, wear.b * 0.7f * worn);
+            albedo.rgb = mix(albedo.rgb, float3(0.110f, 0.100f, 0.075f), wear.a * 0.55f);
+            roughness = mix(roughness, 0.95f, wear.a * 0.6f);
             // Every line is a band about a centre, and the paint is the
             // nearest band: one signed distance to the nearest edge of any
             // of them and one smooth step across it, where each line used to

@@ -38,7 +38,10 @@ final class ImageSourcedMaterialTests: XCTestCase {
         // The sign a luminance cannot know is the caller's: the test takes
         // the better of the two and reports both, as the tool's user would
         // by looking at the sheet.
-        for name in ["brick", "asphalt", "concrete"] {
+        // Sets whose colour follows their relief, which is the estimator's
+        // premise. Weathered concrete is not one: most of what its colour
+        // says is damp and lime, and those lie where they like.
+        for name in ["brick", "asphalt", "gravel"] {
             let source = try MaterialRecipes.generate(name, size: 128, seed: 3)
             var results: [(mean: Double, flat: Double, agree: Double, inverted: Bool)] = []
             for inverted in [false, true] {

@@ -346,4 +346,134 @@ extension MaterialRecipes {
                                  orm: MaterialPacking.orm(occlusion: occlusion, roughness: roughness, metalness: 0),
                                  worldSize: world)
     }
+
+    // MARK: - Concrete
+
+    /// Cast concrete that has stood outside for years.
+    ///
+    /// New concrete is an even grey and nothing else, which is how the
+    /// first recipe drew it and why every wall looked like card. What makes
+    /// concrete read as concrete is what happened to it: the air that was
+    /// trapped against the form and left pits, the fine crazing of its
+    /// skin as it cured, the sand and stone showing where the skin has worn
+    /// through, lime leached out in pale blooms, and damp and algae darkening
+    /// it in mottles. All of it small: a wall is seen a few metres at a
+    /// time, and the tile is two and a half.
+    static func weatheredConcrete(size: Int, seed: UInt32) -> GeneratedMaterial {
+        let fine = patches(size: size, cycles: 90, octaves: 3, seed: seed)
+        let damp = patches(size: size, cycles: 23, octaves: 4, seed: seed &+ 7)
+        let bloom = patches(size: size, cycles: 31, octaves: 3, seed: seed &+ 13)
+        let worn = patches(size: size, cycles: 23, octaves: 3, seed: seed &+ 17)
+        let crazed = patches(size: size, cycles: 9, octaves: 2, seed: seed &+ 19)
+        var pit = ScalarField(size: size, repeating: 0), craze = ScalarField(size: size, repeating: 0)
+        var grit = ScalarField(size: size, repeating: 0.5)
+        for y in 0 ..< size {
+            for x in 0 ..< size {
+                let u = Float(x) / Float(size), v = Float(y) / Float(size)
+                // Bug holes: a few millimetres across, round, most of them
+                // absent. Only the cells whose hash says so hold one.
+                let hole = cells(u * 70, v * 70, period: 70, seed: seed &+ 23)
+                if hole.cell & 0xFF < 46 {
+                    let radius = 0.10 + Float((hole.cell >> 8) & 0xFF) / 255 * 0.16
+                    pit[x, y] = 1 - smoothstep(radius * 0.6, radius, hole.nearest)
+                }
+                // Crazing: a net of hairlines, cells a hand across, only
+                // where the skin is thin.
+                let net = cells(u * 26 + (damp[x, y] - 0.5) * 0.6, v * 26, period: 26, seed: seed &+ 29)
+                craze[x, y] = (1 - smoothstep(0.0, 0.035, net.second - net.nearest)) * smoothstep(0.50, 0.68, crazed[x, y])
+                // The sand in the mix, a grain to a texel or two.
+                grit[x, y] = Float(cells(u * 300, v * 300, period: 300, seed: seed &+ 31).cell & 0xFF) / 255
+            }
+        }
+        var height = ScalarField(size: size) { x, y in
+            fine[x, y] * 0.55 + grit[x, y] * 0.15 * smoothstep(0.45, 0.75, worn[x, y]) + 0.3 - pit[x, y] * 0.55 - craze[x, y] * 0.18
+        }
+        height.normalise()
+        let occlusion = MaterialSynthesis.ambientOcclusion(from: height, radius: max(size / 256, 2), strength: 1.6)
+        let normals = MaterialSynthesis.normals(from: height, strength: Float(size) / 170)
+        var roughness = ScalarField(size: size) { x, y in
+            0.84 + fine[x, y] * 0.10 + smoothstep(0.45, 0.75, worn[x, y]) * 0.05
+        }
+        roughness.map { min(max($0, 0.5), 1) }
+        let albedo = (0 ..< size * size).map { index -> SIMD3<Float> in
+            let x = index % size, y = index / size
+            var c = SIMD3<Float>(0.170, 0.166, 0.158) * (0.90 + fine[x, y] * 0.20)
+            // Where the skin has worn the sand shows: speckled, a little warmer.
+            let exposed = smoothstep(0.45, 0.75, worn[x, y])
+            c *= 1 + exposed * (grit[x, y] - 0.45) * 0.55
+            c *= SIMD3(1 + exposed * 0.04, 1, 1 - exposed * 0.05)
+            // Damp and what grows in it: darker, toward green.
+            // Slight, and in small mottles: a wall with a dozen dark blots
+            // to the tile is a wall with spots.
+            let wet = smoothstep(0.50, 0.90, damp[x, y])
+            c = c + (SIMD3<Float>(0.105, 0.110, 0.092) - c) * wet * 0.32
+            // Lime: pale, thin, with soft edges.
+            let lime = smoothstep(0.66, 0.86, bloom[x, y]) * (1 - wet)
+            c = c + (SIMD3<Float>(0.27, 0.27, 0.26) - c) * lime * 0.22
+            c *= 1 - pit[x, y] * 0.55
+            c *= 1 - craze[x, y] * 0.45
+            return c
+        }
+        return GeneratedMaterial(name: "concrete", size: size,
+                                 albedo: MaterialPacking.albedo(albedo),
+                                 normal: MaterialPacking.normal(normals),
+                                 orm: MaterialPacking.orm(occlusion: occlusion, roughness: roughness, metalness: 0),
+                                 worldSize: 2.5)
+    }
+
+    // MARK: - Sand
+
+    /// The bed of a run-off: coarse sand with stones in it.
+    ///
+    /// The first recipe drew a beach, rippled by the wind, and ripples every
+    /// fifteen centimetres across a run-off read as corduroy. A trap is
+    /// builder's sand and gravel, raked now and then and ploughed by
+    /// whoever went off last: grains, stones the size of a fingernail to a
+    /// thumb in every colour a quarry has, hollows that hold the damp.
+    static func runOffSand(size: Int, seed: UInt32) -> GeneratedMaterial {
+        let hollow = patches(size: size, cycles: 9, octaves: 3, seed: seed &+ 3)
+        let damp = patches(size: size, cycles: 15, octaves: 3, seed: seed &+ 5)
+        let grain = patches(size: size, cycles: 200, octaves: 2, seed: seed &+ 7)
+        var stone = ScalarField(size: size, repeating: 0)
+        var kind = ScalarField(size: size, repeating: 0)
+        for y in 0 ..< size {
+            for x in 0 ..< size {
+                let u = Float(x) / Float(size), v = Float(y) / Float(size)
+                for (count, share, offset) in [(64, UInt32(70), UInt32(11)), (150, UInt32(110), UInt32(13))] {
+                    let c = cells(u * Float(count), v * Float(count), period: count, seed: seed &+ offset)
+                    guard c.cell & 0xFF < share else { continue }
+                    // No two stones are round the same way.
+                    let radius = (0.14 + Float((c.cell >> 8) & 0xFF) / 255 * 0.20) * (0.75 + 0.5 * grain[x, y])
+                    let dome = 1 - smoothstep(radius * 0.35, radius, c.nearest)
+                    if dome > stone[x, y] { stone[x, y] = dome; kind[x, y] = Float((c.cell >> 16) & 0xFF) / 255 }
+                }
+            }
+        }
+        var height = ScalarField(size: size) { x, y in
+            hollow[x, y] * 0.35 + grain[x, y] * 0.25 + stone[x, y] * 0.40
+        }
+        height.normalise()
+        let occlusion = MaterialSynthesis.ambientOcclusion(from: height, radius: max(size / 256, 2), strength: 1.5)
+        let normals = MaterialSynthesis.normals(from: height, strength: Float(size) / 120)
+        var roughness = ScalarField(size: size) { x, y in 0.93 - stone[x, y] * 0.18 + grain[x, y] * 0.04 }
+        roughness.map { min(max($0, 0.5), 1) }
+        let albedo = (0 ..< size * size).map { index -> SIMD3<Float> in
+            let x = index % size, y = index / size
+            var c = SIMD3<Float>(0.300, 0.255, 0.180) * (0.80 + grain[x, y] * 0.40)
+            // Damp sand is darker and less yellow.
+            let wet = smoothstep(0.5, 0.85, damp[x, y] * 0.6 + (1 - hollow[x, y]) * 0.4)
+            c = c + (SIMD3<Float>(0.170, 0.150, 0.115) - c) * wet * 0.6
+            // The stones: grey, buff, rust, and the odd white one.
+            let k = kind[x, y]
+            let pebble: SIMD3<Float> = k < 0.4 ? SIMD3(0.215, 0.205, 0.185) : (k < 0.72 ? SIMD3(0.33, 0.285, 0.215)
+                : (k < 0.93 ? SIMD3(0.245, 0.185, 0.135) : SIMD3(0.43, 0.41, 0.36)))
+            c = c + (pebble * (0.75 + 0.5 * stone[x, y]) - c) * smoothstep(0.1, 0.5, stone[x, y])
+            return c
+        }
+        return GeneratedMaterial(name: "sand", size: size,
+                                 albedo: MaterialPacking.albedo(albedo),
+                                 normal: MaterialPacking.normal(normals),
+                                 orm: MaterialPacking.orm(occlusion: occlusion, roughness: roughness, metalness: 0),
+                                 worldSize: 3)
+    }
 }

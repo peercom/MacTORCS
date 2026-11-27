@@ -285,6 +285,41 @@ public final class MaterialLibrary {
         return binding
     }
 
+    /// The layer of wear a road wears over its asphalt, when the directory
+    /// has one (`road-wear.png`, see `RoadWear`): the tone of the surface in
+    /// red, its roughness in green, tar in blue and the edges' grime in
+    /// alpha. Block-compressed as data, the encode kept beside it.
+    public func roadWear(directory: URL) -> MTLTexture? {
+        if let wear { return wear }
+        let url = directory.appendingPathComponent("road-wear.png")
+        guard !wearMissing, let data = try? Data(contentsOf: url) else { wearMissing = true; return nil }
+        func levels() -> [(width: Int, height: Int, pixels: [UInt8])]? {
+            guard let image = try? TextureLoading.decode(data) else { return nil }
+            return try? TextureLoading.linearMipChain(image, preserveCutoutCoverage: false, encodeAsColour: false)
+        }
+        var texture: MTLTexture?
+        if Self.compressesMaps {
+            let sidecar = directory.appendingPathComponent("road-wear.bc3.torcsbc")
+            var chain = MapSidecar.read(sidecar, source: data, format: .bc3)
+            if chain != nil { sidecarHits += 1 } else if let levels = levels() {
+                chain = try? TextureLoading.compress(levels, format: .bc3, dataWeights: SIMD3(1, 1, 1))
+                if let chain { MapSidecar.write(chain, to: sidecar, source: data) }
+            }
+            if let chain {
+                uploadedBytes += chain.byteCount
+                texture = try? TextureLoading.upload(chain, device: device, srgb: false)
+            }
+        } else if let levels = levels() {
+            uploadedBytes += levels.reduce(0) { $0 + $1.width * $1.height * 4 }
+            texture = try? TextureLoading.upload(levels, device: device, srgb: false)
+        }
+        wear = texture
+        wearMissing = texture == nil
+        return texture
+    }
+    private var wear: MTLTexture?
+    private var wearMissing = false
+
     /// Resolves a texture reference, recording what was substituted.
     ///
     /// - Parameter original: the artwork being replaced. When supplied, any

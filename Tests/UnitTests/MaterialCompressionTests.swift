@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-only
 import XCTest
 import Metal
+import ImageIO
+import CoreGraphics
 import simd
 import TORCSAssets
 import TORCSMaterials
@@ -203,6 +205,67 @@ final class MaterialCompressionTests: XCTestCase {
         // The ground's drift of colour rides with the set; nothing else has one.
         XCTAssertEqual(resources.batches.map(\.draw.fade.w),
                        [0.3, 0.3, 0, 0.3, 0].map { Float($0) })
+    }
+
+    /// A road that paints its markings over a generated surface wears the
+    /// library's layer of wear, when the library has one; nothing else does,
+    /// and a library without one gives the road none.
+    func testARoadWearsTheLibrarysLayerOfWear() throws {
+        guard let device = MTLCreateSystemDefaultDevice() else { throw XCTSkip("Metal device unavailable") }
+        let directory = try MaterialLibraryTests().materialsDirectory(["asphalt"])
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let state = ACRenderState(material: [0, 0, 0, 1, 0, 0, 0, 1, 0.2, 0.2, 0.2, 1, 0], texture: nil, flags: 8, alphaClamp: 0)
+        // Three strips side by side, eight metres each.
+        func strip(_ texture: String, road: Bool, at x: Float) throws -> RenderBatch {
+            let mesh = try RenderMesh.build(positions: [SIMD3(x, 0, 0), SIMD3(x + 8, 0, 0), SIMD3(x + 8, 8, 0), SIMD3(x, 8, 0)],
+                                            normals: Array(repeating: SIMD3(0, 0, 1), count: 4),
+                                            uv0: [SIMD2(0, 0), SIMD2(8, 0), SIMD2(8, 8), SIMD2(0, 8)],
+                                            indices: [0, 1, 2, 0, 2, 3], uvInMetres: true)
+            return RenderBatch(mesh: mesh, baseTexture: texture, blends: false, isDeferred: false, alphaTestThreshold: nil,
+                               culls: false, isDriver: false, sourceMaterial: state,
+                               material: ResolvedMaterial(baseColour: SIMD4(1, 1, 1, 1), roughness: 0.9, metallic: 0),
+                               uvInMetres: true, paintsRoadMarkings: road)
+        }
+        let scene = RenderScene(batches: [try strip("tr-asphalt-1.png", road: true, at: 0),
+                                          try strip("tr-asphalt-1.png", road: false, at: 8),
+                                          try strip("unknown.png", road: true, at: -8)],
+                                minimum: SIMD3(-8, 0, 0), maximum: SIMD3(16, 8, 0))
+
+        let bare = try MaterialLibrary(device: device, directory: directory)
+        XCTAssertNil(bare.roadWear(directory: directory))
+        let without = try SceneResources(device: device, scene: scene, materials: bare, materialDirectory: directory,
+                                         resolveTexture: { _, _ in nil })
+        XCTAssertEqual(without.batches.map { $0.wear == nil }, [true, true, true])
+
+        // The generator's map, as torcs-matgen writes it.
+        let width = 256, height = 64
+        let bytes = RoadWear.generate(width: width, height: height, seed: 1)
+        let provider = try XCTUnwrap(CGDataProvider(data: Data(bytes) as CFData))
+        let image = try XCTUnwrap(CGImage(width: width, height: height, bitsPerComponent: 8, bitsPerPixel: 32, bytesPerRow: width * 4,
+                                          space: CGColorSpace(name: CGColorSpace.sRGB)!,
+                                          bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.last.rawValue),
+                                          provider: provider, decode: nil, shouldInterpolate: false, intent: .defaultIntent))
+        let url = directory.appendingPathComponent("road-wear.png")
+        let destination = try XCTUnwrap(CGImageDestinationCreateWithURL(url as CFURL, "public.png" as CFString, 1, nil))
+        CGImageDestinationAddImage(destination, image, nil)
+        XCTAssertTrue(CGImageDestinationFinalize(destination))
+
+        let library = try MaterialLibrary(device: device, directory: directory)
+        let wear = try XCTUnwrap(library.roadWear(directory: directory))
+        XCTAssertEqual(wear.width, width); XCTAssertEqual(wear.height, height)
+        XCTAssertEqual(wear.pixelFormat, .bc3_rgba)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: directory.appendingPathComponent("road-wear.bc3.torcsbc").path))
+        let resources = try SceneResources(device: device, scene: scene, materials: library, materialDirectory: directory,
+                                           resolveTexture: { _, _ in nil })
+        XCTAssertEqual(resources.batches.map { $0.wear != nil }, [true, false, false],
+                       "the road with markings and a generated surface, and only that")
+        // And a frame of it draws, with the wear and with the neutral map.
+        let renderer = try ForwardRenderer()
+        let camera = RenderCamera(eye: SIMD3(4, -6, 3), target: SIMD3(4, 4, 0))
+        let worn = try renderer.render(scene: resources, camera: camera, lighting: SunLighting(), width: 128, height: 80)
+        let plain = try renderer.render(scene: without, camera: camera, lighting: SunLighting(), width: 128, height: 80)
+        XCTAssertEqual(worn.count, plain.count)
+        XCTAssertNotEqual(worn, plain, "the wear shows")
     }
 
     func testMapsUploadCompressedAndTheEncodeIsKeptBesideTheSource() throws {

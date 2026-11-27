@@ -31,10 +31,14 @@ struct Options {
 }
 
 func writePNG(_ bytes: [UInt8], size: Int, to url: URL) throws {
+    try writePNG(bytes, width: size, height: size, to: url)
+}
+
+func writePNG(_ bytes: [UInt8], width: Int, height: Int, to url: URL) throws {
     let space = CGColorSpace(name: CGColorSpace.sRGB)!
     guard let provider = CGDataProvider(data: Data(bytes) as CFData),
-          let image = CGImage(width: size, height: size, bitsPerComponent: 8, bitsPerPixel: 32,
-                              bytesPerRow: size * 4, space: space,
+          let image = CGImage(width: width, height: height, bitsPerComponent: 8, bitsPerPixel: 32,
+                              bytesPerRow: width * 4, space: space,
                               // Straight alpha, kept: cutout atlases carry their coverage here.
                               bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.last.rawValue),
                               provider: provider, decode: nil, shouldInterpolate: false,
@@ -197,8 +201,22 @@ do {
             .write(to: options.output.appendingPathComponent("generated-asset-manifest.json"))
     }
 
+    // The layer of wear the road wears over its asphalt: one map, not a
+    // set, laid along the road rather than tiled (see RoadWear). Written
+    // with every full generation.
+    var overlays: [[String: Any]] = []
+    if !onlyGiven && options.fromImages.isEmpty {
+        let width = options.size * 2, height = options.size / 2
+        let wear = RoadWear.generate(width: width, height: height, seed: options.seed)
+        try writePNG(wear, width: width, height: height, to: options.output.appendingPathComponent("road-wear.png"))
+        overlays.append(["name": "road-wear", "width": width, "height": height, "length": Double(RoadWear.length),
+                         "sha256": SHA256.hash(data: Data(wear)).map { String(format: "%02x", $0) }.joined()])
+        total += wear.count
+        print("  road-wear      \(width)x\(height)  \(Int(RoadWear.length)) m of road")
+    }
+
     try JSONSerialization.data(withJSONObject: ["materials": manifest, "seed": Int(options.seed),
-                                                "size": options.size],
+                                                "size": options.size, "overlays": overlays],
                                options: [.prettyPrinted, .sortedKeys])
         .write(to: options.output.appendingPathComponent("materials.json"))
     print("generated \(manifest.count) materials, \(String(format: "%.1f", Double(total) / 1_048_576)) MiB "

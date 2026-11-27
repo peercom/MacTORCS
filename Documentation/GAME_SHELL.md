@@ -133,6 +133,44 @@ Alpine 1, 6.67 to 6.81 on Forza, where the verges now carry a normal map
 they did not have. The two grass sets are 8 MB each on the GPU, four times
 what they were.
 
+### The road's wear, and two surfaces remade
+
+The road is two fifths of every frame and was one even surface from kerb to
+kerb. Its asphalt is a tile two metres across and can hold nothing larger
+than a hand; but a road's history is all landmarks. So it has a second map
+(`RoadWear`, `road-wear.png`), laid along the road and across it rather
+than tiled: 96 m of road by its whole width, edge to edge. In it:
+
+- the three strips the mat was laid in and the days' work it was laid by,
+  each piece its own tone, with the joints between them, sealed with tar
+  in the stretches where they have opened;
+- cracks running with the road, most of them sealed, and a few short ones
+  across it;
+- repairs, a rectangle cut out and filled, darker while newer than what is
+  round it and paler once older;
+- spills, drawn out along the road;
+- dust and clippings along both edges, where no tyre clears them.
+
+Four quantities, a channel each: tone, roughness, tar and grime. The road's
+shader takes it with one more sample, in the pipeline only a road with
+markings uses, and applies it under the paint. The same joints come round
+every 96 m, so how heavily they show follows the ground's drift along the
+lap: a stretch where they are faint keeps the eye from counting them.
+
+*Concrete* was an even grey, which is new concrete and why every wall
+looked like card. It is now concrete that has stood outside: pits where air
+was trapped against the form, crazing, sand showing where the skin has worn
+through, lime in pale blooms and damp in small mottles. The first version's
+damp was a dozen dark blots to the tile and the wall had spots.
+
+*Sand* was a beach, rippled every fifteen centimetres, which across a
+run-off read as corduroy. It is now a trap's bed: coarse sand with stones
+in it and hollows that hold the damp.
+
+The cost of the three, previous commit against this one on the same
+library: 5.32 to 5.39 ms on CG Speedway 1, 5.97 to 6.09 on Alpine 1, 6.79
+to 6.89 on Forza. The wear map is 1.4 MB on the GPU.
+
 To regenerate and install:
 
 ```sh

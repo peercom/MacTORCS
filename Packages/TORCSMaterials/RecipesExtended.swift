@@ -120,25 +120,6 @@ extension MaterialRecipes {
                     normalStrength: Float(size) / 80, roughness: roughness, albedo: albedo, worldSize: 2.5)
     }
 
-    /// Dry sand: fine grain under wind ripples, pale and rough.
-    static func sand(size: Int, seed: UInt32) -> GeneratedMaterial {
-        let grain = fractalField(size: size, cells: 200, octaves: 2, seed: seed)
-        let drift = fractalField(size: size, cells: 3, octaves: 3, seed: seed &+ 5)
-        var height = ScalarField(size: size) { x, y in
-            // Ripples: a sine across the tile, its phase wandering with the drift.
-            let ripple = 0.5 + 0.5 * sin((Float(y) / Float(size) * 14 + drift[x, y] * 0.8) * 2 * .pi)
-            return grain[x, y] * 0.3 + ripple * 0.4 + drift[x, y] * 0.3
-        }
-        height.normalise()
-        let roughness = ScalarField(size: size) { x, y in 0.93 + grain[x, y] * 0.05 }
-        let albedo = colours(size) { x, y in
-            let shade = 0.85 + height[x, y] * 0.3
-            return SIMD3<Float>(0.33, 0.27, 0.17) * shade
-        }
-        return pack("sand", size: size, height: height, occlusionRadius: 5, occlusionStrength: 1.4,
-                    normalStrength: Float(size) / 160, roughness: roughness, albedo: albedo, worldSize: 2)
-    }
-
     // MARK: - Trackside
 
     /// Galvanised steel guardrail: the W-profile's two corrugations run along
