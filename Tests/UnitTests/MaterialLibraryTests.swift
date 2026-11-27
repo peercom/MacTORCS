@@ -39,7 +39,11 @@ final class MaterialLibraryTests: XCTestCase {
             ("tr-stone-wall2.rgb", "stone-wall"), ("wall4.rgb", "brick"),
             // Pictures of whole things keep their own: a village's house
             // fronts and a pit wall with its windows.
-            ("walls.rgb", nil), ("walls2.rgb", nil), ("CWALLPT1.png", nil)]
+            ("walls.rgb", nil), ("walls2.rgb", nil), ("CWALLPT1.png", nil),
+            // A stand's steps and the sheet its back is closed in with.
+            ("TRIBB01.png", "stand-seats"), ("TRIBB02.png", "corrugated"), ("TRIBB03.png", nil),
+            // A crowd keeps its photograph.
+            ("PITPPL.png", nil), ("CROWD5.png", nil), ("GSPAtree.png", nil)]
         for (texture, expected) in cases {
             XCTAssertEqual(MaterialLibrary.material(for: texture), expected, texture)
         }
@@ -82,8 +86,24 @@ final class MaterialLibraryTests: XCTestCase {
             XCTAssertEqual(tile, try MaterialRecipes.generate(fitted, size: 32).worldSize, fitted)
             XCTAssertFalse(MaterialLibrary.tilesFreely(fitted), fitted)
         }
+        // A rail's three beams are a metre and may be stacked; a fence goes up once.
+        XCTAssertEqual(MaterialLibrary.fittedHeight(for: "armco"), 1)
+        XCTAssertNil(MaterialLibrary.fittedHeight(for: "catch-fence"))
         XCTAssertNil(MaterialLibrary.fittedTile(for: "concrete-wall"))
         XCTAssertNil(MaterialLibrary.fittedTile(for: "stone-wall"))
+    }
+
+    /// A tree is a name that begins as one. These circuits end the name of
+    /// any cut-out in `tree`: a flag, a truss, a row of spectators.
+    func testTreesAreFoundByHowTheirNamesBegin() {
+        for tree in ["tree1_n.png", "TREEL4_n.png", "treeg10.rgb", "tree-border_n.rgb", "rk_tree_2_n.png", "alltree.rgb",
+                     "arbor01.rgb", "arb02_n.png", "forest1-tree-m1_n.rgb", "michigan-arbor_n.rgb", "BUtree_n.png", "treeline.png"] {
+            XCTAssertTrue(MaterialLibrary.isFoliage(tree), tree)
+        }
+        for other in ["GBtree_n.png", "GSPAtree.png", "ppla_tree_n.png", "tr-barrier-tree_n.png", "treewate.rgb", "GFtree_n.png",
+                      "arbor_frame_n.rgb", "poutre3_arbor_n.rgb", "fencwire_arbor_n.png", "town-border-arbor.png", "grass.rgb"] {
+            XCTAssertFalse(MaterialLibrary.isFoliage(other), other)
+        }
     }
 
     /// A building's face is found by name, and what is not a face is not.

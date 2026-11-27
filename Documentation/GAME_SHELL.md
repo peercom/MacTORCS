@@ -309,6 +309,61 @@ not repeat: the sets were being encoded.
 the left of the road at each viewpoint, at what stands beside the track,
 and `--substitutions` lists which textures a set replaced.
 
+### Trees, grandstands and crowds
+
+**Trees.** Away from Aalborg a tree is a photograph on a card, or two
+crossed, and a card has one normal: all of the tree bright when the sun is
+before it, all of it black when the sun is behind, and from the card's back
+it was lit with its front's normal, so half of every crossed pair was black
+paper. Now a tree's card keeps its photograph and gets, from it, a form
+(`FoliageStructure`): the cut-out blown up like a balloon, so that every
+texel faces the way a crown of that outline would there, with a little of
+the photograph's own light and dark for its clumps. It is bound to cut-out
+batches whose texture's name begins as a tree's (`MaterialLibrary.
+isFoliage`), at half the picture's size, and those batches are lit as the
+Aalborg trees are: from both sides, with the normal mirrored in the card
+for the back face, and a little light through the leaf. Their roughness is
+set matt; several were written shiny, and a crown with a form glinted.
+
+Two versions were taken out. With more of the fine scale in the form, every
+gap in the leaves tipped the light its own way and a tree seen close was
+smears, like wet paint. And `_tree` anywhere in the name is not a tree:
+these circuits end the name of every cut-out that way, flags (`GBtree`),
+trusses, rows of spectators (`GSPAtree`, `ppla_tree`).
+
+The result is plainest on walls of forest (Forza, Brondehach), which were
+milky and are green, and on single trees against the light (Street 1),
+which were black and have a lit side. A card seen close is still a card.
+
+**Grandstands.** Two sets (`RecipesStands.swift`): *stand-seats*, the
+steps of a stand from above, a concrete tread with a painted nosing and a
+row of blue tip-up seats, for the sixteen-texel plaid (`tribb01`) five
+circuits lay on their stands' treads; and *corrugated*, ribbed painted
+steel sheet with laps and fixings, for the cladding (`tribb02`). On the
+stands looked at, both are almost wholly hidden by the people sitting on
+them.
+
+**Crowds** keep their photographs. Most of a circuit's crowd is rows of
+seated people cut out on cards, and those are good. Three textures are a
+small photograph of a crowd laid over a whole deck, twelve centimetres to
+the texel, and a set was drawn for them: ten rows of fourteen figures in
+the shirts and caps of a race crowd. On the deck it replaced, at the
+distance and the angle a stand is seen from, it was darker and streakier
+than the blur it replaced, and it is not in the tree.
+
+**Barriers again.** The guard rail drawn once up its barrier, from the
+last commit, was three beams a metre and a half deep each on Brondehach,
+whose barriers are four and five metres high. A rail's tile is now a metre
+of rail and a taller barrier takes a whole number of them
+(`MaterialLibrary.fittedHeight`); and a barrier over 1.8 m with a rail for
+its texture is what such a barrier is at a circuit, a rail with a catch
+fence on it (`TrackSurfaceAssembly.tallestRail`).
+
+Cost, previous commit against this one, each track run once first: 8.35 to
+8.47 ms on Forza, 7.33 to 7.44 on Brondehach, 7.48 to 7.54 on Alpine 1,
+nothing on Street 1 and E-Track 2. The forms are uncompressed, a quarter
+of each tree picture's texels.
+
 ## A field of different cars
 
 A race, a qualifying field and a championship can mix car models. The options

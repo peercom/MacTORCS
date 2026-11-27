@@ -133,6 +133,23 @@ extension FurnitureGenerationTests {
         }
     }
 
+    /// A rail's tile is a metre of rail: a barrier three metres high is
+    /// three tiles of it, and one sixty centimetres high is still one.
+    func testAFittedBarrierThatMayBeStackedTakesAWholeNumberOfTiles() throws {
+        let road = try RoadGenerationTests().aalborg()
+        let geometry = road.geometry
+        let barrier = try XCTUnwrap(geometry.mainSegments.lazy.compactMap { geometry.segments[$0].rightBarrier ?? geometry.segments[$0].leftBarrier }
+            .first { $0.height > 0 && $0.style != .pitBuilding })
+        var parameters = RoadGeneration.Parameters()
+        parameters.barrierGroups[barrier.surface.material] = "rails"
+        parameters.fittedBarriers["rails"] = 2
+        for (each, tiles) in [(barrier.height / 3, Float(3)), (barrier.height * 2, 1), (barrier.height / 2.4, 2)] {
+            parameters.fittedBarrierHeights["rails"] = each
+            let rails = try XCTUnwrap(RoadGeneration.road(geometry, parameters: parameters).groups.first { $0.material == "rails" })
+            XCTAssertTrue(rails.geometry.uv0.map(\.y).contains(2 * tiles), "\(tiles) tiles at \(each) m each")
+        }
+    }
+
     /// The renderer names a barrier for its surface's texture where that
     /// says what it is: TORCS's own barrier texture is a guard rail.
     func testBarriersAreNamedForTheirTexturesAndFencesAreCutouts() throws {
@@ -140,8 +157,14 @@ extension FurnitureGenerationTests {
         let original = road.geometry
         let index = try XCTUnwrap(original.mainSegments.first { original.segments[$0].rightBarrier.map { $0.height > 0 && $0.style != .pitBuilding } ?? false })
         let surface = try XCTUnwrap(original.segments[index].rightBarrier).surface.material
-        func batches(texture: String?) throws -> [RenderBatch] {
+        func batches(texture: String?, height: Float? = nil) throws -> [RenderBatch] {
             var segments = original.segments
+            if let height {
+                for i in segments.indices {
+                    if segments[i].rightBarrier?.surface.material == surface { segments[i].rightBarrier?.height = height }
+                    if segments[i].leftBarrier?.surface.material == surface { segments[i].leftBarrier?.height = height }
+                }
+            }
             // A surface is one texture wherever it is used, on either side.
             for i in segments.indices {
                 if segments[i].rightBarrier?.surface.material == surface { segments[i].rightBarrier?.surface.texture = texture }
@@ -154,6 +177,14 @@ extension FurnitureGenerationTests {
         XCTAssertNil(rails.alphaTestThreshold); XCTAssertTrue(rails.culls)
         let fence = try XCTUnwrap(try batches(texture: "tr-barrier-arbor-fence_n.png").first { $0.baseTexture == "tr-barrier-arbor-fence_n.rgb" })
         XCTAssertEqual(fence.alphaTestThreshold, 0.5); XCTAssertFalse(fence.culls); XCTAssertFalse(fence.paintsRoadMarkings)
+        // Nobody stacks guard rails four metres high: that tall, a rail is a rail with a fence on it.
+        let low = try batches(texture: "tr-barrier.rgb", height: 1.0)
+        XCTAssertTrue(low.contains { $0.baseTexture == "tr-barrier.rgb" })
+        let tall = try batches(texture: "tr-barrier.rgb", height: 4.0)
+        XCTAssertFalse(tall.contains { $0.baseTexture == "tr-barrier.rgb" })
+        let caught = try XCTUnwrap(tall.first { $0.baseTexture == "barrier-fence.rgb" })
+        XCTAssertEqual(MaterialLibrary.material(for: "barrier-fence.rgb"), "catch-fence")
+        XCTAssertEqual(caught.alphaTestThreshold, 0.5)
         // A texture that says nothing leaves the barrier under its surface's name.
         XCTAssertTrue(try batches(texture: "arbor2_n.rgb").contains { $0.baseTexture == surface + ".rgb" })
         XCTAssertTrue(try batches(texture: nil).contains { $0.baseTexture == surface + ".rgb" })

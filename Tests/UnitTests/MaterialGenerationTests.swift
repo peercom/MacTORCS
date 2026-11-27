@@ -490,3 +490,86 @@ extension MaterialGenerationTests {
         for i in stride(from: 0, to: width * height, by: 3) { XCTAssertEqual(maps.orm[i * 4], 255); XCTAssertEqual(maps.orm[i * 4 + 2], 0) }
     }
 }
+
+/// Stands and trees.
+extension MaterialGenerationTests {
+    /// Four seats to the tile's width and two treads to its depth, blue
+    /// plastic on grey concrete, each tread with a painted nosing.
+    func testAStandsStepsAreRowsOfSeatsOnConcrete() throws {
+        let m = try MaterialRecipes.generate("stand-seats", size: 256, seed: 1)
+        XCTAssertEqual(m.worldSize, 2)
+        let size = m.size
+        func pixel(_ x: Int, _ y: Int) -> (r: Int, g: Int, b: Int, rough: Int) {
+            let i = (y * size + x) * 4
+            return (Int(m.albedo[i]), Int(m.albedo[i + 1]), Int(m.albedo[i + 2]), Int(m.orm[i + 1]))
+        }
+        for row in 0 ..< 2 { for seat in 0 ..< 4 {
+            let pan = pixel(seat * size / 4 + size / 8, row * size / 2 + Int(Float(size) / 2 * 0.35))
+            XCTAssertGreaterThan(pan.b * 2, pan.r * 3, "no seat at \(seat), \(row)")
+            XCTAssertLessThan(pan.rough, 180, "plastic is smoother than concrete")
+        } }
+        // Between two seats and behind them: concrete, grey and rough.
+        let step = pixel(0, size / 2 - size / 16)
+        XCTAssertLessThan(abs(step.r - step.b), 14); XCTAssertGreaterThan(step.rough, 200)
+        // The nosing: yellow along the front of each tread.
+        let nosing = pixel(size / 8, 2)
+        XCTAssertGreaterThan(nosing.r, nosing.b * 2)
+    }
+
+    /// Fifteen ribs to the tile, running up it: the normal leans one way
+    /// and the other fifteen times along a row and not at all up a column.
+    func testCladdingIsRibbedUpAndDown() throws {
+        let m = try MaterialRecipes.generate("corrugated", size: 240, seed: 1)
+        XCTAssertEqual(m.worldSize, 3); XCTAssertFalse(m.isMetal)
+        let size = m.size
+        func lean(_ x: Int, _ y: Int) -> Int { Int(m.normal[(y * size + x) * 4]) - 128 }
+        var rises = 0
+        var last = 0
+        for x in 0 ..< size {
+            let value = lean(x, size / 3)
+            if abs(value) > 20 { if value > 0, last <= 0 { rises += 1 }; last = value }
+        }
+        XCTAssertEqual(rises, 15)
+        let up = (0 ..< size).map { Int(m.normal[($0 * size + size / 30) * 4 + 1]) - 128 }
+        XCTAssertLessThan(up.filter { abs($0) > 20 }.count, size / 10, "a rib runs the height of the sheet")
+        let blue = (0 ..< size * size).reduce(0) { $0 + (m.albedo[$1 * 4 + 2] > m.albedo[$1 * 4] ? 1 : 0) }
+        XCTAssertGreaterThan(blue, size * size * 9 / 10)
+    }
+
+    /// A round crown: flat in its middle, leaning outward all round its
+    /// edge, upright again off the card, and darker deep inside than at its rim.
+    func testATreesFormIsItsOutlineBlownUp() throws {
+        let side = 96
+        var pixels = [UInt8](repeating: 0, count: side * side * 4)
+        for y in 0 ..< side { for x in 0 ..< side {
+            let dx = Float(x - side / 2), dy = Float(y - side / 2)
+            if dx * dx + dy * dy < 36 * 36 { let i = (y * side + x) * 4; pixels[i] = 40; pixels[i + 1] = 110; pixels[i + 2] = 35; pixels[i + 3] = 255 }
+        } }
+        let maps = FoliageStructure.derive(rgba: pixels, width: side, height: side)
+        func normal(_ x: Int, _ y: Int) -> SIMD2<Float> {
+            SIMD2(Float(maps.normal[(y * side + x) * 4]) / 127.5 - 1, Float(maps.normal[(y * side + x) * 4 + 1]) / 127.5 - 1)
+        }
+        let centre = side / 2
+        XCTAssertLessThan(simd_length(normal(centre, centre)), 0.08, "flat in the middle")
+        // Left edge leans left, right edge right; and likewise up and down, in the rows' own order.
+        XCTAssertLessThan(normal(centre - 32, centre).x, -0.3); XCTAssertGreaterThan(normal(centre + 32, centre).x, 0.3)
+        XCTAssertEqual(normal(centre - 32, centre).y, 0, accuracy: 0.08)
+        let low = normal(centre, centre - 32).y, high = normal(centre, centre + 32).y
+        XCTAssertGreaterThan(abs(low), 0.3); XCTAssertEqual(low.sign == .minus, high.sign == .plus)
+        for texel in stride(from: 0, to: side * side, by: 7) {
+            let n = SIMD3(Float(maps.normal[texel * 4]) / 127.5 - 1, Float(maps.normal[texel * 4 + 1]) / 127.5 - 1, Float(maps.normal[texel * 4 + 2]) / 127.5 - 1)
+            XCTAssertEqual(simd_length(n), 1, accuracy: 0.03); XCTAssertGreaterThan(n.z, 0.5, "never past the horizon")
+        }
+        XCTAssertLessThan(maps.orm[(centre * side + centre) * 4], maps.orm[(centre * side + centre - 33) * 4], "less sky deep in the crown")
+        XCTAssertEqual(maps.orm[(centre * side + centre) * 4 + 1], 255)
+        // Halved for the form, the cut-out's edge keeps the leaf's colour.
+        let half = FoliageStructure.halved(rgba: pixels, width: side, height: side)
+        XCTAssertEqual(half.width, side); XCTAssertEqual(half.rgba, pixels, "too small to halve")
+        var large = [UInt8](repeating: 0, count: 128 * 128 * 4)
+        for y in 0 ..< 128 { for x in 0 ..< 63 { let i = (y * 128 + x) * 4; large[i] = 40; large[i + 1] = 110; large[i + 2] = 35; large[i + 3] = 255 } }
+        let halved = FoliageStructure.halved(rgba: large, width: 128, height: 128)
+        XCTAssertEqual(halved.width, 64); XCTAssertEqual(halved.rgba.count, 64 * 64 * 4)
+        XCTAssertEqual(Array(halved.rgba[31 * 4 ..< 32 * 4]), [40, 110, 35, 128], "half covered, and leaf-coloured")
+        XCTAssertEqual(halved.rgba[40 * 4 + 3], 0)
+    }
+}

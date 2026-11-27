@@ -123,6 +123,9 @@ public final class MaterialLibrary {
         ("tyre", "tyre-wall"), ("tire", "tyre-wall"), ("pneu", "tyre-wall"),
         // Wood before fence: a wooden fence is wood.
         ("wood", "wood"), ("bois", "wood"), ("painted-steel", "painted-steel"), ("poutre", "painted-steel"), ("pylon", "painted-steel"),
+        // A stand: the steps the people sit on, and the sheet its back is
+        // closed in with.
+        ("tribb01", "stand-seats"), ("tribb02", "corrugated"),
         // A fence standing on a guard rail is one barrier and one set.
         ("barrier-arbor-fence", "catch-fence"), ("barrier-fence", "catch-fence"),
         ("fence", "chain-link"), ("grillage", "chain-link"),
@@ -404,6 +407,14 @@ public final class MaterialLibrary {
         return result
     }
 
+    /// The height one tile of a fitted set stands for, where the set may be
+    /// stacked: a guard rail's three beams are a metre, and a barrier three
+    /// metres high is nine beams, not three a metre deep each. Nil for a set
+    /// that goes up once however tall: a fence has one rail along its top.
+    public static func fittedHeight(for material: String) -> Float? {
+        material == "armco" ? 1 : nil
+    }
+
     /// Whether a texture is a picture of a building's face: one whose
     /// windows can be found in it (`FacadeStructure`). By name, like the
     /// rules, and no wider: a roof, a ceiling or a car park is none, and
@@ -435,6 +446,37 @@ public final class MaterialLibrary {
     }
     private var facades: [String: MTLTexture] = [:]
     private var facadesFailed: Set<String> = []
+
+    /// Whether a texture is a picture of a tree or a wood on a card. By
+    /// name, and by where in the name: these circuits end the name of any
+    /// cut-out in `tree` or `_arbor`, a flag (`GBtree`), a truss, a row of
+    /// spectators (`GSPAtree`), so only a name that begins as a tree's is one.
+    public static func isFoliage(_ texture: String) -> Bool {
+        let name = (texture as NSString).lastPathComponent.lowercased()
+        guard !name.hasPrefix("treewate") else { return false }
+        return name.hasPrefix("tree") || name.hasPrefix("alltree") || name.hasPrefix("butree")
+            || name.hasPrefix("rk_tree") || name.contains("forest")
+            || (name.hasPrefix("arbor") && !name.contains("frame")) || name.hasPrefix("arb0") || name.hasPrefix("michigan-arbor")
+    }
+
+    /// The form of a tree card, made from its own picture
+    /// (`FoliageStructure`), at half the picture's size.
+    public func foliageStructure(texture: String, image: TextureImage) -> MTLTexture? {
+        if let made = facades[texture] { return made }
+        guard !facadesFailed.contains(texture) else { return nil }
+        let half = FoliageStructure.halved(rgba: image.rgba8, width: image.width, height: image.height)
+        let maps = FoliageStructure.derive(rgba: half.rgba, width: half.width, height: half.height)
+        guard let packed = try? TextureImage(width: half.width, height: half.height, channels: 4,
+                                             pixels: StructureMap.pack(normal: maps.normal, orm: maps.orm)),
+              let levels = try? TextureLoading.linearMipChain(packed, preserveCutoutCoverage: false, encodeAsColour: false),
+              let made = try? TextureLoading.upload(levels, device: device, srgb: false) else {
+            facadesFailed.insert(texture)
+            return nil
+        }
+        uploadedBytes += levels.reduce(0) { $0 + $1.width * $1.height * 4 }
+        facades[texture] = made
+        return made
+    }
 
     /// A detail set by name, for car parts: loaded like any other, and the
     /// caller ignores its albedo.

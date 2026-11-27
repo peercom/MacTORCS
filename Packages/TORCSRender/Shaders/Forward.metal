@@ -49,7 +49,7 @@ struct DrawUniforms {
     float4 baseColour;
     float4 material;            // x roughness, y metallic, z clearcoat, w clearcoat roughness
     float4 parameters;          // x normal strength, y alpha threshold, z uv0 scale, w metre-UV fold period or 0
-    uint4 maps;                 // x albedo, y structure (normal, roughness, occlusion), z unused, w bits: 1 receives occlusion, 2 paints road markings, 4 foliage, 8 receives weather
+    uint4 maps;                 // x albedo, y structure (normal, roughness, occlusion), z a tree on a card, w bits: 1 receives occlusion, 2 paints road markings, 4 foliage, 8 receives weather
     float4 emissive;
     /// x coverage of a detail cross-fade, y +1 leaving / −1 arriving,
     /// z extra UV scale of the structure map over the albedo's, w how far
@@ -334,10 +334,13 @@ fragment ForwardOutput forwardFragment(ForwardVarying in [[stage_in]],
     // Leaf cards are visible from both sides. Their reverse face needs the
     // reverse normal as well; otherwise half the crown lights as black paper.
     const bool foliage = forwardFoliage && (draw.maps.w & 4u);
-    if (foliage && !frontFacing) { normal = -normal; }
+    // Mirrored in the card, not turned about: a crown's left side leans
+    // left from behind as well. Without a normal map the two are the same.
+    if (foliage && !frontFacing) { normal = reflect(normal, basis[2]); }
 
     // Per-leaf tint from the tree builder, so a crown is not one flat colour.
-    if (foliage) { albedo.rgb *= mix(0.55f, 1.05f, in.attributes.w); }
+    // A photograph on a card has its own.
+    if (foliage && draw.maps.z == 0u) { albedo.rgb *= mix(0.55f, 1.05f, in.attributes.w); }
 
     // Road markings, painted procedurally from the generator's lateral
     // coordinate rather than baked into a 256² texture: crisp at every

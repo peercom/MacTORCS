@@ -161,6 +161,9 @@ public enum TrackSurfaceAssembly {
         return (result.adding(trees), forest)
     }
 
+    /// The tallest barrier that is drawn as guard rails alone, in metres.
+    public static let tallestRail: Float = 1.8
+
     /// One batch per surface material, UVs in metres.
     public static func roadBatches(_ geometry: TrackGeometry,
                                    parameters: RoadGeneration.Parameters = .init()) throws -> [RenderBatch] {
@@ -168,17 +171,28 @@ public enum TrackSurfaceAssembly {
         // or `barrierg3`; what it is a picture of is in its texture's name.
         // Where that name maps to a set the barrier is grouped under it.
         var parameters = parameters
+        var tallest: [String: (texture: String?, height: Float)] = [:]
         for segment in geometry.segments {
             for barrier in [segment.rightBarrier, segment.leftBarrier] {
-                guard let surface = barrier?.surface else { continue }
-                var group = surface.material
-                if let texture = surface.texture, MaterialLibrary.material(for: texture) != nil {
-                    group = ((texture as NSString).lastPathComponent as NSString).deletingPathExtension.lowercased()
-                    parameters.barrierGroups[surface.material] = group
-                }
-                if let fit = MaterialLibrary.material(for: group + ".rgb").flatMap(MaterialLibrary.fittedTile) {
-                    parameters.fittedBarriers[group] = fit
-                }
+                guard let barrier else { continue }
+                let known = tallest[barrier.surface.material]
+                tallest[barrier.surface.material] = (barrier.surface.texture ?? known?.texture, max(barrier.height, known?.height ?? 0))
+            }
+        }
+        for (material, barrier) in tallest {
+            var group = material
+            if let texture = barrier.texture, MaterialLibrary.material(for: texture) != nil {
+                group = ((texture as NSString).lastPathComponent as NSString).deletingPathExtension.lowercased()
+            }
+            // Nobody stacks guard rails five metres high. A barrier that
+            // tall with a rail for its texture is a rail with a fence on it.
+            if MaterialLibrary.material(for: group + ".rgb") == "armco", barrier.height > Self.tallestRail {
+                group = "barrier-fence"
+            }
+            if group != material { parameters.barrierGroups[material] = group }
+            if let set = MaterialLibrary.material(for: group + ".rgb"), let fit = MaterialLibrary.fittedTile(for: set) {
+                parameters.fittedBarriers[group] = fit
+                parameters.fittedBarrierHeights[group] = MaterialLibrary.fittedHeight(for: set)
             }
         }
         var batches: [RenderBatch] = []

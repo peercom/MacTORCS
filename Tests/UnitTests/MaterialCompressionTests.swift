@@ -390,3 +390,49 @@ extension MaterialCompressionTests {
         XCTAssertEqual(plain.batches.map { $0.structure != nil }, [false, false, false, false])
     }
 }
+
+/// Trees on cards.
+extension MaterialCompressionTests {
+    /// A tree's card keeps its photograph, takes a form made from it at
+    /// half its size, and is lit as leaves are; a flag on a card, or a tree
+    /// that is not a cut-out, is left as it was.
+    func testATreeCardGetsAFormFromItsPictureAndIsLitAsLeaves() throws {
+        guard let device = MTLCreateSystemDefaultDevice() else { throw XCTSkip("Metal device unavailable") }
+        let directory = try MaterialLibraryTests().materialsDirectory(["asphalt"])
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let library = try MaterialLibrary(device: device, directory: directory)
+        // A round crown on a clear card.
+        let side = 128
+        var pixels = [UInt8](repeating: 0, count: side * side * 4)
+        for y in 0 ..< side { for x in 0 ..< side {
+            let dx = Float(x - side / 2), dy = Float(y - side / 2)
+            if dx * dx + dy * dy < 50 * 50 { let i = (y * side + x) * 4; pixels[i] = 40; pixels[i + 1] = 110; pixels[i + 2] = 35; pixels[i + 3] = 255 }
+        } }
+        let picture = try TextureImage(width: side, height: side, channels: 4, pixels: pixels)
+        func card(_ texture: String, cutout: Bool) throws -> RenderBatch {
+            let mesh = try RenderMesh.build(positions: [SIMD3(0, 0, 0), SIMD3(8, 0, 0), SIMD3(8, 0, 8), SIMD3(0, 0, 8)],
+                                            normals: Array(repeating: SIMD3(0, -1, 0), count: 4),
+                                            uv0: [SIMD2(0, 0), SIMD2(1, 0), SIMD2(1, 1), SIMD2(0, 1)], indices: [0, 1, 2, 0, 2, 3])
+            let state = ACRenderState(material: [0, 0, 0, 1, 0, 0, 0, 1, 0.2, 0.2, 0.2, 1, 0], texture: nil,
+                                      flags: cutout ? 16 : 8, alphaClamp: cutout ? 0.65 : 0)
+            // Blended as well as tested, as these circuits' trees are, and written shiny.
+            return RenderBatch(mesh: mesh, baseTexture: texture, blends: cutout, isDeferred: false,
+                               alphaTestThreshold: cutout ? 0.65 : nil, culls: false, isDriver: false, sourceMaterial: state,
+                               material: ResolvedMaterial(baseColour: SIMD4(1, 1, 1, 1), roughness: 0.3, metallic: 0.2))
+        }
+        let scene = RenderScene(batches: [try card("tree1_n.png", cutout: true), try card("GBtree_n.png", cutout: true),
+                                          try card("tree1_n.png", cutout: false)],
+                                minimum: SIMD3(0, 0, 0), maximum: SIMD3(8, 0, 8))
+        let resources = try SceneResources(device: device, scene: scene, materials: library, materialDirectory: directory,
+                                           originalImage: { _ in picture }, resolveTexture: { _, _ in nil })
+        XCTAssertEqual(resources.batches.map { $0.structure != nil }, [true, false, false])
+        let tree = resources.batches[0].draw
+        XCTAssertEqual(tree.maps.y, 1); XCTAssertEqual(tree.maps.z, 1, "a card: no tint per leaf")
+        XCTAssertEqual(tree.maps.w & 4, 4, "lit from both sides and through")
+        XCTAssertEqual(tree.material.x, 0.9, "leaves are matt"); XCTAssertEqual(tree.material.y, 0)
+        let flag = resources.batches[1].draw
+        XCTAssertEqual(flag.maps.z, 0); XCTAssertEqual(flag.maps.w & 4, 0); XCTAssertEqual(flag.material.x, 0.3)
+        let made = try XCTUnwrap(resources.batches[0].structure)
+        XCTAssertEqual(made.width, side / 2); XCTAssertEqual(made.height, side / 2)
+    }
+}

@@ -38,6 +38,9 @@ public enum RoadGeneration {
         /// Groups whose set is drawn once up the barrier whatever its
         /// height, with the span of texture coordinate that is once.
         public var fittedBarriers: [String: Float] = [:]
+        /// For a fitted group that may be stacked, the height in metres one
+        /// tile stands for: a taller barrier takes a whole number of them.
+        public var fittedBarrierHeights: [String: Float] = [:]
         public init() {}
     }
 
@@ -74,8 +77,12 @@ public enum RoadGeneration {
                 guard let barrier, barrier.height > 0 else { continue }
                 if barrier.style == .pitBuilding, !parameters.pitBuildings { continue }
                 let group = parameters.barrierGroups[barrier.surface.material] ?? barrier.surface.material
+                var fit = parameters.fittedBarriers[group]
+                if let tile = fit, let each = parameters.fittedBarrierHeights[group], each > 0 {
+                    fit = tile * max((barrier.height / each).rounded(), 1)
+                }
                 appendBarrier(geometry, main: index, side: side, barrier: barrier, parameters: parameters,
-                              fit: parameters.fittedBarriers[group], into: &groups[group, default: GeneratedGeometry()])
+                              fit: fit, into: &groups[group, default: GeneratedGeometry()])
             }
         }
 

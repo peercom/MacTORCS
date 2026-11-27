@@ -19,6 +19,7 @@ public enum MaterialRecipes {
         "gravel", "dirt", "mud", "sand", "rock", "snow", "grass-cards",
         "armco", "tyre-wall", "tyre-top", "chain-link", "catch-fence",
         "concrete-wall", "stone-wall", "brick", "wood", "painted-steel",
+        "stand-seats", "corrugated",
         "rubber-tread", "carbon-weave", "brushed-metal", "chrome", "plastic", "fabric", "paint-flake", "glass"]
 
     /// Deliberately smooth: allowed a roughness floor below the usual one.
@@ -49,6 +50,8 @@ public enum MaterialRecipes {
         case "concrete-wall": return concreteWall(size: size, seed: seed &+ 113)
         case "stone-wall": return stoneWall(size: size, seed: seed &+ 127)
         case "brick": return brickwork(size: size, seed: seed &+ 53)
+        case "stand-seats": return standSeats(size: size, seed: seed &+ 137)
+        case "corrugated": return ribbedCladding(size: size, seed: seed &+ 139)
         case "wood": return wood(size: size, seed: seed &+ 59)
         case "painted-steel": return paintedSteel(size: size, seed: seed &+ 61)
         case "rubber-tread": return rubberTread(size: size, seed: seed &+ 67)

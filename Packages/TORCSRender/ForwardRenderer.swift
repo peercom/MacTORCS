@@ -137,6 +137,15 @@ public final class SceneResources {
                let image = originalImage?(texture) {
                 facade = materials.facadeStructure(texture: texture, image: image)
             }
+            // A tree on a card keeps its photograph and takes a form made
+            // from it, and is lit as leaves are: from both sides, and through.
+            var card = false
+            if generated == nil, detail == nil, batch.carPart == nil, batch.alphaTestThreshold != nil,
+               !batch.swaysInWind, let texture = batch.baseTexture, MaterialLibrary.isFoliage(texture), let materials,
+               let image = originalImage?(texture) {
+                facade = materials.foliageStructure(texture: texture, image: image)
+                card = facade != nil
+            }
             // A generated set is made to tile every two or three metres. The
             // original artwork it replaces was stretched over whatever its
             // author gave it, twenty metres of a field as often as not, and
@@ -163,17 +172,21 @@ public final class SceneResources {
                 vertices: vertices, indices: indices, indexCount: batch.mesh.indices.count,
                 draw: DrawUniforms(model: batch.mesh.transform,
                                    baseColour: material.baseColour,
-                                   roughness: material.roughness,
-                                   metallic: metallic,
+                                   // Leaves are matt whatever shine the
+                                   // card's material was written with.
+                                   roughness: card ? 0.9 : material.roughness,
+                                   metallic: card ? 0 : metallic,
                                    clearcoat: material.clearcoat,
                                    clearcoatRoughness: material.clearcoatRoughness,
                                    normalStrength: material.normalStrength,
                                    alphaThreshold: batch.alphaTestThreshold ?? 0,
                                    maps: SIMD4(albedo == nil ? 0 : 1,
                                                structure == nil && facade == nil ? 0 : 1,
-                                               0,
+                                               // A card's picture has its leaves' light and
+                                               // shade in it already: no tint per leaf.
+                                               card ? 1 : 0,
                                                (batch.isDeferred ? 0 : 1) | (batch.paintsRoadMarkings ? 2 : 0)
-                                                   | (batch.swaysInWind ? 4 : 0) | (batch.receivesWeather ? 8 : 0)),
+                                                   | (batch.swaysInWind || card ? 4 : 0) | (batch.receivesWeather ? 8 : 0)),
                                    uvScale: batch.uvInMetres ? 1 / max(generated?.worldSize ?? 1, 1e-3) : tiling,
                                    uvPeriod: batch.uvInMetres ? RenderMesh.metresPeriod : 0,
                                    emissive: material.emissive, emissiveChannel: material.emissiveChannel,
