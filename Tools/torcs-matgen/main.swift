@@ -163,7 +163,9 @@ do {
     // Image-sourced sets alone when only they were asked for.
     let recipeNames = (!options.fromImages.isEmpty && !onlyGiven) ? [] : options.names
     for name in recipeNames {
-        _ = try emit(try MaterialRecipes.generate(name, size: options.size, seed: options.seed))
+        // The ground's sets are made larger: their tile is, see RecipesTerrain.
+        _ = try emit(try MaterialRecipes.generate(name, size: options.size * MaterialRecipes.sizeMultiple(for: name),
+                                                  seed: options.seed))
     }
 
     var provenance: [[String: Any]] = []

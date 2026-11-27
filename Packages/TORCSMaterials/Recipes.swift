@@ -16,7 +16,7 @@ public enum MaterialRecipes {
     /// painted atlas for colour and takes only their normal and ORM.
     public static let all = [
         "asphalt", "asphalt-worn", "asphalt-patched", "grass", "grass-dry", "concrete", "kerb",
-        "gravel", "dirt", "mud", "sand", "grass-cards",
+        "gravel", "dirt", "mud", "sand", "rock", "snow", "grass-cards",
         "armco", "tyre-wall", "chain-link", "brick", "wood", "painted-steel",
         "rubber-tread", "carbon-weave", "brushed-metal", "chrome", "plastic", "fabric", "paint-flake", "glass"]
 
@@ -29,14 +29,16 @@ public enum MaterialRecipes {
         case "asphalt": return asphalt(size: size, seed: seed, wear: 0.15)
         case "asphalt-worn": return asphalt(size: size, seed: seed &+ 17, wear: 0.65)
         case "asphalt-patched": return asphaltPatched(size: size, seed: seed &+ 23)
-        case "grass": return grass(size: size, seed: seed)
-        case "grass-dry": return grass(size: size, seed: seed &+ 29, dryness: 0.7)
+        case "grass": return turf(size: size, seed: seed, dryness: 0)
+        case "grass-dry": return turf(size: size, seed: seed &+ 29, dryness: 0.45)
         case "concrete": return concrete(size: size, seed: seed)
         case "kerb": return kerb(size: size, seed: seed)
         case "gravel": return gravel(size: size, seed: seed)
         case "dirt": return dirt(size: size, seed: seed)
         case "mud": return mud(size: size, seed: seed &+ 31)
         case "sand": return sand(size: size, seed: seed &+ 37)
+        case "rock": return rock(size: size, seed: seed &+ 107)
+        case "snow": return snow(size: size, seed: seed &+ 109)
         case "grass-cards": return grassCards(size: size, seed: seed)
         case "armco": return armco(size: size, seed: seed &+ 41)
         case "tyre-wall": return tyreWall(size: size, seed: seed &+ 43)
@@ -96,6 +98,10 @@ public enum MaterialRecipes {
         }
         roughness.map { min(max($0, 0.25), 1) }
 
+        // The mat is not one tone: it went down in loads, some richer in
+        // binder than others, and it has weathered unevenly since. Mottles
+        // a hand to a pace across, slight, and many to the tile.
+        let mottle = patches(size: size, cycles: 14, octaves: 3, seed: seed &+ 131)
         let albedo = (0 ..< size * size).map { index -> SIMD3<Float> in
             let x = index % size, y = index / size
             let stone = worn[x, y]
@@ -103,10 +109,16 @@ public enum MaterialRecipes {
             // shifts the balance toward the stone, which is why a used racing
             // line is lighter than the track around it.
             let dark = SIMD3<Float>(0.020, 0.021, 0.024)
-            let stoneColour = SIMD3<Float>(0.085, 0.084, 0.082)
+            // The stones are not one quarry's grey either: each is its own,
+            // most of them mid grey, a few pale and a few nearly black.
+            let which = cells(Float(x) * scale, Float(y) * scale, period: aggregatePeriod, seed: seed).cell
+            let shade = Float(which & 0xFF) / 255
+            let own = shade > 0.9 ? 1.9 : (shade < 0.12 ? 0.45 : 0.8 + shade * 0.45)
+            let stoneColour = SIMD3<Float>(0.085, 0.084, 0.082) * own
+                * SIMD3(1 + (Float((which >> 8) & 0xFF) / 255 - 0.5) * 0.10, 1, 1 - (Float((which >> 8) & 0xFF) / 255 - 0.5) * 0.10)
             let mix = min(max(stone * (0.35 + wear * 0.55), 0), 1)
             let speck = Noise.random(x, y, seed &+ 91) * 0.012
-            return dark + (stoneColour - dark) * mix + SIMD3(repeating: speck)
+            return (dark + (stoneColour - dark) * mix + SIMD3(repeating: speck)) * (0.88 + 0.24 * mottle[x, y])
         }
 
         return GeneratedMaterial(name: wear > 0.4 ? "asphalt-worn" : "asphalt", size: size,
@@ -114,52 +126,6 @@ public enum MaterialRecipes {
                                  normal: MaterialPacking.normal(normals),
                                  orm: MaterialPacking.orm(occlusion: occlusion, roughness: roughness, metalness: 0),
                                  worldSize: 2)
-    }
-
-    // MARK: - Grass
-
-    /// Many small blades, so the detail is high-frequency, plus patch-scale
-    /// variation in colour and density from soil and growth.
-    static func grass(size: Int, seed: UInt32, dryness: Float = 0) -> GeneratedMaterial {
-        var blades = ScalarField(size: size) { x, y in
-            // Anisotropic: blades are long in one axis and thin in the other.
-            Noise.fractal(Float(x) / Float(size) * 220, Float(y) / Float(size) * 70,
-                          period: 220, octaves: 3, gain: 0.6, seed: seed)
-        }
-        blades.normalise()
-
-        var patches = ScalarField(size: size) { x, y in
-            Noise.fractal(Float(x) / Float(size) * 5, Float(y) / Float(size) * 5,
-                          period: 5, octaves: 4, gain: 0.55, seed: seed &+ 41)
-        }
-        patches.normalise()
-
-        let height = blades.blended(with: patches, by: ScalarField(size: size, repeating: 0.35))
-        let occlusion = MaterialSynthesis.ambientOcclusion(from: height, radius: 5, strength: 2.2)
-        let normals = MaterialSynthesis.normals(from: height, strength: Float(size) / 90)
-
-        // Grass is rough everywhere; the variation is small and driven by how
-        // dry the patch is.
-        var roughness = ScalarField(size: size) { x, y in 0.88 + patches[x, y] * 0.09 }
-        roughness.map { min(max($0, 0.6), 1) }
-
-        let albedo = (0 ..< size * size).map { index -> SIMD3<Float> in
-            let x = index % size, y = index / size
-            let dry = min(patches[x, y] + dryness, 1)
-            let lush = SIMD3<Float>(0.055, 0.115, 0.032)
-            let parched = SIMD3<Float>(0.135, 0.130, 0.055)
-            let soil = SIMD3<Float>(0.055, 0.042, 0.028)
-            let blade = blades[x, y]
-            let base = lush + (parched - lush) * dry
-            // Soil shows through where the blades are sparse.
-            return base + (soil - base) * max(0, 0.35 - blade) * 1.4
-        }
-
-        return GeneratedMaterial(name: dryness > 0 ? "grass-dry" : "grass", size: size,
-                                 albedo: MaterialPacking.albedo(albedo),
-                                 normal: MaterialPacking.normal(normals),
-                                 orm: MaterialPacking.orm(occlusion: occlusion, roughness: roughness, metalness: 0),
-                                 worldSize: 3)
     }
 
     // MARK: - Grass cards

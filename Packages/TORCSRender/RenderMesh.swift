@@ -70,6 +70,32 @@ public struct RenderMesh: Sendable {
         radius = vertices.reduce(0) { max($0, simd_length($1.position - middle)) }
     }
 
+    /// How many metres of the world one repeat of this mesh's texture
+    /// covers: the square root of its surface's area over the area it takes
+    /// up in texture space, under `transform`. Nil for a mesh with no area
+    /// in either. The original scenery spreads one repeat over twelve to
+    /// twenty metres of ground, because its textures were 256 texels wide; a
+    /// generated set is made for two or three.
+    public func metresPerTextureRepeat() -> Float? {
+        var world: Float = 0, texture: Float = 0
+        func placed(_ vertex: PackedVertex) -> SIMD3<Float> {
+            let p = transform * SIMD4(vertex.position, 1)
+            return SIMD3(p.x, p.y, p.z)
+        }
+        var index = 0
+        while index + 2 < indices.count {
+            let a = vertices[Int(indices[index])], b = vertices[Int(indices[index + 1])], c = vertices[Int(indices[index + 2])]
+            index += 3
+            let pa = placed(a)
+            world += simd_length(simd_cross(placed(b) - pa, placed(c) - pa)) * 0.5
+            let ua = SIMD2(Float(a.uv0.x), Float(a.uv0.y))
+            let e = SIMD2(Float(b.uv0.x), Float(b.uv0.y)) - ua, f = SIMD2(Float(c.uv0.x), Float(c.uv0.y)) - ua
+            texture += abs(e.x * f.y - e.y * f.x) * 0.5
+        }
+        guard world > 1e-6, texture > 1e-9 else { return nil }
+        return (world / texture).squareRoot()
+    }
+
     /// Builds a mesh from unpacked arrays, deriving tangents from the base UVs.
     ///
     /// Negative-determinant transforms mirror the geometry, which flips the

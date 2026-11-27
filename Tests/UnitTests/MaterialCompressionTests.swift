@@ -159,6 +159,52 @@ final class MaterialCompressionTests: XCTestCase {
         XCTAssertEqual(resources.batches.map { $0.structure != nil }, [true, true, false])
     }
 
+    /// The original scenery spreads one repeat of a texture over twenty
+    /// metres of ground; a generated set is made for two or three. Drawn at
+    /// the original's scale its grain is many times life size, so it is
+    /// repeated a whole number of times within each of the original's
+    /// repeats, and carries its own drift of colour with it.
+    func testAGeneratedSetIsTiledAtItsOwnScaleOnOriginalScenery() throws {
+        guard let device = MTLCreateSystemDefaultDevice() else { throw XCTSkip("Metal device unavailable") }
+        let directory = try MaterialLibraryTests().materialsDirectory(["asphalt", "armco"])
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let library = try MaterialLibrary(device: device, directory: directory)
+        let state = ACRenderState(material: [0, 0, 0, 1, 0, 0, 0, 1, 0.2, 0.2, 0.2, 1, 0], texture: nil, flags: 8, alphaClamp: 0)
+        func quad(side: Float, texture: String, inMetres: Bool = false) throws -> RenderBatch {
+            let uv: [SIMD2<Float>] = inMetres ? [SIMD2(0, 0), SIMD2(side, 0), SIMD2(side, side), SIMD2(0, side)]
+                : [SIMD2(0, 0), SIMD2(1, 0), SIMD2(1, 1), SIMD2(0, 1)]
+            let mesh = try RenderMesh.build(positions: [SIMD3(0, 0, 0), SIMD3(side, 0, 0), SIMD3(side, side, 0), SIMD3(0, side, 0)],
+                                            normals: Array(repeating: SIMD3(0, 0, 1), count: 4), uv0: uv,
+                                            indices: [0, 1, 2, 0, 2, 3], uvInMetres: inMetres)
+            return RenderBatch(mesh: mesh, baseTexture: texture, blends: false, isDeferred: false, alphaTestThreshold: nil,
+                               culls: false, isDriver: false, sourceMaterial: state,
+                               material: ResolvedMaterial(baseColour: SIMD4(1, 1, 1, 1), roughness: 0.9, metallic: 0),
+                               uvInMetres: inMetres)
+        }
+        let field = try quad(side: 20, texture: "tr-asphalt-1.png")
+        XCTAssertEqual(try XCTUnwrap(field.mesh.metresPerTextureRepeat()), 20, accuracy: 0.01)
+        let world = RenderScene(batches: [field, try quad(side: 2.4, texture: "tr-asphalt-1.png"),
+                                          try quad(side: 20, texture: "unknown.png"),
+                                          try quad(side: 20, texture: "tr-asphalt-1.png", inMetres: true),
+                                          try quad(side: 13, texture: "armco-1.png")],
+                                minimum: SIMD3(0, 0, 0), maximum: SIMD3(20, 20, 0))
+        let resources = try SceneResources(device: device, scene: world, materials: library, materialDirectory: directory,
+                                           resolveTexture: { _, _ in nil })
+        let asphalt = try XCTUnwrap(library.resolve(texture: "tr-asphalt-1.png", directory: directory))
+        XCTAssertEqual(asphalt.worldSize, 2)
+        let scales = resources.batches.map(\.draw.parameters.z)
+        XCTAssertEqual(scales[0], 10, "twenty metres of a two-metre tile")
+        XCTAssertEqual(scales[1], 1, "already at about its own scale")
+        XCTAssertEqual(scales[2], 1, "original artwork keeps its author's scale")
+        XCTAssertEqual(scales[3], 0.5, "generated geometry, in metres, divides by the tile")
+        let armco = try XCTUnwrap(library.resolve(texture: "armco-1.png", directory: directory))
+        XCTAssertEqual(scales[4], (13 / armco.worldSize).rounded(),
+                       "always a whole number, so the texture wraps where the mesh expects it to")
+        // The ground's drift of colour rides with the set; nothing else has one.
+        XCTAssertEqual(resources.batches.map(\.draw.fade.w),
+                       [0.3, 0.3, 0, 0.3, 0].map { Float($0) })
+    }
+
     func testMapsUploadCompressedAndTheEncodeIsKeptBesideTheSource() throws {
         guard let device = MTLCreateSystemDefaultDevice() else { throw XCTSkip("Metal device unavailable") }
         let directory = try MaterialLibraryTests().materialsDirectory(["armco", "asphalt"])

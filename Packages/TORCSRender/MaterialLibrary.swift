@@ -77,6 +77,9 @@ public final class MaterialLibrary {
         /// A metal set, by the manifest: its surface's metalness is one, and
         /// any other set's is nought.
         public let metallic: Bool
+        /// How far the surface's colour drifts over tens of metres: see
+        /// `MaterialLibrary.macroVariation`.
+        public let macroVariation: Float
     }
     /// Per-material tile size from `materials.json`, when the directory has one.
     private var worldSizes: [String: Float] = [:]
@@ -98,7 +101,14 @@ public final class MaterialLibrary {
         ("asphalt-aa-l", "asphalt-patched"), ("asphalt-aa-1-l", "asphalt-patched"), ("asphalt-2", "asphalt-patched"),
         ("asphalt", "asphalt"), ("tarmac", "asphalt"), ("road", "asphalt"),
         ("curb", "kerb"), ("kerb", "kerb"),
-        ("grass-dry", "grass-dry"), ("grass", "grass"), ("gazon", "grass"),
+        ("grass-dry", "grass-dry"), ("grass", "grass"), ("gazon", "grass"), ("gras2", "grass"),
+        // The cuttings whose artwork is 256 texels or fewer over thirty
+        // metres of cliff. The larger rock faces are photographs composed
+        // top to bottom, grass at the lip and scree at the foot, and a tile
+        // would lose that; they keep their own.
+        ("rockg", "rock"), ("rock3", "rock"), ("rock4", "rock"),
+        ("snow", "snow"),
+        ("concdal", "concrete"), ("cmnt", "concrete"),
         ("concrete", "concrete"), ("beton", "concrete"),
         ("armco", "armco"), ("guardrail", "armco"), ("rail", "armco"),
         ("tyre", "tyre-wall"), ("tire", "tyre-wall"), ("pneu", "tyre-wall"),
@@ -122,6 +132,23 @@ public final class MaterialLibrary {
         case .interior: return ("fabric", 12)
         case .driver: return ("fabric", 8)
         case .glass, .lens, .brakeLens, .headLens: return nil
+        }
+    }
+
+    /// How far a set's colour drifts across the ground over tens of metres,
+    /// 1 being the most. A tile repeats every few metres and cannot hold
+    /// anything that large; the renderer lays it over from the place itself.
+    /// Grass varies most, with soil and water and wear; the loose surfaces
+    /// less; a laid one, asphalt or concrete, a little, with age and the
+    /// batch it was laid from. What is made in a factory does not.
+    public static func macroVariation(for material: String) -> Float {
+        switch material {
+        case "grass", "grass-dry": return 1
+        case "dirt", "mud", "rock": return 0.7
+        case "sand", "gravel": return 0.5
+        case "asphalt", "asphalt-worn", "asphalt-patched": return 0.3
+        case "concrete", "snow": return 0.25
+        default: return 0
         }
     }
 
@@ -252,7 +279,8 @@ public final class MaterialLibrary {
         guard let albedo = load("albedo", srgb: true),
               let structure = loadStructure(material, directory: directory) else { return nil }
         let binding = Binding(albedo: albedo, structure: structure, worldSize: worldSizes[material] ?? 1,
-                              metallic: metals.contains(material))
+                              metallic: metals.contains(material),
+                              macroVariation: Self.macroVariation(for: material))
         cache[material] = binding
         return binding
     }
@@ -280,7 +308,7 @@ public final class MaterialLibrary {
                   preserveCutoutCoverage: false),
               let albedo = try? TextureLoading.upload(levels, device: device, srgb: true) else { return binding }
         let result = Binding(albedo: albedo, structure: binding.structure, worldSize: binding.worldSize,
-                             metallic: binding.metallic)
+                             metallic: binding.metallic, macroVariation: binding.macroVariation)
         composited[texture] = result
         markingsPreserved.insert(texture)
         return result

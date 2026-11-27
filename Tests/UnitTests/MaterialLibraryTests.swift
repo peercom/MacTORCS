@@ -16,12 +16,30 @@ final class MaterialLibraryTests: XCTestCase {
             ("tarmac-wall-2-g2.rgb", "concrete"), ("tr-barrier-aa-1.rgb", "concrete"),
             ("armco-1.png", "armco"), ("tyres.png", "tyre-wall"), ("fence-2.rgb", "chain-link"),
             ("brick-red.png", "brick"), ("wood-fence.png", "wood"), ("pylon1.rgb", "painted-steel"),
-            ("sand-pit.rgb", "sand"), ("mud-1.rgb", "mud"), ("155-DTM.rgb", nil), ("shadow2.rgb", nil)]
+            ("sand-pit.rgb", "sand"), ("mud-1.rgb", "mud"), ("155-DTM.rgb", nil), ("shadow2.rgb", nil),
+            // Forza's verges, the low-resolution cuttings, snow, slabs and cement.
+            ("GRAS2B.png", "grass"), ("rockg0.rgb", "rock"), ("rock4.rgb", "rock"), ("snow.png", "snow"),
+            ("concdal.rgb", "concrete"), ("cmnta.png", "concrete"),
+            // A photograph of a cliff composed top to bottom keeps its own, and
+            // so does a wall with a guard rail painted along its foot.
+            ("rock1-w1.png", nil), ("cliff.png", nil), ("conc.png", nil)]
         for (texture, expected) in cases {
             XCTAssertEqual(MaterialLibrary.material(for: texture), expected, texture)
         }
         for material in MaterialLibrary.rules.map(\.material) {
             XCTAssertTrue(MaterialRecipes.all.contains(material), "rule targets an unknown set \(material)")
+        }
+    }
+
+    /// The ground's colour drifts over tens of metres and a tile cannot hold
+    /// that; how far it drifts is the set's own, most for grass and none
+    /// for what a factory made.
+    func testTheGroundDriftsAndFurnitureDoesNot() {
+        XCTAssertEqual(MaterialLibrary.macroVariation(for: "grass"), 1)
+        XCTAssertGreaterThan(MaterialLibrary.macroVariation(for: "rock"), MaterialLibrary.macroVariation(for: "asphalt"))
+        XCTAssertGreaterThan(MaterialLibrary.macroVariation(for: "asphalt"), 0)
+        for made in ["armco", "kerb", "tyre-wall", "chain-link", "paint-flake", "glass"] {
+            XCTAssertEqual(MaterialLibrary.macroVariation(for: made), 0, made)
         }
     }
 

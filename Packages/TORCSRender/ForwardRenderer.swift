@@ -123,6 +123,17 @@ public final class SceneResources {
                 detail = materials.detailBinding(choice.material, directory: materialDirectory)
                 detailScale = choice.uvScale
             }
+            // A generated set is made to tile every two or three metres. The
+            // original artwork it replaces was stretched over whatever its
+            // author gave it, twenty metres of a field as often as not, and
+            // drawn at that size the set's grain is five times life size and
+            // reads as a blur. So it is repeated a whole number of times
+            // within each repeat of the original: whole, because the mesh
+            // relies on the texture wrapping where its coordinates do.
+            var tiling: Float = 1
+            if let generated, !batch.uvInMetres, let spread = batch.mesh.metresPerTextureRepeat() {
+                tiling = min(max((spread / max(generated.worldSize, 1e-3)).rounded(), 1), 64)
+            }
             let albedo = generated?.albedo ?? batch.baseTexture.flatMap {
                 resolveTexture($0, batch.alphaTestThreshold != nil)
             }
@@ -149,10 +160,13 @@ public final class SceneResources {
                                                0,
                                                (batch.isDeferred ? 0 : 1) | (batch.paintsRoadMarkings ? 2 : 0)
                                                    | (batch.swaysInWind ? 4 : 0) | (batch.receivesWeather ? 8 : 0)),
-                                   uvScale: batch.uvInMetres ? 1 / max(generated?.worldSize ?? 1, 1e-3) : 1,
+                                   uvScale: batch.uvInMetres ? 1 / max(generated?.worldSize ?? 1, 1e-3) : tiling,
                                    uvPeriod: batch.uvInMetres ? RenderMesh.metresPeriod : 0,
                                    emissive: material.emissive, emissiveChannel: material.emissiveChannel,
-                                   structureScale: detailScale),
+                                   structureScale: detailScale,
+                                   // The ground's own drift of colour; a
+                                   // car part under a detail set has none.
+                                   macroVariation: generated?.macroVariation ?? 0),
                 needsAlphaTest: batch.alphaTestThreshold != nil,
                 structure: structure?.structure,
                 culls: batch.culls,

@@ -65,7 +65,8 @@ final class MaterialGenerationTests: XCTestCase {
     /// repeating across the surface, which is the most visible failure a
     /// generated material can have.
     func testMaterialsTileWithoutASeam() throws {
-        for name in ["asphalt", "grass", "concrete", "asphalt-patched", "brick", "armco", "carbon-weave", "sand"] {
+        for name in ["asphalt", "grass", "concrete", "asphalt-patched", "brick", "armco", "carbon-weave", "sand",
+                     "rock", "snow"] {
             let material = try MaterialRecipes.generate(name, size: 64, seed: 5)
             let size = material.size
             func albedo(_ x: Int, _ y: Int) -> Int { Int(material.albedo[(y * size + x) * 4]) }
@@ -127,5 +128,67 @@ final class MaterialGenerationTests: XCTestCase {
                                Noise.worley(8.25, y, period: 8, seed: seed), accuracy: 1e-5)
             }
         }
+    }
+
+    /// Grass is blades: green, with a root and a tip, each its own shade, so
+    /// neighbouring texels differ. And it is the same grass all over its
+    /// tile: a tile with a landmark in it, one dry patch or one dark one,
+    /// shows as a grid of them on every hillside.
+    func testTurfIsBladesAndHasNoLandmarks() throws {
+        let size = 256
+        func statistics(_ name: String) throws -> (mean: SIMD3<Double>, texelContrast: Double, blockSpread: Double) {
+            let material = try MaterialRecipes.generate(name, size: size, seed: 1)
+            XCTAssertEqual(material.worldSize, 8, "\(name) is made for a large tile")
+            var mean = SIMD3<Double>.zero
+            var luminance = [Double](repeating: 0, count: size * size)
+            for texel in 0 ..< size * size {
+                let c = SIMD3(Double(material.albedo[texel * 4]), Double(material.albedo[texel * 4 + 1]),
+                              Double(material.albedo[texel * 4 + 2]))
+                mean += c
+                luminance[texel] = (c.x + c.y + c.z) / 3
+            }
+            mean /= Double(size * size)
+            // Difference between horizontal neighbours: the blades.
+            var contrast = 0.0
+            for y in 0 ..< size { for x in 0 ..< size - 1 { contrast += abs(luminance[y * size + x] - luminance[y * size + x + 1]) } }
+            contrast /= Double(size * (size - 1))
+            // Means of the sixteen quarters-of-quarters of the tile: the landmarks.
+            var blocks = [Double]()
+            let side = size / 4
+            for by in 0 ..< 4 {
+                for bx in 0 ..< 4 {
+                    var total = 0.0
+                    for y in 0 ..< side { for x in 0 ..< side { total += luminance[(by * side + y) * size + bx * side + x] } }
+                    blocks.append(total / Double(side * side))
+                }
+            }
+            let overall = blocks.reduce(0, +) / 16
+            return (mean, contrast, (blocks.max()! - blocks.min()!) / overall)
+        }
+        let grass = try statistics("grass"), dry = try statistics("grass-dry")
+        XCTAssertGreaterThan(grass.mean.y, grass.mean.x * 1.25, "grass is green: \(grass.mean)")
+        XCTAssertGreaterThan(grass.mean.y, grass.mean.z * 1.8)
+        XCTAssertGreaterThan(grass.texelContrast, 6, "blades differ from their neighbours: \(grass.texelContrast)")
+        XCTAssertLessThan(grass.blockSpread, 0.25, "no part of the tile stands out from the rest: \(grass.blockSpread)")
+        XCTAssertLessThan(dry.blockSpread, 0.25)
+        XCTAssertGreaterThan(dry.mean.x / dry.mean.y, grass.mean.x / grass.mean.y + 0.08, "the dry set has more straw in it")
+        // The ground is generated larger than the rest, its tile being so.
+        XCTAssertEqual(MaterialRecipes.sizeMultiple(for: "grass"), 2)
+        XCTAssertEqual(MaterialRecipes.sizeMultiple(for: "grass-dry"), 2)
+        XCTAssertEqual(MaterialRecipes.sizeMultiple(for: "asphalt"), 1)
+    }
+
+    /// Snow is nearly white and barely varies in colour; a rock face is
+    /// neither, and its joints are darker than its faces.
+    func testSnowIsPaleAndRockIsJointed() throws {
+        let snow = try MaterialRecipes.generate("snow", size: 128, seed: 1)
+        let rock = try MaterialRecipes.generate("rock", size: 128, seed: 1)
+        var low = 255, high = 0
+        for texel in 0 ..< 128 * 128 { low = min(low, Int(snow.albedo[texel * 4 + 1])); high = max(high, Int(snow.albedo[texel * 4 + 1])) }
+        XCTAssertGreaterThan(low, 200, "snow is pale everywhere")
+        var rockLow = 255, rockHigh = 0
+        for texel in 0 ..< 128 * 128 { rockLow = min(rockLow, Int(rock.albedo[texel * 4])); rockHigh = max(rockHigh, Int(rock.albedo[texel * 4])) }
+        XCTAssertGreaterThan(rockHigh - rockLow, 80, "a rock face has joints and faces")
+        XCTAssertGreaterThan(high - low + 1, 0)
     }
 }

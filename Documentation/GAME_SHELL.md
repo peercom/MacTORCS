@@ -71,6 +71,78 @@ The preparation script also read a commented-out `Light` section as content
 sounds whose per-file attribution is unresolved, so they stay local, as the
 sessions did.
 
+## The ground's textures
+
+Grass is 60 to 85% of every circuit's surface, and it was drawn as a flat
+olive plane. Three things were wrong, and the texture itself was only one.
+
+**Scale.** A generated set is made to tile every two or three metres. The
+original scenery spreads one repeat of a texture over twelve to twenty
+metres of ground, because its textures were 256 texels wide, and a
+generated set substituted for one was drawn at that size: its grain five
+times life size, which reads as a blur. A substituted set is now repeated a
+whole number of times within each of the original's repeats, the nearest to
+its own tile size (`RenderMesh.metresPerTextureRepeat`, and whole so that
+the texture still wraps where the mesh's coordinates do).
+
+**The recipes.** In `RecipesTerrain.swift`:
+
+- *Grass* took its blades from stretched noise, which gives a grain and no
+  blade. It is now laid down as blades: strokes five centimetres long, dark
+  at the root and light at the tip, three deep, each its own green, more of
+  them straw where the ground is drier, with clumps a hand across standing
+  higher and lighter. It is made for a tile of eight metres at 2048 texels,
+  the same four millimetres a texel it had.
+- *Rock*, new: bedded, jointed and broken, with iron below the joints and
+  lichen on the faces. It replaces the cuttings whose artwork was 256
+  texels over thirty metres of cliff (Alpine 1, G-Track 2). The larger
+  rock faces are photographs composed top to bottom, grass at the lip and
+  scree at the foot, and keep their own.
+- *Snow*, new, for Alpine 2: nearly white and nearly matte, so its surface
+  carries it, drifts and ripples and a grain of crystals.
+- *Asphalt*: each stone its own grey, a few pale and a few nearly black,
+  and slight mottles a pace across.
+
+A tile must not have landmarks. The first grass had dry patches two metres
+across, three or four to the tile, and every hillside showed them as a grid:
+the eye finds a repeat by what stands out in it. Nothing in these sets is
+much over a metre, a hundred or more of each thing to the tile, and a test
+holds the grass to that.
+
+**What a tile cannot hold** is what changes over tens of metres, a lighter
+rise or a darker hollow. That is laid over the ground by the renderer from
+the place itself: two scales of noise in world space, taken at the vertices,
+lighter and a little yellower one way and darker the other
+(`DrawUniforms.fade.w`, `MaterialLibrary.macroVariation`). Grass drifts
+most, rock and bare earth less, asphalt and concrete a little, and what a
+factory made not at all.
+
+**Names.** Forza's verges (`GRAS2B.png`, a fifth of its surface) were not
+matched by the grass rule and kept their original; they, the low-resolution
+rock, snow, concrete slabs and cement are now in `MaterialLibrary.rules`.
+
+One fault showed only once the rock had joints. A face turned away from the
+sun was lit along every crack: a crack's wall leans toward the sun where the
+face leans away, and an open face is in no shadow the map knows of. Direct
+light now fades out as the face itself, not its normal map, turns from the
+sun.
+
+The cost, previous commit on the previous library against this one, medians
+of five at 2880 x 1720: 5.05 to 5.11 ms on CG Speedway 1, 5.78 to 5.91 on
+Alpine 1, 6.67 to 6.81 on Forza, where the verges now carry a normal map
+they did not have. The two grass sets are 8 MB each on the GPU, four times
+what they were.
+
+To regenerate and install:
+
+```sh
+swift run -c release torcs-matgen --all --out Artifacts/materials
+python3 Scripts/prepare-content-library.py /path/to/torcs-1.3.9
+```
+
+The second now copies the sets again whenever they have changed; it used to
+copy them once.
+
 ## A field of different cars
 
 A race, a qualifying field and a championship can mix car models. The options

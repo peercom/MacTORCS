@@ -54,7 +54,12 @@ prepare=root/'Scripts/prepare-driving-session.py'
 game=root/'.build/release/TORCSMac'
 (library/'tracks').mkdir(parents=True,exist_ok=True);(library/'cars').mkdir(parents=True,exist_ok=True)
 generated=root/'Artifacts/materials'
-if (generated/'materials.json').is_file() and not (library/'materials/materials.json').is_file():
+# The generated sets: copied the first time, and again whenever they have been
+# regenerated since (the manifest lists every map's hash, so it differs if any
+# map does). The library's kept encodes are keyed by their sources and renew
+# themselves.
+def manifest(path): return path.read_bytes() if path.is_file() else None
+if (generated/'materials.json').is_file() and manifest(generated/'materials.json')!=manifest(library/'materials/materials.json'):
     shutil.copytree(generated,library/'materials',ignore=shutil.ignore_patterns('*.torcsbc','*-sheet.png'),dirs_exist_ok=True)
     print('materials: copied to the library')
 

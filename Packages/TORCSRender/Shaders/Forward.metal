@@ -52,7 +52,8 @@ struct DrawUniforms {
     uint4 maps;                 // x albedo, y structure (normal, roughness, occlusion), z unused, w bits: 1 receives occlusion, 2 paints road markings, 4 foliage, 8 receives weather
     float4 emissive;
     /// x coverage of a detail cross-fade, y +1 leaving / −1 arriving,
-    /// z extra UV scale of the normal and ORM maps over the albedo's.
+    /// z extra UV scale of the structure map over the albedo's, w how far
+    /// the ground's colour drifts over tens of metres (0 for none).
     float4 fade;            // rgb radiance when lit, w channel: 0 never, 1 brake, 2 headlight, 3 any light
 };
 
@@ -144,6 +145,9 @@ struct ForwardVarying {
     /// The rubber's slow variation along the lap, on the main road only:
     /// x how heavily it lies, y the phase its streaks wander by.
     float2 lap;
+    /// The ground's drift of colour here, -1 to 1 by the draw's amount: see
+    /// forwardVertex.
+    float drift;
 };
 
 /// Converts a pair of clip positions into the motion vector MetalFX expects:
@@ -247,6 +251,17 @@ vertex ForwardVarying forwardVertex(uint id [[vertex_id]],
         out.lap = float2(0.8f + 0.2f * sin(along * 0.037f) * sin(along * 0.011f + 1.7f),
                          sin(along * 0.13f) * 0.8f);
     }
+    // A field is not one green. A tile of grass repeats every few metres and
+    // can hold nothing larger than a metre without the repeat showing, so
+    // what changes over tens of metres, a lighter rise or a darker hollow,
+    // is laid over it here from the place itself: two scales of noise in
+    // world space, which never repeats, taken at the vertices because the
+    // ground's triangles are no coarser than the drifts are.
+    out.drift = 0.0f;
+    if (draw.fade.w > 0.0f) {
+        float broad = groundNoise(world.xy * (1.0f / 38.0f)) * 0.6f + groundNoise(world.xy * (1.0f / 117.0f) + 17.3f) * 0.4f;
+        out.drift = (broad - 0.5f) * 2.0f * draw.fade.w;
+    }
     out.currentClip = frame.unjitteredViewProjection * world;
     out.previousClip = frame.previousViewProjection * instance.previousModel * draw.model
                      * float4(float3(v.position), 1.0f);
@@ -286,6 +301,8 @@ fragment ForwardOutput forwardFragment(ForwardVarying in [[stage_in]],
         // blurry half-resolution one.
         albedo *= albedoMap.sample(surfaceSampler, (in.uv0 * draw.parameters.z), bias(frame.renderSize.z));
     }
+    // Lighter and a little yellower one way, darker the other.
+    albedo.rgb *= 1.0f + in.drift * float3(0.22f, 0.15f, 0.02f);
     if (forwardAlphaTest && albedo.a <= draw.parameters.y) { discard_fragment(); }
     if (forwardAlphaTest && detailDithered(draw, in.position.xy)) { discard_fragment(); }
 
@@ -441,6 +458,13 @@ fragment ForwardOutput forwardFragment(ForwardVarying in [[stage_in]],
     if (foliage || dot(normal, sunDirection) > 0.0f) {
         visibility = sampleShadow(shadow, shadowMap, shadowSampler, in.worldPosition,
                                   basis[2], sunDirection, viewDepth, in.position.xy);
+        // The sun cannot light a face turned away from it, whatever its
+        // normal map says. A crack's wall leans toward the sun where the
+        // face it is cut into leans away, and a face with nothing between
+        // it and the sun but itself is in no shadow the map knows of: every
+        // joint of a cliff in shade lit up as a bright thread. Faded in over
+        // the last few degrees, so a grazing sun does not end on a line.
+        if (!foliage) { visibility *= saturate(dot(basis[2], sunDirection) * 8.0f); }
     }
 
     // Screen-space occlusion, computed from the depth prepass: red is sky
