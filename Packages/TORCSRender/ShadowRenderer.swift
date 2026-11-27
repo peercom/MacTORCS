@@ -14,17 +14,27 @@ public struct ShadowUniforms {
     public var parameters: SIMD4<Float>
     /// Each cascade as seen from the first: xyz take the first cascade's
     /// clip position to this one's shadow-map uv and depth, by a scale and
-    /// an offset. The scale's w is the texel's world size and the offset's
-    /// the depth range, which the shader reads from here. See
-    /// `ShadowCascades.shareOrientation` for when this holds.
+    /// an offset. See `ShadowCascades.shareOrientation` for when this
+    /// holds. The spare lanes are the cascade's biases, multiplied out so
+    /// the shader does not do it for every pixel: the scale's w the step
+    /// along the normal in metres (texel world size by the normal bias),
+    /// the offset's w the depth bias in the cascade's normalized depth
+    /// (bias in texels, by the texel's world size, over the depth range).
     public var cascadeScale: (SIMD4<Float>, SIMD4<Float>, SIMD4<Float>, SIMD4<Float>)
     public var cascadeOffset: (SIMD4<Float>, SIMD4<Float>, SIMD4<Float>, SIMD4<Float>)
+    /// x the view distance where the last cascade starts to fade out, y the
+    /// reciprocal of the distance it fades over, z the filter's radius in
+    /// the map's uv, w unused.
+    public var filter: SIMD4<Float>
 
     /// - Parameter depthBias: in shadow texels, not metres. A cascade's texel
     ///   is what sets how much depth can change between neighbouring samples,
     ///   so expressing bias relative to it makes one value correct for all four
     ///   cascades even though their texels differ by more than tenfold.
-    public init(cascades: [ShadowCascades.Cascade], depthBias: Float, normalBias: Float, filterRadius: Float) {
+    /// - Parameter resolution: the shadow map's side in texels, which turns
+    ///   the filter radius from texels into the map's uv.
+    public init(cascades: [ShadowCascades.Cascade], depthBias: Float, normalBias: Float, filterRadius: Float,
+                resolution: Int) {
         func matrix(_ i: Int) -> simd_float4x4 {
             i < cascades.count ? cascades[i].viewProjection : matrix_identity_float4x4
         }
@@ -42,19 +52,24 @@ public struct ShadowUniforms {
         // out before the other brings it in again.
         func relative(_ i: Int) -> (scale: SIMD4<Float>, offset: SIMD4<Float>) {
             guard i < cascades.count, let first = cascades.first else {
-                return (SIMD4(0.5, -0.5, 1, texel(i)), SIMD4(0.5, 0.5, 0, range(i)))
+                return (SIMD4(0.5, -0.5, 1, 0), SIMD4(0.5, 0.5, 0, 0))
             }
             let between = Self.double(cascades[i].viewProjection) * Self.double(first.viewProjection).inverse
             let scale = SIMD3(between.columns.0.x, between.columns.1.y, between.columns.2.z)
             let offset = SIMD3(between.columns.3.x, between.columns.3.y, between.columns.3.z)
             // And on to the map: clip x and y of -1 to 1 are u and v of 0 to
             // 1, v downward.
-            return (SIMD4(Float(scale.x * 0.5), Float(scale.y * -0.5), Float(scale.z), texel(i)),
-                    SIMD4(Float(offset.x * 0.5 + 0.5), Float(offset.y * -0.5 + 0.5), Float(offset.z), range(i)))
+            return (SIMD4(Float(scale.x * 0.5), Float(scale.y * -0.5), Float(scale.z), texel(i) * normalBias),
+                    SIMD4(Float(offset.x * 0.5 + 0.5), Float(offset.y * -0.5 + 0.5), Float(offset.z),
+                          depthBias * texel(i) / range(i)))
         }
         let all = (0 ..< 4).map(relative)
         cascadeScale = (all[0].scale, all[1].scale, all[2].scale, all[3].scale)
         cascadeOffset = (all[0].offset, all[1].offset, all[2].offset, all[3].offset)
+        // The last cascade fades out over the last 15% of its reach rather
+        // than ending in a hard line.
+        let last = cascades.prefix(4).last?.splitDistance ?? 0
+        filter = SIMD4(last * 0.85, 1 / max(last * 0.15, 1e-3), filterRadius / Float(max(resolution, 1)), 0)
     }
 
     static func double(_ m: simd_float4x4) -> simd_double4x4 {
@@ -133,8 +148,11 @@ public final class ShadowRenderer {
         let sampler = MTLSamplerDescriptor()
         sampler.minFilter = .linear
         sampler.magFilter = .linear
-        sampler.sAddressMode = .clampToEdge
-        sampler.tAddressMode = .clampToEdge
+        // Off the map is the far plane: nothing there casts, so a point a
+        // cascade does not reach comes out lit without the shader asking.
+        sampler.sAddressMode = .clampToBorderColor
+        sampler.tAddressMode = .clampToBorderColor
+        sampler.borderColor = .opaqueWhite
         // Hardware comparison gives a free 2x2 percentage-closer result per tap.
         sampler.compareFunction = .lessEqual
         guard let comparisonSampler = device.makeSamplerState(descriptor: sampler) else {

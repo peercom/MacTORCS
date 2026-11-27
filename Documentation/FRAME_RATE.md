@@ -537,13 +537,74 @@ of Alpine 1.
   detail maps at 1 for 2, 0.05. Those are the road's sharpness at a
   distance, a setting and not a saving.
 
+## The shadow lookup, at its floor
+
+A second pass over the lookup found almost nothing: about 0.02 ms, at the
+edge of what this machine can measure. What it costs, on the scene pass of
+CG Speedway 1 and Alpine 1 at 2880 x 1720, each line the pass with that
+part taken out:
+
+| | CG Speedway 1 | Alpine 1 |
+|---|---|---|
+| as it is | 2.02 ms | 2.03 ms |
+| no lookup at all | 1.53 | 1.57 |
+| the taps replaced by arithmetic | 1.84 | 1.91 |
+| the disc not turned | 1.93 | 1.96 |
+| the cascade fixed | 1.95 | 1.99 |
+| no fade at the last cascade | 1.99 | 2.04 |
+
+So of 0.47 ms the four taps of the ring are 0.15, turning the disc and
+placing eight taps on it 0.08, finding the cascade and reading its two
+vectors 0.05, and the rest is the offset along the normal, one matrix, the
+bias and the mix. Every one of those is something the filter does.
+
+What was kept is small. The per-cascade biases are multiplied out on the
+CPU (a texel's world size by the normal bias, the depth bias over the depth
+range), as are the fade's start and reciprocal length and the filter's
+radius in the map's uv. The taps are written out along the disc's two axes
+instead of each turned by a matrix. And the test for a point off the map is
+gone: the comparison sampler's border is the far plane, so such a point
+comes out lit without a branch, and the reference is clamped to that plane.
+Previous commit against this one, run alternately, medians of seven:
+
+| | Frame before | Frame after | Scene before | Scene after |
+|---|---|---|---|---|
+| CG Speedway 1 | 5.19 ms | 5.17 ms | 2.02 ms | 2.01 ms |
+| Alpine 1 | 6.66 | 6.62 | 2.28 | 2.27 |
+| Street 1 | 5.71 | 5.67 | 2.10 | 2.06 |
+| E-Track 3 | 5.72 | 5.80 | 2.07 | 2.06 |
+| Forza | 7.18 | 7.11 | 2.14 | 2.12 |
+
+Two pixels in twelve views of Alpine 1 differ by more than a level.
+
+### Tried and not kept
+
+- **Fewer taps in the ring.** Against eight taps always, the ring of four
+  gets 0.026% of Alpine's pixels wrong by more than a level, a ring of
+  three 0.039% and a ring of two 0.25%; and three for four did not show on
+  the frame.
+- **The light-space position from the vertices**, with the normal's, in
+  place of a matrix a pixel: six more interpolated values, and the frame no
+  faster (5.19 to 5.21 ms, 6.12 to 6.33). An interpolated value costs about
+  what the arithmetic it replaces does.
+- **A cheaper turn of the disc**: `sincos`, a parabola for each, a
+  polynomial in turns. All within 0.03 ms of each other and of the sine and
+  cosine.
+- **A cross of taps** in place of the disc's scattered eight, 0.03 ms, at
+  the price of a penumbra with two radii in it instead of six.
+
+The lookup's cost is the filter itself. Less would be a different filter:
+fewer taps and a noisier edge, or shadows at a lower resolution than the
+picture.
+
 ## What is left
 
-The scene pass is 2.05 ms of 5.3. What it costs now, in the order it was
-measured: the shadow lookup about 0.45 ms, the normal map 0.22, the
-roughness map 0.13, the albedo's anisotropy 0.13, the sky's light 0.3, the
-sun's 0.2, the occlusion's sample 0.13 and the road's paint 0.13. The normal and roughness maps could share one texture, which is
-a change to the materials and not to the shader. The tonemap pass at
+The scene pass is 2.0 ms of 5.2. What it costs now, in the order it was
+measured: the shadow lookup about 0.45 ms, which the section above takes
+apart; the normal map 0.22, the roughness map 0.13, the albedo's anisotropy
+0.13, the sky's light 0.3, the sun's 0.2, the occlusion's sample 0.13 and
+the road's paint 0.13. The normal and roughness maps could share one
+texture, which is a change to the materials and not to the shader. The tonemap pass at
 1.05 ms is near what its features cost. The sky's tables are recomputed
 whenever the camera's height changes by ten centimetres, three small passes
 that a wider tolerance would mostly spare. The HUD costs

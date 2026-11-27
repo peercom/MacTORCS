@@ -1038,7 +1038,7 @@ public final class ForwardRenderer {
         // Bias in shadow texels. Hardware slope-scaled bias handles the
         // gradient during the depth write; this covers the residual.
         var shadowUniforms = ShadowUniforms(cascades: cascades, depthBias: 3.0,
-                                            normalBias: 1.5, filterRadius: 1.5)
+                                            normalBias: 1.5, filterRadius: 1.5, resolution: shadows.resolution)
         encoder.setFragmentBytes(&shadowUniforms, length: MemoryLayout<ShadowUniforms>.stride, index: 4)
 
         // Opaque first, then the deferred transparent phase sorted back to

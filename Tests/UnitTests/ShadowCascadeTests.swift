@@ -110,14 +110,15 @@ final class ShadowCascadeTests: XCTestCase {
         let cascades = ShadowCascades(camera: camera, sunDirection: sun, aspect: 16.0 / 9.0,
                                       count: 4, resolution: 2048).cascades
         XCTAssertTrue(ShadowCascades.shareOrientation(cascades))
-        let uniforms = ShadowUniforms(cascades: cascades, depthBias: 1, normalBias: 1, filterRadius: 1)
+        let uniforms = ShadowUniforms(cascades: cascades, depthBias: 3, normalBias: 1.5, filterRadius: 1.5, resolution: 2048)
         let scales = [uniforms.cascadeScale.0, uniforms.cascadeScale.1, uniforms.cascadeScale.2, uniforms.cascadeScale.3]
         let offsets = [uniforms.cascadeOffset.0, uniforms.cascadeOffset.1, uniforms.cascadeOffset.2, uniforms.cascadeOffset.3]
         let forward = simd_normalize(camera.target - camera.eye)
         var slice: Float = 0.5
         for (index, cascade) in cascades.enumerated() {
-            XCTAssertEqual(scales[index].w, cascade.texelWorldSize)
-            XCTAssertEqual(offsets[index].w, cascade.depthRange)
+            // The spare lanes: the biases, multiplied out for the shader.
+            XCTAssertEqual(scales[index].w, cascade.texelWorldSize * 1.5, accuracy: 1e-6)
+            XCTAssertEqual(offsets[index].w, 3 * cascade.texelWorldSize / cascade.depthRange, accuracy: 1e-9)
             // Points this cascade would be asked about: along the view, out
             // to its split, and off to either side.
             for step in 0 ..< 8 {
@@ -135,6 +136,12 @@ final class ShadowCascadeTests: XCTestCase {
             }
             slice = cascade.splitDistance
         }
+        // The last cascade fades over the last 15% of its reach, and the
+        // filter's radius is in the map's uv.
+        let reach = cascades[3].splitDistance
+        XCTAssertEqual(uniforms.filter.x, reach * 0.85, accuracy: 1e-4)
+        XCTAssertEqual(uniforms.filter.y * reach * 0.15, 1, accuracy: 1e-5)
+        XCTAssertEqual(uniforms.filter.z, 1.5 / 2048, accuracy: 1e-9)
         // Another sun is another orientation, and the two fits do not mix.
         let later = ShadowCascades(camera: camera, sunDirection: SIMD3(0.5, -0.3, 0.8), aspect: 16.0 / 9.0,
                                    count: 4, resolution: 2048).cascades

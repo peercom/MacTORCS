@@ -89,6 +89,54 @@ final class ShadowRefreshTests: XCTestCase {
         XCTAssertLessThan(renderer.shadows.lastRefreshedSlices.count, 4, "and the cadence resumes")
     }
 
+    /// The lookup no longer asks whether a point is on the map: the
+    /// sampler answers. Off the map is the far plane, where nothing casts,
+    /// so a point a cascade does not reach comes out lit.
+    func testOffTheMapIsLitByTheSamplerItself() throws {
+        guard let device = MTLCreateSystemDefaultDevice(), let queue = device.makeCommandQueue() else {
+            throw XCTSkip("Metal device unavailable")
+        }
+        let probe = """
+        kernel void probeShadowBorder(depth2d_array<float> map [[texture(0)]],
+                                      sampler compare [[sampler(0)]],
+                                      device float *out [[buffer(0)]],
+                                      uint i [[thread_position_in_grid]]) {
+            constexpr float2 places[4] = { float2(0.5f, 0.5f), float2(-0.5f, 0.5f), float2(0.5f, 1.5f), float2(2.0f, -1.0f) };
+            out[i] = map.sample_compare(compare, places[i], 0, 0.5f, level(0.0f));
+        }
+        """
+        let shaders = try ShaderLibrary(device: device, source: try ShaderLibrary.combinedSource() + probe)
+        let renderer = try ShadowRenderer(device: device, library: shaders.library, resolution: 256, cascadeCount: 1)
+        // A map with a caster everywhere: cleared to the nearest depth.
+        let commands = try XCTUnwrap(queue.makeCommandBuffer())
+        let pass = MTLRenderPassDescriptor()
+        pass.depthAttachment.texture = renderer.map
+        pass.depthAttachment.slice = 0
+        pass.depthAttachment.loadAction = .clear
+        pass.depthAttachment.clearDepth = 0
+        pass.depthAttachment.storeAction = .store
+        try XCTUnwrap(commands.makeRenderCommandEncoder(descriptor: pass)).endEncoding()
+        let output = try XCTUnwrap(device.makeBuffer(length: 4 * MemoryLayout<Float>.stride, options: .storageModeShared))
+        let pipeline = try device.makeComputePipelineState(
+            function: XCTUnwrap(shaders.library.makeFunction(name: "probeShadowBorder")))
+        let encoder = try XCTUnwrap(commands.makeComputeCommandEncoder())
+        encoder.setComputePipelineState(pipeline)
+        encoder.setTexture(renderer.map, index: 0)
+        encoder.setSamplerState(renderer.comparisonSampler, index: 0)
+        encoder.setBuffer(output, offset: 0, index: 0)
+        encoder.dispatchThreads(MTLSize(width: 4, height: 1, depth: 1),
+                                threadsPerThreadgroup: MTLSize(width: 4, height: 1, depth: 1))
+        encoder.endEncoding()
+        commands.commit()
+        commands.waitUntilCompleted()
+        XCTAssertNil(commands.error)
+        let lit = output.contents().bindMemory(to: Float.self, capacity: 4)
+        XCTAssertEqual(lit[0], 0, "on the map, behind the caster: dark")
+        XCTAssertEqual(lit[1], 1, "off its left edge: lit")
+        XCTAssertEqual(lit[2], 1, "off its lower edge: lit")
+        XCTAssertEqual(lit[3], 1, "off a corner: lit")
+    }
+
     func testControllerIgnoresTheWarmup() {
         var controller = DynamicResolutionController(targetGPUTime: 0.010, initialScale: 1.0, warmupFrames: 50)
         for _ in 0 ..< 50 { XCTAssertFalse(controller.record(gpuTime: 0.030)) }
