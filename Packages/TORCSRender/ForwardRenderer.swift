@@ -109,8 +109,11 @@ public final class SceneResources {
             // generated normal with an original albedo would light detail that
             // is not in the colour.
             var generated: MaterialLibrary.Binding? = nil
+            // A cutout batch takes only a set that is itself a cutout: a
+            // fence for a fence. An opaque set would fill its holes.
             if let texture = batch.baseTexture, let materials, let materialDirectory,
-               batch.alphaTestThreshold == nil {
+               batch.alphaTestThreshold == nil
+                || MaterialLibrary.material(for: texture).map(MaterialLibrary.isCutout) == true {
                 // Painted content is composited over a generated set only for
                 // a road that paints markings. Compositing a wall's original
                 // artwork treated its grey as paint and turned the wall dark.
@@ -125,6 +128,14 @@ public final class SceneResources {
                let choice = MaterialLibrary.detail(for: part) {
                 detail = materials.detailBinding(choice.material, directory: materialDirectory)
                 detailScale = choice.uvScale
+            }
+            // A building keeps its photograph and takes a structure made
+            // from it: glass where the picture has windows.
+            var facade: MTLTexture? = nil
+            if generated == nil, detail == nil, batch.carPart == nil, batch.alphaTestThreshold == nil, !batch.blends,
+               let texture = batch.baseTexture, MaterialLibrary.isFacade(texture), let materials,
+               let image = originalImage?(texture) {
+                facade = materials.facadeStructure(texture: texture, image: image)
             }
             // A generated set is made to tile every two or three metres. The
             // original artwork it replaces was stretched over whatever its
@@ -159,7 +170,7 @@ public final class SceneResources {
                                    normalStrength: material.normalStrength,
                                    alphaThreshold: batch.alphaTestThreshold ?? 0,
                                    maps: SIMD4(albedo == nil ? 0 : 1,
-                                               structure == nil ? 0 : 1,
+                                               structure == nil && facade == nil ? 0 : 1,
                                                0,
                                                (batch.isDeferred ? 0 : 1) | (batch.paintsRoadMarkings ? 2 : 0)
                                                    | (batch.swaysInWind ? 4 : 0) | (batch.receivesWeather ? 8 : 0)),
@@ -171,7 +182,7 @@ public final class SceneResources {
                                    // car part under a detail set has none.
                                    macroVariation: generated?.macroVariation ?? 0),
                 needsAlphaTest: batch.alphaTestThreshold != nil,
-                structure: structure?.structure,
+                structure: structure?.structure ?? facade,
                 wear: batch.paintsRoadMarkings && generated != nil
                     ? materialDirectory.flatMap { materials?.roadWear(directory: $0) } : nil,
                 culls: batch.culls,

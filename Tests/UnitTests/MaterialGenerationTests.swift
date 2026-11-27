@@ -66,7 +66,7 @@ final class MaterialGenerationTests: XCTestCase {
     /// generated material can have.
     func testMaterialsTileWithoutASeam() throws {
         for name in ["asphalt", "grass", "concrete", "asphalt-patched", "brick", "armco", "carbon-weave", "sand",
-                     "rock", "snow", "tyre-wall", "tyre-top"] {
+                     "rock", "snow", "tyre-wall", "tyre-top", "concrete-wall", "stone-wall"] {
             let material = try MaterialRecipes.generate(name, size: 64, seed: 5)
             let size = material.size
             func albedo(_ x: Int, _ y: Int) -> Int { Int(material.albedo[(y * size + x) * 4]) }
@@ -342,5 +342,151 @@ extension MaterialGenerationTests {
         var roughest = 0, smoothest = 255
         for texel in 0 ..< size * size { roughest = max(roughest, Int(m.orm[texel * 4 + 1])); smoothest = min(smoothest, Int(m.orm[texel * 4 + 1])) }
         XCTAssertGreaterThan(smoothest, 76, "weathered zinc is nowhere glossy")
+    }
+}
+
+/// Walls and fences.
+extension MaterialGenerationTests {
+    /// Eight bricks along the tile and twenty-four courses up it, each
+    /// course half a brick along from the one under it, mortar between.
+    func testBrickworkIsAtABricksSize() throws {
+        let m = try MaterialRecipes.generate("brick", size: 384, seed: 1)
+        XCTAssertEqual(m.worldSize, 1.8, "eight 225 mm modules")
+        let size = m.size, course = size / 24, module = size / 8
+        func red(_ x: Int, _ y: Int) -> Float { Float(m.albedo[(y * size + x) * 4]) - Float(m.albedo[(y * size + x) * 4 + 2]) }
+        // Mid-course a row is bricks, red over blue; on the bed joint it is mortar, grey.
+        var brickRows: Float = 0, jointRows: Float = 0
+        for c in 0 ..< 24 { for x in 0 ..< size { brickRows += red(x, c * course + course / 2); jointRows += red(x, c * course) } }
+        XCTAssertGreaterThan(brickRows, jointRows * 3)
+        // The perpends: in one course at the module's start, in the next at its middle.
+        var even: Float = 0, odd: Float = 0, evenOff: Float = 0, oddOff: Float = 0
+        for b in 0 ..< 8 {
+            even += red(b * module, course / 2); evenOff += red(b * module + module / 2, course / 2)
+            odd += red(b * module + module / 2, course + course / 2); oddOff += red(b * module, course + course / 2)
+        }
+        XCTAssertLessThan(even * 2, evenOff); XCTAssertLessThan(odd * 2, oddOff)
+    }
+
+    /// Four tie holes to a sheet and two sheets up the tile, a joint down
+    /// its edge, and the rain's marks running down the wall and not along it.
+    func testAConcreteWallHasItsFormworkAndItsRunMarks() throws {
+        let m = try MaterialRecipes.generate("concrete-wall", size: 256, seed: 1)
+        XCTAssertEqual(m.worldSize, 2.4)
+        let size = m.size
+        func value(_ x: Int, _ y: Int) -> Float { Float(m.albedo[(y * size + x) * 4 + 1]) }
+        var body: Float = 0
+        for y in 0 ..< size { for x in 0 ..< size { body += value(x, y) } }
+        body /= Float(size * size)
+        for row in 0 ..< 2 { for column in 0 ..< 4 {
+            XCTAssertLessThan(value(column * size / 4 + size / 8, row * size / 2 + size / 4), body * 0.6, "no tie hole at \(column), \(row)")
+        } }
+        var joint: Float = 0
+        for y in 0 ..< size { joint += value(0, y) }
+        XCTAssertLessThan(joint / Float(size), body * 0.75, "no joint between panels")
+        // A column's mean differs from its neighbours' more than a row's does: the marks run down.
+        var columns = [Float](repeating: 0, count: size), rows = [Float](repeating: 0, count: size)
+        for y in 0 ..< size { for x in 0 ..< size { columns[x] += value(x, y); rows[y] += value(x, y) } }
+        func spread(_ v: [Float]) -> Float {
+            let inner = Array(v[4 ..< size - 4]).filter { $0 > 0 }
+            let mean = inner.reduce(0, +) / Float(inner.count)
+            return (inner.reduce(0) { $0 + ($1 - mean) * ($1 - mean) } / Float(inner.count)).squareRoot()
+        }
+        // Within one lift: the two were poured on different days and differ as wholes.
+        var between = [Float](repeating: 0, count: size)
+        for y in 6 ..< size / 2 - 6 { between[y] = rows[y] }
+        XCTAssertGreaterThan(spread(columns), spread(between) * 1.5)
+    }
+
+    /// Stones with mortar between: most of the wall is stone, the joints
+    /// are a net through it, and no two stones are one colour.
+    func testAStoneWallIsStonesOfTheirOwnColoursInMortar() throws {
+        let m = try MaterialRecipes.generate("stone-wall", size: 256, seed: 1)
+        let size = m.size
+        var dark = 0
+        var sum: Float = 0, squares: Float = 0
+        for y in 0 ..< size { for x in 0 ..< size {
+            let i = (y * size + x) * 4
+            let v = (Int(m.albedo[i]) + Int(m.albedo[i + 1]) + Int(m.albedo[i + 2])) / 3
+            if Int(m.orm[i]) < 150 { dark += 1 }                       // occluded: down in a joint
+            sum += Float(v); squares += Float(v * v)
+        } }
+        let joints = Float(dark) / Float(size * size)
+        XCTAssertGreaterThan(joints, 0.04); XCTAssertLessThan(joints, 0.45)
+        let count = Float(size * size)
+        XCTAssertGreaterThan((squares / count - (sum / count) * (sum / count)).squareRoot(), 12, "the stones are all one colour")
+        XCTAssertFalse(m.isMetal)
+    }
+
+    /// A panel of chain link: mostly air, a rail along its top, a post at
+    /// its edge, and wire between that is nowhere a mirror.
+    func testAChainLinkPanelIsMostlyAirBetweenAPostAndARail() throws {
+        let m = try MaterialRecipes.generate("chain-link", size: 512, seed: 1)
+        XCTAssertEqual(m.worldSize, 3, "three metres from post to post")
+        XCTAssertFalse(m.isMetal)
+        let size = m.size
+        func solid(_ x: Int, _ y: Int) -> Bool { m.albedo[(y * size + x) * 4 + 3] > 127 }
+        var covered = 0
+        for y in size / 8 ..< size * 7 / 8 { for x in size / 8 ..< size * 7 / 8 where solid(x, y) { covered += 1 } }
+        let mesh = Float(covered) / Float((size * 3 / 4) * (size * 3 / 4))
+        XCTAssertGreaterThan(mesh, 0.12); XCTAssertLessThan(mesh, 0.45)
+        // The rail, 1.4% down the tile, is solid from end to end; the post, at the tile's edge, from top to bottom.
+        let rail = Int(0.014 * Float(size))
+        XCTAssertEqual((0 ..< size).filter { solid($0, rail) }.count, size)
+        XCTAssertEqual((0 ..< size).filter { solid(0, $0) }.count, size)
+        XCTAssertEqual((0 ..< size).filter { solid(size - 1, $0) }.count, size)
+        // A diamond's middle is a hole.
+        var holes = 0
+        for y in stride(from: size / 8, to: size * 7 / 8, by: 3) { for x in stride(from: size / 8, to: size * 7 / 8, by: 3) where !solid(x, y) { holes += 1 } }
+        XCTAssertGreaterThan(holes, 1000)
+    }
+
+    /// The fence above and the rail below: holes in the upper two thirds
+    /// of the tile and none in the lower third.
+    func testACatchFenceIsAFenceOnAGuardRail() throws {
+        // A size nine divides, so each beam's gap falls on a row of its own.
+        let m = try MaterialRecipes.generate("catch-fence", size: 288, seed: 1)
+        let fence = try MaterialRecipes.generate("chain-link", size: 288, seed: 1)
+        XCTAssertEqual(m.worldSize, fence.worldSize)
+        let size = m.size, split = size * 2 / 3
+        XCTAssertEqual(Array(m.albedo[0 ..< split * size * 4]), Array(fence.albedo[0 ..< split * size * 4]), "the panel as it is")
+        for y in split ..< size { for x in 0 ..< size { XCTAssertEqual(m.albedo[(y * size + x) * 4 + 3], 255) } }
+        // Three beams in the third: three dark gaps, at its top and a third and two thirds down it.
+        func row(_ y: Int) -> Float { (0 ..< size).reduce(Float(0)) { $0 + Float(m.albedo[(y * size + $1) * 4 + 1]) } / Float(size) }
+        let third = (size - split) / 3
+        let body = row(split + third / 4)
+        for beam in 0 ..< 3 { XCTAssertLessThan(row(split + beam * third), body * 0.6, "no gap above beam \(beam)") }
+        for texel in stride(from: 0, to: size * size, by: 5) {
+            let n = SIMD3(Float(m.normal[texel * 4]) / 127.5 - 1, Float(m.normal[texel * 4 + 1]) / 127.5 - 1, Float(m.normal[texel * 4 + 2]) / 127.5 - 1)
+            XCTAssertEqual(simd_length(n), 1, accuracy: 0.03)
+        }
+    }
+
+    /// Glass is the dark grey in a wall: not the wall, not a shutter, not
+    /// the line of shadow under a sill. It is smooth and set back.
+    func testAFacadesGlassIsFoundInItsPicture() throws {
+        let width = 96, height = 64
+        var pixels = [UInt8](repeating: 255, count: width * height * 4)
+        func fill(_ xs: Range<Int>, _ ys: Range<Int>, _ colour: (UInt8, UInt8, UInt8)) {
+            for y in ys { for x in xs { pixels[(y * width + x) * 4] = colour.0; pixels[(y * width + x) * 4 + 1] = colour.1; pixels[(y * width + x) * 4 + 2] = colour.2 } }
+        }
+        fill(0 ..< width, 0 ..< height, (190, 180, 165))        // the wall
+        fill(12 ..< 30, 16 ..< 44, (45, 50, 55))                // a window
+        fill(40 ..< 58, 16 ..< 44, (110, 35, 30))               // a shutter, as dark and red
+        fill(66 ..< 90, 30 ..< 31, (40, 40, 40))                // the shadow under a sill
+        let glass = FacadeStructure.glass(rgba: pixels, width: width, height: height)
+        XCTAssertEqual(glass[30 * width + 21], 1, "the window")
+        XCTAssertEqual(glass[30 * width + 49], 0, "the shutter")
+        XCTAssertEqual(glass[30 * width + 78], 0, "the sill's shadow")
+        XCTAssertEqual(glass[5 * width + 5], 0, "the wall")
+        let maps = FacadeStructure.derive(rgba: pixels, width: width, height: height)
+        XCTAssertEqual(maps.normal.count, pixels.count); XCTAssertEqual(maps.orm.count, pixels.count)
+        func roughness(_ x: Int, _ y: Int) -> Int { Int(maps.orm[(y * width + x) * 4 + 1]) }
+        XCTAssertLessThan(roughness(21, 30), 40); XCTAssertGreaterThan(roughness(5, 5), 220); XCTAssertGreaterThan(roughness(49, 30), 220)
+        // Flat on the pane and on the wall, tipped at the window's edge: outward on its left, the other way on its right.
+        func lean(_ x: Int, _ y: Int) -> Int { Int(maps.normal[(y * width + x) * 4]) - 128 }
+        XCTAssertEqual(lean(21, 30), 0, accuracy: 1); XCTAssertEqual(lean(5, 5), 0, accuracy: 1)
+        let left = (9 ..< 16).map { lean($0, 30) }.max { abs($0) < abs($1) }!, right = (26 ..< 33).map { lean($0, 30) }.max { abs($0) < abs($1) }!
+        XCTAssertNotEqual(left, 0); XCTAssertEqual(left.signum(), -right.signum())
+        for i in stride(from: 0, to: width * height, by: 3) { XCTAssertEqual(maps.orm[i * 4], 255); XCTAssertEqual(maps.orm[i * 4 + 2], 0) }
     }
 }

@@ -116,7 +116,7 @@ final class MaterialCompressionTests: XCTestCase {
     /// roughness map's blue channel used to.
     func testASetsMetalnessComesFromTheManifestNotTheTexture() throws {
         guard let device = MTLCreateSystemDefaultDevice() else { throw XCTSkip("Metal device unavailable") }
-        let directory = try MaterialLibraryTests().materialsDirectory(["paint-flake", "rubber-tread", "fabric", "chain-link", "asphalt"])
+        let directory = try MaterialLibraryTests().materialsDirectory(["paint-flake", "rubber-tread", "fabric", "brick", "asphalt"], metals: ["brick"])
         defer { try? FileManager.default.removeItem(at: directory) }
         let library = try MaterialLibrary(device: device, directory: directory)
 
@@ -153,7 +153,7 @@ final class MaterialCompressionTests: XCTestCase {
                         culls: false, isDriver: false, sourceMaterial: state,
                         material: ResolvedMaterial(baseColour: SIMD4(1, 1, 1, 1), roughness: 0.9, metallic: 0.3))
         }
-        let world = RenderScene(batches: [batch("fence-2.rgb"), batch("tr-asphalt-1.png"), batch("unknown.png")],
+        let world = RenderScene(batches: [batch("brick-red.png"), batch("tr-asphalt-1.png"), batch("unknown.png")],
                                 minimum: SIMD3(0, 0, 0), maximum: SIMD3(1, 1, 0))
         let resources = try SceneResources(device: device, scene: world, materials: library, materialDirectory: directory,
                                            resolveTexture: { _, _ in nil })
@@ -324,5 +324,69 @@ final class MaterialCompressionTests: XCTestCase {
         let rgba = try XCTUnwrap(plain.resolve(texture: "armco-1.png", directory: directory))
         XCTAssertEqual(rgba.albedo.pixelFormat, .rgba8Unorm_srgb)
         XCTAssertGreaterThan(plain.uploadedBytes, compressedBytes * 4, "RGBA8 is at least four times the bytes")
+    }
+}
+
+/// Fences and buildings: what a cutout takes, and what a building's
+/// photograph is given.
+extension MaterialCompressionTests {
+    private func quad(_ texture: String, cutout: Bool) throws -> RenderBatch {
+        let mesh = try RenderMesh.build(positions: [SIMD3(0, 0, 0), SIMD3(3, 0, 0), SIMD3(3, 0, 3), SIMD3(0, 0, 3)],
+                                        normals: Array(repeating: SIMD3(0, -1, 0), count: 4),
+                                        uv0: [SIMD2(0, 0), SIMD2(1, 0), SIMD2(1, 1), SIMD2(0, 1)], indices: [0, 1, 2, 0, 2, 3])
+        let state = ACRenderState(material: [0, 0, 0, 1, 0, 0, 0, 1, 0.2, 0.2, 0.2, 1, 0], texture: nil,
+                                  flags: cutout ? 16 : 8, alphaClamp: cutout ? 0.5 : 0)
+        return RenderBatch(mesh: mesh, baseTexture: texture, blends: false, isDeferred: false,
+                           alphaTestThreshold: cutout ? 0.5 : nil, culls: !cutout, isDriver: false, sourceMaterial: state,
+                           material: ResolvedMaterial(baseColour: SIMD4(1, 1, 1, 1), roughness: 0.9, metallic: 0))
+    }
+
+    /// A cutout batch is a thing with holes in it: a fence takes the fence
+    /// set, whose alpha is the holes, and nothing with holes takes a solid set.
+    func testACutoutTakesOnlyASetThatIsACutout() throws {
+        guard let device = MTLCreateSystemDefaultDevice() else { throw XCTSkip("Metal device unavailable") }
+        let directory = try MaterialLibraryTests().materialsDirectory(["chain-link", "asphalt", "concrete-wall"])
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let library = try MaterialLibrary(device: device, directory: directory)
+        let scene = RenderScene(batches: [try quad("fence_arbor_n.png", cutout: true), try quad("tr-asphalt-1.png", cutout: true),
+                                          try quad("wall-grey.rgb", cutout: true), try quad("wall-grey.rgb", cutout: false)],
+                                minimum: SIMD3(0, 0, 0), maximum: SIMD3(3, 0, 3))
+        let resources = try SceneResources(device: device, scene: scene, materials: library, materialDirectory: directory,
+                                           resolveTexture: { _, _ in nil })
+        XCTAssertEqual(resources.batches.map { $0.structure != nil }, [true, false, false, true])
+        XCTAssertEqual(resources.batches.map(\.needsAlphaTest), [true, true, true, false])
+        XCTAssertEqual(resources.batches[0].draw.parameters.z, 1, "a panel is drawn once, not repeated")
+        let fence = try XCTUnwrap(library.resolve(texture: "fence_arbor_n.png", directory: directory))
+        XCTAssertFalse(fence.metallic)
+    }
+
+    /// A building keeps its photograph and is given a structure made from
+    /// it; a tree, a road or a building with no picture to read is not.
+    func testABuildingsFaceGetsAStructureFromItsOwnPicture() throws {
+        guard let device = MTLCreateSystemDefaultDevice() else { throw XCTSkip("Metal device unavailable") }
+        let directory = try MaterialLibraryTests().materialsDirectory(["asphalt"])
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let library = try MaterialLibrary(device: device, directory: directory)
+        // A pale wall with one dark window in it.
+        var pixels = [UInt8](repeating: 200, count: 64 * 32 * 4)
+        for y in 8 ..< 24 { for x in 20 ..< 44 { for c in 0 ..< 3 { pixels[(y * 64 + x) * 4 + c] = 40 } } }
+        let picture = try TextureImage(width: 64, height: 32, channels: 4, pixels: pixels)
+        let scene = RenderScene(batches: [try quad("tr-building8.rgb", cutout: false), try quad("house17roof.png", cutout: false),
+                                          try quad("tr-building8.rgb", cutout: true), try quad("block-without-picture.png", cutout: false)],
+                                minimum: SIMD3(0, 0, 0), maximum: SIMD3(3, 0, 3))
+        let resources = try SceneResources(device: device, scene: scene, materials: library, materialDirectory: directory,
+                                           originalImage: { $0.contains("without") ? nil : picture },
+                                           resolveTexture: { _, _ in nil })
+        XCTAssertEqual(resources.batches.map { $0.structure != nil }, [true, false, false, false])
+        XCTAssertEqual(resources.batches.map(\.draw.maps.y), [1, 0, 0, 0])
+        let made = try XCTUnwrap(resources.batches[0].structure)
+        XCTAssertEqual(made.width, 64); XCTAssertEqual(made.height, 32)
+        XCTAssertEqual(made.pixelFormat, .rgba8Unorm)
+        XCTAssertGreaterThan(made.mipmapLevelCount, 1)
+        // One picture, one structure, however many walls wear it.
+        XCTAssertTrue(library.facadeStructure(texture: "tr-building8.rgb", image: picture) === made)
+        // With no library there is nothing to make it.
+        let plain = try SceneResources(device: device, scene: scene, originalImage: { _ in picture }, resolveTexture: { _, _ in nil })
+        XCTAssertEqual(plain.batches.map { $0.structure != nil }, [false, false, false, false])
     }
 }

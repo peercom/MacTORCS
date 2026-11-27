@@ -164,6 +164,23 @@ public enum TrackSurfaceAssembly {
     /// One batch per surface material, UVs in metres.
     public static func roadBatches(_ geometry: TrackGeometry,
                                    parameters: RoadGeneration.Parameters = .init()) throws -> [RenderBatch] {
+        // A barrier's surface is named by whoever wrote the circuit, `wall-1`
+        // or `barrierg3`; what it is a picture of is in its texture's name.
+        // Where that name maps to a set the barrier is grouped under it.
+        var parameters = parameters
+        for segment in geometry.segments {
+            for barrier in [segment.rightBarrier, segment.leftBarrier] {
+                guard let surface = barrier?.surface else { continue }
+                var group = surface.material
+                if let texture = surface.texture, MaterialLibrary.material(for: texture) != nil {
+                    group = ((texture as NSString).lastPathComponent as NSString).deletingPathExtension.lowercased()
+                    parameters.barrierGroups[surface.material] = group
+                }
+                if let fit = MaterialLibrary.material(for: group + ".rgb").flatMap(MaterialLibrary.fittedTile) {
+                    parameters.fittedBarriers[group] = fit
+                }
+            }
+        }
         var batches: [RenderBatch] = []
         for group in RoadGeneration.road(geometry, parameters: parameters).groups where !group.geometry.isEmpty {
             let mesh = try RenderMesh.build(positions: group.geometry.positions, normals: group.geometry.normals,
@@ -245,12 +262,14 @@ public enum TrackSurfaceAssembly {
     /// name; the source state mirrors what trackgen would have written so the
     /// batch reads like any other.
     static func surfaceBatch(mesh: RenderMesh, texture: String, roughness: Float, markings: Bool = false) -> RenderBatch {
+        // A fence is seen through and from both sides.
+        let cutout = MaterialLibrary.material(for: texture).map(MaterialLibrary.isCutout) ?? false
         let state = ACRenderState(material: [0, 0, 0, 1, 0, 0, 0, 1, 0.2, 0.2, 0.2, 1, 0],
-                                  texture: texture, flags: 8, alphaClamp: 0)
+                                  texture: texture, flags: cutout ? 16 : 8, alphaClamp: cutout ? 0.5 : 0)
         return RenderBatch(mesh: mesh, baseTexture: texture, blends: false, isDeferred: false,
-                           alphaTestThreshold: nil, culls: true, isDriver: false,
+                           alphaTestThreshold: cutout ? 0.5 : nil, culls: !cutout, isDriver: false,
                            sourceMaterial: state,
                            material: ResolvedMaterial(baseColour: SIMD4(1, 1, 1, 1), roughness: roughness, metallic: 0),
-                           uvInMetres: true, paintsRoadMarkings: markings, receivesWeather: true)
+                           uvInMetres: true, paintsRoadMarkings: markings && !cutout, receivesWeather: true)
     }
 }

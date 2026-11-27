@@ -13,7 +13,7 @@ final class MaterialLibraryTests: XCTestCase {
             ("tr-asphalt-aa-bw1_n.rgb", "asphalt"), ("tr-asphalt-aa-l_n.rgb", "asphalt-patched"),
             ("tr-asphalt-2-aa-r_n.rgb", "asphalt-patched"), ("tr-curb-bw-aa-r.rgb", "kerb"),
             ("grass-aa.rgb", "grass"), ("tr-g-to-asphalt-aa-l_n.rgb", "grass"),
-            ("tarmac-wall-2-g2.rgb", "concrete"), ("tr-barrier-aa-1.rgb", "concrete"),
+            ("tarmac-wall-2-g2.rgb", "concrete-wall"), ("tr-barrier-aa-1.rgb", "concrete-wall"),
             ("armco-1.png", "armco"), ("tyres.png", "tyre-wall"), ("fence-2.rgb", "chain-link"),
             ("brick-red.png", "brick"), ("wood-fence.png", "wood"), ("pylon1.rgb", "painted-steel"),
             ("sand-pit.rgb", "sand"), ("mud-1.rgb", "mud"), ("155-DTM.rgb", nil), ("shadow2.rgb", nil),
@@ -25,7 +25,21 @@ final class MaterialLibraryTests: XCTestCase {
             ("rock1-w1.png", nil), ("cliff.png", nil), ("conc.png", nil),
             // A tyre wall's two sets, and the barrier that is three guard rails.
             ("furniture-tyre-wall.rgb", "tyre-wall"), ("furniture-tyre-top.rgb", "tyre-top"),
-            ("barrier-metal-bw-w1.png", "armco")]
+            ("barrier-metal-bw-w1.png", "armco"),
+            // A barrier is what its texture is a picture of: TORCS's own is a
+            // guard rail, and so are the photographs used in its place.
+            ("tr-barrier.rgb", "armco"), ("barrier.png", "armco"), ("barrier-1.png", "armco"), ("barrier.rgb", "armco"),
+            ("tr-bar.rgb", "armco"), ("barg2.rgb", "armco"), ("barrierg1.rgb", "concrete-wall"),
+            ("barrier-fence.rgb", "catch-fence"), ("tr-barrier-arbor-fence_n.png", "catch-fence"),
+            ("fence_arbor_n.png", "chain-link"),
+            // Walls: cast concrete, laid stone, brick. A slab stays a slab.
+            ("concrete2.rgb", "concrete-wall"), ("swall2.png", "concrete-wall"), ("concrete-wall1.png", "concrete-wall"),
+            ("pit-concrete.rgb", "concrete"), ("concrete.rgb", "concrete"),
+            ("rock-wall-e2.png", "stone-wall"), ("rockwall2.png", "stone-wall"), ("mur2.rgb", "stone-wall"),
+            ("tr-stone-wall2.rgb", "stone-wall"), ("wall4.rgb", "brick"),
+            // Pictures of whole things keep their own: a village's house
+            // fronts and a pit wall with its windows.
+            ("walls.rgb", nil), ("walls2.rgb", nil), ("CWALLPT1.png", nil)]
         for (texture, expected) in cases {
             XCTAssertEqual(MaterialLibrary.material(for: texture), expected, texture)
         }
@@ -49,12 +63,37 @@ final class MaterialLibraryTests: XCTestCase {
     /// The ground's sets are the same all over and are repeated to their own
     /// scale. A set drawn as the object it covers is drawn once across it.
     func testASetLaidOutAsItsObjectIsNotRetiled() {
-        for object in ["armco", "tyre-wall", "tyre-top", "kerb"] {
+        for object in ["armco", "tyre-wall", "tyre-top", "kerb", "chain-link", "catch-fence"] {
             XCTAssertFalse(MaterialLibrary.tilesFreely(object), object)
             XCTAssertTrue(MaterialRecipes.all.contains(object), object)
         }
-        for ground in ["asphalt", "grass", "concrete", "rock", "sand", "gravel", "brick"] {
+        for ground in ["asphalt", "grass", "concrete", "rock", "sand", "gravel", "brick", "concrete-wall", "stone-wall"] {
             XCTAssertTrue(MaterialLibrary.tilesFreely(ground), ground)
+        }
+    }
+
+    /// A fence has holes and is drawn once up whatever it stands on, and a
+    /// rail likewise; the span the mesh is given is the set's own tile.
+    func testFencesAreCutoutsAndFittedSetsMatchTheirTile() throws {
+        XCTAssertTrue(MaterialLibrary.isCutout("chain-link")); XCTAssertTrue(MaterialLibrary.isCutout("catch-fence"))
+        for solid in ["armco", "concrete-wall", "brick", "tyre-wall"] { XCTAssertFalse(MaterialLibrary.isCutout(solid), solid) }
+        for fitted in ["armco", "catch-fence", "chain-link"] {
+            let tile = try XCTUnwrap(MaterialLibrary.fittedTile(for: fitted), fitted)
+            XCTAssertEqual(tile, try MaterialRecipes.generate(fitted, size: 32).worldSize, fitted)
+            XCTAssertFalse(MaterialLibrary.tilesFreely(fitted), fitted)
+        }
+        XCTAssertNil(MaterialLibrary.fittedTile(for: "concrete-wall"))
+        XCTAssertNil(MaterialLibrary.fittedTile(for: "stone-wall"))
+    }
+
+    /// A building's face is found by name, and what is not a face is not.
+    func testFacadesAreBuildingsFrontsOnly() {
+        for face in ["tr-building8.rgb", "house23facade.png", "block2.rgb", "BLOCK5F.png", "pitbld.png", "house17facade.png"] {
+            XCTAssertTrue(MaterialLibrary.isFacade(face), face)
+        }
+        for other in ["house17roof.png", "house26ceil.png", "house26parking.png", "house22base.png", "walls.rgb",
+                      "tree1_n.png", "concrete2.rgb", "tr-asphalt-1.png"] {
+            XCTAssertFalse(MaterialLibrary.isFacade(other), other)
         }
     }
 
@@ -73,7 +112,8 @@ final class MaterialLibraryTests: XCTestCase {
     }
 
     /// Writes a few small sets to a temporary directory, as the generator would.
-    func materialsDirectory(_ names: [String]) throws -> URL {
+    /// - Parameter metals: sets the manifest calls metal whatever the recipe says.
+    func materialsDirectory(_ names: [String], metals: Set<String> = []) throws -> URL {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent("torcs-materials-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         var manifest: [[String: Any]] = []
@@ -90,7 +130,8 @@ final class MaterialLibraryTests: XCTestCase {
                 CGImageDestinationAddImage(destination, image, nil)
                 XCTAssertTrue(CGImageDestinationFinalize(destination))
             }
-            manifest.append(["name": name, "size": 32, "worldSize": material.worldSize, "metal": material.isMetal])
+            manifest.append(["name": name, "size": 32, "worldSize": material.worldSize,
+                             "metal": material.isMetal || metals.contains(name)])
         }
         try JSONSerialization.data(withJSONObject: ["materials": manifest]).write(to: directory.appendingPathComponent("materials.json"))
         return directory
@@ -100,11 +141,13 @@ final class MaterialLibraryTests: XCTestCase {
     /// and a metal set marks its binding as metal.
     func testCarBatchesBindDetailStructureAndMetalSetsAreFlagged() throws {
         guard let device = MTLCreateSystemDefaultDevice() else { throw XCTSkip("Metal device unavailable") }
-        let directory = try materialsDirectory(["paint-flake", "rubber-tread", "fabric", "armco", "chain-link"])
+        // No set that replaces scenery is a metal now, so the manifest is
+        // made to call one: it is the manifest's word that is under test.
+        let directory = try materialsDirectory(["paint-flake", "rubber-tread", "fabric", "armco", "brick"], metals: ["brick"])
         defer { try? FileManager.default.removeItem(at: directory) }
         let library = try MaterialLibrary(device: device, directory: directory)
-        let fence = try XCTUnwrap(library.resolve(texture: "fence-2.rgb", directory: directory))
-        XCTAssertTrue(fence.metallic)
+        let marked = try XCTUnwrap(library.resolve(texture: "brick-red.png", directory: directory))
+        XCTAssertTrue(marked.metallic)
         // A guard rail's zinc has weathered dull: it is steel and is not drawn as a mirror.
         let armco = try XCTUnwrap(library.resolve(texture: "armco-1.png", directory: directory))
         XCTAssertFalse(armco.metallic)

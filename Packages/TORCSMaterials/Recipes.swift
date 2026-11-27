@@ -17,12 +17,13 @@ public enum MaterialRecipes {
     public static let all = [
         "asphalt", "asphalt-worn", "asphalt-patched", "grass", "grass-dry", "concrete", "kerb",
         "gravel", "dirt", "mud", "sand", "rock", "snow", "grass-cards",
-        "armco", "tyre-wall", "tyre-top", "chain-link", "brick", "wood", "painted-steel",
+        "armco", "tyre-wall", "tyre-top", "chain-link", "catch-fence",
+        "concrete-wall", "stone-wall", "brick", "wood", "painted-steel",
         "rubber-tread", "carbon-weave", "brushed-metal", "chrome", "plastic", "fabric", "paint-flake", "glass"]
 
     /// Deliberately smooth: allowed a roughness floor below the usual one.
     public static let smooth: Set<String> = ["chrome", "glass"]
-    public static let metals: Set<String> = ["brushed-metal", "chrome", "chain-link", "paint-flake"]
+    public static let metals: Set<String> = ["brushed-metal", "chrome", "paint-flake"]
 
     public static func generate(_ name: String, size: Int = 1024, seed: UInt32 = 1) throws -> GeneratedMaterial {
         switch name {
@@ -43,8 +44,11 @@ public enum MaterialRecipes {
         case "armco": return tripleArmco(size: size, seed: seed &+ 41)
         case "tyre-wall": return tyreStack(size: size, seed: seed &+ 43)
         case "tyre-top": return tyreTop(size: size, seed: seed &+ 45)
-        case "chain-link": return chainLink(size: size, seed: seed &+ 47)
-        case "brick": return brick(size: size, seed: seed &+ 53)
+        case "chain-link": return chainLinkPanel(size: size, seed: seed &+ 47)
+        case "catch-fence": return catchFence(size: size, seed: seed &+ 47)
+        case "concrete-wall": return concreteWall(size: size, seed: seed &+ 113)
+        case "stone-wall": return stoneWall(size: size, seed: seed &+ 127)
+        case "brick": return brickwork(size: size, seed: seed &+ 53)
         case "wood": return wood(size: size, seed: seed &+ 59)
         case "painted-steel": return paintedSteel(size: size, seed: seed &+ 61)
         case "rubber-tread": return rubberTread(size: size, seed: seed &+ 67)

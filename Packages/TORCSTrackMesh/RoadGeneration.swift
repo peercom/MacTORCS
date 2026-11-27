@@ -30,6 +30,14 @@ public enum RoadGeneration {
         /// generator builds garages there instead of a solid block the
         /// height and depth of the whole pit complex.
         public var pitBuildings: Bool = false
+        /// The group a barrier's surface goes into, by the surface's
+        /// material name, where that is not the material name itself: the
+        /// renderer names a barrier for the texture its surface declares
+        /// when that says what the barrier is.
+        public var barrierGroups: [String: String] = [:]
+        /// Groups whose set is drawn once up the barrier whatever its
+        /// height, with the span of texture coordinate that is once.
+        public var fittedBarriers: [String: Float] = [:]
         public init() {}
     }
 
@@ -65,8 +73,9 @@ public enum RoadGeneration {
             for (side, barrier) in [(TrackSide.right, segment.rightBarrier), (.left, segment.leftBarrier)] {
                 guard let barrier, barrier.height > 0 else { continue }
                 if barrier.style == .pitBuilding, !parameters.pitBuildings { continue }
+                let group = parameters.barrierGroups[barrier.surface.material] ?? barrier.surface.material
                 appendBarrier(geometry, main: index, side: side, barrier: barrier, parameters: parameters,
-                              into: &groups[barrier.surface.material, default: GeneratedGeometry()])
+                              fit: parameters.fittedBarriers[group], into: &groups[group, default: GeneratedGeometry()])
             }
         }
 
@@ -157,7 +166,7 @@ public enum RoadGeneration {
     /// `toStart` parameter of the outer segment is walked with the main
     /// segment's row count so the barrier and the road it bounds share steps.
     static func appendBarrier(_ geometry: TrackGeometry, main: Int, side: TrackSide, barrier: TrackBarrier,
-                              parameters: Parameters, into out: inout GeneratedGeometry) {
+                              parameters: Parameters, fit: Float? = nil, into out: inout GeneratedGeometry) {
         let (outer, outerIsZero) = outerEdge(geometry, main: main, side: side)
         let segment = geometry.segments[outer]
         let rowCount = rows(geometry.segments[main], step: parameters.step)
@@ -189,8 +198,11 @@ public enum RoadGeneration {
             // Four vertices per row, in the order inner foot, inner top, outer top, outer foot.
             out.positions.append(contentsOf: [innerFoot, innerTop, outerTop, outerFoot])
             out.normals.append(contentsOf: [inwardNormal, inwardNormal, SIMD3(0, 0, 1), outwardNormal])
-            out.uv0.append(contentsOf: [SIMD2(along, 0), SIMD2(along, barrier.height),
-                                        SIMD2(along, barrier.height + thickness), SIMD2(along, 0)])
+            // Metres up the wall; or, for a set drawn once up it, the whole
+            // tile from foot to top, and its top edge along the top.
+            let top = fit ?? barrier.height
+            out.uv0.append(contentsOf: [SIMD2(along, 0), SIMD2(along, top),
+                                        SIMD2(along, fit ?? (barrier.height + thickness)), SIMD2(along, 0)])
             out.attributes.append(contentsOf: Array(repeating: SIMD4<UInt8>(0, 0, 3, 0), count: 4))
         }
         for row in 0 ..< UInt32(rowCount) {

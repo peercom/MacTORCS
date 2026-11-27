@@ -226,6 +226,89 @@ the figures above): 7.35 to 7.31 ms on Wheel 1, 6.50 to 6.52 on CG Speedway
 1, 7.29 to 7.36 on E-Track 6, 6.96 to 7.00 on E-Track 3. Nothing: the same
 samples from maps of the same size, and one more draw for the tops.
 
+### Walls, fences and buildings
+
+What is built beside a circuit was three sets, concrete for anything named
+`wall` or `barrier`, a brick and a chain link, and none of them was right.
+
+**A barrier is what its texture is a picture of.** The road's barriers are
+generated from the track's segments and were named for their surface:
+`barrier`, `wall-1-e2`, `barrierg3`, whatever the circuit's author called
+it, and every one of them came out a concrete slab. But the surface also
+names a texture, and that says what the barrier is. TORCS's own
+`tr-barrier.rgb` is a photograph of a guard rail, and so are the ones
+E-Track 2 and 3 and Wheel 1 use in its place; Alpine 1's `mur2` is a stone
+wall; Corkscrew's is a fence above a rail. So a barrier whose texture maps
+to a set is grouped under the texture's name (`TrackSurfaceAssembly.
+roadBatches`, `RoadGeneration.Parameters.barrierGroups`), and the rules
+send the rail photographs to `armco`. Street 1, the Alpines, E-Track 2, 3
+and 4 and Corkscrew have guard rails where they had grey slabs.
+
+A rail or a fence is drawn once up its barrier whatever the barrier's
+height (`MaterialLibrary.fittedTile`, `Parameters.fittedBarriers`): by the
+metre, a barrier a metre high showed a beam and a half of a two-metre tile.
+
+**The sets** (`RecipesStructures.swift`), each with the top of the picture
+at the top of the wall, because what marks a wall runs down it:
+
+- *concrete-wall*: cast in place. Panels 2.4 m wide with a joint between,
+  lifts 1.2 m high with a fin of grout between, four form-tie holes to a
+  sheet each weeping rust, bug holes, the rain's runs dark and the lime
+  pale. The slab set stays for what lies down: paddocks, pit aprons.
+- *stone-wall*: field stone in mortar, each stone its own colour, tilt and
+  grain, lichen on the damp ones.
+- *brick*: the old one had four bricks to the metre, a quarter of a metre
+  long. A brick is 215 by 65 mm: eight to a tile of 1.8 m, twenty-four
+  courses, stretcher bond, red and orange and burnt, joints struck back.
+  The pit garages on every circuit are built of it.
+- *chain-link*: one panel, three metres from post to post: a 60 mm diamond
+  of woven wire, a rail along the top, a tension wire along the foot. The
+  old one was eight diamonds to the metre, drawn as a mirror, and on
+  Corkscrew's barriers, which are not alpha-tested, it was a wall-high band
+  of reflected sky and ground.
+- *catch-fence*: that panel above the guard rail's three beams, for the
+  barriers that are both.
+
+**Cutouts.** A set with holes in it (`MaterialLibrary.isCutout`) makes
+its generated barrier alpha-tested and two-sided, keeps its coverage down
+the mip chain, and is the only kind of set an alpha-tested batch of the
+original scenery takes: a fence for a fence. Nothing with holes takes a
+solid set.
+
+**What keeps its own** (`MaterialLibrary.keeps`). `walls.rgb` and
+`walls2.rgb` are the fronts of a village's houses, doors and shutters and
+all, and matched the rule for `wall`: on Alpine 1, G-Track 3 and Street 1
+the houses were concrete boxes. They are houses again.
+
+**Buildings** are boxes with a photograph of a building on them, composed
+top to bottom, and no tile can replace that. But the photograph says where
+the windows are. So a building keeps its picture and is given, from the
+picture, the maps it never had (`FacadeStructure`, bound in
+`SceneResources` to textures `MaterialLibrary.isFacade` names): glass where
+a patch is darker than the wall round it and grey, smooth and set back a
+little, and wall everywhere else. Windows show the sky. Three things were
+tried and taken out: sky-blue as glass (a blue shed and every slate roof
+became mirrors), the picture's light and shade as relief (an office front
+of blinds became crumpled foil), and the answer texel by texel (the shadow
+under each sill became a row of glints). What is left is modest and uneven:
+on a pale front with its blinds down it finds the few windows whose blinds
+are up.
+
+Not done: a barrier whose texture is an advertisement, a row of trees or a
+line of parked cars is still a concrete wall, because a generated barrier
+has no way to draw the circuit's own texture. Wire and bar fences in the
+original scenery keep their artwork.
+
+Cost, previous commit against this one, taken alternately: nothing on
+Street 1, Alpine 1, Wheel 1 and E-Track 2 (7.5 ms both); 6.96 to 7.12 ms on
+Corkscrew, whose barriers are now fences seen through from both sides. A
+first run after installing new sets read 2.5 ms slow on E-Track 2 and did
+not repeat: the sets were being encoded.
+
+`--frame-cost` has two new switches: `--turn DEGREES` looks that far to
+the left of the road at each viewpoint, at what stands beside the track,
+and `--substitutions` lists which textures a set replaced.
+
 ## A field of different cars
 
 A race, a qualifying field and a championship can mix car models. The options

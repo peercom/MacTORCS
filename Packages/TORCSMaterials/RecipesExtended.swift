@@ -124,63 +124,7 @@ extension MaterialRecipes {
 
     // The guard rail and the tyre wall are in RecipesFurniture.swift.
 
-    /// Chain-link fence: a diamond mesh of galvanised wire with the gaps in
-    /// alpha. A cutout, so the flat normal is right — the wire is thinner
-    /// than a texel at any distance that matters.
-    static func chainLink(size: Int, seed: UInt32) -> GeneratedMaterial {
-        let cells = 8
-        let wireHalf: Float = 0.055
-        func wire(_ x: Int, _ y: Int) -> Float {
-            let u = Float(x) / Float(size) * Float(cells), v = Float(y) / Float(size) * Float(cells)
-            let a = abs(((u + v).truncatingRemainder(dividingBy: 1)) - 0.5) - (0.5 - wireHalf)
-            let b = abs(((u - v + 8).truncatingRemainder(dividingBy: 1)) - 0.5) - (0.5 - wireHalf)
-            return max(0, max(a, b)) / wireHalf
-        }
-        let alpha = (0 ..< size * size).map { i -> Float in min(wire(i % size, i / size) * 1.5, 1) }
-        let albedo = colours(size) { x, y in SIMD3<Float>(0.55, 0.56, 0.58) * (0.85 + Noise.random(x, y, seed) * 0.3) }
-        let flat = [SIMD3<Float>](repeating: SIMD3(0, 0, 1), count: size * size)
-        return GeneratedMaterial(name: "chain-link", size: size,
-                                 albedo: MaterialPacking.albedo(albedo, alpha: alpha),
-                                 normal: MaterialPacking.normal(flat),
-                                 orm: MaterialPacking.orm(occlusion: ScalarField(size: size, repeating: 1),
-                                                          roughness: ScalarField(size: size, repeating: 0.45), metalness: 1),
-                                 worldSize: 1, isMetal: true)
-    }
-
-    /// Stretcher-bond brick: rows offset by half a brick, mortar recessed,
-    /// each brick its own shade of fired clay.
-    static func brick(size: Int, seed: UInt32) -> GeneratedMaterial {
-        let across = 4, rows = 8
-        let mortarX: Float = 0.06, mortarY: Float = 0.12
-        let grain = fractalField(size: size, cells: 60, octaves: 3, seed: seed)
-        func cell(_ x: Int, _ y: Int) -> (brick: Bool, id: Int, edge: Float) {
-            let v = Float(y) / Float(size) * Float(rows)
-            let row = Int(v)
-            let u = Float(x) / Float(size) * Float(across) + (row % 2 == 0 ? 0 : 0.5)
-            let fu = u - u.rounded(.down), fv = v - v.rounded(.down)
-            let inBrick = fu > mortarX && fv > mortarY
-            let edge = min(min(fu - mortarX, 1 - fu), min(fv - mortarY, 1 - fv))
-            // Wrapped, so the brick straddling the tile edge is one brick.
-            let id = (Int(u.rounded(.down)) % across) + (row % rows) * 97
-            return (inBrick, id, edge)
-        }
-        var height = ScalarField(size: size) { x, y in
-            let c = cell(x, y)
-            return c.brick ? 0.7 + min(c.edge * 6, 1) * 0.2 + grain[x, y] * 0.1 : grain[x, y] * 0.15
-        }
-        height.normalise()
-        let roughness = ScalarField(size: size) { x, y in cell(x, y).brick ? 0.78 + grain[x, y] * 0.1 : 0.92 }
-        let albedo = colours(size) { x, y in
-            let c = cell(x, y)
-            if !c.brick { return SIMD3<Float>(0.32, 0.30, 0.27) * (0.85 + grain[x, y] * 0.3) }
-            let t = Noise.random(c.id, 0, seed &+ 5)
-            let red = SIMD3<Float>(0.30, 0.12, 0.08), dark = SIMD3<Float>(0.16, 0.08, 0.06), pale = SIMD3<Float>(0.36, 0.20, 0.12)
-            let base = t < 0.5 ? red + (dark - red) * (0.5 - t) * 2 : red + (pale - red) * (t - 0.5) * 2
-            return base * (0.85 + grain[x, y] * 0.3)
-        }
-        return pack("brick", size: size, height: height, occlusionRadius: 5, occlusionStrength: 1.6,
-                    normalStrength: Float(size) / 60, roughness: roughness, albedo: albedo, worldSize: 1)
-    }
+    // Chain link and brick are in RecipesStructures.swift.
 
     /// Sawn planks with a stretched grain, a gap between them, and a slightly
     /// different tone per plank.

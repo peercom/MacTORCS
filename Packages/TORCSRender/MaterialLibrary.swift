@@ -98,7 +98,7 @@ public final class MaterialLibrary {
     /// `tr-g-to-asphalt` is a grass-to-asphalt transition, not asphalt.
     public static let rules: [(fragment: String, material: String)] = [
         ("g-to-asphalt", "grass"), ("to-asphalt", "grass"),
-        ("asphalt-pit", "concrete"), ("tarmac-wall", "concrete"),
+        ("asphalt-pit", "concrete"), ("tarmac-wall", "concrete-wall"),
         // Aalborg's side strips and its second asphalt are the older, patched tarmac.
         ("asphalt-aa-l", "asphalt-patched"), ("asphalt-aa-1-l", "asphalt-patched"), ("asphalt-2", "asphalt-patched"),
         ("asphalt", "asphalt"), ("tarmac", "asphalt"), ("road", "asphalt"),
@@ -111,6 +111,11 @@ public final class MaterialLibrary {
         ("rockg", "rock"), ("rock3", "rock"), ("rock4", "rock"),
         ("snow", "snow"),
         ("concdal", "concrete"), ("cmnt", "concrete"),
+        // Walls of laid stone, and the one wall that is a photograph of brick.
+        ("rock-wall", "stone-wall"), ("rockwall", "stone-wall"), ("stone-wall", "stone-wall"), ("mur2", "stone-wall"),
+        ("wall4", "brick"),
+        // Concrete that stands: the walls' own texture and the ones named for it.
+        ("concrete2", "concrete-wall"), ("concwall", "concrete-wall"), ("concrete-wall", "concrete-wall"),
         ("concrete", "concrete"), ("beton", "concrete"),
         ("armco", "armco"), ("guardrail", "armco"), ("rail", "armco"),
         // A tyre wall's top is the same tyres from above, a set of its own.
@@ -118,16 +123,26 @@ public final class MaterialLibrary {
         ("tyre", "tyre-wall"), ("tire", "tyre-wall"), ("pneu", "tyre-wall"),
         // Wood before fence: a wooden fence is wood.
         ("wood", "wood"), ("bois", "wood"), ("painted-steel", "painted-steel"), ("poutre", "painted-steel"), ("pylon", "painted-steel"),
+        // A fence standing on a guard rail is one barrier and one set.
+        ("barrier-arbor-fence", "catch-fence"), ("barrier-fence", "catch-fence"),
         ("fence", "chain-link"), ("grillage", "chain-link"),
         ("brick", "brick"), ("brique", "brick"),
-        // Track barriers are painted concrete walls in every TORCS circuit
-        // but the ones that say they are steel: three guard rails deep.
-        ("barrier-metal", "armco"),
-        ("barrier", "concrete"), ("wall", "concrete"),
+        // A circuit's barrier is whatever its surface's texture is a picture
+        // of. TORCS's own `tr-barrier` is a guard rail, and so are the
+        // photographs several circuits use in its place; the rest are walls.
+        ("barrier-metal", "armco"), ("tr-barrier.", "armco"), ("barrier-1.", "armco"), ("barrier.", "armco"),
+        ("tr-bar.", "armco"), ("tr-barrier-bw", "armco"), ("barg", "armco"),
+        ("barrier", "concrete-wall"), ("wall", "concrete-wall"),
         ("gravel", "gravel"), ("sand", "sand"),
         ("mud", "mud"), ("boue", "mud"),
         ("dirt", "dirt"), ("terre", "dirt"),
     ]
+
+    /// Textures no set replaces whatever the rules say: pictures of whole
+    /// things that happen to be named for what they are made of. `walls.rgb`
+    /// is the fronts of a village's houses, doors and shutters and all, and
+    /// `cwallpt` a pit wall with its windows; as concrete they were grey boxes.
+    public static let keeps: [String] = ["walls.", "walls2.", "cwallpt"]
 
     /// Detail sets for the parts of a car: the atlas keeps the colour, the
     /// set supplies surface structure. Nil keeps the part as it is.
@@ -153,7 +168,9 @@ public final class MaterialLibrary {
         case "dirt", "mud", "rock": return 0.7
         case "sand", "gravel": return 0.5
         case "asphalt", "asphalt-worn", "asphalt-patched": return 0.3
-        case "concrete", "snow": return 0.25
+        case "concrete", "snow", "stone-wall": return 0.25
+        case "concrete-wall": return 0.2
+        case "brick": return 0.15
         default: return 0
         }
     }
@@ -165,13 +182,33 @@ public final class MaterialLibrary {
     /// ground up, is drawn once across that object or it is three rails
     /// where there was one.
     public static func tilesFreely(_ material: String) -> Bool {
-        !["armco", "tyre-wall", "tyre-top", "kerb"].contains(material)
+        !["armco", "tyre-wall", "tyre-top", "kerb", "chain-link", "catch-fence"].contains(material)
+    }
+
+    /// Whether a set has holes in it: its albedo's alpha says where, and
+    /// what it is drawn on is alpha-tested and seen from both sides.
+    public static func isCutout(_ material: String) -> Bool {
+        ["chain-link", "catch-fence"].contains(material)
+    }
+
+    /// The tile size of a set that is drawn once up a generated barrier,
+    /// whatever the barrier's height: three beams on a rail a metre high or
+    /// one sixty centimetres high, not two and a half. Nil for a set that
+    /// goes up a wall by the metre. Equal to the set's `worldSize`, which
+    /// the mesh's coordinates are divided by.
+    public static func fittedTile(for material: String) -> Float? {
+        switch material {
+        case "armco": return 2
+        case "catch-fence", "chain-link": return 3
+        default: return nil
+        }
     }
 
     /// The generated material a texture name maps to, or nil to keep the
     /// original.
     public static func material(for texture: String) -> String? {
         let name = (texture as NSString).lastPathComponent.lowercased()
+        for kept in keeps where name.contains(kept) { return nil }
         for rule in rules where name.contains(rule.fragment) { return rule.material }
         return nil
     }
@@ -274,7 +311,7 @@ public final class MaterialLibrary {
                     sidecarHits += 1
                 } else {
                     guard let image = try? TextureLoading.decode(data),
-                          let levels = try? TextureLoading.linearMipChain(image, preserveCutoutCoverage: false,
+                          let levels = try? TextureLoading.linearMipChain(image, preserveCutoutCoverage: srgb && Self.isCutout(material),
                                                                          encodeAsColour: srgb) else { return nil }
                     if format == .bc1, TextureStore.hasTransparency(levels[0].pixels) { format = .bc3 }
                     guard let encoded = try? TextureLoading.compress(levels, format: format) else { return nil }
@@ -287,7 +324,7 @@ public final class MaterialLibrary {
                 return try? TextureLoading.upload(chain, device: device, srgb: srgb)
             }
             guard let image = try? TextureLoading.decode(data),
-                  let levels = try? TextureLoading.linearMipChain(image, preserveCutoutCoverage: false,
+                  let levels = try? TextureLoading.linearMipChain(image, preserveCutoutCoverage: srgb && Self.isCutout(material),
                                                                  encodeAsColour: srgb) else { return nil }
             uploadedBytes += levels.reduce(0) { $0 + $1.width * $1.height * 4 }
             return try? TextureLoading.upload(levels, device: device, srgb: srgb)
@@ -366,6 +403,38 @@ public final class MaterialLibrary {
         markingsPreserved.insert(texture)
         return result
     }
+
+    /// Whether a texture is a picture of a building's face: one whose
+    /// windows can be found in it (`FacadeStructure`). By name, like the
+    /// rules, and no wider: a roof, a ceiling or a car park is none, and
+    /// nor is a sheet of several houses and their roofs (`walls.rgb`).
+    public static func isFacade(_ texture: String) -> Bool {
+        let name = (texture as NSString).lastPathComponent.lowercased()
+        guard !["roof", "ceil", "parking", "base"].contains(where: name.contains) else { return false }
+        return ["building", "house", "block", "facade", "pitbld", "cwallpt"].contains(where: name.contains)
+    }
+
+    /// The structure of a building's face, made from its own picture: glass
+    /// where the picture has windows, set back and smooth, and wall
+    /// elsewhere. Uncompressed: these are a few hundred texels a side, and
+    /// encoding them at every load would cost more than they weigh.
+    public func facadeStructure(texture: String, image: TextureImage) -> MTLTexture? {
+        if let made = facades[texture] { return made }
+        guard !facadesFailed.contains(texture) else { return nil }
+        let maps = FacadeStructure.derive(rgba: image.rgba8, width: image.width, height: image.height)
+        guard let packed = try? TextureImage(width: image.width, height: image.height, channels: 4,
+                                             pixels: StructureMap.pack(normal: maps.normal, orm: maps.orm)),
+              let levels = try? TextureLoading.linearMipChain(packed, preserveCutoutCoverage: false, encodeAsColour: false),
+              let made = try? TextureLoading.upload(levels, device: device, srgb: false) else {
+            facadesFailed.insert(texture)
+            return nil
+        }
+        uploadedBytes += levels.reduce(0) { $0 + $1.width * $1.height * 4 }
+        facades[texture] = made
+        return made
+    }
+    private var facades: [String: MTLTexture] = [:]
+    private var facadesFailed: Set<String> = []
 
     /// A detail set by name, for car parts: loaded like any other, and the
     /// caller ignores its albedo.

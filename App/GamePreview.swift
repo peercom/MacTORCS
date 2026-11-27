@@ -67,6 +67,10 @@ import TORCSTrackMesh
                 device:renderer.device,scenes:content.renderScenes,
                 road:content.simulation.road.geometry,pits:content.simulation.road.pits,terrain:TerrainParameters(),
                 materials:ModernDrivingRenderer.materialsDirectory(beside:track))
+            // With `--substitutions`: which of the circuit's textures a generated set replaced.
+            if arguments.contains("--substitutions"),let library=resources.materials {
+                for (texture,set) in library.substitutions.sorted(by:{ $0.key<$1.key }) { print("substituted \(texture) -> \(set)") }
+            }
             let lighting=ModernDrivingRenderer.lighting(from:content.graphics)
             renderer.roadPaint.set(content.gridSlots.map { RoadPaint.Box(centre:$0.world,yaw:$0.yaw) })
             let pose=try VehiclePresentation(content.simulation.visualSnapshot)
@@ -113,7 +117,12 @@ import TORCSTrackMesh
                     let ground=geometry.localToGlobal(local,origin:.middle),heading=geometry.tangent(local)
                     let at=SIMD3(ground.x,ground.y,(try? geometry.height(at:ground,startingAt:index)) ?? 0)
                     let along=SIMD3(cos(heading),sin(heading),0)
-                    views.append(RenderCamera(eye:at-along*6+SIMD3(0,0,2),target:at+along*10,verticalFieldOfView:camera.verticalFieldOfView,near:camera.near,far:camera.far))
+                    // With `--turn DEGREES` each view looks that far to the left of
+                    // the road (negative for the right): at what stands beside
+                    // the track, which a view down the road sees only edge on.
+                    let turn=(arguments.firstIndex(of:"--turn").flatMap { $0+1<arguments.count ? Float(arguments[$0+1]):nil } ?? 0) * .pi/180
+                    let look=SIMD3(cos(heading+turn),sin(heading+turn),0)
+                    views.append(RenderCamera(eye:at-along*6+SIMD3(0,0,2),target:at-along*6+look*16+SIMD3(0,0,turn == 0 ? 0:2),verticalFieldOfView:camera.verticalFieldOfView,near:camera.near,far:camera.far))
                 }
             }
             let perView=18
