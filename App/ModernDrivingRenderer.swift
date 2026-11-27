@@ -115,6 +115,7 @@ final class ModernDrivingRenderer {
             terrain: TerrainParameters(),
             materials: materials)
         staticInstances = resources.staticInstances()
+        renderer.dressSky(from: resources.materials, directory: materials, track: content.track.name)
         lighting = Self.lighting(from: content.graphics)
         renderer.roadPaint.set(content.gridSlots.map { RoadPaint.Box(centre: $0.world, yaw: $0.yaw) })
     }

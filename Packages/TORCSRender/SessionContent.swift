@@ -3,6 +3,7 @@ import Foundation
 import Metal
 import simd
 import TORCSAssets
+import TORCSMaterials
 import TORCSTrack
 import TORCSTrackMesh
 
@@ -132,6 +133,29 @@ public extension SceneResources {
                       }) { name, isCutout in
             guard let texture = compiled[name] else { return textures.albedo(named: name, isCutout: isCutout) }
             return textures.albedo(compiled: texture, key: name, isCutout: isCutout)
+        }
+    }
+}
+
+public extension ForwardRenderer {
+    /// A fair day's sky: this much cumulus and this much cirrus above it.
+    static let fairSky: (cumulus: Float, cirrus: Float) = (0.35, 0.35)
+
+    /// Gives the sky its clouds and the horizon its land, from the maps
+    /// beside the generated sets (`torcs-matgen` writes them with a full
+    /// generation). Without them the sky stays the clear one.
+    ///
+    /// - Parameter track: the circuit's name, which says what country it
+    ///   is in (`HorizonMap.kind(forTrack:)`).
+    func dressSky(from library: MaterialLibrary?, directory: URL?, track: String) {
+        guard let library, let directory else { return }
+        cloudMap = library.skyMap("cloud-map", directory: directory, colour: false, mipmapped: true)
+        let kind = HorizonMap.kind(forTrack: track)
+        horizonMap = library.skyMap("horizon-\(kind.rawValue)", directory: directory, colour: true, mipmapped: false)
+        horizonSpan = (HorizonMap.lowest, HorizonMap.highest)
+        if cloudMap != nil {
+            fairWeatherCumulus = Self.fairSky.cumulus
+            cirrus = Self.fairSky.cirrus
         }
     }
 }

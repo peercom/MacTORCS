@@ -80,11 +80,60 @@ inline float3 cloudLayer(float3 skyRadiance, float3 direction, float3 cameraPosi
     return mix(skyRadiance, cloud, density);
 }
 
+// MARK: - The sky from its maps
+
+/// Compiled in when the sky has a cloud map or a horizon to be drawn from
+/// (see `ForwardRenderer.cloudMap`). A constant, not a uniform: the noise
+/// above is paid for at every pixel of sky whether its branch is taken or not.
+constant bool skyMapped [[function_constant(8)]];
+
+struct SkyDress {
+    /// x how much of a fair sky is cumulus, y how much cirrus is above it,
+    /// z and w the sines of the elevation at the horizon map's bottom and top.
+    float4 clouds;
+};
+
+/// The side of one tile of the cloud map at the cumulus layer, the height
+/// of the cirrus, and the side of a tile there, in metres.
+constant float kCumulusTile = 16000.0f;
+constant float kCirrusAltitude = 9000.0f;
+constant float kCirrusTile = 60000.0f;
+
+/// Where a ray from the camera meets a level layer, in tiles of the map.
+inline float2 layerPoint(float3 direction, float3 cameraPosition, float altitude, float tile, float2 drift) {
+    float t = (altitude - cameraPosition.z) / max(direction.z, 0.02f);
+    return (cameraPosition.xy + direction.xy * t + drift) / tile;
+}
+
+/// Cumulus from the map: its density in x and how thick the heap is there
+/// in y. The broad shape is thresholded by the coverage as the noise was;
+/// the fine channel, sampled five times smaller, eats at the edge it leaves,
+/// which is what makes a heap and not a blob.
+///
+/// z is how much more cloud there is here than a little way toward the sun:
+/// the side of a heap the sun is on is bright and the other is not, and a
+/// layer with no height can still say which side a texel is on.
+inline float3 mappedCumulus(texture2d<float> map, sampler tiled, float3 direction, float3 cameraPosition,
+                            float coverage, float time, float2 sunward) {
+    float2 p = layerPoint(direction, cameraPosition, kCloudAltitude, kCumulusTile, float2(kCloudWind * time, 0.0f));
+    float4 broad = map.sample(tiled, p);
+    float fine = map.sample(tiled, p * 4.3f + float2(0.31f, 0.17f)).g;
+    float field = broad.r - (1.0f - fine) * 0.17f;
+    float threshold = 0.86f - coverage * 0.74f;
+    float density = smoothstep(threshold, threshold + 0.14f, field);
+    float seen = coverage > 0.0f ? smoothstep(0.02f, 0.18f, direction.z) : 0.0f;
+    float toward = map.sample(tiled, p + sunward * 0.018f).r;
+    return float3(density * seen, broad.a, broad.r - toward);
+}
+
 /// Fullscreen sky. Replaces the classic 36-sided textured cylinder.
 fragment ForwardOutput skyFragment(FullscreenVarying in [[stage_in]],
                             constant FrameUniforms &frame [[buffer(1)]],
+                            constant SkyDress &dress [[buffer(2), function_constant(skyMapped)]],
                             texture2d<float> skyViewLUT [[texture(0)]],
-                            texture2d<float> transmittanceLUT [[texture(1)]]) {
+                            texture2d<float> transmittanceLUT [[texture(1)]],
+                            texture2d<float> cloudMap [[texture(2), function_constant(skyMapped)]],
+                            texture2d<float> horizonMap [[texture(3), function_constant(skyMapped)]]) {
     constexpr sampler lut(coord::normalized, address::repeat, filter::linear);
     constexpr sampler clamped(coord::normalized, address::clamp_to_edge, filter::linear);
 
@@ -106,14 +155,68 @@ fragment ForwardOutput skyFragment(FullscreenVarying in [[stage_in]],
     // animation time. Behind cloud the disc is hidden by the cloud's density
     // along the sun's own direction, so a gap shows it and a bank does not.
     float coverage = frame.sunDirection.w;
+    constexpr sampler tiled(coord::normalized, address::repeat, filter::linear, mip_filter::linear);
     if (cosAngle > cosAngularRadius) {
         float limb = smoothstep(cosAngularRadius, 1.0f, cosAngle);
-        float hidden = cloudDensity(sun, frame.cameraPosition.xyz, coverage, frame.ambientIrradiance.w);
+        // Only the weather's cloud hides the sun. A fair sky's cumulus keeps
+        // clear of it: the ground is lit as under a clear sky, and a sun
+        // behind a cloud over ground in full sun would be a lie.
+        float hidden = skyMapped
+            ? mappedCumulus(cloudMap, tiled, sun, frame.cameraPosition.xyz, coverage, frame.ambientIrradiance.w, float2(0.0f)).x
+            : cloudDensity(sun, frame.cameraPosition.xyz, coverage, frame.ambientIrradiance.w);
         // Bright enough that the tonemapper has something to roll off, which is
         // most of what makes a sun read as a sun.
         radiance += frame.sunIlluminance.rgb * sunTransmittance * limb * 40.0f * (1.0f - hidden);
     }
-    if (coverage > 0.0f) {
+    if (skyMapped) {
+        // The skylight the clouds and the land are lit by: the zenith of
+        // the clear sky. And the sun's, on a level surface under it.
+        float3 skyIrradiance = skyViewLUT.sample(lut, skyViewUV(float3(0.0f, 0.0f, 1.0f))).rgb * M_PI_F;
+        float3 sunlight = frame.sunIlluminance.rgb * sunTransmittance * max(sun.z, 0.0f);
+        float time = frame.ambientIrradiance.w;
+
+        // Cirrus first: it is behind everything. Ice, thin, and white.
+        float2 high = layerPoint(direction, frame.cameraPosition.xyz, kCirrusAltitude, kCirrusTile, float2(kCloudWind * 2.5f * time, 0.0f));
+        float streak = cloudMap.sample(tiled, high).b;
+        float ice = dress.clouds.y * smoothstep(0.50f, 0.95f, streak) * 0.55f * smoothstep(0.05f, 0.30f, direction.z);
+        // A cloud is white: it sends on all of the sun's light, and the sun's
+        // own yellow, which the blue sky beside it is the other half of,
+        // reads on it as dirt. So its light is taken most of the way to grey.
+        constexpr float3 luma = float3(0.2126f, 0.7152f, 0.0722f);
+        float3 white = mix(sunlight, float3(dot(sunlight, luma)), 0.9f);
+        radiance = mix(radiance, (white * 0.55f + skyIrradiance * 1.3f) / M_PI_F, ice);
+
+        // Cumulus: the weather's cover, or a fair day's heaps, which stand
+        // clear of the sun for twenty degrees round it.
+        float fair = dress.clouds.x * (1.0f - smoothstep(0.90f, 0.97f, cosAngle));
+        float cover = max(coverage, fair);
+        float2 sunward = sun.xy / max(length(sun.xy), 1e-3f);
+        float3 heap = mappedCumulus(cloudMap, tiled, direction, frame.cameraPosition.xyz, cover, time, sunward);
+        // A cloud's light is the sun's come through it, and the sky's. Its
+        // sunward side and its thin edges are white; its far side is in its
+        // own shade; and the middle of a thick one is grey underneath.
+        float3 bright = (white * 1.05f + skyIrradiance * 1.4f) / M_PI_F;
+        float3 shaded = (white * 0.42f + skyIrradiance * 1.05f) / M_PI_F;
+        float side = saturate(0.55f - heap.z * 5.0f);
+        float under = smoothstep(0.55f, 0.95f, heap.y) * smoothstep(0.5f, 1.0f, heap.x) * 0.6f;
+        float3 cloud = mix(shaded, bright, saturate(side - under));
+        float forward = pow(max(cosAngle, 0.0f), 8.0f);
+        cloud += frame.sunIlluminance.rgb * sunTransmittance * forward * (1.0f - heap.x) * 0.08f;
+        radiance = mix(radiance, cloud, heap.x);
+
+        // The land round the horizon, in front of all of it. Its alpha is
+        // what the air between leaves it to hide. Below its bottom row the
+        // plain goes on down: the row is repeated.
+        float low = dress.clouds.z, top = dress.clouds.w;
+        if (direction.z < top) {
+            constexpr sampler round(coord::normalized, s_address::repeat, t_address::clamp_to_edge, filter::linear);
+            float u = atan2(direction.y, direction.x) * (0.5f / M_PI_F) + 0.5f;
+            // The picture's rows are kept bottom first.
+            float v = saturate((direction.z - low) / (top - low));
+            float4 land = horizonMap.sample(round, float2(u, v), level(0.0f));
+            radiance = mix(radiance, land.rgb * (sunlight * 0.9f + skyIrradiance) / M_PI_F, land.a);
+        }
+    } else if (coverage > 0.0f) {
         // The skylight the clouds are lit by: the zenith of the clear sky,
         // which the layer sees from above and below alike.
         float3 skyIrradiance = skyViewLUT.sample(lut, skyViewUV(float3(0.0f, 0.0f, 1.0f))).rgb * M_PI_F;

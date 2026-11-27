@@ -377,6 +377,31 @@ public final class MaterialLibrary {
     private var wear: MTLTexture?
     private var wearMissing = false
 
+    /// A map the sky is drawn from, by its file's name in the directory:
+    /// `cloud-map` (data) or `horizon-<kind>` (colour). See `SkyMaps`.
+    /// Uncompressed: one of each is in use, and encoding four thousand
+    /// texels of horizon at a first launch would be seconds of nothing.
+    public func skyMap(_ name: String, directory: URL, colour: Bool, mipmapped: Bool) -> MTLTexture? {
+        if let made = skyMaps[name] { return made }
+        guard !skyMapsMissing.contains(name),
+              let data = try? Data(contentsOf: directory.appendingPathComponent(name + ".png")),
+              let image = try? TextureLoading.decode(data),
+              var levels = try? TextureLoading.linearMipChain(image, preserveCutoutCoverage: false, encodeAsColour: colour) else {
+            skyMapsMissing.insert(name)
+            return nil
+        }
+        if !mipmapped { levels = Array(levels.prefix(1)) }
+        guard let made = try? TextureLoading.upload(levels, device: device, srgb: colour) else {
+            skyMapsMissing.insert(name)
+            return nil
+        }
+        uploadedBytes += levels.reduce(0) { $0 + $1.width * $1.height * 4 }
+        skyMaps[name] = made
+        return made
+    }
+    private var skyMaps: [String: MTLTexture] = [:]
+    private var skyMapsMissing: Set<String> = []
+
     /// Resolves a texture reference, recording what was substituted.
     ///
     /// - Parameter original: the artwork being replaced. When supplied, any

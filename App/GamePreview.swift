@@ -67,6 +67,9 @@ import TORCSTrackMesh
                 device:renderer.device,scenes:content.renderScenes,
                 road:content.simulation.road.geometry,pits:content.simulation.road.pits,terrain:TerrainParameters(),
                 materials:ModernDrivingRenderer.materialsDirectory(beside:track))
+            renderer.dressSky(from:resources.materials,directory:ModernDrivingRenderer.materialsDirectory(beside:track),track:content.track.name)
+            // With `--overcast`: the sky under full cloud (the lighting stays the clear day's).
+            if arguments.contains("--overcast") { renderer.overcast=1 }
             // With `--substitutions`: which of the circuit's textures a generated set replaced.
             if arguments.contains("--substitutions"),let library=resources.materials {
                 for (texture,set) in library.substitutions.sorted(by:{ $0.key<$1.key }) { print("substituted \(texture) -> \(set)") }

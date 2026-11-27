@@ -300,6 +300,10 @@ public final class ForwardRenderer {
     /// A road wear map that says nothing: mid tone, mid roughness, no tar,
     /// no grime. Bound for a road that has no layer of its own.
     private let neutralRoadWear: MTLTexture
+    /// A horizon with no land on it, for a sky drawn from a cloud map alone.
+    private let clearHorizon: MTLTexture
+    /// The sky drawn from its maps: see `cloudMap`.
+    let skyMapped: MTLRenderPipelineState
     /// Whether the last frame ran a depth prepass, whether from the setting or
     /// because screen-space occlusion required one.
     public private(set) var lastFrameUsedDepthPrepass = false
@@ -347,6 +351,21 @@ public final class ForwardRenderer {
     /// resolve. The presentation sets it for the view from inside the cabin
     /// when it rains, and nothing else; a chase camera has no glass.
     public var windscreenRain: Float = 0
+    /// The shapes of the sky's clouds (`CloudMap`), and the land round the
+    /// horizon (`HorizonMap`). With either set the sky is drawn from them.
+    public var cloudMap: MTLTexture?
+    public var horizonMap: MTLTexture?
+    /// The sines of the elevation at the horizon map's bottom row and its top.
+    public var horizonSpan: (lowest: Float, highest: Float) = (-0.10, 0.14)
+    /// How much of a fair sky is cumulus, 0 to 1, and how much cirrus there
+    /// is above it. Drawn in the sky and nowhere else: the sun is kept in a
+    /// gap, and the ground is lit as under a clear sky. Needs `cloudMap`.
+    public var fairWeatherCumulus: Float = 0
+    public var cirrus: Float = 0
+    /// Whether the last frame's sky came from the maps.
+    public private(set) var lastSkyWasDressed = false
+    struct SkyDress { var clouds: SIMD4<Float> }
+
     /// Cloud coverage, 0 clear to 1 overcast: drawn as a layer in the sky
     /// pass and hiding the sun disc and its glare. The lighting is the
     /// caller's: see `SunLighting.overcast(_:)`.
@@ -492,7 +511,18 @@ public final class ForwardRenderer {
         skyDescriptor.colorAttachments[2].pixelFormat = FrameTargets.reflectionSurfaceFormat
         skyDescriptor.colorAttachments[2].writeMask = []
         skyDescriptor.depthAttachmentPixelFormat = FrameTargets.depthFormat
+        var mapped = false
+        let plainSky = MTLFunctionConstantValues()
+        plainSky.setConstantValue(&mapped, type: .bool, index: 8)
+        skyDescriptor.fragmentFunction = try library.makeFunction(name: "skyFragment", constantValues: plainSky)
+        skyDescriptor.label = "Sky"
         sky = try PipelineArchive.make(skyDescriptor, device: device, archive: archive)
+        mapped = true
+        let dressedSky = MTLFunctionConstantValues()
+        dressedSky.setConstantValue(&mapped, type: .bool, index: 8)
+        skyDescriptor.fragmentFunction = try library.makeFunction(name: "skyFragment", constantValues: dressedSky)
+        skyDescriptor.label = "Sky from maps"
+        skyMapped = try PipelineArchive.make(skyDescriptor, device: device, archive: archive)
         atmosphere = try AtmosphereResources(device: device, library: library, archive: archive)
         bloom = try BloomRenderer(device: device, library: library, archive: archive)
         depthOfFieldRenderer = try DepthOfFieldRenderer(device: device, library: library, archive: archive)
@@ -522,6 +552,12 @@ public final class ForwardRenderer {
         var none: [UInt8] = [128, 128, 0, 0]
         neutralRoadWear.replace(region: MTLRegionMake2D(0, 0, 1, 1), mipmapLevel: 0, withBytes: &none, bytesPerRow: 4)
         self.neutralRoadWear = neutralRoadWear
+        guard let clearHorizon = device.makeTexture(descriptor: plain) else {
+            throw RenderError.unavailable("Could not allocate the clear horizon texture")
+        }
+        var nothing: [UInt8] = [0, 0, 0, 0]
+        clearHorizon.replace(region: MTLRegionMake2D(0, 0, 1, 1), mipmapLevel: 0, withBytes: &nothing, bytesPerRow: 4)
+        self.clearHorizon = clearHorizon
         shadows = try ShadowRenderer(device: device, library: library,
                                      resolution: settings.shadowResolution,
                                      cascadeCount: settings.shadowCascades, archive: archive)
@@ -1153,11 +1189,22 @@ public final class ForwardRenderer {
         // where no geometry wrote — the sky shades only the pixels it actually
         // covers instead of every pixel and then being overdrawn. It still
         // precedes the transparent phase so glass blends over it.
-        encoder.setRenderPipelineState(sky)
+        // With a cloud map or a horizon, the sky is drawn from them; with
+        // neither it is the clear sky and the overcast layer it always was.
+        let dressed = cloudMap != nil || horizonMap != nil
+        encoder.setRenderPipelineState(dressed ? skyMapped : sky)
         encoder.setDepthStencilState(equalDepthState)
         encoder.setCullMode(.none)
         encoder.setFragmentTexture(atmosphere.skyView, index: 0)
         encoder.setFragmentTexture(atmosphere.transmittance, index: 1)
+        if dressed {
+            encoder.setFragmentTexture(cloudMap ?? neutralRoadWear, index: 2)
+            encoder.setFragmentTexture(horizonMap ?? clearHorizon, index: 3)
+            var dress = SkyDress(clouds: SIMD4(min(max(fairWeatherCumulus, 0), 1), min(max(cirrus, 0), 1),
+                                               horizonSpan.lowest, horizonSpan.highest))
+            encoder.setFragmentBytes(&dress, length: MemoryLayout<SkyDress>.stride, index: 2)
+        }
+        lastSkyWasDressed = dressed
         encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
 
         if !deferred.isEmpty {

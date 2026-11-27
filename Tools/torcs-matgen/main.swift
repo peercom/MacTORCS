@@ -213,6 +213,23 @@ do {
                          "sha256": SHA256.hash(data: Data(wear)).map { String(format: "%02x", $0) }.joined()])
         total += wear.count
         print("  road-wear      \(width)x\(height)  \(Int(RoadWear.length)) m of road")
+
+        // The sky's clouds and the land round the horizon (see SkyMaps).
+        let clouds = CloudMap.generate(size: options.size, seed: options.seed)
+        try writePNG(clouds, width: options.size, height: options.size, to: options.output.appendingPathComponent("cloud-map.png"))
+        overlays.append(["name": "cloud-map", "width": options.size, "height": options.size,
+                         "sha256": SHA256.hash(data: Data(clouds)).map { String(format: "%02x", $0) }.joined()])
+        total += clouds.count
+        print("  cloud-map      \(options.size)x\(options.size)  cumulus, detail, cirrus, thickness")
+        for kind in HorizonMap.Kind.allCases {
+            let across = options.size * 4, up = options.size / 2
+            let land = HorizonMap.generate(kind, width: across, height: up, seed: options.seed)
+            try writePNG(land, width: across, height: up, to: options.output.appendingPathComponent("horizon-\(kind.rawValue).png"))
+            overlays.append(["name": "horizon-\(kind.rawValue)", "width": across, "height": up,
+                             "sha256": SHA256.hash(data: Data(land)).map { String(format: "%02x", $0) }.joined()])
+            total += land.count
+            print("  horizon-\(kind.rawValue.padding(toLength: 9, withPad: " ", startingAt: 0)) \(across)x\(up)  all the way round")
+        }
     }
 
     try JSONSerialization.data(withJSONObject: ["materials": manifest, "seed": Int(options.seed),

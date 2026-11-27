@@ -364,6 +364,58 @@ Cost, previous commit against this one, each track run once first: 8.35 to
 nothing on Street 1 and E-Track 2. The forms are uncompressed, a quarter
 of each tree picture's texels.
 
+### The sky, its clouds, and the land round the horizon
+
+The sky is the atmosphere's own and stays so. What it lacked was anything
+in it. A dry day was a bare blue dome; an overcast one was four octaves of
+value noise worked out at every pixel and cut off at a threshold, a tan
+ceiling with holes; and where the circuit's terrain ended, a few hundred
+metres past the track, there was the sky's own ground, a pale band along
+the foot of it. TORCS drew a photograph round each circuit; nothing here
+drew anything.
+
+Two kinds of map are now generated with the sets (`SkyMaps.swift`, written
+by `torcs-matgen --all` beside them) and the sky pass is drawn from them
+(`skyFragment` with `skyMapped`, a second pipeline; `ForwardRenderer.
+cloudMap`, `horizonMap`, set by `dressSky(from:directory:track:)`):
+
+- *cloud-map*, a tile with a shape to a channel: where cumulus is, billows
+  inside billows; the fine lumps that eat at a heap's edge; cirrus, the
+  same noise drawn out along the wind; and how thick the heap is
+  thereabouts. The sky samples the heaps at 1500 m and the cirrus at 9000,
+  thresholds the first by the coverage as the noise was, and shades it:
+  the side of a heap toward the sun is white, the far side in its own
+  shade, the middle of a thick one grey underneath. A cloud's light is
+  taken most of the way to grey: with the sun's own yellow the clouds were
+  beige.
+- *horizon-hills*, *-mountains*, *-snow*, *-dry*: the land beyond the
+  circuit, all the way round, 14° of it: a plain running out to the
+  horizon and ridges standing behind one another above it. Its colour is
+  the land's, lit when it is drawn; its alpha is how much of the sky behind
+  the air between lets it hide, which is how haze is kept without knowing
+  what colour the sky will be. Which one a circuit gets is told by its
+  name (`HorizonMap.kind(forTrack:)`): the Alpines and Aalborg are in
+  mountains, Corkscrew and E-Track 6 in dry country, the rest among hills.
+
+A fair day now has a third of its sky in cumulus and some cirrus above
+(`ForwardRenderer.fairSky`). They are in the sky and nowhere else: the
+ground is lit as under a clear sky, so the heaps keep twenty degrees clear
+of the sun, where a cloud over ground in full sun would be a lie. The
+weather's overcast is the same map at full cover and still hides the sun.
+
+Without the maps (a library made before them, or a test) the sky is what
+it was, noise and all, from the first pipeline.
+
+Cost, previous commit against this one: 7.58 to 7.71 ms on E-Track 2, 7.13
+to 7.28 on Corkscrew, 7.03 to 7.13 on Street 1: five samples at each pixel
+of sky. The maps are uncompressed, 13 MB together.
+
+Not done: the clouds cast no shadow on the ground and are not in the
+reflections, which still see the clear sky; and the horizon is hidden by
+the circuit's own banks from most of most laps.
+
+`--frame-cost` has an `--overcast` switch for the sky under full cloud.
+
 ## A field of different cars
 
 A race, a qualifying field and a championship can mix car models. The options
