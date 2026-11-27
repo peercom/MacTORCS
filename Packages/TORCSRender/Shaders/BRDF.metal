@@ -111,38 +111,61 @@ inline float filteredPerceptualRoughness(float perceptualRoughness, float3 world
     return clamp(sqrt(sqrt(squared)), kMinPerceptualRoughness, 1.0f);
 }
 
+/// What every lobe of one surface, seen from one direction, has in common:
+/// the sun's, the sky's and the weight the reflections are composited by all
+/// start from these. Worked out once and handed to each; left to each, the
+/// environment term with its exponential was taken three times a pixel.
+struct SurfaceView {
+    float NoV;
+    /// Clamped away from the mirror, where the distribution loses precision.
+    float perceptualRoughness;
+    /// Reflectance at normal incidence, and what is left to diffuse.
+    float3 f0;
+    float3 diffuseColour;
+    /// The environment BRDF at this roughness and angle (see environmentBRDF).
+    float2 dfg;
+    /// The multiple-scattering gain that goes with it.
+    float3 compensation;
+};
+
+inline SurfaceView surfaceView(SurfaceMaterial material, float3 viewDirection) {
+    SurfaceView seen;
+    seen.NoV = saturate(dot(material.normal, viewDirection)) + 1e-5f;
+    seen.perceptualRoughness = max(material.perceptualRoughness, kMinPerceptualRoughness);
+    // Dielectrics reflect 4% at normal incidence; metals tint their specular
+    // with the base colour and have no diffuse lobe at all.
+    seen.f0 = mix(float3(0.04f), material.albedo, material.metallic);
+    seen.diffuseColour = material.albedo * (1.0f - material.metallic);
+    seen.dfg = environmentBRDF(seen.perceptualRoughness, seen.NoV);
+    seen.compensation = energyCompensation(seen.f0, seen.dfg);
+    return seen;
+}
+
 /// Evaluates one punctual or directional light.
 ///
 /// `lightColour` is expected in linear photometric units already scaled by the
 /// light's intensity and any shadow or attenuation term.
-inline float3 evaluateLight(SurfaceMaterial material, float3 viewDirection,
+inline float3 evaluateLight(SurfaceMaterial material, SurfaceView seen, float3 viewDirection,
                             float3 lightDirection, float3 lightColour) {
     float3 n = material.normal;
     float NoL = saturate(dot(n, lightDirection));
     if (NoL <= 0.0f) { return float3(0.0f); }
 
     float3 h = normalize(viewDirection + lightDirection);
-    float NoV = saturate(dot(n, viewDirection)) + 1e-5f;
     float NoH = saturate(dot(n, h));
     float LoH = saturate(dot(lightDirection, h));
 
-    float perceptualRoughness = max(material.perceptualRoughness, kMinPerceptualRoughness);
-    float roughness = perceptualRoughness * perceptualRoughness;
-
-    // Dielectrics reflect 4% at normal incidence; metals tint their specular
-    // with the base colour and have no diffuse lobe at all.
-    float3 f0 = mix(float3(0.04f), material.albedo, material.metallic);
-    float3 diffuseColour = material.albedo * (1.0f - material.metallic);
+    float roughness = seen.perceptualRoughness * seen.perceptualRoughness;
 
     float D = distributionGGX(NoH, roughness);
-    float V = visibilitySmithGGXCorrelated(NoV, NoL, roughness);
-    float3 F = fresnelSchlick(f0, LoH);
+    float V = visibilitySmithGGXCorrelated(seen.NoV, NoL, roughness);
+    float3 F = fresnelSchlick(seen.f0, LoH);
 
     float3 specular = D * V * F;
-    specular *= energyCompensation(f0, environmentBRDF(perceptualRoughness, NoV));
+    specular *= seen.compensation;
 
     // Energy leaving through the specular lobe cannot also diffuse.
-    float3 diffuse = diffuseLambert(diffuseColour) * (1.0f - F);
+    float3 diffuse = diffuseLambert(seen.diffuseColour) * (1.0f - F);
     float3 result = (diffuse + specular) * lightColour * NoL;
 
     if (material.clearcoat > 0.0f) {
@@ -167,17 +190,10 @@ inline float3 evaluateLight(SurfaceMaterial material, float3 viewDirection,
 /// Image-based lighting from spherical-harmonic irradiance and a prefiltered
 /// specular cube. `prefiltered` must already be sampled at the mip matching
 /// the surface roughness.
-inline float3 evaluateImageBasedLight(SurfaceMaterial material, float3 viewDirection,
+inline float3 evaluateImageBasedLight(SurfaceMaterial material, SurfaceView seen,
                                       float3 irradiance, float3 prefiltered) {
-    float NoV = saturate(dot(material.normal, viewDirection)) + 1e-5f;
-    float perceptualRoughness = max(material.perceptualRoughness, kMinPerceptualRoughness);
-
-    float3 f0 = mix(float3(0.04f), material.albedo, material.metallic);
-    float3 diffuseColour = material.albedo * (1.0f - material.metallic);
-
-    float2 dfg = environmentBRDF(perceptualRoughness, NoV);
-    float3 specular = prefiltered * (f0 * dfg.x + dfg.y) * energyCompensation(f0, dfg);
-    float3 diffuse = diffuseColour * irradiance;
+    float3 specular = prefiltered * (seen.f0 * seen.dfg.x + seen.dfg.y) * seen.compensation;
+    float3 diffuse = seen.diffuseColour * irradiance;
 
     // Ambient occlusion applies to the ambient terms only; applying it to
     // direct light is the classic way to make shadowed geometry read as dirty.
@@ -198,9 +214,9 @@ inline float clearcoatEnvironmentWeight(SurfaceMaterial material, float3 viewDir
 /// all, which is why car roofs read as matte between glints. `prefilteredCoat`
 /// is the sky sampled along the coat normal's reflection at the coat's
 /// roughness; light reaching the base passes the coat once each way.
-inline float3 evaluateImageBasedLight(SurfaceMaterial material, float3 viewDirection,
+inline float3 evaluateImageBasedLight(SurfaceMaterial material, SurfaceView seen, float3 viewDirection,
                                       float3 irradiance, float3 prefiltered, float3 prefilteredCoat) {
-    float3 base = evaluateImageBasedLight(material, viewDirection, irradiance, prefiltered);
+    float3 base = evaluateImageBasedLight(material, seen, irradiance, prefiltered);
     float coat = clearcoatEnvironmentWeight(material, viewDirection);
     if (coat <= 0.0f) { return base; }
     return base * (1.0f - coat) + prefilteredCoat * coat * material.ambientOcclusion;

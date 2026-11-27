@@ -428,13 +428,124 @@ samples of the GPU's clock, passes overlap, and the spans do not add up to
 the frame. The meter's 0.17 ms was mostly another pass's work. A change is
 costed on the whole frame, interleaved with its baseline.
 
+## The scene pass, compiled for each material
+
+The scene's shader is bound by its arithmetic: a handful of operations at
+every pixel of 2880 x 1720 is two or three hundredths of a millisecond. Five
+things came out of it, none of which changes the picture by more than a
+level of 255.
+
+**Paths a draw does not take.** The shader carries the leaf's lighting, the
+clear coat, the road's paint and the weather as branches on a draw's flags.
+Each costs every draw, as in the tonemap pass. Compiled out one at a time:
+
+| Compiled out | Scene pass, CG Speedway 1 | Alpine 1 |
+|---|---|---|
+| nothing | 2.62 ms | 2.69 ms |
+| cloud cover | 2.55 | 2.62 |
+| the clear coat | 2.50 | 2.56 |
+| the leaf | 2.48 | 2.57 |
+| the three, and wet ground | 2.32 | 2.36 |
+
+The clear coat and the leaf were tried with the code left in and the flag
+never set, and cost what they cost before: it is their presence. The leaf is
+three lines, a normal flipped on a back face, a tint and a transmission.
+
+So the scene pass has a function constant for each (`forwardFoliage`,
+`forwardClearcoat`, `forwardRoadPaint`, `forwardWeather`) and a pipeline for
+every combination with the cutout and the blend, sixty-four in all
+(`ForwardVariant`). A draw takes the one for its material and the frame's
+weather. All are built at launch and kept in the pipeline archive. With
+nothing cached, the renderer's pipelines now take about two seconds to
+compile on this machine, once for each version of the shaders; after that
+they are read back.
+
+**The road's paint**, where it does run, was about 0.2 ms. Every line is a band
+about a centre, and the paint is the nearest band: one signed distance and
+one smooth step where each of four lines took its own. The rubber's core is
+now its halo to the sixth power, one exponential for two and a core a
+thirtieth narrower than it was. And what varies only
+along the lap, over fifty metres and more, is taken at the vertices: three
+of five sines. 0.07 ms less.
+
+**The shadow lookup** was 0.58 ms, the dearest thing in the shader:
+
+| | Scene pass |
+|---|---|
+| as it was | 2.24 ms |
+| without the division by w | 2.20 |
+| and the cascade counted, not searched | 2.17 |
+| with the cascade fixed (a floor, not a picture) | 2.10 |
+| one tap for four (not a picture either) | 2.12 |
+
+The light is parallel, so w is one. The cascade was found by a loop with an
+early exit. And each pixel read its cascade's whole matrix from wherever its
+index said. The cascades are one view of the world at four sizes and
+places, so now one matrix serves every pixel and the cascade's index picks
+two vectors, a scale and an offset from the first cascade to its own map
+(`cascadeScale`, `cascadeOffset`, computed in double precision). That needs
+the four to look along one light: a slice kept from an earlier frame while
+the sun moved would not, so a moved sun refreshes every slice
+(`ShadowCascades.shareOrientation`). 0.09 to 0.13 ms less.
+
+**The sky's irradiance** was nine harmonics summed term by term for every
+pixel. They add up to a quadratic in the normal, so the kernel that projects
+the sky now stores that quadratic and the shader evaluates it nested: nine
+multiply-adds of a colour. About 0.05 ms less. A test holds the two forms
+equal.
+
+**The environment term**, with its exponential, was taken three times a
+pixel: by the sun's lobe for its energy compensation, by the sky's, and by
+the weight the reflections are composited with. Once now (`SurfaceView`),
+with the reflectance and the angle they also shared. 0.08 to 0.11 ms less.
+
+The previous commit and this one, built side by side and run alternately,
+medians of five, at 50 m/s:
+
+| | Frame before | Frame after | Scene before | Scene after |
+|---|---|---|---|---|
+| CG Speedway 1, 100% | 5.90 ms | 5.32 ms | 2.62 ms | 2.05 ms |
+| 85% | 5.13 | 4.67 | 1.96 | 1.51 |
+| 67% | 4.00 | 3.82 | 1.25 | 0.99 |
+| 50% | 3.37 | 3.18 | 0.75 | 0.59 |
+| 100% with reflections | 7.73 | 6.99 | 2.96 | 2.28 |
+| Alpine 1 | 7.09 | 6.17 | 2.91 | 2.12 |
+| Street 1 | 6.34 | 5.72 | 2.71 | 2.06 |
+| E-Track 3 | 6.57 | 5.63 | 2.74 | 2.04 |
+| Forza | 8.12 | 6.91 | 2.92 | 2.09 |
+
+The machine was warm from building both; the pairs are fair to each other
+and a few percent above the tables earlier in this document. The pictures
+agree to within one level, but for one pixel on a shadow's edge in one view
+of Alpine 1.
+
+### Tried and not kept
+
+- **Arithmetic by hand**: Fresnel's fifth power as multiplications, the sun's
+  direction not normalised again, the view depth from the fragment's w,
+  the lamp's state flat across a triangle, the motion vector from three
+  components of clip space for four. None moved the pass. The compiler had
+  them already.
+- **The shadow disc turned by a parabola** for a sine and a cosine, and the
+  inner taps left out: nothing either. The cost is the first four taps and
+  what leads up to them.
+- **The cascade's matrix chosen by comparisons** instead of an index:
+  0.1 ms worse.
+- **The sky**: its whole shader is under a tenth of a millisecond of the
+  pass.
+- **Less anisotropy**. The albedo at 4 for 8 is 0.07 ms and at 1, 0.13; the
+  detail maps at 1 for 2, 0.05. Those are the road's sharpness at a
+  distance, a setting and not a saving.
+
 ## What is left
 
-The scene pass is the frame's largest part at 2.6 ms of 5.8. After it, the
-tonemap pass at 1.05 ms is near what its features cost: each texture sample
-is about 0.1 ms across 2880 x 1720, and it takes four before the blur's.
-The blur's half-resolution copy is the dearest of the small passes at
-0.23 ms by its timer, which the paragraph above says how far to trust.
-The HUD costs
+The scene pass is 2.05 ms of 5.3. What it costs now, in the order it was
+measured: the shadow lookup about 0.45 ms, the normal map 0.22, the
+roughness map 0.13, the albedo's anisotropy 0.13, the sky's light 0.3, the
+sun's 0.2, the occlusion's sample 0.13 and the road's paint 0.13. The normal and roughness maps could share one texture, which is
+a change to the materials and not to the shader. The tonemap pass at
+1.05 ms is near what its features cost. The sky's tables are recomputed
+whenever the camera's height changes by ten centimetres, three small passes
+that a wider tolerance would mostly spare. The HUD costs
 about a fifth of the main thread through SwiftUI layout at twenty updates a
 second, which matters to nothing while the GPU is the limit.

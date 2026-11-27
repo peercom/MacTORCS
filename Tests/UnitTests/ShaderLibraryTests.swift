@@ -207,4 +207,102 @@ final class ShaderLibraryTests: XCTestCase {
         XCTAssertGreaterThan(widest, 0.9, "and it is a whole level wide where the encoding is not at its toe")
         XCTAssertEqual(mapped[0].x, 0, "black stays black under the dither")
     }
+
+    /// The sky's irradiance is stored as a quadratic in the normal and
+    /// evaluated nested. It has to be the order-2 harmonics it was made
+    /// from, convolved to irradiance: the textbook sum, term by term.
+    func testSkyIrradiancePolynomialIsTheHarmonicsItCameFrom() throws {
+        guard let device = MTLCreateSystemDefaultDevice(), let queue = device.makeCommandQueue() else {
+            throw XCTSkip("Metal device unavailable")
+        }
+        let probe = """
+        kernel void probeIrradiance(const device float4 *harmonics [[buffer(0)]],
+                                    const device float4 *normals [[buffer(1)]],
+                                    device float4 *out [[buffer(2)]],
+                                    device SkyIrradiance &sky [[buffer(3)]],
+                                    uint i [[thread_position_in_grid]]) {
+            float3 sh[9];
+            for (uint k = 0; k < 9; ++k) { sh[k] = harmonics[k].rgb; }
+            if (i == 0) { sky = skyIrradianceFromHarmonics(sh); }
+            SkyIrradiance local = skyIrradianceFromHarmonics(sh);
+            float3 n = normals[i].xyz;
+            float3 result = local.coefficients[0].rgb
+                + n.x * (local.coefficients[1].rgb + n.x * local.coefficients[4].rgb + n.y * local.coefficients[5].rgb
+                         + n.z * local.coefficients[7].rgb)
+                + n.y * (local.coefficients[2].rgb - n.y * local.coefficients[4].rgb + n.z * local.coefficients[6].rgb)
+                + n.z * (local.coefficients[3].rgb + n.z * local.coefficients[8].rgb);
+            out[i] = float4(result, 0.0f);
+        }
+        kernel void probeIrradianceEvaluate(constant SkyIrradiance &sky [[buffer(3)]],
+                                            const device float4 *normals [[buffer(1)]],
+                                            device float4 *out [[buffer(2)]],
+                                            uint i [[thread_position_in_grid]]) {
+            out[i] = float4(evaluateSkyIrradiance(sky, normals[i].xyz), 0.0f);
+        }
+        """
+        let library = try ShaderLibrary(device: device,
+                                        source: try ShaderLibrary.combinedSource() + probe).library
+        // Harmonics of a sky brighter above than below, bluer to one side,
+        // with every band and every coefficient in play.
+        let harmonics: [SIMD4<Float>] = [
+            SIMD4(3.0, 3.4, 4.1, 0), SIMD4(0.3, 0.2, -0.1, 0), SIMD4(1.1, 1.3, 1.6, 0), SIMD4(-0.4, 0.1, 0.5, 0),
+            SIMD4(0.2, -0.1, 0.05, 0), SIMD4(0.15, 0.1, -0.2, 0), SIMD4(0.5, 0.45, 0.4, 0), SIMD4(-0.25, 0.05, 0.1, 0),
+            SIMD4(0.1, 0.2, -0.15, 0),
+        ]
+        var normals: [SIMD4<Float>] = [SIMD4(0, 0, 1, 0), SIMD4(0, 0, -1, 0), SIMD4(1, 0, 0, 0), SIMD4(0, -1, 0, 0)]
+        for k in 0 ..< 28 {
+            let z = 1 - 2 * (Float(k) + 0.5) / 28, r = (1 - z * z).squareRoot(), phi = 2.39996323 * Float(k)
+            normals.append(SIMD4(r * cos(phi), r * sin(phi), z, 0))
+        }
+        func buffer<T>(_ values: [T]) throws -> MTLBuffer {
+            try XCTUnwrap(values.withUnsafeBytes {
+                device.makeBuffer(bytes: $0.baseAddress!, length: $0.count, options: .storageModeShared)
+            })
+        }
+        let harmonicsBuffer = try buffer(harmonics), normalBuffer = try buffer(normals)
+        let sky = try XCTUnwrap(device.makeBuffer(length: 9 * 16, options: .storageModeShared))
+        func run(_ name: String) throws -> [SIMD4<Float>] {
+            let pipeline = try device.makeComputePipelineState(function: XCTUnwrap(library.makeFunction(name: name)))
+            let output = try XCTUnwrap(device.makeBuffer(length: normals.count * 16, options: .storageModeShared))
+            let commands = try XCTUnwrap(queue.makeCommandBuffer())
+            let encoder = try XCTUnwrap(commands.makeComputeCommandEncoder())
+            encoder.setComputePipelineState(pipeline)
+            encoder.setBuffer(harmonicsBuffer, offset: 0, index: 0)
+            encoder.setBuffer(normalBuffer, offset: 0, index: 1)
+            encoder.setBuffer(output, offset: 0, index: 2)
+            encoder.setBuffer(sky, offset: 0, index: 3)
+            encoder.dispatchThreads(MTLSize(width: normals.count, height: 1, depth: 1),
+                                    threadsPerThreadgroup: MTLSize(width: 16, height: 1, depth: 1))
+            encoder.endEncoding()
+            commands.commit()
+            commands.waitUntilCompleted()
+            XCTAssertNil(commands.error)
+            let values = output.contents().bindMemory(to: SIMD4<Float>.self, capacity: normals.count)
+            return (0 ..< normals.count).map { values[$0] }
+        }
+        // The first writes the stored form, which the second reads through
+        // the function the shading uses.
+        _ = try run("probeIrradiance")
+        let evaluated = try run("probeIrradianceEvaluate")
+
+        // Ramamoorthi and Hanrahan, equation 13, over pi.
+        let a0: Float = 3.141593, a1: Float = 2.094395, a2: Float = 0.785398
+        for (index, normal) in normals.enumerated() {
+            let x = normal.x, y = normal.y, z = normal.z
+            var expected = harmonics[0] * (0.282095 * a0)
+            expected += harmonics[1] * (0.488603 * y * a1)
+            expected += harmonics[2] * (0.488603 * z * a1)
+            expected += harmonics[3] * (0.488603 * x * a1)
+            expected += harmonics[4] * (1.092548 * x * y * a2)
+            expected += harmonics[5] * (1.092548 * y * z * a2)
+            expected += harmonics[6] * (0.315392 * (3 * z * z - 1) * a2)
+            expected += harmonics[7] * (1.092548 * x * z * a2)
+            expected += harmonics[8] * (0.546274 * (x * x - y * y) * a2)
+            expected = simd_max(expected / .pi, SIMD4(repeating: 0))
+            for channel in 0 ..< 3 {
+                XCTAssertEqual(evaluated[index][channel], expected[channel], accuracy: 2e-5,
+                               "channel \(channel) facing \(normal)")
+            }
+        }
+    }
 }

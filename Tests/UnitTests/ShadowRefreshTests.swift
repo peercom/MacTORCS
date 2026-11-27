@@ -62,6 +62,33 @@ final class ShadowRefreshTests: XCTestCase {
         XCTAssertEqual(renderer.shadows.lastRefreshedSlices, [0, 1, 2, 3], "a history reset refreshes everything")
     }
 
+    /// A slice kept from an earlier frame looks along that frame's light.
+    /// The shader takes all four to share one orientation, so when the sun
+    /// moves none may be kept.
+    func testAMovedSunRefreshesEverySlice() throws {
+        guard MTLCreateSystemDefaultDevice() != nil else { throw XCTSkip("Metal device unavailable") }
+        var settings = RenderSettings()
+        settings.bloom = false; settings.motionBlur = false; settings.screenSpaceReflections = .off
+        settings.shadowCascades = 4; settings.staticShadowRefreshInterval = 3
+        let renderer = try ForwardRenderer(settings: settings)
+        let scene = try SceneResources(device: renderer.device, scene: MotionBlurTests().fixtureScene())
+        func frame(sun: SIMD3<Float>) throws {
+            _ = try renderer.render(scene: scene, camera: RenderCamera(eye: SIMD3(6, -5, 2), target: SIMD3(0, 0, 0.5)),
+                                    lighting: SunLighting(direction: simd_normalize(sun)), width: 192, height: 120)
+        }
+        renderer.resetsHistoryPerRender = false
+        renderer.resetHistory()
+        let noon = SIMD3<Float>(0.35, -0.45, 0.82), later = SIMD3<Float>(0.5, -0.3, 0.8)
+        try frame(sun: noon)
+        try frame(sun: noon)
+        XCTAssertLessThan(renderer.shadows.lastRefreshedSlices.count, 4, "the same sun keeps its far slices")
+        try frame(sun: later)
+        XCTAssertEqual(renderer.shadows.lastRefreshedSlices, [0, 1, 2, 3])
+        XCTAssertTrue(ShadowCascades.shareOrientation(renderer.shadows.renderedCascades))
+        try frame(sun: later)
+        XCTAssertLessThan(renderer.shadows.lastRefreshedSlices.count, 4, "and the cadence resumes")
+    }
+
     func testControllerIgnoresTheWarmup() {
         var controller = DynamicResolutionController(targetGPUTime: 0.010, initialScale: 1.0, warmupFrames: 50)
         for _ in 0 ..< 50 { XCTAssertFalse(controller.record(gpuTime: 0.030)) }

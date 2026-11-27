@@ -39,6 +39,9 @@ public final class SceneResources {
         let castsShadow: Bool
         let prepass: Bool
 
+        /// The material's part of the scene pipeline this batch draws with.
+        var variant: ForwardVariant { ForwardVariant(material: draw, alphaTest: needsAlphaTest) }
+
         /// The bounding sphere's centre under an instance transform.
         func worldCentre(under transform: simd_float4x4) -> SIMD3<Float> {
             let centre = transform * SIMD4(worldCentre, 1)
@@ -187,10 +190,16 @@ public final class SceneResources {
 public final class ForwardRenderer {
     public let device: MTLDevice
     let queue: MTLCommandQueue
-    let opaque: MTLRenderPipelineState
-    let opaqueCutout: MTLRenderPipelineState
-    let blended: MTLRenderPipelineState
-    let blendedCutout: MTLRenderPipelineState
+    /// The scene pass's pipelines, one for each `ForwardVariant`, indexed by
+    /// its raw value. All are built at launch: which ones a frame takes
+    /// follows its materials and its weather, and nothing compiles during a
+    /// race.
+    let forward: [MTLRenderPipelineState]
+    /// Whether this frame is under cloud or on wet ground: the frame's part
+    /// of each draw's variant.
+    private var frameHasWeather = false
+    /// The variants the last frame's scene pass drew with.
+    private(set) var lastForwardVariants: Set<ForwardVariant> = []
     /// Depth-only variants for the optional prepass. They reuse the forward
     /// vertex function rather than a simpler one: an equal-depth test in the
     /// shading pass requires bit-identical positions, which is only guaranteed
@@ -360,11 +369,16 @@ public final class ForwardRenderer {
         let library = shaders.library
         shadersPrebuilt = shaders.prebuilt
 
-        func forwardPipeline(alphaTest: Bool, blend: Bool) throws -> MTLRenderPipelineState {
+        func forwardPipeline(_ variant: ForwardVariant) throws -> MTLRenderPipelineState {
+            let blend = variant.contains(.blend)
             let constants = MTLFunctionConstantValues()
-            var enabled = alphaTest
-            constants.setConstantValue(&enabled, type: .bool, index: 0)
+            for (index, option) in [(0, ForwardVariant.alphaTest), (4, .foliage), (5, .clearcoat),
+                                    (6, .roadPaint), (7, .weather)] {
+                var enabled = variant.contains(option)
+                constants.setConstantValue(&enabled, type: .bool, index: index)
+            }
             let descriptor = MTLRenderPipelineDescriptor()
+            descriptor.label = "forward \(variant.rawValue)"
             descriptor.vertexFunction = try library.makeFunction(name: "forwardVertex", constantValues: constants)
             descriptor.fragmentFunction = try library.makeFunction(name: "forwardFragment", constantValues: constants)
             let colour = descriptor.colorAttachments[0]!
@@ -391,12 +405,11 @@ public final class ForwardRenderer {
             descriptor.depthAttachmentPixelFormat = FrameTargets.depthFormat
             return try PipelineArchive.make(descriptor, device: device, archive: archive)
         }
-        // Specialized rather than branched: RASTER_STABILITY.md documents an M2
-        // repeat-render instability caused by an inactive discard path.
-        opaque = try forwardPipeline(alphaTest: false, blend: false)
-        opaqueCutout = try forwardPipeline(alphaTest: true, blend: false)
-        blended = try forwardPipeline(alphaTest: false, blend: true)
-        blendedCutout = try forwardPipeline(alphaTest: true, blend: true)
+        // Specialized rather than branched. The cutout because of
+        // RASTER_STABILITY.md, which documents an M2 repeat-render
+        // instability caused by an inactive discard path; the rest because
+        // a path a draw does not take still costs it (Forward.metal).
+        forward = try ForwardVariant.all.map(forwardPipeline)
 
         func depthPipeline(alphaTest: Bool) throws -> MTLRenderPipelineState {
             let constants = MTLFunctionConstantValues()
@@ -940,6 +953,8 @@ public final class ForwardRenderer {
         lastDrawCount = 0
         lastTriangleCount = 0
         lastCulledCount = 0
+        lastForwardVariants = []
+        frameHasWeather = wetness > 0 || overcast > 0
         // The unjittered frustum: the jitter is a fraction of a pixel and the
         // sphere test is conservative by a whole batch.
         let frustum: ViewFrustum? = frustumCulling ? ViewFrustum(viewProjection: unjittered) : nil
@@ -1216,13 +1231,12 @@ public final class ForwardRenderer {
     private func draw(_ batch: SceneResources.Batch, on encoder: MTLRenderCommandEncoder,
                       blendOverride: Bool?, mirroredInstance: Bool, forceTwoSided: Bool = false,
                       fade: LevelOfDetail.Fade = .full) {
-        let blends = blendOverride ?? batch.blends
-        switch (blends, batch.needsAlphaTest) {
-        case (false, false): encoder.setRenderPipelineState(opaque)
-        case (false, true): encoder.setRenderPipelineState(opaqueCutout)
-        case (true, false): encoder.setRenderPipelineState(blended)
-        case (true, true): encoder.setRenderPipelineState(blendedCutout)
-        }
+        // The pipeline compiled for what this draw uses and no more.
+        var variant = batch.variant
+        if blendOverride ?? batch.blends { variant.insert(.blend) } else { variant.remove(.blend) }
+        if frameHasWeather { variant.insert(.weather) }
+        lastForwardVariants.insert(variant)
+        encoder.setRenderPipelineState(forward[variant.rawValue])
         let mirrored = batch.mirrored != mirroredInstance
         encoder.setCullMode(forceTwoSided || !batch.culls ? .none : (mirrored ? .front : .back))
         var draw = batch.draw
@@ -1403,6 +1417,38 @@ public final class ForwardRenderer {
             encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
             encoder.endEncoding()
         }
+    }
+}
+
+/// What a scene pipeline is compiled for: the function constants of
+/// `Forward.metal` and whether it blends, one bit each. A draw takes the
+/// variant with exactly the paths its material and the frame's weather use.
+public struct ForwardVariant: OptionSet, Hashable, Sendable {
+    public let rawValue: Int
+    public init(rawValue: Int) { self.rawValue = rawValue }
+    /// Blended over what is behind it, and leaves the motion vectors alone.
+    public static let blend = ForwardVariant(rawValue: 1 << 0)
+    /// A cutout: discards under the material's alpha threshold.
+    public static let alphaTest = ForwardVariant(rawValue: 1 << 1)
+    /// Leaf cards, lit from both sides and through.
+    public static let foliage = ForwardVariant(rawValue: 1 << 2)
+    /// Paint under a clear coat.
+    public static let clearcoat = ForwardVariant(rawValue: 1 << 3)
+    /// The main road, with its markings and its racing line.
+    public static let roadPaint = ForwardVariant(rawValue: 1 << 4)
+    /// A frame under cloud or on wet ground.
+    public static let weather = ForwardVariant(rawValue: 1 << 5)
+    /// Every combination, in the order of its raw value.
+    public static let all = (0 ..< 1 << 6).map(ForwardVariant.init(rawValue:))
+
+    /// The material's part of a draw's variant, from its uniforms. The
+    /// blend and the weather are the draw's and the frame's to add.
+    init(material draw: DrawUniforms, alphaTest: Bool) {
+        var variant: ForwardVariant = alphaTest ? [.alphaTest] : []
+        if draw.maps.w & 4 != 0 { variant.insert(.foliage) }
+        if draw.material.z > 0 { variant.insert(.clearcoat) }
+        if draw.maps.w & 2 != 0 { variant.insert(.roadPaint) }
+        self = variant
     }
 }
 

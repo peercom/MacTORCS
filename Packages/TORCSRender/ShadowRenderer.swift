@@ -12,6 +12,13 @@ public struct ShadowUniforms {
     public var depthRanges: SIMD4<Float>
     /// x cascade count, y depth bias in shadow texels, z normal bias scale, w filter radius in texels.
     public var parameters: SIMD4<Float>
+    /// Each cascade as seen from the first: xyz take the first cascade's
+    /// clip position to this one's shadow-map uv and depth, by a scale and
+    /// an offset. The scale's w is the texel's world size and the offset's
+    /// the depth range, which the shader reads from here. See
+    /// `ShadowCascades.shareOrientation` for when this holds.
+    public var cascadeScale: (SIMD4<Float>, SIMD4<Float>, SIMD4<Float>, SIMD4<Float>)
+    public var cascadeOffset: (SIMD4<Float>, SIMD4<Float>, SIMD4<Float>, SIMD4<Float>)
 
     /// - Parameter depthBias: in shadow texels, not metres. A cascade's texel
     ///   is what sets how much depth can change between neighbouring samples,
@@ -29,6 +36,30 @@ public struct ShadowUniforms {
         func range(_ i: Int) -> Float { i < cascades.count ? max(cascades[i].depthRange, 1e-3) : 1 }
         depthRanges = SIMD4(range(0), range(1), range(2), range(3))
         parameters = SIMD4(Float(min(cascades.count, 4)), depthBias, normalBias, filterRadius)
+        // Cascade i's clip position is the first's, scaled and moved: both
+        // are orthographic views along the same light. In double precision,
+        // because the first's inverse puts a point back hundreds of metres
+        // out before the other brings it in again.
+        func relative(_ i: Int) -> (scale: SIMD4<Float>, offset: SIMD4<Float>) {
+            guard i < cascades.count, let first = cascades.first else {
+                return (SIMD4(0.5, -0.5, 1, texel(i)), SIMD4(0.5, 0.5, 0, range(i)))
+            }
+            let between = Self.double(cascades[i].viewProjection) * Self.double(first.viewProjection).inverse
+            let scale = SIMD3(between.columns.0.x, between.columns.1.y, between.columns.2.z)
+            let offset = SIMD3(between.columns.3.x, between.columns.3.y, between.columns.3.z)
+            // And on to the map: clip x and y of -1 to 1 are u and v of 0 to
+            // 1, v downward.
+            return (SIMD4(Float(scale.x * 0.5), Float(scale.y * -0.5), Float(scale.z), texel(i)),
+                    SIMD4(Float(offset.x * 0.5 + 0.5), Float(offset.y * -0.5 + 0.5), Float(offset.z), range(i)))
+        }
+        let all = (0 ..< 4).map(relative)
+        cascadeScale = (all[0].scale, all[1].scale, all[2].scale, all[3].scale)
+        cascadeOffset = (all[0].offset, all[1].offset, all[2].offset, all[3].offset)
+    }
+
+    static func double(_ m: simd_float4x4) -> simd_double4x4 {
+        simd_double4x4(SIMD4<Double>(m.columns.0), SIMD4<Double>(m.columns.1),
+                       SIMD4<Double>(m.columns.2), SIMD4<Double>(m.columns.3))
     }
 }
 
@@ -144,8 +175,12 @@ public final class ShadowRenderer {
         lastDrawCount = 0
         lastRefreshedSlices = []
         let fitted = Array(cascades.prefix(cascadeCount))
-        // A change in the cascade count, or nothing rendered yet, is a cold start.
+        // A change in the cascade count, or nothing rendered yet, is a cold
+        // start. So is a sun that has moved: a slice kept from an earlier
+        // frame would look along the old light, and the shader takes every
+        // cascade to be the first one scaled and moved.
         let cold = renderedCascades.count != fitted.count
+            || !ShadowCascades.shareOrientation(renderedCascades + fitted)
         if cold { renderedCascades = fitted }
         defer { frameCounter &+= 1 }
         for (index, cascade) in fitted.enumerated() {

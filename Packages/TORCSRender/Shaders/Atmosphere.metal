@@ -389,12 +389,37 @@ inline float3 aerialPerspective(float3 worldPosition, float3 cameraPosition,
 
 // MARK: - Sky irradiance
 
-/// Nine spherical-harmonic coefficients, packed as float4 for alignment.
-/// Order 2 captures a sky's low-frequency distribution almost exactly, which is
-/// why it is the standard basis for diffuse image-based lighting.
+/// The sky's irradiance as a function of a surface's normal: nine
+/// coefficients, packed as float4 for alignment. It is a projection onto
+/// spherical harmonics of order 2, which captures a sky's low-frequency
+/// distribution almost exactly and is why that is the standard basis for
+/// diffuse image-based lighting; but it is stored as the quadratic in the
+/// normal's components those harmonics add up to, the form the shading of
+/// every pixel wants (see evaluateSkyIrradiance). In order: the constant,
+/// x, y, z, x² (y² is its negative), xy, yz, xz, z².
 struct SkyIrradiance {
     float4 coefficients[9];
 };
+
+/// Radiance harmonics of order 2 (the real basis, in the usual order) to
+/// the irradiance quadratic of `SkyIrradiance`: each band by its
+/// Ramamoorthi-Hanrahan convolution constant, and the harmonics multiplied
+/// out into powers of the normal's components. Done once a frame, so the
+/// shading need not do it for every pixel.
+inline SkyIrradiance skyIrradianceFromHarmonics(thread float3 *sh) {
+    constexpr float a0 = 3.141593f / kAtmospherePi, a1 = 2.094395f / kAtmospherePi, a2 = 0.785398f / kAtmospherePi;
+    SkyIrradiance sky;
+    sky.coefficients[0] = float4(sh[0] * (0.282095f * a0) - sh[6] * (0.315392f * a2), 0.0f);
+    sky.coefficients[1] = float4(sh[3] * (0.488603f * a1), 0.0f);
+    sky.coefficients[2] = float4(sh[1] * (0.488603f * a1), 0.0f);
+    sky.coefficients[3] = float4(sh[2] * (0.488603f * a1), 0.0f);
+    sky.coefficients[4] = float4(sh[8] * (0.546274f * a2), 0.0f);
+    sky.coefficients[5] = float4(sh[4] * (1.092548f * a2), 0.0f);
+    sky.coefficients[6] = float4(sh[5] * (1.092548f * a2), 0.0f);
+    sky.coefficients[7] = float4(sh[7] * (1.092548f * a2), 0.0f);
+    sky.coefficients[8] = float4(sh[6] * (0.315392f * 3.0f * a2), 0.0f);
+    return sky;
+}
 
 /// Projects the sky-view table onto SH9.
 ///
@@ -441,28 +466,26 @@ kernel void atmosphereIrradianceSH(device SkyIrradiance &output [[buffer(0)]],
 
     if (threadIndex != 0) { return; }
     float weight = 4.0f * kAtmospherePi / float(samples);
+    float3 sh[9];
     for (uint i = 0; i < 9; ++i) {
         float3 total = float3(0.0f);
         for (uint t = 0; t < threadCount; ++t) { total += partial[t][i]; }
-        output.coefficients[i] = float4(total * weight, 0.0f);
+        sh[i] = total * weight;
     }
+    output = skyIrradianceFromHarmonics(sh);
 }
 
-/// Evaluates SH9 irradiance for a normal, with the Ramamoorthi-Hanrahan
-/// convolution constants that turn radiance coefficients into irradiance.
-inline float3 evaluateSkyIrradiance(constant SkyIrradiance &sh, float3 n) {
-    constexpr float a0 = 3.141593f, a1 = 2.094395f, a2 = 0.785398f;
-    float3 result = sh.coefficients[0].rgb * 0.282095f * a0;
-    result += sh.coefficients[1].rgb * (0.488603f * n.y) * a1;
-    result += sh.coefficients[2].rgb * (0.488603f * n.z) * a1;
-    result += sh.coefficients[3].rgb * (0.488603f * n.x) * a1;
-    result += sh.coefficients[4].rgb * (1.092548f * n.x * n.y) * a2;
-    result += sh.coefficients[5].rgb * (1.092548f * n.y * n.z) * a2;
-    result += sh.coefficients[6].rgb * (0.315392f * (3.0f * n.z * n.z - 1.0f)) * a2;
-    result += sh.coefficients[7].rgb * (1.092548f * n.x * n.z) * a2;
-    result += sh.coefficients[8].rgb * (0.546274f * (n.x * n.x - n.y * n.y)) * a2;
+/// The sky's irradiance on a surface facing `n`: the order-2 harmonics as
+/// the quadratic they are, nested, nine multiply-adds of a colour where the
+/// harmonics term by term were nine and the products of their basis besides.
+inline float3 evaluateSkyIrradiance(constant SkyIrradiance &sky, float3 n) {
+    float3 result = sky.coefficients[0].rgb
+        + n.x * (sky.coefficients[1].rgb + n.x * sky.coefficients[4].rgb + n.y * sky.coefficients[5].rgb
+                 + n.z * sky.coefficients[7].rgb)
+        + n.y * (sky.coefficients[2].rgb - n.y * sky.coefficients[4].rgb + n.z * sky.coefficients[6].rgb)
+        + n.z * (sky.coefficients[3].rgb + n.z * sky.coefficients[8].rgb);
     // A sky cannot deliver negative irradiance; ringing can.
-    return max(result / kAtmospherePi, 0.0f);
+    return max(result, 0.0f);
 }
 
 #endif

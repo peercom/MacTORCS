@@ -25,7 +25,9 @@ public final class AtmosphereResources {
     private let multiScatterPipeline: MTLComputePipelineState
     private let skyViewPipeline: MTLComputePipelineState
     private let irradiancePipeline: MTLComputePipelineState
-    /// Nine SH coefficients as float4, consumed directly by the forward shader.
+    /// The sky's irradiance as nine coefficients of a quadratic in the
+    /// normal, as float4, consumed directly by the forward shader (see
+    /// `SkyIrradiance` in Atmosphere.metal).
     public let irradiance: MTLBuffer
     private var staticTablesReady = false
     private var lastSun: SIMD4<Float>?

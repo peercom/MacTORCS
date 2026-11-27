@@ -25,6 +25,14 @@ struct ShadowUniforms {
     float4 depthRanges;
     /// x cascade count, y depth bias in shadow texels, z normal bias scale, w filter radius in texels.
     float4 parameters;
+    /// Each cascade as seen from the first. The sun's light is parallel, so
+    /// the cascades are one view of the world at four sizes and places:
+    /// `cascadeScale[i].xyz` and `cascadeOffset[i].xyz` take the first
+    /// cascade's clip position to cascade i's shadow-map uv and depth. The
+    /// spare lanes hold what else is looked up per cascade, the texel's
+    /// world size in the scale's w and the depth range in the offset's.
+    float4 cascadeScale[kMaxCascades];
+    float4 cascadeOffset[kMaxCascades];
 };
 
 struct ShadowVarying {
@@ -100,13 +108,13 @@ fragment void shadowCutoutFragment(ShadowCutoutVarying in [[stage_in]],
     if (alpha <= cutout.x) { discard_fragment(); }
 }
 
-/// Selects the tightest cascade that still contains this fragment.
+/// Selects the tightest cascade that still contains this fragment: the
+/// number of splits it lies beyond. Counted rather than searched, so there
+/// is no loop to leave early; splits past the count are infinitely far.
 inline uint selectCascade(constant ShadowUniforms &shadow, float viewDepth) {
     uint count = uint(shadow.parameters.x);
-    for (uint i = 0; i < count && i < kMaxCascades; ++i) {
-        if (viewDepth < shadow.splitDistances[i]) { return i; }
-    }
-    return count > 0 ? count - 1 : 0;
+    bool3 beyond = float3(viewDepth) >= shadow.splitDistances.xyz;
+    return min(uint(beyond.x) + uint(beyond.y) + uint(beyond.z), max(count, 1u) - 1u);
 }
 
 /// Percentage-closer filtering with a rotated Poisson disc.
@@ -122,17 +130,22 @@ inline float sampleShadow(constant ShadowUniforms &shadow,
     uint count = uint(shadow.parameters.x);
     if (count == 0) { return 1.0f; }
     uint cascade = selectCascade(shadow, viewDepth);
-    float texelWorldSize = shadow.texelWorldSizes[cascade];
+    // Two vectors by the cascade's index, not its matrix: what is read from
+    // a place only known per pixel is paid for per pixel, and sixteen
+    // floats of matrix with a division by a w that is always one were a
+    // quarter of this function's cost.
+    float4 scale = shadow.cascadeScale[cascade], shift = shadow.cascadeOffset[cascade];
+    float texelWorldSize = scale.w;
 
     // Offset along the normal by about one texel before projecting. This is
     // what removes acne on surfaces at a grazing angle to the sun without the
     // peter-panning a large constant bias causes.
     float slope = 1.0f - abs(dot(normal, lightDirection));
     float3 offset = normal * texelWorldSize * (1.0f + slope * 2.0f) * shadow.parameters.z;
-    float4 lightClip = shadow.cascadeViewProjection[cascade] * float4(worldPosition + offset, 1.0f);
-    float3 projected = lightClip.xyz / lightClip.w;
+    float3 first = (shadow.cascadeViewProjection[0] * float4(worldPosition + offset, 1.0f)).xyz;
+    float3 projected = first * scale.xyz + shift.xyz;
 
-    float2 uv = projected.xy * float2(0.5f, -0.5f) + 0.5f;
+    float2 uv = projected.xy;
     // Outside the cascade, or behind the light: unshadowed rather than wrong.
     if (any(uv < 0.0f) || any(uv > 1.0f) || projected.z > 1.0f || projected.z < 0.0f) { return 1.0f; }
 
@@ -140,7 +153,7 @@ inline float sampleShadow(constant ShadowUniforms &shadow,
     // depth. Cascade 3's texels are eleven times cascade 0's, so a single
     // metre value cannot suit both; a texel-relative one does.
     float biasMetres = shadow.parameters.y * texelWorldSize * (1.0f + slope * 4.0f);
-    float bias = biasMetres / shadow.depthRanges[cascade];
+    float bias = biasMetres / shift.w;
     float reference = projected.z - bias;
 
     // Fade the last cascade out rather than ending it with a hard line.

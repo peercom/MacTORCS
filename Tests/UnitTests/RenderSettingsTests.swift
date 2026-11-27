@@ -378,6 +378,53 @@ final class TemporalUpscalingTests: XCTestCase {
         XCTAssertGreaterThan(difference, 0, "it did render at the lower resolution")
     }
 
+    /// The scene pass is compiled for each combination of what a material
+    /// and the weather can ask of it, and a draw takes the one with exactly
+    /// its own: a path a draw does not take still costs it when compiled in.
+    func testEachDrawTakesTheScenePipelineCompiledForItsMaterialAndTheWeather() throws {
+        guard MTLCreateSystemDefaultDevice() != nil else { throw XCTSkip("Metal device unavailable") }
+        XCTAssertEqual(ForwardVariant.all.map(\.rawValue), Array(0 ..< 64))
+        func material(clearcoat: Float = 0, bits: UInt32 = 0, alphaTest: Bool = false) -> ForwardVariant {
+            ForwardVariant(material: DrawUniforms(model: matrix_identity_float4x4, baseColour: SIMD4(1, 1, 1, 1),
+                                                  roughness: 0.5, metallic: 0, clearcoat: clearcoat,
+                                                  maps: SIMD4(0, 0, 0, bits)), alphaTest: alphaTest)
+        }
+        XCTAssertEqual(material(), [])
+        XCTAssertEqual(material(clearcoat: 1), [.clearcoat])
+        XCTAssertEqual(material(bits: 1 | 8), [], "receiving occlusion and weather is every material's")
+        XCTAssertEqual(material(bits: 2), [.roadPaint])
+        XCTAssertEqual(material(bits: 4, alphaTest: true), [.foliage, .alphaTest])
+
+        var settings = RenderSettings()
+        settings.bloom = false; settings.autoExposure = false
+        let renderer = try ForwardRenderer(settings: settings)
+        XCTAssertEqual(renderer.forward.count, ForwardVariant.all.count)
+        let url = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+            .appendingPathComponent("Fixtures/Artwork/155-DTM/155-DTM.acc")
+        let scene = try SceneResources(device: renderer.device,
+                                       scene: RenderScene(ACScene.parse(Data(contentsOf: url), car: true)))
+        let camera = RenderCamera(eye: SIMD3(6, -5, 2), target: SIMD3(0, 0, 0.5))
+        func variants() throws -> Set<ForwardVariant> {
+            _ = try renderer.render(scene: scene, camera: camera, lighting: SunLighting(), width: 256, height: 160)
+            return renderer.lastForwardVariants
+        }
+        let dry = try variants()
+        XCTAssertFalse(dry.isEmpty)
+        XCTAssertTrue(dry.allSatisfy { !$0.contains(.weather) }, "a clear dry frame compiles no weather in")
+        XCTAssertTrue(dry.allSatisfy { !$0.contains(.roadPaint) && !$0.contains(.foliage) }, "a car is neither road nor leaf")
+        XCTAssertTrue(Set(dry.map { $0.subtracting(.blend) }).isSubset(of: Set(scene.batches.map(\.variant))),
+                      "each draw's variant is its batch's, with the blend the draw adds")
+        renderer.wetness = 0.5
+        let wet = try variants()
+        XCTAssertTrue(wet.allSatisfy { $0.contains(.weather) })
+        XCTAssertEqual(Set(wet.map { $0.subtracting(.weather) }), dry)
+        renderer.wetness = 0
+        renderer.overcast = 0.6
+        XCTAssertTrue(try variants().allSatisfy { $0.contains(.weather) })
+        renderer.overcast = 0
+        XCTAssertEqual(try variants(), dry)
+    }
+
     /// The tonemap pass is compiled eight ways and a frame takes the one
     /// with exactly the paths it uses: code for the others would cost it
     /// time without being run.

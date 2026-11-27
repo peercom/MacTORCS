@@ -141,6 +141,9 @@ struct ForwardVarying {
     /// scatters into the ray, and what it lets through. See forwardVertex.
     float3 inScatter;
     float3 transmittance;
+    /// The rubber's slow variation along the lap, on the main road only:
+    /// x how heavily it lies, y the phase its streaks wander by.
+    float2 lap;
 };
 
 /// Converts a pair of clip positions into the motion vector MetalFX expects:
@@ -172,6 +175,24 @@ struct ForwardOutput {
 /// M2 repeat-render instability caused by an *inactive* discard path, and that
 /// reasoning still applies.
 constant bool forwardAlphaTest [[function_constant(0)]];
+
+/// What else a forward pipeline is compiled for: the paths only some
+/// materials, or only some weather, take. As branches on a draw's flags they
+/// cost every draw: this shader is bound by its arithmetic, and what a
+/// branch not taken holds is worked out ahead of it all the same. At
+/// 2880x1720 the leaf's three lines cost a frame without a leaf in it
+/// 0.13 ms, the clear coat 0.12, the cloud cover 0.06 and the road paint
+/// 0.06 off the road. Compiled in only for the draws that use them, they
+/// cost the others nothing. (The indices follow the tonemap pass's, 1 to 3.)
+///
+/// Leaf cards, lit from both sides and through.
+constant bool forwardFoliage [[function_constant(4)]];
+/// Paint under a clear coat: a second lobe on the sun and on the sky.
+constant bool forwardClearcoat [[function_constant(5)]];
+/// The main road's markings and the rubber on its racing line.
+constant bool forwardRoadPaint [[function_constant(6)]];
+/// A frame under cloud or on wet ground.
+constant bool forwardWeather [[function_constant(7)]];
 
 vertex ForwardVarying forwardVertex(uint id [[vertex_id]],
                                     const device PackedVertex *vertices [[buffer(0)]],
@@ -214,6 +235,18 @@ vertex ForwardVarying forwardVertex(uint id [[vertex_id]],
     float channel = draw.emissive.w;
     out.lit = channel > 2.5f ? instance.lightState.z : (channel > 1.5f ? instance.lightState.y
             : (channel > 0.5f ? instance.lightState.x : 0.0f));
+    // The racing line's rubber varies along the lap with wavelengths of
+    // fifty metres and more. Between two rows of the road that is a
+    // straight line, so three of its five sines are taken here. On the
+    // draw's flag, not the pipeline's constant: every scene pipeline and the
+    // depth prepass share this one vertex function, and with it positions
+    // that agree to the bit.
+    out.lap = float2(1.0f, 0.0f);
+    if (draw.maps.w & 2u) {
+        float along = out.uv0.x;
+        out.lap = float2(0.8f + 0.2f * sin(along * 0.037f) * sin(along * 0.011f + 1.7f),
+                         sin(along * 0.13f) * 0.8f);
+    }
     out.currentClip = frame.unjitteredViewProjection * world;
     out.previousClip = frame.previousViewProjection * instance.previousModel * draw.model
                      * float4(float3(v.position), 1.0f);
@@ -270,10 +303,11 @@ fragment ForwardOutput forwardFragment(ForwardVarying in [[stage_in]],
 
     // Leaf cards are visible from both sides. Their reverse face needs the
     // reverse normal as well; otherwise half the crown lights as black paper.
-    if ((draw.maps.w & 4u) && !frontFacing) { normal = -normal; }
+    const bool foliage = forwardFoliage && (draw.maps.w & 4u);
+    if (foliage && !frontFacing) { normal = -normal; }
 
     // Per-leaf tint from the tree builder, so a crown is not one flat colour.
-    if (draw.maps.w & 4u) { albedo.rgb *= mix(0.55f, 1.05f, in.attributes.w); }
+    if (foliage) { albedo.rgb *= mix(0.55f, 1.05f, in.attributes.w); }
 
     float roughness = draw.material.x, metallic = draw.material.y, occlusion = 1.0f;
     if (draw.maps.z != 0) {
@@ -288,47 +322,52 @@ fragment ForwardOutput forwardFragment(ForwardVarying in [[stage_in]],
     // distance, and the racing line's rubber comes from the same coordinate
     // and the line the generator wrote. Only the main road paints; sides and
     // borders carry role 1 and 2 and stay clean.
-    if (draw.maps.w & 2u) {
+    if (forwardRoadPaint && (draw.maps.w & 2u)) {
         float width = in.attributes.y * 255.0f / 8.0f;
         float fromRight = in.attributes.x * width;
-        float fromLeft = width - fromRight;
-        float along = (in.uv0 * draw.parameters.z).x / max(draw.parameters.z, 1e-6f);  // metres
+        float along = in.uv0.x;  // metres
         float role = in.attributes.z * 255.0f;
-        // Screen-space width of one metre, for antialiased edges.
+        // Screen-space width of one metre, for antialiased edges. Taken
+        // ahead of the branch on the role: a derivative wants every pixel
+        // of the quad to have got here.
         float aa = max(fwidth(fromRight), 1e-4f);
-        float paint = 0.0f;
         if (role < 0.5f) {
-            // Edge lines 12 cm wide, 20 cm in from the edge.
-            float edge = 0.06f, inset = 0.26f;
-            paint = max(paint, 1.0f - smoothstep(edge - aa, edge + aa, abs(fromRight - inset)));
-            paint = max(paint, 1.0f - smoothstep(edge - aa, edge + aa, abs(fromLeft - inset)));
+            // Every line is a band about a centre, and the paint is the
+            // nearest band: one signed distance to the nearest edge of any
+            // of them and one smooth step across it, where each line used to
+            // take a step of its own. Edge lines 12 cm wide, 20 cm in from
+            // either edge.
+            float line = abs(min(fromRight, width - fromRight) - 0.26f) - 0.06f;
             // Dashed centre line: 3 m on, 6 m off.
-            float dash = step(fract(along / 9.0f) * 9.0f, 3.0f);
-            paint = max(paint, dash * (1.0f - smoothstep(0.05f - aa, 0.05f + aa, abs(fromRight - width * 0.5f))));
+            float dash = fract(along * (1.0f / 9.0f)) * 9.0f <= 3.0f ? abs(fromRight - width * 0.5f) - 0.05f : 1e6f;
             // Start line across the road at the origin.
-            paint = max(paint, 1.0f - smoothstep(0.0f, aa, along - 0.5f)) * step(-aa, along);
-        }
-        // Worn white paint: not quite white, and smoother than the tarmac.
-        albedo.rgb = mix(albedo.rgb, float3(0.78f, 0.78f, 0.74f), paint * 0.85f);
-        roughness = mix(roughness, 0.55f, paint);
-        // Rubber laid down on the racing line. The generator wrote the
-        // line's lateral position per row; the band is a metre or so wide
-        // either side of it, heavier than the surrounding tarmac and
-        // glossier, with a slow variation along the lap so it does not read
-        // as a painted stripe. Only the main road carries it.
-        if (role < 0.5f) {
+            float start = 2.0f * (along - 0.5f) - aa;
+            float t = saturate((min(min(line, dash), start) + aa) / (2.0f * aa));
+            float paint = (1.0f - t * t * (3.0f - 2.0f * t)) * step(-aa, along);
+            // Worn white paint: not quite white, and smoother than the tarmac.
+            albedo.rgb = mix(albedo.rgb, float3(0.78f, 0.78f, 0.74f), paint * 0.85f);
+            roughness = mix(roughness, 0.55f, paint);
+            // Rubber laid down on the racing line. The generator wrote the
+            // line's lateral position per row; the band is a metre or so wide
+            // either side of it, heavier than the surrounding tarmac and
+            // glossier, with a slow variation along the lap so it does not read
+            // as a painted stripe. Only the main road carries it.
             float lineFromRight = in.attributes.w * width;
             float offset = fromRight - lineFromRight;
             // A metre-wide core where the tyres actually run, in a wider
-            // halo of lighter deposits.
-            float core = exp(-offset * offset * 1.4f);
+            // halo of lighter deposits. The core is the halo's bell to the
+            // sixth power, so one exponential serves both; it had one of
+            // its own, a thirtieth wider.
             float halo = exp(-offset * offset * 0.25f);
-            float wander = 0.8f + 0.2f * sin(along * 0.037f) * sin(along * 0.011f + 1.7f);
+            float halo2 = halo * halo;
+            float core = halo2 * halo2 * halo2;
             // Rubber goes down in streaks along the road, not as a wash:
-            // fine lateral variation, stretched longitudinally.
-            float streaks = 0.75f + 0.25f * sin(fromRight * 23.0f + sin(along * 0.13f) * 0.8f)
+            // fine lateral variation, stretched longitudinally. What varies
+            // only along the lap, over tens of metres, comes from the
+            // vertices (see forwardVertex).
+            float streaks = 0.75f + 0.25f * sin(fromRight * 23.0f + in.lap.y)
                                   * sin(fromRight * 7.3f + along * 0.02f);
-            float rubber = saturate((core * 0.6f + halo * 0.25f) * wander * streaks);
+            float rubber = saturate((core * 0.6f + halo * 0.25f) * in.lap.x * streaks);
             // Rubbered tarmac is near-black and glossy against the grey of
             // the exposed aggregate around it.
             albedo.rgb = mix(albedo.rgb, albedo.rgb * 0.28f, rubber);
@@ -342,7 +381,7 @@ fragment ForwardOutput forwardFragment(ForwardVarying in [[stage_in]],
     // mask is a two-octave value noise of the world position, thresholded
     // by the wetness, and on the road biased toward the edges, where the
     // crown drains.
-    float wet = frame.cameraPosition.w;
+    float wet = forwardWeather ? frame.cameraPosition.w : 0.0f;
     if (wet > 0.0f && (draw.maps.w & 8u)) {
         float film = wet * 0.85f;
         albedo.rgb *= mix(1.0f, 0.55f, film);
@@ -380,7 +419,7 @@ fragment ForwardOutput forwardFragment(ForwardVarying in [[stage_in]],
     // that alpha lets the glow through the blend at full strength.
     surface.emissive = draw.emissive.rgb * in.lit
         / (draw.emissive.w > 0.0f ? max(albedo.a, 0.25f) : 1.0f);
-    surface.clearcoat = draw.material.z;
+    surface.clearcoat = forwardClearcoat ? draw.material.z : 0.0f;
     surface.clearcoatRoughness = draw.material.w;
     // The coat is a separate flat layer over the base, so it uses the
     // geometric normal, not the detail-mapped one.
@@ -395,7 +434,7 @@ fragment ForwardOutput forwardFragment(ForwardVarying in [[stage_in]],
     // direct light for a shadow to remove, and the filter is the dearest
     // thing in this shader. A leaf is the exception, lit through its back.
     float visibility = 1.0f;
-    if ((draw.maps.w & 4u) || dot(normal, sunDirection) > 0.0f) {
+    if (foliage || dot(normal, sunDirection) > 0.0f) {
         visibility = sampleShadow(shadow, shadowMap, shadowSampler, in.worldPosition,
                                   basis[2], sunDirection, viewDepth, in.position.xy);
     }
@@ -411,11 +450,12 @@ fragment ForwardOutput forwardFragment(ForwardVarying in [[stage_in]],
         surface.ambientOcclusion *= occluded.r;
     }
 
-    float3 colour = evaluateLight(surface, view, sunDirection, frame.sunIlluminance.rgb) * visibility;
+    SurfaceView seen = surfaceView(surface, view);
+    float3 colour = evaluateLight(surface, seen, view, sunDirection, frame.sunIlluminance.rgb) * visibility;
 
     // A thin leaf transmits a little light from its back face. Keep this
     // diffuse, shadowed and energy-limited rather than adding a glossy lobe.
-    if (draw.maps.w & 4u) {
+    if (foliage) {
         colour += albedo.rgb * frame.sunIlluminance.rgb *
                   (0.12f / M_PI_F) * max(0.0f, dot(-normal, sunDirection)) * visibility;
     }
@@ -433,7 +473,7 @@ fragment ForwardOutput forwardFragment(ForwardVarying in [[stage_in]],
     // greyer than the clear sky's blue and, with the sun dimmed to match,
     // the larger part of what lights the scene. The tables describe the
     // clear sky; the coverage lane says how much of it is covered.
-    float coverage = frame.sunDirection.w;
+    float coverage = forwardWeather ? frame.sunDirection.w : 0.0f;
     if (coverage > 0.0f) {
         constexpr float3 luma = float3(0.2126f, 0.7152f, 0.0722f);
         irradiance = mix(irradiance, float3(dot(irradiance, luma)) * 2.4f, coverage);
@@ -450,15 +490,15 @@ fragment ForwardOutput forwardFragment(ForwardVarying in [[stage_in]],
         prefilteredCoat = skyViewLUT.sample(skySampler, skyViewUVFast(reflect(-view, sharpNormal)),
                                             level(sharpRoughness * mipCount)).rgb;
     }
-    colour += evaluateImageBasedLight(surface, view, irradiance, prefiltered, prefilteredCoat);
+    colour += evaluateImageBasedLight(surface, seen, view, irradiance, prefiltered, prefilteredCoat);
     colour += surface.emissive;
     float sharpWeight;
     if (surface.clearcoat > 0.0f) {
         sharpWeight = clearcoatEnvironmentWeight(surface, view);
     } else {
-        float NoVs = saturate(dot(normal, view)) + 1e-5f;
-        float2 sdfg = environmentBRDF(sharpRoughness, NoVs);
-        sharpWeight = (0.04f * sdfg.x + sdfg.y) * (1.0f - surface.metallic);
+        // The base lobe of a dielectric, at the roughness and the angle
+        // the lighting above already took the environment term for.
+        sharpWeight = (0.04f * seen.dfg.x + seen.dfg.y) * (1.0f - surface.metallic);
     }
     sharpWeight *= surface.ambientOcclusion;
 

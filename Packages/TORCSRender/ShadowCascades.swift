@@ -119,6 +119,22 @@ public struct ShadowCascades: Equatable, Sendable {
         cascades = built
     }
 
+    /// Whether these cascades look along one light with one roll, so that
+    /// each is another scaled and moved: their rotations agree once each
+    /// row is brought to unit length. True of any one fit; false between
+    /// fits when the sun has moved.
+    public static func shareOrientation(_ cascades: [Cascade], tolerance: Float = 1e-5) -> Bool {
+        func axes(_ m: simd_float4x4) -> [SIMD3<Float>] {
+            (0 ..< 3).map { row in
+                simd_normalize(SIMD3(m.columns.0[row], m.columns.1[row], m.columns.2[row]))
+            }
+        }
+        guard let first = cascades.first.map({ axes($0.viewProjection) }) else { return true }
+        return cascades.dropFirst().allSatisfy { cascade in
+            zip(axes(cascade.viewProjection), first).allSatisfy { simd_distance($0, $1) <= tolerance }
+        }
+    }
+
     static func lookAt(eye: SIMD3<Float>, target: SIMD3<Float>, up: SIMD3<Float>) -> simd_float4x4 {
         let forward = simd_normalize(eye - target)
         var right = simd_cross(up, forward)

@@ -99,4 +99,47 @@ final class ShadowCascadeTests: XCTestCase {
         XCTAssertEqual(cascades(camera: camera, count: 0).count, 1)
         XCTAssertEqual(cascades(camera: camera, count: 99).count, 8)
     }
+
+    /// The shader looks a cascade up as the first one scaled and moved: one
+    /// matrix for every pixel and two vectors by the cascade's index. That
+    /// has to land where the cascade's own matrix lands, to a small
+    /// fraction of a shadow texel.
+    func testEveryCascadeIsTheFirstScaledAndMoved() {
+        let camera = RenderCamera(eye: SIMD3(120, -340, 6), target: SIMD3(180, -300, 2))
+        let sun = SIMD3<Float>(0.35, -0.45, 0.82)
+        let cascades = ShadowCascades(camera: camera, sunDirection: sun, aspect: 16.0 / 9.0,
+                                      count: 4, resolution: 2048).cascades
+        XCTAssertTrue(ShadowCascades.shareOrientation(cascades))
+        let uniforms = ShadowUniforms(cascades: cascades, depthBias: 1, normalBias: 1, filterRadius: 1)
+        let scales = [uniforms.cascadeScale.0, uniforms.cascadeScale.1, uniforms.cascadeScale.2, uniforms.cascadeScale.3]
+        let offsets = [uniforms.cascadeOffset.0, uniforms.cascadeOffset.1, uniforms.cascadeOffset.2, uniforms.cascadeOffset.3]
+        let forward = simd_normalize(camera.target - camera.eye)
+        var slice: Float = 0.5
+        for (index, cascade) in cascades.enumerated() {
+            XCTAssertEqual(scales[index].w, cascade.texelWorldSize)
+            XCTAssertEqual(offsets[index].w, cascade.depthRange)
+            // Points this cascade would be asked about: along the view, out
+            // to its split, and off to either side.
+            for step in 0 ..< 8 {
+                let distance = slice + (cascade.splitDistance - slice) * Float(step) / 7
+                for side in [Float(-0.4), 0, 0.4] {
+                    let point = camera.eye + forward * distance + SIMD3(-forward.y, forward.x, 0.1) * side * distance
+                    let own = cascade.viewProjection * SIMD4(point, 1)
+                    let first = cascades[0].viewProjection * SIMD4(point, 1)
+                    let got = SIMD3(first.x, first.y, first.z) * SIMD3(scales[index].x, scales[index].y, scales[index].z)
+                        + SIMD3(offsets[index].x, offsets[index].y, offsets[index].z)
+                    XCTAssertEqual(got.x, own.x * 0.5 + 0.5, accuracy: 2e-5, "u, cascade \(index) at \(distance) m")
+                    XCTAssertEqual(got.y, 0.5 - own.y * 0.5, accuracy: 2e-5, "v, cascade \(index) at \(distance) m")
+                    XCTAssertEqual(got.z, own.z, accuracy: 1e-5, "depth, cascade \(index) at \(distance) m")
+                }
+            }
+            slice = cascade.splitDistance
+        }
+        // Another sun is another orientation, and the two fits do not mix.
+        let later = ShadowCascades(camera: camera, sunDirection: SIMD3(0.5, -0.3, 0.8), aspect: 16.0 / 9.0,
+                                   count: 4, resolution: 2048).cascades
+        XCTAssertTrue(ShadowCascades.shareOrientation(later))
+        XCTAssertFalse(ShadowCascades.shareOrientation(cascades + later))
+        XCTAssertTrue(ShadowCascades.shareOrientation([]))
+    }
 }
