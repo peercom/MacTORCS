@@ -17,9 +17,9 @@ public final class SceneResources {
         let indexCount: Int
         let draw: DrawUniforms
         let needsAlphaTest: Bool
-        /// Generated physically based maps, when one was substituted.
-        let normal: MTLTexture?
-        let orm: MTLTexture?
+        /// A generated set's normal, roughness and occlusion in one texture
+        /// (`StructureMap`), when one was substituted or laid under as detail.
+        let structure: MTLTexture?
         let culls: Bool
         let isDriver: Bool
         let blends: Bool
@@ -62,7 +62,7 @@ public final class SceneResources {
     public var triangleCount: Int { batches.reduce(0) { $0 + $1.indexCount / 3 } }
     public private(set) var bufferBytes = 0
     public private(set) var texturedBatches = 0
-    /// Batches carrying a generated normal and ORM, substituted or as detail.
+    /// Batches carrying a generated structure map, substituted or as detail.
     public private(set) var structuredBatches = 0
     /// Number of drawable batches, for diagnostics and budget reporting.
     public var batchCount: Int { batches.count }
@@ -127,19 +127,26 @@ public final class SceneResources {
                 resolveTexture($0, batch.alphaTestThreshold != nil)
             }
             let structure = generated ?? detail
+            // A set's metalness is the manifest's word, one for a metal and
+            // nought for anything else, and it is not in the texture. A
+            // substituted metal is all metal; a metal laid under a car part
+            // as detail leaves the part's own metalness as it is.
+            let metallic: Float = structure.map { set in
+                set.metallic ? (generated != nil ? 1 : material.metallic) : 0
+            } ?? material.metallic
             built.append(Batch(
                 vertices: vertices, indices: indices, indexCount: batch.mesh.indices.count,
                 draw: DrawUniforms(model: batch.mesh.transform,
                                    baseColour: material.baseColour,
                                    roughness: material.roughness,
-                                   metallic: generated?.metallic == true ? 1 : material.metallic,
+                                   metallic: metallic,
                                    clearcoat: material.clearcoat,
                                    clearcoatRoughness: material.clearcoatRoughness,
                                    normalStrength: material.normalStrength,
                                    alphaThreshold: batch.alphaTestThreshold ?? 0,
                                    maps: SIMD4(albedo == nil ? 0 : 1,
                                                structure == nil ? 0 : 1,
-                                               structure == nil ? 0 : 1,
+                                               0,
                                                (batch.isDeferred ? 0 : 1) | (batch.paintsRoadMarkings ? 2 : 0)
                                                    | (batch.swaysInWind ? 4 : 0) | (batch.receivesWeather ? 8 : 0)),
                                    uvScale: batch.uvInMetres ? 1 / max(generated?.worldSize ?? 1, 1e-3) : 1,
@@ -147,8 +154,7 @@ public final class SceneResources {
                                    emissive: material.emissive, emissiveChannel: material.emissiveChannel,
                                    structureScale: detailScale),
                 needsAlphaTest: batch.alphaTestThreshold != nil,
-                normal: structure?.normal,
-                orm: structure?.orm,
+                structure: structure?.structure,
                 culls: batch.culls,
                 isDriver: batch.isDriver,
                 blends: batch.blends,
@@ -164,7 +170,7 @@ public final class SceneResources {
         guard !built.isEmpty else { throw RenderError.unavailable("Scene has no drawable batches") }
         batches = built
         texturedBatches = built.filter { $0.albedo != nil }.count
-        structuredBatches = built.filter { $0.normal != nil }.count
+        structuredBatches = built.filter { $0.structure != nil }.count
         bufferBytes = bytes
         minimum = scene.minimum
         maximum = scene.maximum
@@ -1242,8 +1248,7 @@ public final class ForwardRenderer {
         var draw = batch.draw
         draw.setFade(fade)
         if let albedo = batch.albedo { encoder.setFragmentTexture(albedo, index: 0) }
-        if let normal = batch.normal { encoder.setFragmentTexture(normal, index: 1) }
-        if let orm = batch.orm { encoder.setFragmentTexture(orm, index: 2) }
+        if let structure = batch.structure { encoder.setFragmentTexture(structure, index: 1) }
         encoder.setVertexBuffer(batch.vertices, offset: 0, index: 0)
         encoder.setVertexBytes(&draw, length: MemoryLayout<DrawUniforms>.stride, index: 2)
         encoder.setFragmentBytes(&draw, length: MemoryLayout<DrawUniforms>.stride, index: 2)

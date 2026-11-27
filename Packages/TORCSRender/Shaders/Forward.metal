@@ -49,7 +49,7 @@ struct DrawUniforms {
     float4 baseColour;
     float4 material;            // x roughness, y metallic, z clearcoat, w clearcoat roughness
     float4 parameters;          // x normal strength, y alpha threshold, z uv0 scale, w metre-UV fold period or 0
-    uint4 maps;                 // x albedo, y normal, z ORM, w bits: 1 receives occlusion, 2 paints road markings, 4 foliage, 8 receives weather
+    uint4 maps;                 // x albedo, y structure (normal, roughness, occlusion), z unused, w bits: 1 receives occlusion, 2 paints road markings, 4 foliage, 8 receives weather
     float4 emissive;
     /// x coverage of a detail cross-fade, y +1 leaving / −1 arriving,
     /// z extra UV scale of the normal and ORM maps over the albedo's.
@@ -268,8 +268,7 @@ fragment ForwardOutput forwardFragment(ForwardVarying in [[stage_in]],
                                 constant FrameUniforms &frame [[buffer(1)]],
                                 constant DrawUniforms &draw [[buffer(2)]],
                                 texture2d<float> albedoMap [[texture(0)]],
-                                texture2d<float> normalMap [[texture(1)]],
-                                texture2d<float> ormMap [[texture(2)]],
+                                texture2d<float> structureMap [[texture(1)]],
                                 texture2d<float> skyViewLUT [[texture(5)]],
                                 constant SkyIrradiance &skyIrradiance [[buffer(3)]],
                                 constant ShadowUniforms &shadow [[buffer(4)]],
@@ -292,13 +291,26 @@ fragment ForwardOutput forwardFragment(ForwardVarying in [[stage_in]],
 
     float3x3 basis = tangentBasis(in.normal, in.tangent);
     float3 normal = basis[2];
+    float roughness = draw.material.x, metallic = draw.material.y, occlusion = 1.0f;
     if (draw.maps.y != 0) {
-        // The normal and roughness maps take the cheaper sampler: at the road's
-        // grazing angles the albedo's anisotropy is what keeps the surface
-        // legible, and these two maps at a quarter of it measured a millisecond
-        // less with no visible change (see RENDERER_REPLACEMENT.md).
-        float2 encoded = normalMap.sample(detailSampler, (in.uv0 * draw.parameters.z * draw.fade.z), bias(frame.renderSize.z)).xy;
+        // The surface's structure in one sample: roughness in red, the
+        // normal's y in green, occlusion in blue, the normal's x in alpha
+        // (see StructureMap in MaterialLibrary.swift). They were a normal
+        // map and a roughness map, a sample each, which at five million
+        // pixels was 0.13 ms for the second.
+        //
+        // It takes the cheaper sampler: at the road's grazing angles the
+        // albedo's anisotropy is what keeps the surface legible, and this
+        // at a quarter of it measured a millisecond less with no visible
+        // change (see RENDERER_REPLACEMENT.md).
+        float4 structure = structureMap.sample(detailSampler, (in.uv0 * draw.parameters.z * draw.fade.z),
+                                               bias(frame.renderSize.z));
+        // Green is stored two steps of 255 up, so that flat is a value its
+        // six bits can hold.
+        float2 encoded = float2(structure.a, structure.g - 2.0f / 255.0f);
         normal = normalize(basis * unpackNormalMap(encoded, draw.parameters.x));
+        occlusion = structure.b;
+        roughness *= structure.r;
     }
 
     // Leaf cards are visible from both sides. Their reverse face needs the
@@ -308,14 +320,6 @@ fragment ForwardOutput forwardFragment(ForwardVarying in [[stage_in]],
 
     // Per-leaf tint from the tree builder, so a crown is not one flat colour.
     if (foliage) { albedo.rgb *= mix(0.55f, 1.05f, in.attributes.w); }
-
-    float roughness = draw.material.x, metallic = draw.material.y, occlusion = 1.0f;
-    if (draw.maps.z != 0) {
-        float3 orm = ormMap.sample(detailSampler, (in.uv0 * draw.parameters.z * draw.fade.z), bias(frame.renderSize.z)).xyz;
-        occlusion = orm.x;
-        roughness *= orm.y;
-        metallic *= orm.z;
-    }
 
     // Road markings, painted procedurally from the generator's lateral
     // coordinate rather than baked into a 256² texture: crisp at every

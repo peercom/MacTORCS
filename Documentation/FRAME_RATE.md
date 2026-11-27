@@ -597,14 +597,95 @@ The lookup's cost is the filter itself. Less would be a different filter:
 fewer taps and a noisier edge, or shadows at a lower resolution than the
 picture.
 
+## The normal and the roughness, in one texture
+
+A surface with a generated set took three samples: its albedo, its normal
+map and its occlusion-roughness-metalness map. It now takes two. The normal
+and the roughness are packed into one texture when a set is first loaded
+(`StructureMap`): roughness in red, the normal's y in green, occlusion in
+blue, the normal's x in alpha, in BC3. Metalness is not stored; it is nought
+or one across every set, and the manifest says which.
+
+The previous commit against this one, run alternately, medians of seven:
+
+| | Frame before | Frame after | Scene before | Scene after |
+|---|---|---|---|---|
+| CG Speedway 1, 100% | 5.14 ms | 5.03 ms | 2.00 ms | 1.88 ms |
+| 85% | 4.54 | 4.45 | 1.47 | 1.39 |
+| 50% | 3.17 | 3.16 | 0.58 | 0.55 |
+| 100% with reflections | 6.47 | 6.32 | 2.05 | 1.91 |
+| Alpine 1 | 5.86 | 5.76 | 2.01 | 1.90 |
+| Street 1 | 5.34 | 5.26 | 1.95 | 1.85 |
+| E-Track 3 | 5.51 | 5.40 | 1.99 | 1.87 |
+| Forza | 6.74 | 6.62 | 2.04 | 1.95 |
+
+A set's maps are a third smaller on the GPU as well: 1.4 MB for a 1024²
+structure texture with its mips, where the normal in BC5 and the ORM in BC1
+were 2.1.
+
+**It is not free, and the price is in the maps.** The two textures had 12
+bits a texel between them and the one has 8. BC3's alpha has eight levels
+a block between 8-bit endpoints, which is what BC5 gave each of the
+normal's channels; its colour has four levels between 5:6:5 endpoints, for
+three channels on one line. So the normal's y is coarser and the roughness
+and the occlusion share its line. On the game's own sets, mean error of the
+normal in degrees and of the other two in steps of 255:
+
+| Set | Normal, BC5 | Normal, packed | Roughness, BC1 | packed | Occlusion, BC1 | packed |
+|---|---|---|---|---|---|---|
+| asphalt | 3.05° | 4.59° | 2.9 | 4.7 | 3.4 | 6.8 |
+| asphalt-patched | 3.26° | 4.95° | 3.6 | 8.2 | 4.0 | 7.3 |
+| concrete | 0.83° | 1.36° | 1.3 | 2.5 | 1.5 | 3.7 |
+| grass | 2.08° | 2.76° | 1.2 | 2.4 | 2.4 | 7.2 |
+| kerb | 0.77° | 1.29° | 2.0 | 3.4 | 1.4 | 2.9 |
+| fabric | 2.22° | 3.05° | 1.5 | 2.5 | 3.7 | 12.1 |
+| paint-flake | 1.38° | 1.27° | 1.6 | 4.4 | 0 | 0 |
+| rubber-tread | 0.44° | 0.81° | 5.7 | 4.8 | 4.0 | 8.3 |
+| all 26 sets | 0.93° | 1.42° | | | | |
+
+The means hide a tail. Where a set has hard edges, a normal that turns in
+the same texels as the roughness and the occlusion jump, the one line
+cannot follow all three: at the sides of the tread's grooves one texel in a
+thousand is 33° off, where BC5 had it within 5°; in the paint's flakes
+21° against 8°; in the tyre wall 12° against 3°.
+
+The asphalt's normal is noise a texel wide, which is why even BC5 is three
+degrees off it. Down the mips both errors shrink with the maps' own detail,
+and the packed normal's stays between 1.3 and 2.5 times BC5's. The weights
+of the fit hardly move any of this; the format decides it. A flat map stays
+exactly flat: green cannot hold 128 in six bits, so the y is stored two
+steps up and the shader takes them off.
+
+**In the picture** it is a change in the grain and nothing I could find by
+eye. At 50 m/s, where the blur covers the road, frames differ from the
+previous commit's by a third of a level on average. Standing still they
+differ by 0.8 to 1.0 on average, with 13 to 19% of pixels more than two
+levels apart and under 1% more than eight. The most changed windows of
+those frames, magnified, show the same asphalt with no block pattern. A
+car filling a 2400 x 1400 frame, its paint and its seats on detail sets,
+differs from the same frame drawn with the maps uncompressed by 0.9 of a
+level on average and by more than eight in 0.08% of pixels; its most
+changed window shows the same flake and the same weave. The tyres were
+not in that frame, and the tread is the set with the longest tail.
+
+The colour block of a data map needed its own encoder
+(`BlockCompression.encodeBC1(_:weights:)`). The colour encoder draws its
+line from the corner of a block's bounding box where every channel is low
+to the one where every channel is high, and a roughness as often falls
+where an occlusion rises; this one takes the block's principal axis.
+
+Packing and encoding a set takes about 0.6 s the first time it is loaded;
+the encode is kept beside the maps and keyed by both of them
+(`<set>-structure.bc3.torcsbc`). The encodes of the separate maps
+(`-normal.bc5`, `-orm.bc1`) are no longer read.
+
 ## What is left
 
-The scene pass is 2.0 ms of 5.2. What it costs now, in the order it was
-measured: the shadow lookup about 0.45 ms, which the section above takes
-apart; the normal map 0.22, the roughness map 0.13, the albedo's anisotropy
-0.13, the sky's light 0.3, the sun's 0.2, the occlusion's sample 0.13 and
-the road's paint 0.13. The normal and roughness maps could share one
-texture, which is a change to the materials and not to the shader. The tonemap pass at
+The scene pass is 1.9 ms of 5.0. What it costs now, in the order it was
+measured: the shadow lookup about 0.45 ms, which an earlier section takes
+apart; the structure map's sample 0.22, the albedo's anisotropy 0.13, the
+sky's light 0.3, the sun's 0.2, the occlusion's sample 0.13 and the road's
+paint 0.13. The tonemap pass at
 1.05 ms is near what its features cost. The sky's tables are recomputed
 whenever the camera's height changes by ten centimetres, three small passes
 that a wider tolerance would mostly spare. The HUD costs

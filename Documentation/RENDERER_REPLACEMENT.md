@@ -2535,7 +2535,8 @@ generous and the maps few.
 
 The generated material sets now go up block-compressed: albedo in BC1
 (the sets are opaque), the normal's two channels in BC5, the ORM triple
-in BC1. Encoding a 2048² map on the CPU takes the better part of a
+in BC1. (Since G17 the normal and the ORM share one BC3 texture, for a
+sample less a pixel; what that costs the maps is in FRAME_RATE.md.) Encoding a 2048² map on the CPU takes the better part of a
 second, so the encode is kept beside its source — `<map>.<format>.torcsbc`,
 keyed inside by the PNG's SHA-256 so a regenerated map is never served
 stale blocks, and checksummed so a truncated file is ignored and

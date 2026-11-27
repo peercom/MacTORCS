@@ -174,4 +174,42 @@ final class BlockCompressionTests: XCTestCase {
         // photographic source. Below that, banding shows on smooth surfaces.
         XCTAssertGreaterThan(worstPSNR, 30, "worst BC1 quality \(worstPSNR) dB")
     }
+
+    /// A data map's channels are not a colour: one can rise where another
+    /// falls. The colour encoder's line runs from all-low to all-high and
+    /// cannot follow that; the data encoder takes the block's principal
+    /// axis and can.
+    func testDataBlocksFollowChannelsThatRunAgainstEachOther() throws {
+        var pixels = [UInt8]()
+        for y in 0 ..< 8 {
+            for x in 0 ..< 8 {
+                let t = Double(x + y * 8) / 63
+                // Red up, green down, blue a little up: a roughness against
+                // an occlusion, say.
+                pixels += [UInt8(60 + 120 * t), UInt8(220 - 150 * t), UInt8(100 + 20 * t), 255]
+            }
+        }
+        func error(_ weights: SIMD3<Double>?) throws -> Double {
+            let decoded = try BlockCompression.decode(
+                try BlockCompression.encode(pixels, width: 8, height: 8, format: .bc1, dataWeights: weights),
+                width: 8, height: 8, format: .bc1)
+            var total = 0.0
+            for i in stride(from: 0, to: pixels.count, by: 4) {
+                for c in 0 ..< 3 { let d = Double(pixels[i + c]) - Double(decoded[i + c]); total += d * d }
+            }
+            return (total / Double(pixels.count / 4 * 3)).squareRoot()
+        }
+        let asColour = try error(nil), asData = try error(SIMD3(1, 1, 1))
+        XCTAssertLessThan(asData, 6, "rms \(asData) levels")
+        XCTAssertLessThan(asData, asColour * 0.75, "data \(asData) against colour \(asColour)")
+
+        // A flat block is exact where 5:6:5 can hold it, and never the
+        // punch-through mode: its first endpoint is not below its second.
+        var flat = [UInt8]()
+        for _ in 0 ..< 16 { flat += [132, 130, 255, 255] }
+        let block = try BlockCompression.encode(flat, width: 4, height: 4, format: .bc1, dataWeights: SIMD3(1, 2, 1))
+        let first = UInt16(block[0]) | UInt16(block[1]) << 8, second = UInt16(block[2]) | UInt16(block[3]) << 8
+        XCTAssertGreaterThanOrEqual(first, second)
+        XCTAssertEqual(try BlockCompression.decode(block, width: 4, height: 4, format: .bc1), flat)
+    }
 }

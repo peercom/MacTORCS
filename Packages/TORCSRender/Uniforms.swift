@@ -72,7 +72,8 @@ public struct DrawUniforms: Equatable, Sendable {
     /// x normal-map strength, y alpha threshold, z uv0 scale, w metre-UV fold
     /// period (zero for texture-space UVs).
     public var parameters: SIMD4<Float>
-    /// Nonzero enables the corresponding texture: x albedo, y normal, z ORM.
+    /// Nonzero enables the corresponding texture: x albedo, y the structure
+    /// map (normal, roughness and occlusion in one); z is unused.
     /// w is a bitfield: 1 receives screen-space occlusion, 2 paints road
     /// markings, 4 sways in the wind and tints per leaf.
     public var maps: SIMD4<UInt32>

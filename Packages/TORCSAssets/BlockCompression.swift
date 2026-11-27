@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 import Foundation
+import simd
 
 /// BC1/BC3/BC4/BC5 block compression for the modern render path.
 ///
@@ -195,6 +196,112 @@ public enum BlockCompression {
                 UInt8((packed >> 16) & 0xFF), UInt8((packed >> 24) & 0xFF)]
     }
 
+    /// Encodes 16 texels of three quantities that are not a colour — the
+    /// channels of a data map, each with its own importance — into 8 BC1
+    /// bytes, alpha ignored.
+    ///
+    /// A block is two endpoints and a line between them, and `encodeBC1`
+    /// takes that line from the corner of the bounding box where every
+    /// channel is low to the one where every channel is high. A colour
+    /// mostly runs that way. Two unrelated quantities as often run against
+    /// each other, so here the line is the principal axis of the block's
+    /// texels, each channel scaled by its weight, and the endpoints are then
+    /// refined by least squares against the indices, a few rounds, keeping a
+    /// round only if it lowered the weighted error.
+    static func encodeBC1(_ rgba: [UInt8], weights: SIMD3<Double>) -> [UInt8] {
+        precondition(rgba.count == 64)
+        let scale = SIMD3(weights.x.squareRoot(), weights.y.squareRoot(), weights.z.squareRoot())
+        var points = [SIMD3<Double>](repeating: .zero, count: 16)
+        var mean = SIMD3<Double>.zero, low = SIMD3<Double>(repeating: 255), high = SIMD3<Double>.zero
+        for pixel in 0 ..< 16 {
+            let value = SIMD3(Double(rgba[pixel * 4]), Double(rgba[pixel * 4 + 1]), Double(rgba[pixel * 4 + 2]))
+            points[pixel] = value
+            mean += value
+            low = simd_min(low, value); high = simd_max(high, value)
+        }
+        mean /= 16
+        func block(_ e0: UInt16, _ e1: UInt16, _ indices: [Int]) -> [UInt8] {
+            var packed: UInt32 = 0
+            for (pixel, index) in indices.enumerated() { packed |= UInt32(index) << (2 * pixel) }
+            return [UInt8(e0 & 0xFF), UInt8(e0 >> 8), UInt8(e1 & 0xFF), UInt8(e1 >> 8),
+                    UInt8(packed & 0xFF), UInt8((packed >> 8) & 0xFF),
+                    UInt8((packed >> 16) & 0xFF), UInt8((packed >> 24) & 0xFF)]
+        }
+        func pack(_ value: SIMD3<Double>) -> UInt16 {
+            func byte(_ x: Double) -> UInt8 { UInt8(max(0, min(255, x.rounded()))) }
+            return pack565(byte(value.x), byte(value.y), byte(value.z))
+        }
+        // The principal axis, by power iteration on the weighted covariance,
+        // started along the bounding box so a block with one channel moving
+        // converges at once.
+        var covariance = simd_double3x3()
+        for point in points {
+            let d = (point - mean) * scale
+            covariance += simd_double3x3(columns: (d * d.x, d * d.y, d * d.z))
+        }
+        var axis = (high - low) * scale + SIMD3(repeating: 1e-3)
+        for _ in 0 ..< 8 {
+            let next = covariance * axis
+            let length = simd_length(next)
+            if length < 1e-9 { break }
+            axis = next / length
+        }
+        axis = simd_normalize(axis)
+        var nearest = Double.infinity, farthest = -Double.infinity
+        for point in points {
+            let t = simd_dot((point - mean) * scale, axis)
+            nearest = min(nearest, t); farthest = max(farthest, t)
+        }
+        var e0 = pack(mean + axis * farthest / scale), e1 = pack(mean + axis * nearest / scale)
+        // Flat once quantized: one endpoint and index zero everywhere, which
+        // also keeps clear of the punch-through mode.
+        if e0 == e1 { return block(e0, e1, [Int](repeating: 0, count: 16)) }
+        if e0 < e1 { swap(&e0, &e1) }
+
+        func assign(_ a: UInt16, _ b: UInt16) -> (indices: [Int], error: Double) {
+            let c0 = unpack565(a), c1 = unpack565(b)
+            let palette = [c0, c1,
+                           ((2 * c0.r + c1.r) / 3, (2 * c0.g + c1.g) / 3, (2 * c0.b + c1.b) / 3),
+                           ((c0.r + 2 * c1.r) / 3, (c0.g + 2 * c1.g) / 3, (c0.b + 2 * c1.b) / 3)]
+                .map { SIMD3(Double($0.0), Double($0.1), Double($0.2)) }
+            var indices = [Int](repeating: 0, count: 16), total = 0.0
+            for (pixel, point) in points.enumerated() {
+                var best = 0, bestError = Double.infinity
+                for (index, candidate) in palette.enumerated() {
+                    let d = candidate - point
+                    let error = simd_dot(d * d, weights)
+                    if error < bestError { bestError = error; best = index }
+                }
+                indices[pixel] = best
+                total += bestError
+            }
+            return (indices, total)
+        }
+        var (indices, error) = assign(e0, e1)
+        let position: [Double] = [1, 0, 2.0 / 3.0, 1.0 / 3.0]
+        for _ in 0 ..< 3 {
+            var sumWW = 0.0, sumW = 0.0
+            var sumWC = SIMD3<Double>.zero, sumC = SIMD3<Double>.zero
+            for (pixel, index) in indices.enumerated() {
+                let w = position[index]
+                sumWW += w * w; sumW += w
+                sumWC += points[pixel] * w
+                sumC += points[pixel]
+            }
+            let determinant = sumWW * 16 - sumW * sumW
+            guard abs(determinant) > 1e-6 else { break }
+            let a = (sumWC * 16 - sumC * sumW) / determinant
+            let b = (sumC * sumWW - sumWC * sumW) / determinant
+            var r0 = pack(a + b), r1 = pack(b)
+            guard r0 != r1 else { break }
+            if r0 < r1 { swap(&r0, &r1) }
+            let refined = assign(r0, r1)
+            guard refined.error < error else { break }
+            e0 = r0; e1 = r1; indices = refined.indices; error = refined.error
+        }
+        return block(e0, e1, indices)
+    }
+
     static func decodeBC1(_ block: ArraySlice<UInt8>) -> [UInt8] {
         let bytes = Array(block)
         precondition(bytes.count == 8)
@@ -239,7 +346,12 @@ public extension BlockCompression {
     /// every mip chain ends at 2x2 and 1x1. Padding with black would bleed dark
     /// edges into the smallest mips, and those are exactly the levels a distant
     /// road surface samples.
-    static func encode(_ rgba: [UInt8], width: Int, height: Int, format: Format) throws -> [UInt8] {
+    ///
+    /// - Parameter dataWeights: for BC1 and BC3 holding a data map rather
+    ///   than a colour, the importance of the red, green and blue channels;
+    ///   the colour block is then fitted as `encodeBC1(_:weights:)` does.
+    static func encode(_ rgba: [UInt8], width: Int, height: Int, format: Format,
+                       dataWeights: SIMD3<Double>? = nil) throws -> [UInt8] {
         guard width > 0, height > 0 else { throw ACError.invalid("Block compression needs a nonempty image") }
         guard rgba.count == width * height * 4 else {
             throw ACError.invalid("Expected \(width * height * 4) RGBA bytes, got \(rgba.count)")
@@ -260,11 +372,12 @@ public extension BlockCompression {
                     }
                 }
                 func channel(_ c: Int) -> [UInt8] { (0 ..< 16).map { texels[$0 * 4 + c] } }
+                func colour() -> [UInt8] { dataWeights.map { encodeBC1(texels, weights: $0) } ?? encodeBC1(texels) }
                 switch format {
-                case .bc1: output.append(contentsOf: encodeBC1(texels))
+                case .bc1: output.append(contentsOf: colour())
                 case .bc3:
                     output.append(contentsOf: encodeBC4(channel(3)))
-                    output.append(contentsOf: encodeBC1(texels))
+                    output.append(contentsOf: colour())
                 case .bc4: output.append(contentsOf: encodeBC4(channel(0)))
                 case .bc5:
                     output.append(contentsOf: encodeBC4(channel(0)))

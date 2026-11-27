@@ -6,6 +6,50 @@ import simd
 import TORCSAssets
 import TORCSMaterials
 
+/// A generated set's normal and its roughness in one texture, so a surface
+/// is two samples and not three: roughness in red, the normal's y in green,
+/// occlusion in blue and the normal's x in alpha, block-compressed as BC3.
+///
+/// The generator writes a normal map and an occlusion-roughness-metalness
+/// map; they are put together here, when a set is first loaded, and what
+/// was two textures at 8 and 4 bits a texel is one at 8. That is not free.
+/// BC3 gives its alpha eight levels a block between 8-bit endpoints, as BC5
+/// gave each of the normal's two channels; its colour has four levels
+/// between 5:6:5 endpoints for all three channels at once. So the normal's
+/// y is coarser than it was and the roughness and occlusion share a line
+/// with it: over the generated sets the normal's mean error goes from 0.9
+/// to 1.4 degrees and the roughness's and the occlusion's about double,
+/// with a longer tail at hard edges. The numbers are in FRAME_RATE.md.
+///
+/// Metalness is not stored. It is one value across every set, nought or
+/// one, and the manifest says which.
+public enum StructureMap {
+    /// The colour block's fit: the normal's y counts double. The result
+    /// hardly moves with the weights; the format decides it.
+    public static let weights = SIMD3<Double>(1, 2, 1)
+    /// Added to the normal's y before it is stored. Green's 6-bit endpoints
+    /// cannot hold 128, the flat normal, and 130 they can: so a flat map
+    /// stays exactly flat, and the shader takes the two back off.
+    public static let greenBias: UInt8 = 2
+    /// Part of what a kept encode is keyed by, so a change to the layout
+    /// here is never served an old one.
+    static let layout = "structure-1: R roughness, G normal y + 2, B occlusion, A normal x"
+
+    /// One RGBA8 image from a normal map (x in red, y in green) and an ORM
+    /// map (occlusion in red, roughness in green) of the same size.
+    public static func pack(normal: [UInt8], orm: [UInt8]) -> [UInt8] {
+        precondition(normal.count == orm.count && normal.count % 4 == 0)
+        var packed = [UInt8](repeating: 0, count: normal.count)
+        for i in stride(from: 0, to: normal.count, by: 4) {
+            packed[i] = orm[i + 1]
+            packed[i + 1] = UInt8(min(Int(normal[i + 1]) + Int(greenBias), 255))
+            packed[i + 2] = orm[i]
+            packed[i + 3] = normal[i]
+        }
+        return packed
+    }
+}
+
 /// Substitutes generated physically based materials for original textures.
 ///
 /// The original art supplies a 256-square albedo and nothing else — no normal,
@@ -23,15 +67,15 @@ import TORCSMaterials
 public final class MaterialLibrary {
     public struct Binding {
         public let albedo: MTLTexture
-        public let normal: MTLTexture
-        public let orm: MTLTexture
+        /// The normal, the roughness and the occlusion: see `StructureMap`.
+        public let structure: MTLTexture
         /// Metres one tile covers, from the generator's manifest. Geometry
         /// whose UVs are in metres divides by this; a 2 m asphalt tile sampled
         /// once per metre has its aggregate at half a millimetre and reads as
         /// flat grey.
         public let worldSize: Float
-        /// A metal set: the surface's metalness is set to one and the ORM's
-        /// blue channel scales it.
+        /// A metal set, by the manifest: its surface's metalness is one, and
+        /// any other set's is nought.
         public let metallic: Bool
     }
     /// Per-material tile size from `materials.json`, when the directory has one.
@@ -108,8 +152,8 @@ public final class MaterialLibrary {
         }
     }
 
-    /// Upload the maps block-compressed — BC1 for albedo and ORM, BC5 for
-    /// normals — a quarter to an eighth of the memory and bandwidth of RGBA8.
+    /// Upload the maps block-compressed — BC1 for albedo, BC3 for the
+    /// structure — a quarter to an eighth of the memory and bandwidth of RGBA8.
     /// Process-wide, for measurement: the render tool's `--no-compression`.
     nonisolated(unsafe) public static var compressesMaps = true
     /// Bytes of texture uploaded by this library, for the record.
@@ -118,14 +162,56 @@ public final class MaterialLibrary {
     public private(set) var sidecarHits = 0
 
     /// The block format a map takes: colour in BC1 (opaque, 4 bits a texel),
-    /// a normal's two channels in BC5, the ORM triple in BC1. BC7 would suit
-    /// the ORM's smooth channels better and there is no encoder for it; the
-    /// measured quality is in RENDERER_REPLACEMENT.md.
+    /// the structure's four channels in BC3.
     public static func format(forMap suffix: String) -> BlockCompression.Format {
-        suffix == "normal" ? .bc5 : .bc1
+        suffix == "structure" ? .bc3 : .bc1
     }
 
-    /// Loads a generated set on first use, decoding its three maps.
+    /// The structure texture of a set, from its normal and ORM maps: packed,
+    /// given its mips, and encoded once, the encode kept beside the sources
+    /// and keyed by both of them. Nil when either is missing or they differ
+    /// in size.
+    private func loadStructure(_ material: String, directory: URL) -> MTLTexture? {
+        func url(_ suffix: String) -> URL { directory.appendingPathComponent("\(material)-\(suffix).png") }
+        guard let normalData = try? Data(contentsOf: url("normal")),
+              let ormData = try? Data(contentsOf: url("orm")) else { return nil }
+        func levels() -> [(width: Int, height: Int, pixels: [UInt8])]? {
+            guard let normal = try? TextureLoading.decode(normalData), let orm = try? TextureLoading.decode(ormData),
+                  normal.width == orm.width, normal.height == orm.height else { return nil }
+            // Data, not colour: the mips are plain averages of each channel,
+            // alpha among them.
+            guard let packed = try? TextureImage(width: normal.width, height: normal.height, channels: 4,
+                                                 pixels: StructureMap.pack(normal: normal.rgba8, orm: orm.rgba8))
+            else { return nil }
+            return try? TextureLoading.linearMipChain(packed, preserveCutoutCoverage: false, encodeAsColour: false)
+        }
+        guard Self.compressesMaps else {
+            guard let levels = levels() else { return nil }
+            uploadedBytes += levels.reduce(0) { $0 + $1.width * $1.height * 4 }
+            return try? TextureLoading.upload(levels, device: device, srgb: false)
+        }
+        var hash = SHA256()
+        hash.update(data: Data(StructureMap.layout.utf8))
+        hash.update(data: normalData)
+        hash.update(data: ormData)
+        let sourceHash = Array(hash.finalize())
+        let sidecar = directory.appendingPathComponent("\(material)-structure.bc3.torcsbc")
+        let chain: TextureLoading.CompressedChain
+        if let cached = MapSidecar.read(sidecar, sourceHash: sourceHash, format: .bc3) {
+            chain = cached
+            sidecarHits += 1
+        } else {
+            guard let levels = levels(),
+                  let encoded = try? TextureLoading.compress(levels, format: .bc3, dataWeights: StructureMap.weights)
+            else { return nil }
+            chain = encoded
+            MapSidecar.write(chain, to: sidecar, sourceHash: sourceHash)
+        }
+        uploadedBytes += chain.byteCount
+        return try? TextureLoading.upload(chain, device: device, srgb: false)
+    }
+
+    /// Loads a generated set on first use: its albedo, and its structure.
     private func binding(_ material: String, directory: URL) -> Binding? {
         if let cached = cache[material] { return cached }
         func load(_ suffix: String, srgb: Bool) -> MTLTexture? {
@@ -158,18 +244,14 @@ public final class MaterialLibrary {
                 return try? TextureLoading.upload(chain, device: device, srgb: srgb)
             }
             guard let image = try? TextureLoading.decode(data),
-                  // Normal and ORM are data, not colour: filtering their mips
-                  // in linear space would be wrong, and so would an sRGB
-                  // decode on the way in.
                   let levels = try? TextureLoading.linearMipChain(image, preserveCutoutCoverage: false,
                                                                  encodeAsColour: srgb) else { return nil }
             uploadedBytes += levels.reduce(0) { $0 + $1.width * $1.height * 4 }
             return try? TextureLoading.upload(levels, device: device, srgb: srgb)
         }
         guard let albedo = load("albedo", srgb: true),
-              let normal = load("normal", srgb: false),
-              let orm = load("orm", srgb: false) else { return nil }
-        let binding = Binding(albedo: albedo, normal: normal, orm: orm, worldSize: worldSizes[material] ?? 1,
+              let structure = loadStructure(material, directory: directory) else { return nil }
+        let binding = Binding(albedo: albedo, structure: structure, worldSize: worldSizes[material] ?? 1,
                               metallic: metals.contains(material))
         cache[material] = binding
         return binding
@@ -197,7 +279,7 @@ public final class MaterialLibrary {
                   TextureImage(width: size, height: size, channels: 4, pixels: merged),
                   preserveCutoutCoverage: false),
               let albedo = try? TextureLoading.upload(levels, device: device, srgb: true) else { return binding }
-        let result = Binding(albedo: albedo, normal: binding.normal, orm: binding.orm, worldSize: binding.worldSize,
+        let result = Binding(albedo: albedo, structure: binding.structure, worldSize: binding.worldSize,
                              metallic: binding.metallic)
         composited[texture] = result
         markingsPreserved.insert(texture)

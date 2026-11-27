@@ -131,10 +131,14 @@ public enum TextureLoading {
     /// Encodes every level of a chain. CPU work of the order of a second for
     /// a 2048² map, which is why `MaterialLibrary` keeps the result beside
     /// the source and only encodes once.
+    /// - Parameter dataWeights: see `BlockCompression.encode`; for a chain
+    ///   whose channels are quantities, not a colour.
     public static func compress(_ levels: [(width: Int, height: Int, pixels: [UInt8])],
-                                format: BlockCompression.Format) throws -> CompressedChain {
+                                format: BlockCompression.Format,
+                                dataWeights: SIMD3<Double>? = nil) throws -> CompressedChain {
         CompressedChain(format: format, levels: try levels.map {
-            ($0.width, $0.height, try BlockCompression.encode($0.pixels, width: $0.width, height: $0.height, format: format))
+            ($0.width, $0.height, try BlockCompression.encode($0.pixels, width: $0.width, height: $0.height,
+                                                              format: format, dataWeights: dataWeights))
         })
     }
 
