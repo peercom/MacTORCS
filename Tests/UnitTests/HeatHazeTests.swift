@@ -50,7 +50,10 @@ final class HeatHazeTests: XCTestCase {
             return n
         }
         // The far strip sits just under the horizon, the near strip fills the bottom.
-        XCTAssertGreaterThan(differing(a, b, rows: 78 ..< 90), 20, "the far road did not shimmer")
+        // Twenty pixels of it change here, sixteen on one row. The bound was
+        // twenty when the count was twenty-one, and the one over was a single
+        // level of a dither that was too strong in the dark tiles.
+        XCTAssertGreaterThan(differing(a, b, rows: 78 ..< 90), 12, "the far road did not shimmer")
         XCTAssertEqual(differing(a, b, rows: 130 ..< 160), 0, "the near road must hold still")
         let still = try ForwardRenderer(settings: settings(haze: false))
         XCTAssertEqual(try render(still, elevation: 60, time: 0), try render(still, elevation: 60, time: 1.7))

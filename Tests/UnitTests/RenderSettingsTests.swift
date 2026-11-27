@@ -378,6 +378,45 @@ final class TemporalUpscalingTests: XCTestCase {
         XCTAssertGreaterThan(difference, 0, "it did render at the lower resolution")
     }
 
+    /// The tonemap pass is compiled eight ways and a frame takes the one
+    /// with exactly the paths it uses: code for the others would cost it
+    /// time without being run.
+    func testTheTonemapPassTakesThePipelineCompiledForWhatTheFrameUses() throws {
+        guard MTLCreateSystemDefaultDevice() != nil else { throw XCTSkip("Metal device unavailable") }
+        var settings = RenderSettings()
+        settings.upscaling = true
+        settings.upscalingMode = .resolve
+        settings.dynamicResolution = false
+        settings.renderScale = 1
+        settings.bloom = false; settings.autoExposure = false
+        let renderer = try ForwardRenderer(settings: settings)
+        XCTAssertEqual(renderer.resolves.count, ResolveVariant.all.count)
+        XCTAssertEqual(ResolveVariant.all.map(\.rawValue), Array(0 ..< 8))
+        let url = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+            .appendingPathComponent("Fixtures/Artwork/155-DTM/155-DTM.acc")
+        let scene = try SceneResources(device: renderer.device,
+                                       scene: RenderScene(ACScene.parse(Data(contentsOf: url), car: true)))
+        let camera = RenderCamera(eye: SIMD3(6, -5, 2), target: SIMD3(0, 0, 0.5))
+        func variant() throws -> ResolveVariant {
+            _ = try renderer.render(scene: scene, camera: camera, lighting: SunLighting(), width: 256, height: 160)
+            return renderer.lastResolveVariant
+        }
+        XCTAssertEqual(try variant(), [], "a dry frame at full resolution through a pinhole")
+        renderer.windscreenRain = 1
+        XCTAssertEqual(try variant(), [.rain])
+        renderer.depthOfField = DepthOfField(focusDistance: 4, fNumber: 2.8, focalLength: 85)
+        XCTAssertEqual(try variant(), [.rain, .lensBlur])
+        renderer.windscreenRain = 0
+        XCTAssertEqual(try variant(), [.lensBlur])
+        renderer.depthOfField = nil
+        settings.renderScale = 0.5
+        renderer.settings = settings
+        XCTAssertEqual(try variant(), [.upscales], "a smaller scene is filtered up")
+        settings.renderScale = 1
+        renderer.settings = settings
+        XCTAssertEqual(try variant(), [], "and at full resolution again the filter is not compiled in")
+    }
+
     /// Every preset renders native at rest; the temporal scaler, which
     /// measured as a net loss twice, is nobody's default.
     func testEveryPresetRendersNativeAtRestAndNoneDefaultsToTemporal() {

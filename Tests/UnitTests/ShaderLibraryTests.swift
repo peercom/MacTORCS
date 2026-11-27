@@ -152,4 +152,59 @@ final class ShaderLibraryTests: XCTestCase {
         XCTAssertGreaterThan(mapped[10].x, mapped[4].x, "100.0 should read brighter than 0.18")
         print("AgX: 0->\(mapped[0].x), 0.18->\(mapped[4].x), 1.0->\(mapped[6].x), 100->\(mapped[10].x)")
     }
+    /// The dither is half a display level either way at every brightness.
+    /// Added to the linear value instead, it was seven levels in the
+    /// shadows and a fifth of one near white.
+    func testDitherIsHalfADisplayLevelAtEveryBrightness() throws {
+        guard let device = MTLCreateSystemDefaultDevice(), let queue = device.makeCommandQueue() else {
+            throw XCTSkip("Metal device unavailable")
+        }
+        let probe = """
+        kernel void probeDither(const device float *inputs [[buffer(0)]],
+                                device float4 *out [[buffer(1)]],
+                                uint i [[thread_position_in_grid]]) {
+            float3 radiance = float3(inputs[i]);
+            out[i] = float4(tonemapAgXDithered(radiance, 0.0f).x, tonemapAgXDithered(radiance, 0.5f).x,
+                            tonemapAgXDithered(radiance, 1.0f).x, tonemapAgX(radiance, 1.0f).x);
+        }
+        """
+        let library = try ShaderLibrary(device: device,
+                                        source: try ShaderLibrary.combinedSource() + probe).library
+        let pipeline = try device.makeComputePipelineState(function: XCTUnwrap(library.makeFunction(name: "probeDither")))
+        // Black to white in steps of a third of a stop.
+        let inputs: [Float] = [0] + (0 ..< 60).map { 1e-4 * pow(2, Float($0) / 3) }
+        let inputBuffer = try XCTUnwrap(inputs.withUnsafeBytes {
+            device.makeBuffer(bytes: $0.baseAddress!, length: $0.count, options: .storageModeShared)
+        })
+        let output = try XCTUnwrap(device.makeBuffer(length: inputs.count * 16, options: .storageModeShared))
+        let commands = try XCTUnwrap(queue.makeCommandBuffer())
+        let encoder = try XCTUnwrap(commands.makeComputeCommandEncoder())
+        encoder.setComputePipelineState(pipeline)
+        encoder.setBuffer(inputBuffer, offset: 0, index: 0)
+        encoder.setBuffer(output, offset: 0, index: 1)
+        encoder.dispatchThreads(MTLSize(width: inputs.count, height: 1, depth: 1),
+                                threadsPerThreadgroup: MTLSize(width: 16, height: 1, depth: 1))
+        encoder.endEncoding()
+        commands.commit()
+        commands.waitUntilCompleted()
+        XCTAssertNil(commands.error)
+
+        // What the sRGB target stores for a linear value, in levels of 255.
+        func level(_ linear: Float) -> Float {
+            (linear <= 0.0031308 ? 12.92 * linear : 1.055 * pow(linear, 1 / 2.4) - 0.055) * 255
+        }
+        let mapped = output.contents().bindMemory(to: SIMD4<Float>.self, capacity: inputs.count)
+        var widest: Float = 0
+        for (i, input) in inputs.enumerated() {
+            let low = level(mapped[i].x), middle = level(mapped[i].y), high = level(mapped[i].z)
+            XCTAssertEqual(middle, level(mapped[i].w), accuracy: 0.01, "noise of a half is no dither, at \(input)")
+            XCTAssertLessThanOrEqual(low, middle + 0.001, "at \(input)")
+            XCTAssertGreaterThanOrEqual(high, middle - 0.001, "at \(input)")
+            XCTAssertLessThan(middle - low, 0.75, "dither below at \(input), level \(middle)")
+            XCTAssertLessThan(high - middle, 0.75, "dither above at \(input), level \(middle)")
+            widest = max(widest, high - low)
+        }
+        XCTAssertGreaterThan(widest, 0.9, "and it is a whole level wide where the encoding is not at its toe")
+        XCTAssertEqual(mapped[0].x, 0, "black stays black under the dither")
+    }
 }

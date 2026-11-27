@@ -30,7 +30,9 @@ struct MotionBlurUniforms {
     float4 parameters;
     /// xy ratio of scene pixels to velocity pixels (an upscaler ahead of
     /// this changes it), z tap count or 0 for no blur, w nonzero when the
-    /// scene is smaller than the picture and is to be filtered up to it.
+    /// scene is smaller than the picture and is to be filtered up to it:
+    /// the resolve is then the variant compiled with the filter, which is
+    /// what the shader goes by (see `resolveUpscales`).
     float4 scale;
     /// The half-resolution copy of the scene: x nonzero when one is bound,
     /// y and z the streak lengths in scene pixels between which the taps
@@ -87,8 +89,15 @@ inline float3 sampleSceneFiltered(texture2d<float> scene, float2 uv, float2 size
 /// The scene's radiance at `uv` as the tonemapper should see it: blurred
 /// along the pixel's motion where it moves, filtered up where the scene is
 /// smaller than the picture, and otherwise the texel itself.
+///
+/// `jitter` is the pixel's noise, 0 to 1. `filtered` is whether the scene is
+/// to be filtered up, and is meant to be known when the shader is compiled:
+/// the filter's weights have no side effect, so the compiler works them out
+/// ahead of the branch that decides whether they are needed, and as a test
+/// of a uniform they cost every pixel of a frame that never used them.
 inline float3 sceneRadiance(texture2d<float> scene, texture2d<float> sceneHalf, texture2d<float> velocity,
-                            float2 uv, float2 pixel, constant MotionBlurUniforms &u, float exposure) {
+                            float2 uv, float jitter, constant MotionBlurUniforms &u, float exposure,
+                            bool filtered) {
     constexpr sampler linearSampler(coord::normalized, address::clamp_to_edge, filter::linear);
     constexpr sampler pointSampler(coord::normalized, address::clamp_to_edge, filter::nearest);
     // Every sample here names its level. None of these textures has mips,
@@ -105,10 +114,9 @@ inline float3 sceneRadiance(texture2d<float> scene, texture2d<float> sceneHalf, 
             if (lengthPixels > u.parameters.w) { v *= u.parameters.w / lengthPixels; }
             float2 stepUV = v * u.parameters.xy;
             int most = max(int(u.scale.z), 2);
-            // Jittered start so the taps do not band; the pattern is smooth
-            // enough that a temporal history would average it, and coarse
-            // enough not to need one.
-            float jitter = fract(52.9829189f * fract(dot(floor(pixel), float2(0.06711056f, 0.00583715f))));
+            // The start is jittered by the pixel's noise so the taps do not
+            // band; the pattern is smooth enough that a temporal history
+            // would average it, and coarse enough not to need one.
             float3 total = 0.0f;
             // A long streak is gathered from the half-resolution copy, with
             // half the taps. A tap costs the same from either texture — the
@@ -141,7 +149,7 @@ inline float3 sceneRadiance(texture2d<float> scene, texture2d<float> sceneHalf, 
             return total / float(taps);
         }
     }
-    if (u.scale.w > 0.0f) { return sampleSceneFiltered(scene, uv, 1.0f / u.parameters.xy, exposure); }
+    if (filtered) { return sampleSceneFiltered(scene, uv, 1.0f / u.parameters.xy, exposure); }
     return scene.sample(pointSampler, uv, level(0.0f)).rgb;
 }
 

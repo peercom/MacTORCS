@@ -25,6 +25,20 @@ struct GlareUniforms {
     float4 rain;
 };
 
+/// What a resolve pipeline is compiled for. Each is a path most frames do
+/// not take, and as a branch on a uniform a path not taken is not free:
+/// what in it has no side effect the compiler works out ahead of the
+/// branch. At 2880x1720 the upscale filter cost a frame at full resolution
+/// a quarter of a millisecond that way, the lens blur a tenth and the rain
+/// a few hundredths, in a pass of one and a third. Compiled in only where
+/// the frame uses them, they cost the others nothing.
+///
+/// The haze, the glare, the bloom and the motion blur measured the same
+/// compiled out as switched off, and stay branches on their uniforms.
+constant bool resolveUpscales [[function_constant(1)]];
+constant bool resolveLensBlur [[function_constant(2)]];
+constant bool resolveRain [[function_constant(3)]];
+
 // MARK: - Rain on the glass
 
 inline float2 dropHash(float2 cell) {
@@ -81,7 +95,10 @@ inline float2 windscreen(float2 uv, constant GlareUniforms &g, thread float &cov
 inline float2 heatHaze(float2 uv, texture2d<float> depth, constant GlareUniforms &g) {
     constexpr sampler pointSampler(coord::normalized, address::clamp_to_edge, filter::nearest);
     float deviceDepth = depth.sample(pointSampler, uv).x;
-    if (deviceDepth <= 0.0f) { return uv; }
+    // Nothing shimmers nearer than sixty metres or beyond fourteen hundred,
+    // the sky included, and most of a frame is one or the other: settled on
+    // the depth as it is stored, ahead of the arithmetic.
+    if (deviceDepth <= g.haze.z * (1.0f / 1400.0f) || deviceDepth >= g.haze.z * (1.0f / 60.0f)) { return uv; }
     float linear = g.haze.z / deviceDepth;
     float amount = smoothstep(60.0f, 220.0f, linear) * (1.0f - smoothstep(500.0f, 1400.0f, linear)) * g.haze.x;
     if (amount <= 0.001f) { return uv; }
@@ -162,9 +179,11 @@ fragment float4 resolveFragment(ResolveVarying in [[stage_in]],
     constexpr sampler pointSampler(coord::normalized, address::clamp_to_edge, filter::nearest);
     constexpr sampler linearSampler(coord::normalized, address::clamp_to_edge, filter::linear);
     float exposureScale = exposure.scale;
+    // One noise value a pixel, for the blur's jitter and the display's dither.
+    float noise = interleavedGradientNoise(in.position.xy);
     float2 sceneUV = glare.haze.x > 0.0f ? heatHaze(in.uv, depth, glare) : in.uv;
     float underDrop = 0.0f;
-    if (glare.rain.x > 0.0f) {
+    if (resolveRain && glare.rain.x > 0.0f) {
         // Drops sit on the glass, and the glass is the pane between the cabin
         // and the world: what is nearer than about two metres — dashboard,
         // wheel, pillars — is inside and stays dry. The sky, cleared to zero
@@ -175,8 +194,9 @@ fragment float4 resolveFragment(ResolveVarying in [[stage_in]],
     }
     // The pyramid was built from exposed values (see bloomPrefilter), so the
     // scene is exposed here to match and the tonemapper is given unit scale.
-    float3 radiance = sceneRadiance(scene, sceneHalf, velocity, sceneUV, in.position.xy, motion, exposureScale) * exposureScale;
-    if (glare.focus.w > 0.0f) {
+    float3 radiance = sceneRadiance(scene, sceneHalf, velocity, sceneUV, noise, motion, exposureScale,
+                                   resolveUpscales) * exposureScale;
+    if (resolveLensBlur && glare.focus.w > 0.0f) {
         // The blurred half-resolution image where this pixel's own circle is
         // wider than a texel of it; the sharp one where it is not.
         float circle = abs(circleOfConfusion(depth.sample(pointSampler, sceneUV).x,
@@ -199,9 +219,7 @@ fragment float4 resolveFragment(ResolveVarying in [[stage_in]],
     // The glass under a drop is a little dulled: the drop scatters some of
     // the light behind it, which shows as a lift of the darks.
     radiance += underDrop * 0.015f;
-    float3 mapped = tonemapAgX(radiance, 1.0f);
-    uint2 pixel = uint2(in.position.xy);
-    return float4(ditherForDisplay(mapped, pixel), 1.0f);
+    return float4(tonemapAgXDithered(radiance, noise), 1.0f);
 }
 
 

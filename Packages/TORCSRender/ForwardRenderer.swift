@@ -205,7 +205,12 @@ public final class ForwardRenderer {
     /// that wrote depth would hide whatever is behind it, including the rest of
     /// the same window.
     let readOnlyDepthState: MTLDepthStencilState
-    let resolve: MTLRenderPipelineState
+    /// The tonemap pass's pipelines, one for each `ResolveVariant`, indexed
+    /// by its raw value. All are built at launch: which one a frame takes
+    /// changes with the render scale, and nothing compiles during a race.
+    let resolves: [MTLRenderPipelineState]
+    /// The variant the last tonemap pass was encoded with.
+    private(set) var lastResolveVariant: ResolveVariant = []
     /// Draws a rendered mirror view into a rectangle of a display target.
     let mirrorComposite: MTLRenderPipelineState
     let sky: MTLRenderPipelineState
@@ -448,11 +453,20 @@ public final class ForwardRenderer {
                                      resolution: settings.shadowResolution,
                                      cascadeCount: settings.shadowCascades, archive: archive)
 
-        let resolveDescriptor = MTLRenderPipelineDescriptor()
-        resolveDescriptor.vertexFunction = library.makeFunction(name: "resolveVertex")
-        resolveDescriptor.fragmentFunction = library.makeFunction(name: "resolveFragment")
-        resolveDescriptor.colorAttachments[0].pixelFormat = FrameTargets.displayFormat
-        resolve = try PipelineArchive.make(resolveDescriptor, device: device, archive: archive)
+        resolves = try ResolveVariant.all.map { variant in
+            let constants = MTLFunctionConstantValues()
+            var upscales = variant.contains(.upscales), lensBlur = variant.contains(.lensBlur)
+            var rain = variant.contains(.rain)
+            constants.setConstantValue(&upscales, type: .bool, index: 1)
+            constants.setConstantValue(&lensBlur, type: .bool, index: 2)
+            constants.setConstantValue(&rain, type: .bool, index: 3)
+            let descriptor = MTLRenderPipelineDescriptor()
+            descriptor.label = "resolve \(variant.rawValue)"
+            descriptor.vertexFunction = library.makeFunction(name: "resolveVertex")
+            descriptor.fragmentFunction = try library.makeFunction(name: "resolveFragment", constantValues: constants)
+            descriptor.colorAttachments[0].pixelFormat = FrameTargets.displayFormat
+            return try PipelineArchive.make(descriptor, device: device, archive: archive)
+        }
 
         let mirrorDescriptor = MTLRenderPipelineDescriptor()
         mirrorDescriptor.label = "mirrorComposite"
@@ -1314,7 +1328,6 @@ public final class ForwardRenderer {
         passTimer?.attach(resolvePass, "Tonemap resolve")
         if let encoder = commands.makeRenderCommandEncoder(descriptor: resolvePass) {
             encoder.label = "Tonemap resolve"
-            encoder.setRenderPipelineState(resolve)
             encoder.setFragmentTexture(source, index: 0)
             let moving = settings.motionBlur ? velocity : nil
             var motion = motionBlur.uniforms(scene: source, velocity: moving, destination: destination,
@@ -1376,10 +1389,33 @@ public final class ForwardRenderer {
             }
             encoder.setVertexBytes(&glare, length: MemoryLayout<GlareUniforms>.stride, index: 2)
             encoder.setFragmentBytes(&glare, length: MemoryLayout<GlareUniforms>.stride, index: 2)
+            // The pipeline compiled for what this frame uses and no more:
+            // the rest would cost it time without being run (Resolve.metal).
+            var variant: ResolveVariant = []
+            if motion.scale.w > 0 { variant.insert(.upscales) }
+            if glare.focus.w > 0 { variant.insert(.lensBlur) }
+            if glare.rain.x > 0 { variant.insert(.rain) }
+            lastResolveVariant = variant
+            encoder.setRenderPipelineState(resolves[variant.rawValue])
             encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
             encoder.endEncoding()
         }
     }
+}
+
+/// What a tonemap pipeline is compiled for: the function constants of
+/// `Resolve.metal`, one bit each. A frame takes the variant with exactly the
+/// paths it uses.
+struct ResolveVariant: OptionSet, Hashable {
+    let rawValue: Int
+    /// The scene is smaller than the picture and is filtered up to it.
+    static let upscales = ResolveVariant(rawValue: 1 << 0)
+    /// A lens blur was made and is mixed in by each pixel's circle.
+    static let lensBlur = ResolveVariant(rawValue: 1 << 1)
+    /// Drops on the windscreen refract the scene.
+    static let rain = ResolveVariant(rawValue: 1 << 2)
+    /// Every combination, in the order of its raw value.
+    static let all = (0 ..< 1 << 3).map(ResolveVariant.init(rawValue:))
 }
 
 /// Mirrors `GlareUniforms` in `Resolve.metal`.

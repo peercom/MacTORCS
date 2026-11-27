@@ -297,11 +297,102 @@ About 0.15 ms, 2 to 4% of the frame. The streaks are a little smoother
 across their length and otherwise the same picture; the copy is 10 MB at
 2880 x 1720.
 
+## The tonemap pass
+
+Most of what the pass cost at full resolution was code it never ran.
+
+It carries paths most frames do not take: the filter that scales a smaller
+scene up, the lens blur's mix, the rain on the glass. Each was a branch on
+a uniform, and a branch not taken was not free. What in it has no side
+effect the compiler works out ahead of the branch, so the filter's weights
+were computed for every pixel of a frame at 100%, where there is nothing to
+filter. Compiled out one at a time, same frame at 2880 x 1720:
+
+| Compiled out | Tonemap pass |
+|---|---|
+| nothing | 1.34 ms |
+| the rain | 1.31 |
+| the lens blur | 1.24 |
+| the upscale filter | 1.09 |
+| all three | 1.05 |
+
+Marking the filter `noinline`, so that it would sit behind a real call, made
+it worse: 1.52 ms. The haze, the glare, the bloom and the motion blur cost
+the same compiled out as switched off, and stay as they were.
+
+So the pass is now compiled eight ways, a function constant for each of the
+three (`resolveUpscales`, `resolveLensBlur`, `resolveRain`), and a frame
+takes the one with exactly the paths it uses (`ResolveVariant`). All eight
+are built at launch and kept in the pipeline archive: which one a frame
+takes changes with the render scale, in the middle of a race.
+
+The rest is arithmetic, and smaller:
+
+- **AgX**: the sigmoid's polynomial in Horner's form, one clamp ahead of the
+  logarithm for a floor before it and a clamp after, `powr` for `pow` where
+  the base cannot be negative. 0.72 to 0.66 ms for the bare tonemap.
+- **The haze** leaves on the stored depth, before a division and two
+  smoothsteps, where the pixel is nearer than 60 m or beyond 1400 m.
+- **One noise value a pixel** for the blur's jitter and the dither, which
+  were the same expression written twice.
+
+| Resolution | Frame before | Frame after | Tonemap before | Tonemap after |
+|---|---|---|---|---|
+| 100% | 6.23 ms | 5.82 ms | 1.46 ms | 1.05 ms |
+| 100%, standing | 5.93 | 5.65 | 1.17 | 0.84 |
+| 85% | 5.36 | 5.13 | 1.48 | 1.24 |
+| 67% | 4.24 | 4.07 | 1.41 | 1.19 |
+| 50% | 3.58 | 3.37 | 1.40 | 1.16 |
+
+Below 100% the filter is in use and its variant keeps it; the gain there is
+the lens blur, the rain and the arithmetic. Without the dither the pictures
+are the old ones to within one level of 255, at every scale.
+
+What the pass costs now, at 100% and 50 m/s: 0.49 ms to read the scene,
+tonemap it and store it, 0.37 for the blur, 0.12 for the haze, 0.07 for the
+bloom, 0.01 for the glare.
+
+### The dither was in the wrong place
+
+Sharing the noise showed it. The dither was added to the linear value, after
+the decode, and the target encodes on write. Half a level of linear light is
+a fifth of a display level near white and seven levels in the shadows, where
+the encoding is steepest. Measured from frames with and without it:
+
+| Display level | Dither before | Dither after |
+|---|---|---|
+| 1 to 10 | up to 8 levels | 1 |
+| 10 to 40 | up to 8 | 1, rarely 2 |
+| 40 to 160 | up to 3 | 1 |
+| above 160 | 1 | 1 |
+
+It is now added to the encoded value, before the decode: half a level
+either way at every brightness, black left black. The dark parts of the
+picture lose a grain they were not meant to have. This is the one change
+here that alters the picture.
+
+### Tried and not kept
+
+- **A lookup table for the tonemap.** A sample costs the same wherever it
+  lands: the bloom's, taken at one fixed coordinate for every pixel, cost
+  the 0.13 ms it costs across the frame. A 3D sample is at least that, and
+  the arithmetic it would replace is 0.25. At 32 entries a side the table
+  also strays by more than a level on saturated colours.
+- **The look's power folded into the sigmoid's polynomial.** It needs a
+  seventh order to stay within a level, which is the cost of the power.
+- **The blur's taps from a start and a step** worked out ahead of the loop,
+  and no blur under a one-pixel streak: neither moved the pass by 0.01 ms.
+  The taps are the cost, not the arithmetic around them.
+
 ## What is left
 
-The tonemap pass is still the second dearest thing in the frame at about
-1.5 ms: 0.72 to tonemap and store, 0.5 for the blur, 0.19 for the heat haze
-and 0.15 for the bloom. Nothing in it is large enough to be worth another
-target. The HUD costs
+The scene pass is the frame's largest part at 2.7 ms of 5.8. After it, the
+tonemap pass at 1.05 ms is near what its features cost: each texture sample
+is about 0.1 ms across 2880 x 1720, and it takes four before the blur's.
+
+Three small passes each read the whole scene again: the blur's
+half-resolution copy (0.23 ms), the exposure meter (0.18) and the bloom's
+prefilter (0.16). The meter and the prefilter could read the copy when
+there is one. The HUD costs
 about a fifth of the main thread through SwiftUI layout at twenty updates a
 second, which matters to nothing while the GPU is the limit.
