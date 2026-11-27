@@ -122,72 +122,7 @@ extension MaterialRecipes {
 
     // MARK: - Trackside
 
-    /// Galvanised steel guardrail: the W-profile's two corrugations run along
-    /// the tile, with a bolt every quarter and the mottled spangle of zinc.
-    static func armco(size: Int, seed: UInt32) -> GeneratedMaterial {
-        let spangle = cellField(size: size, cells: 28, seed: seed)
-        let grime = fractalField(size: size, cells: 4, octaves: 3, seed: seed &+ 9)
-        func profile(_ v: Float) -> Float {
-            // Two rounded ridges with a valley between: 0 at the flanges.
-            let a = sin(v * 2 * .pi), b = sin(v * 4 * .pi)
-            return max(0, a) * 0.6 + max(0, b) * 0.4
-        }
-        func bolt(_ x: Int, _ y: Int) -> Float {
-            let bx = (Float(x) / Float(size) * 4).truncatingRemainder(dividingBy: 1) - 0.5
-            let by = (Float(y) / Float(size)).truncatingRemainder(dividingBy: 1) - 0.5
-            let r = (bx * bx * 16 + by * by * 16).squareRoot()
-            return r < 0.35 ? 1 - r / 0.35 : 0
-        }
-        var height = ScalarField(size: size) { x, y in
-            profile(Float(y) / Float(size)) * 0.85 + spangle[x, y] * 0.03 + bolt(x, y) * 0.12
-        }
-        height.normalise()
-        let roughness = ScalarField(size: size) { x, y in 0.42 + grime[x, y] * 0.25 + spangle[x, y] * 0.08 }
-        let albedo = colours(size) { x, y in
-            let zinc = SIMD3<Float>(0.52, 0.53, 0.55) * (0.85 + spangle[x, y] * 0.3)
-            let dirt = SIMD3<Float>(0.25, 0.22, 0.18)
-            return zinc + (dirt - zinc) * grime[x, y] * 0.45
-        }
-        return pack("armco", size: size, height: height, occlusionRadius: 6, occlusionStrength: 1.2,
-                    normalStrength: Float(size) / 40, roughness: roughness, albedo: albedo, worldSize: 2, metal: true)
-    }
-
-    /// A wall of stacked tyres, two across and two rows per tile, alternate
-    /// rows painted white, each tyre a torus in relief.
-    static func tyreWall(size: Int, seed: UInt32) -> GeneratedMaterial {
-        let n = 2
-        let tread = fractalField(size: size, cells: 90, octaves: 2, seed: seed)
-        func torus(_ x: Int, _ y: Int) -> (height: Float, inside: Bool, row: Int) {
-            let u = Float(x) / Float(size) * Float(n), v = Float(y) / Float(size) * Float(n)
-            let row = Int(v)
-            // Stagger alternate rows by half a tyre.
-            let su = u + (row % 2 == 0 ? 0 : 0.5)
-            let cx = su - (su.rounded(.down) + 0.5), cy = v - (v.rounded(.down) + 0.5)
-            let r = (cx * cx + cy * cy).squareRoot() * 2  // 1 at the tyre's outer edge
-            if r > 1 { return (0, false, row) }
-            let ring = 1 - abs(r - 0.7) / 0.3           // torus cross-section peak at 0.7
-            return (max(0, ring), r < 0.4, row)
-        }
-        var height = ScalarField(size: size) { x, y in
-            let t = torus(x, y)
-            return t.height * 0.9 + tread[x, y] * 0.06 * (t.height > 0 ? 1 : 0)
-        }
-        height.normalise()
-        let roughness = ScalarField(size: size) { x, y in
-            let t = torus(x, y)
-            return t.height > 0 ? (t.row % 2 == 0 ? 0.72 : 0.6) : 0.9
-        }
-        let albedo = colours(size) { x, y in
-            let t = torus(x, y)
-            if t.height <= 0 { return SIMD3<Float>(0.02, 0.02, 0.02) }
-            let rubber = SIMD3<Float>(0.03, 0.03, 0.032) * (0.8 + tread[x, y] * 0.4)
-            let paint = SIMD3<Float>(0.7, 0.7, 0.68) * (0.7 + tread[x, y] * 0.3)
-            let painted = t.row % 2 == 1 && t.height > 0.25
-            return painted ? paint : rubber
-        }
-        return pack("tyre-wall", size: size, height: height, occlusionRadius: 8, occlusionStrength: 2.2,
-                    normalStrength: Float(size) / 30, roughness: roughness, albedo: albedo, worldSize: 1.3)
-    }
+    // The guard rail and the tyre wall are in RecipesFurniture.swift.
 
     /// Chain-link fence: a diamond mesh of galvanised wire with the gaps in
     /// alpha. A cutout, so the flat normal is right — the wire is thinner

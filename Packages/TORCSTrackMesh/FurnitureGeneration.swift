@@ -17,7 +17,7 @@ public enum FurnitureGeneration {
         public var maximumRadius: Float = 120
         /// Corners shorter than this, in metres, are kinks and get none.
         public var minimumLength: Float = 12
-        /// Stack height and depth, in metres: two tyres high, one deep.
+        /// Stack height and depth, in metres: six tyres lying flat, one stack deep.
         public var height: Float = 1.3
         public var depth: Float = 0.65
         /// Longitudinal step of the strip, in metres.
@@ -60,19 +60,34 @@ public enum FurnitureGeneration {
         return result
     }
 
-    /// The tyre walls as one geometry group for the `tyre-wall` material.
+    /// The tyre walls' faces as one geometry group for the `tyre-wall`
+    /// material: the front, toward the track, and the back.
     public static func tyreWalls(_ geometry: TrackGeometry, parameters: Parameters = .init()) -> GeneratedGeometry {
-        var out = GeneratedGeometry()
+        var out = GeneratedGeometry(), tops = GeneratedGeometry()
         for run in runs(geometry, parameters: parameters) {
-            appendRun(geometry, run: run, parameters: parameters, into: &out)
+            appendRun(geometry, run: run, parameters: parameters, into: &out, tops: &tops)
         }
         return out
     }
 
-    /// The strip along one run: a front face, a top and a back, stepped
-    /// along the outer edge like the road generator's barriers.
-    static func appendRun(_ geometry: TrackGeometry, run: Run, parameters p: Parameters, into out: inout GeneratedGeometry) {
-        let base = UInt32(out.positions.count)
+    /// The tyre walls' tops as a group of their own, for the `tyre-top`
+    /// material: a wall's face is tyres seen edge on and its top is the same
+    /// tyres seen from above, which is another picture. UVs are metres along
+    /// and metres back from the front, so the rings fall on the stacks.
+    public static func tyreWallTops(_ geometry: TrackGeometry, parameters: Parameters = .init()) -> GeneratedGeometry {
+        var out = GeneratedGeometry(), tops = GeneratedGeometry()
+        for run in runs(geometry, parameters: parameters) {
+            appendRun(geometry, run: run, parameters: parameters, into: &out, tops: &tops)
+        }
+        return tops
+    }
+
+    /// The strips along one run, stepped along the outer edge like the road
+    /// generator's barriers: a front face and a back into `out`, and the
+    /// top between them into `tops`.
+    static func appendRun(_ geometry: TrackGeometry, run: Run, parameters p: Parameters,
+                          into out: inout GeneratedGeometry, tops: inout GeneratedGeometry) {
+        let base = UInt32(out.positions.count), topBase = UInt32(tops.positions.count)
         var rows = 0
         var along: Float = 0
         for (i, main) in run.segments.enumerated() {
@@ -107,20 +122,30 @@ public enum FurnitureGeneration {
                 let up = SIMD3<Float>(0, 0, p.height)
                 let inwardNormal = SIMD3(-outward.x, -outward.y, 0)
                 out.positions += [front, front + up, back + up, back]
-                out.normals += [inwardNormal, inwardNormal, SIMD3(0, 0, 1), SIMD3(outward.x, outward.y, 0)]
-                // Metres along for the tyres to repeat; v up the stack.
-                out.uv0 += [SIMD2(along, 0), SIMD2(along, p.height), SIMD2(along, p.height + p.depth), SIMD2(along, 0)]
+                let outwardNormal = SIMD3(outward.x, outward.y, 0)
+                out.normals += [inwardNormal, inwardNormal, outwardNormal, outwardNormal]
+                // Metres along for the tyres to repeat; v up the stack, on
+                // the back as on the front.
+                out.uv0 += [SIMD2(along, 0), SIMD2(along, p.height), SIMD2(along, p.height), SIMD2(along, 0)]
                 out.attributes += Array(repeating: SIMD4<UInt8>(0, 0, 3, 0), count: 4)
+                tops.positions += [front + up, back + up]
+                tops.normals += [SIMD3(0, 0, 1), SIMD3(0, 0, 1)]
+                tops.uv0 += [SIMD2(along, 0), SIMD2(along, p.depth)]
+                tops.attributes += Array(repeating: SIMD4<UInt8>(0, 0, 3, 0), count: 2)
                 rows += 1
                 along += mainSegment.length / Float(count)
             }
         }
         for row in 0 ..< UInt32(max(rows - 1, 0)) {
             let a = base + row * 4, n = a + 4
-            for (q, r) in [(0 as UInt32, 1 as UInt32), (1, 2), (2, 3)] {
+            // The front and the back; the top is the other group's.
+            for (q, r) in [(0 as UInt32, 1 as UInt32), (2, 3)] {
                 out.indices += [a + q, n + q, a + r, a + r, n + q, n + r]
             }
+            let t = topBase + row * 2, m = t + 2
+            tops.indices += [t, m, t + 1, t + 1, m, m + 1]
         }
         RoadGeneration.orient(&out, from: base)
+        RoadGeneration.orient(&tops, from: topBase)
     }
 }

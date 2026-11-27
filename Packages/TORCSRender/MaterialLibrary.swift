@@ -80,6 +80,8 @@ public final class MaterialLibrary {
         /// How far the surface's colour drifts over tens of metres: see
         /// `MaterialLibrary.macroVariation`.
         public let macroVariation: Float
+        /// See `MaterialLibrary.tilesFreely`.
+        public let tilesFreely: Bool
     }
     /// Per-material tile size from `materials.json`, when the directory has one.
     private var worldSizes: [String: Float] = [:]
@@ -111,12 +113,16 @@ public final class MaterialLibrary {
         ("concdal", "concrete"), ("cmnt", "concrete"),
         ("concrete", "concrete"), ("beton", "concrete"),
         ("armco", "armco"), ("guardrail", "armco"), ("rail", "armco"),
+        // A tyre wall's top is the same tyres from above, a set of its own.
+        ("tyre-top", "tyre-top"),
         ("tyre", "tyre-wall"), ("tire", "tyre-wall"), ("pneu", "tyre-wall"),
         // Wood before fence: a wooden fence is wood.
         ("wood", "wood"), ("bois", "wood"), ("painted-steel", "painted-steel"), ("poutre", "painted-steel"), ("pylon", "painted-steel"),
         ("fence", "chain-link"), ("grillage", "chain-link"),
         ("brick", "brick"), ("brique", "brick"),
-        // Track barriers are painted concrete walls in every TORCS circuit.
+        // Track barriers are painted concrete walls in every TORCS circuit
+        // but the ones that say they are steel: three guard rails deep.
+        ("barrier-metal", "armco"),
         ("barrier", "concrete"), ("wall", "concrete"),
         ("gravel", "gravel"), ("sand", "sand"),
         ("mud", "mud"), ("boue", "mud"),
@@ -150,6 +156,16 @@ public final class MaterialLibrary {
         case "concrete", "snow": return 0.25
         default: return 0
         }
+    }
+
+    /// Whether a set may be repeated within the original artwork's own
+    /// repeat to bring it to its own scale. The ground's sets and anything
+    /// else that is the same all over may. A set laid out as the object it
+    /// covers, a rail's beams one above another or a wall's tyres from the
+    /// ground up, is drawn once across that object or it is three rails
+    /// where there was one.
+    public static func tilesFreely(_ material: String) -> Bool {
+        !["armco", "tyre-wall", "tyre-top", "kerb"].contains(material)
     }
 
     /// The generated material a texture name maps to, or nil to keep the
@@ -280,7 +296,8 @@ public final class MaterialLibrary {
               let structure = loadStructure(material, directory: directory) else { return nil }
         let binding = Binding(albedo: albedo, structure: structure, worldSize: worldSizes[material] ?? 1,
                               metallic: metals.contains(material),
-                              macroVariation: Self.macroVariation(for: material))
+                              macroVariation: Self.macroVariation(for: material),
+                              tilesFreely: Self.tilesFreely(material))
         cache[material] = binding
         return binding
     }
@@ -343,7 +360,8 @@ public final class MaterialLibrary {
                   preserveCutoutCoverage: false),
               let albedo = try? TextureLoading.upload(levels, device: device, srgb: true) else { return binding }
         let result = Binding(albedo: albedo, structure: binding.structure, worldSize: binding.worldSize,
-                             metallic: binding.metallic, macroVariation: binding.macroVariation)
+                             metallic: binding.metallic, macroVariation: binding.macroVariation,
+                             tilesFreely: binding.tilesFreely)
         composited[texture] = result
         markingsPreserved.insert(texture)
         return result

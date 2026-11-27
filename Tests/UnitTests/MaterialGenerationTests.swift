@@ -66,7 +66,7 @@ final class MaterialGenerationTests: XCTestCase {
     /// generated material can have.
     func testMaterialsTileWithoutASeam() throws {
         for name in ["asphalt", "grass", "concrete", "asphalt-patched", "brick", "armco", "carbon-weave", "sand",
-                     "rock", "snow"] {
+                     "rock", "snow", "tyre-wall", "tyre-top"] {
             let material = try MaterialRecipes.generate(name, size: 64, seed: 5)
             let size = material.size
             func albedo(_ x: Int, _ y: Int) -> Int { Int(material.albedo[(y * size + x) * 4]) }
@@ -225,5 +225,122 @@ final class MaterialGenerationTests: XCTestCase {
         XCTAssertGreaterThan(grimeEdge / (2 * width), 60, "grime along both edges")
         XCTAssertLessThan(seam / Double(height), within / Double(height) * 2 + 8,
                           "where it comes round is one more day's joint")
+    }
+}
+
+/// The sets for what stands along the track are laid out as their objects.
+extension MaterialGenerationTests {
+    private func luminance(_ m: GeneratedMaterial, _ x: Int, _ y: Int) -> Float {
+        let i = (y * m.size + x) * 4
+        return (Float(m.albedo[i]) + Float(m.albedo[i + 1]) + Float(m.albedo[i + 2])) / 3
+    }
+
+    /// Six tyres up the tile and two stacks along it, the top row painted,
+    /// the gaps between the stacks in the dark.
+    func testATyreWallIsStacksSeenEdgeOnWithAPaintedTopRow() throws {
+        let m = try MaterialRecipes.generate("tyre-wall", size: 256, seed: 1)
+        XCTAssertEqual(m.worldSize, 1.3, "the tile is the wall's height")
+        let size = m.size, row = size / 6
+        func rowMean(_ index: Int) -> Float {
+            var sum: Float = 0
+            for y in index * row + row / 4 ..< index * row + row * 3 / 4 { for x in 0 ..< size { sum += luminance(m, x, y) } }
+            return sum / Float(size * (row / 2))
+        }
+        let rows = (0 ..< 6).map(rowMean)
+        for other in 1 ..< 6 { XCTAssertGreaterThan(rows[0], rows[other] * 2.5, "row \(other) against the painted one") }
+        // Rubber is black: no unpainted row is lighter than a dark grey.
+        XCTAssertLessThan(rows[1 ..< 6].max()!, 70)
+        func columnMean(_ x: Int) -> Float {
+            var sum: Float = 0
+            for y in row ..< size { sum += luminance(m, x, y) }
+            return sum / Float(size - row)
+        }
+        for stack in 0 ..< 2 {
+            let middle = columnMean(stack * size / 2 + size / 4), edge = columnMean(stack * size / 2)
+            XCTAssertGreaterThan(middle, edge * 2, "stack \(stack) is not round")
+        }
+        // Each tyre is a drum: its normals lean left on its left and right on its right.
+        var left: Float = 0, right: Float = 0
+        for y in row ..< size {
+            left += Float(m.normal[(y * size + size / 8) * 4]); right += Float(m.normal[(y * size + size * 3 / 8) * 4])
+        }
+        XCTAssertGreaterThan(abs(left - right) / Float(size - row), 20)
+    }
+
+    func testATyreWallsTopIsOnePaintedRingToATile() throws {
+        let m = try MaterialRecipes.generate("tyre-top", size: 256, seed: 1)
+        XCTAssertEqual(m.worldSize, 0.65, "a tile to a stack")
+        let size = m.size, centre = size / 2
+        XCTAssertLessThan(luminance(m, centre, centre), 26, "down the middle is the inside of the stack")
+        XCTAssertLessThan(luminance(m, 1, 1), 26, "between the stacks is the ground")
+        var ring: Float = 0
+        for step in 0 ..< 64 {
+            let angle = Float(step) / 64 * 2 * .pi
+            ring += luminance(m, centre + Int(cos(angle) * 0.38 * Float(size)), centre + Int(sin(angle) * 0.38 * Float(size)))
+        }
+        XCTAssertGreaterThan(ring / 64, 60, "the sidewall is painted")
+    }
+
+    /// A block of each colour to the tile, and sixteen teeth along it.
+    func testAKerbIsRibbedBlocksRedAndWhiteByTurns() throws {
+        let m = try MaterialRecipes.generate("kerb", size: 256, seed: 1)
+        XCTAssertEqual(m.worldSize, 2)
+        let size = m.size
+        func mean(_ range: Range<Int>, channel: Int) -> Float {
+            var sum: Float = 0
+            for y in 0 ..< size { for x in range { sum += Float(m.albedo[(y * size + x) * 4 + channel]) } }
+            return sum / Float(size * range.count)
+        }
+        let red = size / 16 ..< size * 7 / 16, white = size * 9 / 16 ..< size * 15 / 16
+        XCTAssertGreaterThan(mean(red, channel: 0), mean(red, channel: 1) * 2, "the first block is red")
+        XCTAssertLessThan(abs(mean(white, channel: 0) - mean(white, channel: 1)), 8, "the second is white")
+        XCTAssertGreaterThan(mean(white, channel: 1), mean(red, channel: 1) * 2)
+        // The teeth: the normal's lean along the kerb comes round every sixteenth of the tile.
+        let lean = (0 ..< size).map { x -> Float in
+            var sum: Float = 0
+            for y in 0 ..< size { sum += Float(m.normal[(y * size + x) * 4]) }
+            return sum / Float(size)
+        }
+        let pitch = size / 16
+        var inStep: Float = 0, outOfStep: Float = 0
+        for x in 0 ..< size {
+            inStep += abs(lean[x] - lean[(x + pitch) % size]); outOfStep += abs(lean[x] - lean[(x + pitch / 2) % size])
+        }
+        XCTAssertLessThan(inStep * 3, outOfStep, "no sixteen ribs: \(inStep) in step, \(outOfStep) out")
+    }
+
+    /// Three beams one above another with a dark gap between, each a W of
+    /// two ribs; steel, but weathered dull and not drawn as a mirror.
+    func testAGuardRailIsThreeBeamsOfWeatheredZinc() throws {
+        // A size three divides, so each gap falls on a row of its own.
+        let m = try MaterialRecipes.generate("armco", size: 192, seed: 1)
+        XCTAssertFalse(m.isMetal)
+        let size = m.size, beam = size / 3
+        let rows = (0 ..< size).map { y -> Float in
+            var sum: Float = 0
+            for x in 0 ..< size { sum += luminance(m, x, y) }
+            return sum / Float(size)
+        }
+        let body = rows.sorted()[size / 2]
+        for index in 0 ..< 3 {
+            XCTAssertLessThan(rows[index * beam], body * 0.4, "no gap under beam \(index)")
+            XCTAssertGreaterThan(rows[index * beam + beam / 4], body * 0.7, "beam \(index) has no rib")
+        }
+        // The W: up the beam the normal tips up, down, up and down again.
+        let tilt = (0 ..< beam).map { y -> Float in
+            var sum: Float = 0
+            for x in 0 ..< size { sum += Float(m.normal[(y * size + x) * 4 + 1]) - 127.5 }
+            return sum / Float(size)
+        }
+        var turns = 0
+        var last: Float = 0
+        for value in tilt where abs(value) > 6 {
+            if last != 0, (value > 0) != (last > 0) { turns += 1 }
+            last = value
+        }
+        XCTAssertEqual(turns, 3, "two ribs make three turns of the normal")
+        var roughest = 0, smoothest = 255
+        for texel in 0 ..< size * size { roughest = max(roughest, Int(m.orm[texel * 4 + 1])); smoothest = min(smoothest, Int(m.orm[texel * 4 + 1])) }
+        XCTAssertGreaterThan(smoothest, 76, "weathered zinc is nowhere glossy")
     }
 }

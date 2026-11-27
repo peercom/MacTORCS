@@ -174,14 +174,19 @@ public enum TrackSurfaceAssembly {
         return batches
     }
 
-    /// Tyre walls along the outside of the corners, as one batch.
+    /// Tyre walls along the outside of the corners: their faces as one
+    /// batch and their tops as another, each on its own set.
     public static func furnitureBatches(_ geometry: TrackGeometry,
                                         parameters: FurnitureGeneration.Parameters = .init()) throws -> [RenderBatch] {
-        let tyres = FurnitureGeneration.tyreWalls(geometry, parameters: parameters)
-        guard !tyres.isEmpty else { return [] }
-        let mesh = try RenderMesh.build(positions: tyres.positions, normals: tyres.normals, uv0: tyres.uv0,
-                                        blend: tyres.attributes, indices: tyres.indices, uvInMetres: true)
-        return [surfaceBatch(mesh: mesh, texture: "furniture-tyre-wall.rgb", roughness: 0.75)]
+        var batches: [RenderBatch] = []
+        for (group, texture) in [(FurnitureGeneration.tyreWalls(geometry, parameters: parameters), "furniture-tyre-wall.rgb"),
+                                 (FurnitureGeneration.tyreWallTops(geometry, parameters: parameters), "furniture-tyre-top.rgb")]
+        where !group.isEmpty {
+            let mesh = try RenderMesh.build(positions: group.positions, normals: group.normals, uv0: group.uv0,
+                                            blend: group.attributes, indices: group.indices, uvInMetres: true)
+            batches.append(surfaceBatch(mesh: mesh, texture: texture, roughness: 0.75))
+        }
+        return batches
     }
 
     /// Pit garages along the pit lane, one per stall, grouped by material.

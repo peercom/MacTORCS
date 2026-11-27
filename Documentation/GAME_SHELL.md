@@ -181,6 +181,51 @@ python3 Scripts/prepare-content-library.py /path/to/torcs-1.3.9
 The second now copies the sets again whenever they have changed; it used to
 copy them once.
 
+### What stands along the track
+
+The ground's sets are the same all over; a tyre wall, a kerb and a guard
+rail are objects, and their sets (`RecipesFurniture.swift`) are laid out as
+the object is.
+
+*The tyre wall* was drawn as rings, a tyre seen from its side, two to a
+stack: on the wall's face that was a wall of tyres standing on their treads
+with their holes toward the track. Tyres in a wall lie flat in bolted
+columns and show their tread. The set is now that: six tyres up a tile
+1.3 m high, two stacks along it, each tyre a drum with shoulders, three
+grooves and its own sipes, some worn nearly smooth, none quite plumb on the
+one below, the top row painted white and scuffed. The wall's top is the
+same tyres from above and so is another picture: its geometry is a batch
+of its own (`FurnitureGeneration.tyreWallTops`) on a set of its own
+(`tyre-top`), one painted ring to a stack. The back face's normal pointed
+up, left from when the top shared its vertices, and now points back.
+
+*The kerb* was paint on flat stone. It is now what a kerb is to the eye:
+precast blocks a metre long, red and white by turns, with sixteen sawtooth
+ribs to the two metres; paint worn from the crests, dirt in the troughs,
+rubber laid along it and flakes gone.
+
+*The guard rail* was one W-beam the height of whatever it was drawn on, so
+a metre of barrier was one beam a metre tall. At a circuit rails go up
+three deep, and the tile is that: three beams, each two ribs and a valley,
+lapped and bolted at its middle, zinc spangle, white bloom, rust at the
+bolts and the cut edges, and rubber, paint and bright metal along the ribs
+where cars have been. Wheel 1's `barrier-metal` walls, which were flat
+grey, now take it too. It is steel and is not drawn as metal: as a metal
+the ribs mirrored the sky on their upper faces and the ground on their
+lower, and in shade the rail was blue and tan stripes at any roughness.
+Weathered zinc is a dull grey skin, and drawn as one it is right in sun
+and shade.
+
+These three are not repeated to their own scale as the ground's sets are
+(`MaterialLibrary.tilesFreely`): three beams across a rail repeated twice
+is six. They are drawn once across the artwork's own repeat.
+
+Cost, previous commit against this one, each on its own library, taken
+alternately on a machine warm from a test run (so compare across, not with
+the figures above): 7.35 to 7.31 ms on Wheel 1, 6.50 to 6.52 on CG Speedway
+1, 7.29 to 7.36 on E-Track 6, 6.96 to 7.00 on E-Track 3. Nothing: the same
+samples from maps of the same size, and one more draw for the tops.
+
 ## A field of different cars
 
 A race, a qualifying field and a championship can mix car models. The options

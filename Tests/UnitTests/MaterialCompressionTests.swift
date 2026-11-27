@@ -116,7 +116,7 @@ final class MaterialCompressionTests: XCTestCase {
     /// roughness map's blue channel used to.
     func testASetsMetalnessComesFromTheManifestNotTheTexture() throws {
         guard let device = MTLCreateSystemDefaultDevice() else { throw XCTSkip("Metal device unavailable") }
-        let directory = try MaterialLibraryTests().materialsDirectory(["paint-flake", "rubber-tread", "fabric", "armco", "asphalt"])
+        let directory = try MaterialLibraryTests().materialsDirectory(["paint-flake", "rubber-tread", "fabric", "chain-link", "asphalt"])
         defer { try? FileManager.default.removeItem(at: directory) }
         let library = try MaterialLibrary(device: device, directory: directory)
 
@@ -153,7 +153,7 @@ final class MaterialCompressionTests: XCTestCase {
                         culls: false, isDriver: false, sourceMaterial: state,
                         material: ResolvedMaterial(baseColour: SIMD4(1, 1, 1, 1), roughness: 0.9, metallic: 0.3))
         }
-        let world = RenderScene(batches: [batch("armco-1.png"), batch("tr-asphalt-1.png"), batch("unknown.png")],
+        let world = RenderScene(batches: [batch("fence-2.rgb"), batch("tr-asphalt-1.png"), batch("unknown.png")],
                                 minimum: SIMD3(0, 0, 0), maximum: SIMD3(1, 1, 0))
         let resources = try SceneResources(device: device, scene: world, materials: library, materialDirectory: directory,
                                            resolveTexture: { _, _ in nil })
@@ -188,6 +188,7 @@ final class MaterialCompressionTests: XCTestCase {
         let world = RenderScene(batches: [field, try quad(side: 2.4, texture: "tr-asphalt-1.png"),
                                           try quad(side: 20, texture: "unknown.png"),
                                           try quad(side: 20, texture: "tr-asphalt-1.png", inMetres: true),
+                                          try quad(side: 13, texture: "tr-asphalt-1.png"),
                                           try quad(side: 13, texture: "armco-1.png")],
                                 minimum: SIMD3(0, 0, 0), maximum: SIMD3(20, 20, 0))
         let resources = try SceneResources(device: device, scene: world, materials: library, materialDirectory: directory,
@@ -199,12 +200,16 @@ final class MaterialCompressionTests: XCTestCase {
         XCTAssertEqual(scales[1], 1, "already at about its own scale")
         XCTAssertEqual(scales[2], 1, "original artwork keeps its author's scale")
         XCTAssertEqual(scales[3], 0.5, "generated geometry, in metres, divides by the tile")
-        let armco = try XCTUnwrap(library.resolve(texture: "armco-1.png", directory: directory))
-        XCTAssertEqual(scales[4], (13 / armco.worldSize).rounded(),
+        XCTAssertEqual(scales[4], (13 / asphalt.worldSize).rounded(),
                        "always a whole number, so the texture wraps where the mesh expects it to")
+        // A rail's set is its three beams one above another: drawn once
+        // across the rail however long the artwork's repeat is.
+        let armco = try XCTUnwrap(library.resolve(texture: "armco-1.png", directory: directory))
+        XCTAssertFalse(armco.tilesFreely)
+        XCTAssertEqual(scales[5], 1, "a set laid out as its object is not retiled")
         // The ground's drift of colour rides with the set; nothing else has one.
         XCTAssertEqual(resources.batches.map(\.draw.fade.w),
-                       [0.3, 0.3, 0, 0.3, 0].map { Float($0) })
+                       [0.3, 0.3, 0, 0.3, 0.3, 0].map { Float($0) })
     }
 
     /// A road that paints its markings over a generated surface wears the

@@ -17,12 +17,12 @@ public enum MaterialRecipes {
     public static let all = [
         "asphalt", "asphalt-worn", "asphalt-patched", "grass", "grass-dry", "concrete", "kerb",
         "gravel", "dirt", "mud", "sand", "rock", "snow", "grass-cards",
-        "armco", "tyre-wall", "chain-link", "brick", "wood", "painted-steel",
+        "armco", "tyre-wall", "tyre-top", "chain-link", "brick", "wood", "painted-steel",
         "rubber-tread", "carbon-weave", "brushed-metal", "chrome", "plastic", "fabric", "paint-flake", "glass"]
 
     /// Deliberately smooth: allowed a roughness floor below the usual one.
     public static let smooth: Set<String> = ["chrome", "glass"]
-    public static let metals: Set<String> = ["armco", "brushed-metal", "chrome", "chain-link", "paint-flake"]
+    public static let metals: Set<String> = ["brushed-metal", "chrome", "chain-link", "paint-flake"]
 
     public static func generate(_ name: String, size: Int = 1024, seed: UInt32 = 1) throws -> GeneratedMaterial {
         switch name {
@@ -32,7 +32,7 @@ public enum MaterialRecipes {
         case "grass": return turf(size: size, seed: seed, dryness: 0)
         case "grass-dry": return turf(size: size, seed: seed &+ 29, dryness: 0.45)
         case "concrete": return weatheredConcrete(size: size, seed: seed)
-        case "kerb": return kerb(size: size, seed: seed)
+        case "kerb": return ribbedKerb(size: size, seed: seed)
         case "gravel": return gravel(size: size, seed: seed)
         case "dirt": return dirt(size: size, seed: seed)
         case "mud": return mud(size: size, seed: seed &+ 31)
@@ -40,8 +40,9 @@ public enum MaterialRecipes {
         case "rock": return rock(size: size, seed: seed &+ 107)
         case "snow": return snow(size: size, seed: seed &+ 109)
         case "grass-cards": return grassCards(size: size, seed: seed)
-        case "armco": return armco(size: size, seed: seed &+ 41)
-        case "tyre-wall": return tyreWall(size: size, seed: seed &+ 43)
+        case "armco": return tripleArmco(size: size, seed: seed &+ 41)
+        case "tyre-wall": return tyreStack(size: size, seed: seed &+ 43)
+        case "tyre-top": return tyreTop(size: size, seed: seed &+ 45)
         case "chain-link": return chainLink(size: size, seed: seed &+ 47)
         case "brick": return brick(size: size, seed: seed &+ 53)
         case "wood": return wood(size: size, seed: seed &+ 59)
@@ -187,44 +188,7 @@ public enum MaterialRecipes {
                                  worldSize: 1)
     }
 
-    // MARK: - Kerb, gravel, dirt
-
-    /// Painted kerb stone. The paint is a hard-edged stripe, and it wears off
-    /// the raised parts first, which is where the height field earns its keep.
-    static func kerb(size: Int, seed: UInt32) -> GeneratedMaterial {
-        var height = ScalarField(size: size) { x, y in
-            let stone = 1 - Noise.worley(Float(x) / Float(size) * 24, Float(y) / Float(size) * 24,
-                                         period: 24, seed: seed)
-            let grain = Noise.fractal(Float(x) / Float(size) * 120, Float(y) / Float(size) * 120,
-                                      period: 120, octaves: 3, seed: seed &+ 13)
-            return stone * 0.6 + grain * 0.4
-        }
-        height.normalise()
-        let occlusion = MaterialSynthesis.ambientOcclusion(from: height, radius: 4, strength: 1.5)
-        let normals = MaterialSynthesis.normals(from: height, strength: Float(size) / 150)
-
-        // Stripes run across the kerb, half its tile each.
-        func painted(_ x: Int) -> Bool { (x * 2 / size) % 2 == 0 }
-        var roughness = ScalarField(size: size) { x, y in
-            // Paint is smoother than the stone under it until it wears.
-            let wear = max(0, height[x, y] - 0.55) * 2
-            return painted(x) ? min(0.45 + wear * 0.4, 1) : 0.85
-        }
-        roughness.map { min(max($0, 0.3), 1) }
-
-        let albedo = (0 ..< size * size).map { index -> SIMD3<Float> in
-            let x = index % size, y = index / size
-            let stone = SIMD3<Float>(0.20, 0.195, 0.185)
-            let colour: SIMD3<Float> = painted(x) ? SIMD3(0.52, 0.035, 0.030) : SIMD3(0.78, 0.77, 0.75)
-            let wear = max(0, height[x, y] - 0.6) * 2.2
-            return colour + (stone - colour) * min(wear, 1)
-        }
-        return GeneratedMaterial(name: "kerb", size: size,
-                                 albedo: MaterialPacking.albedo(albedo),
-                                 normal: MaterialPacking.normal(normals),
-                                 orm: MaterialPacking.orm(occlusion: occlusion, roughness: roughness, metalness: 0),
-                                 worldSize: 1)
-    }
+    // MARK: - Gravel, dirt
 
     static func gravel(size: Int, seed: UInt32) -> GeneratedMaterial {
         var height = ScalarField(size: size) { x, y in

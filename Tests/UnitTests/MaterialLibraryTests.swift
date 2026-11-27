@@ -22,7 +22,10 @@ final class MaterialLibraryTests: XCTestCase {
             ("concdal.rgb", "concrete"), ("cmnta.png", "concrete"),
             // A photograph of a cliff composed top to bottom keeps its own, and
             // so does a wall with a guard rail painted along its foot.
-            ("rock1-w1.png", nil), ("cliff.png", nil), ("conc.png", nil)]
+            ("rock1-w1.png", nil), ("cliff.png", nil), ("conc.png", nil),
+            // A tyre wall's two sets, and the barrier that is three guard rails.
+            ("furniture-tyre-wall.rgb", "tyre-wall"), ("furniture-tyre-top.rgb", "tyre-top"),
+            ("barrier-metal-bw-w1.png", "armco")]
         for (texture, expected) in cases {
             XCTAssertEqual(MaterialLibrary.material(for: texture), expected, texture)
         }
@@ -40,6 +43,18 @@ final class MaterialLibraryTests: XCTestCase {
         XCTAssertGreaterThan(MaterialLibrary.macroVariation(for: "asphalt"), 0)
         for made in ["armco", "kerb", "tyre-wall", "chain-link", "paint-flake", "glass"] {
             XCTAssertEqual(MaterialLibrary.macroVariation(for: made), 0, made)
+        }
+    }
+
+    /// The ground's sets are the same all over and are repeated to their own
+    /// scale. A set drawn as the object it covers is drawn once across it.
+    func testASetLaidOutAsItsObjectIsNotRetiled() {
+        for object in ["armco", "tyre-wall", "tyre-top", "kerb"] {
+            XCTAssertFalse(MaterialLibrary.tilesFreely(object), object)
+            XCTAssertTrue(MaterialRecipes.all.contains(object), object)
+        }
+        for ground in ["asphalt", "grass", "concrete", "rock", "sand", "gravel", "brick"] {
+            XCTAssertTrue(MaterialLibrary.tilesFreely(ground), ground)
         }
     }
 
@@ -85,11 +100,15 @@ final class MaterialLibraryTests: XCTestCase {
     /// and a metal set marks its binding as metal.
     func testCarBatchesBindDetailStructureAndMetalSetsAreFlagged() throws {
         guard let device = MTLCreateSystemDefaultDevice() else { throw XCTSkip("Metal device unavailable") }
-        let directory = try materialsDirectory(["paint-flake", "rubber-tread", "fabric", "armco"])
+        let directory = try materialsDirectory(["paint-flake", "rubber-tread", "fabric", "armco", "chain-link"])
         defer { try? FileManager.default.removeItem(at: directory) }
         let library = try MaterialLibrary(device: device, directory: directory)
+        let fence = try XCTUnwrap(library.resolve(texture: "fence-2.rgb", directory: directory))
+        XCTAssertTrue(fence.metallic)
+        // A guard rail's zinc has weathered dull: it is steel and is not drawn as a mirror.
         let armco = try XCTUnwrap(library.resolve(texture: "armco-1.png", directory: directory))
-        XCTAssertTrue(armco.metallic)
+        XCTAssertFalse(armco.metallic)
+        XCTAssertFalse(armco.tilesFreely)
         let flake = try XCTUnwrap(library.detailBinding("paint-flake", directory: directory))
         XCTAssertTrue(flake.metallic)
 

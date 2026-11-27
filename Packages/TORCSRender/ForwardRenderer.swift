@@ -134,7 +134,7 @@ public final class SceneResources {
             // within each repeat of the original: whole, because the mesh
             // relies on the texture wrapping where its coordinates do.
             var tiling: Float = 1
-            if let generated, !batch.uvInMetres, let spread = batch.mesh.metresPerTextureRepeat() {
+            if let generated, generated.tilesFreely, !batch.uvInMetres, let spread = batch.mesh.metresPerTextureRepeat() {
                 tiling = min(max((spread / max(generated.worldSize, 1e-3)).rounded(), 1), 64)
             }
             let albedo = generated?.albedo ?? batch.baseTexture.flatMap {

@@ -56,11 +56,50 @@ final class FurnitureGenerationTests: XCTestCase {
 }
 
 extension FurnitureGenerationTests {
-    func testTyreWallsBecomeOneBatchOnTheTyreSet() throws {
+    /// A wall's face is tyres seen edge on and its top is tyres seen from
+    /// above: two pictures, so two batches, each on its own set.
+    func testTyreWallsBecomeAFaceBatchAndATopBatch() throws {
         let road = try RoadGenerationTests().aalborg()
         let batches = try TrackSurfaceAssembly.furnitureBatches(road.geometry)
-        XCTAssertEqual(batches.count, 1)
-        XCTAssertEqual(MaterialLibrary.material(for: try XCTUnwrap(batches[0].baseTexture)), "tyre-wall")
-        XCTAssertTrue(batches[0].uvInMetres)
+        XCTAssertEqual(batches.count, 2)
+        XCTAssertEqual(try batches.map { MaterialLibrary.material(for: try XCTUnwrap($0.baseTexture)) }, ["tyre-wall", "tyre-top"])
+        XCTAssertTrue(batches.allSatisfy(\.uvInMetres))
+    }
+
+    /// The faces stand upright and carry no part of the top; the top lies
+    /// flat at the wall's height, a stack's depth across, and runs the same
+    /// length as the faces.
+    func testTheTopIsItsOwnGeometryAtTheWallsHeight() throws {
+        let road = try RoadGenerationTests().aalborg()
+        let parameters = FurnitureGeneration.Parameters()
+        let faces = FurnitureGeneration.tyreWalls(road.geometry, parameters: parameters)
+        let tops = FurnitureGeneration.tyreWallTops(road.geometry, parameters: parameters)
+        XCTAssertFalse(tops.isEmpty)
+        XCTAssertEqual(tops.positions.count * 2, faces.positions.count, "two top vertices to a row of four")
+        XCTAssertEqual(tops.triangleCount * 2, faces.triangleCount, "a top quad to a front and a back")
+        for normal in faces.normals { XCTAssertEqual(normal.z, 0, "a face's normal is level") }
+        for normal in tops.normals { XCTAssertEqual(normal, SIMD3(0, 0, 1)) }
+        for row in stride(from: 0, to: tops.positions.count, by: 2) {
+            let front = tops.positions[row], back = tops.positions[row + 1]
+            // The same two points as the faces' upper edge.
+            XCTAssertEqual(front, faces.positions[row * 2 + 1])
+            XCTAssertEqual(back, faces.positions[row * 2 + 2])
+            XCTAssertEqual(front.z - faces.positions[row * 2].z, parameters.height, accuracy: 1e-4)
+            XCTAssertEqual(simd_distance(front, back), parameters.depth, accuracy: 1e-3)
+            // Metres back from the front, so one ring of the top set falls on one stack.
+            XCTAssertEqual(tops.uv0[row].y, 0); XCTAssertEqual(tops.uv0[row + 1].y, parameters.depth)
+            XCTAssertEqual(tops.uv0[row].x, faces.uv0[row * 2].x)
+        }
+        // Up the stack on the back as on the front, so neither is upside down.
+        for row in stride(from: 0, to: faces.uv0.count, by: 4) {
+            XCTAssertEqual(faces.uv0[row].y, 0); XCTAssertEqual(faces.uv0[row + 3].y, 0)
+            XCTAssertEqual(faces.uv0[row + 1].y, parameters.height); XCTAssertEqual(faces.uv0[row + 2].y, parameters.height)
+        }
+        var wrong = 0
+        for i in stride(from: 0, to: tops.indices.count, by: 3) {
+            let a = tops.positions[Int(tops.indices[i])], b = tops.positions[Int(tops.indices[i + 1])], c = tops.positions[Int(tops.indices[i + 2])]
+            if simd_cross(b - a, c - a).z <= 0 { wrong += 1 }
+        }
+        XCTAssertEqual(wrong, 0, "\(wrong) top faces wound downward")
     }
 }
