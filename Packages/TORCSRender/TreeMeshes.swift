@@ -23,23 +23,42 @@ public enum TreeMeshes {
         // A foliage-dense patch inside this tree's own atlas region.
         let x0 = max(1, Int(range.x * Float(atlas.width)) + 1), x1 = min(atlas.width - 2, Int(range.y * Float(atlas.width)) - 1)
         let y0 = max(1, Int(descriptor.top * 0.25 * Float(atlas.height))), y1 = min(atlas.height - 2, Int(descriptor.top * 0.82 * Float(atlas.height)))
-        let tile = max(1, min(24, min(x1 - x0, y1 - y0)))
-        var best = SIMD2(x0, y0), bestScore = -Float.infinity
+        let tile = max(1, min(48, min(x1 - x0, y1 - y0)))
+        // Use several porous branch patches instead of the single most opaque
+        // patch. Opaque crops expose the card's diamond outline at close range.
+        var candidates: [(origin: SIMD2<Int>, score: Float)] = []
         if x1 - x0 >= tile, y1 - y0 >= tile {
             for y in stride(from: y0, through: y1 - tile, by: 3) {
                 for x in stride(from: x0, through: x1 - tile, by: 3) {
-                    var score: Float = 0
+                    var passing: Float = 0, green: Float = 0, samples: Float = 0
                     for yy in stride(from: y, to: y + tile, by: 2) {
                         for xx in stride(from: x, to: x + tile, by: 2) {
                             let i = (yy * atlas.width + xx) * 4
-                            score += Float(rgba[i + 3]) * (1 + max(0, Float(rgba[i + 1]) - Float(rgba[i])) / 64)
+                            samples += 1
+                            if rgba[i + 3] > 127 {
+                                passing += 1
+                                green += max(0, Float(rgba[i + 1]) - Float(rgba[i])) / 255
+                            }
                         }
                     }
-                    if score > bestScore { bestScore = score; best = SIMD2(x, y) }
+                    let coverage = passing / samples
+                    let score = -abs(coverage - 0.48) + green / samples * 0.15
+                    candidates.append((SIMD2(x, y), score))
                 }
             }
         }
-        let uvLow = SIMD2((Float(best.x) + 0.5) / Float(atlas.width), (Float(best.y) + 0.5) / Float(atlas.height))
+        candidates.sort {
+            if $0.score != $1.score { return $0.score > $1.score }
+            return $0.origin.y != $1.origin.y ? $0.origin.y < $1.origin.y : $0.origin.x < $1.origin.x
+        }
+        var patches: [SIMD2<Int>] = []
+        for candidate in candidates {
+            if patches.allSatisfy({ abs($0.x - candidate.origin.x) + abs($0.y - candidate.origin.y) >= tile }) {
+                patches.append(candidate.origin)
+                if patches.count == 6 { break }
+            }
+        }
+        if patches.isEmpty { patches = [SIMD2(x0, y0)] }
         let uvSpan = SIMD2(Float(tile - 1) / Float(atlas.width), Float(tile - 1) / Float(atlas.height))
         func sourceRadius(_ z: Float) -> Float {
             let y = min(atlas.height - 1, max(0, Int(z * descriptor.top * Float(atlas.height))))
@@ -63,7 +82,7 @@ public enum TreeMeshes {
             out.attributes.append(SIMD4(UInt8(min(max(position.z, 0), 1) * 255), 184, 0, UInt8(min(max(tint, 0), 1) * 255)))
         }
         // Bark: the atlas's trunk column, a narrow strip at the base of the region.
-        let barkUV = SIMD2((range.x + range.y) * 0.5, descriptor.top * 0.97)
+        let barkUV = SIMD2((range.x + range.y) * 0.5, descriptor.top * 0.045)
         func cylinder(_ a: SIMD3<Float>, _ b: SIMD3<Float>, _ radius: Float) {
             let direction = simd_normalize(b - a)
             let axis = abs(direction.z) > 0.9 ? SIMD3<Float>(1, 0, 0) : SIMD3<Float>(0, 0, 1)
@@ -90,6 +109,8 @@ public enum TreeMeshes {
             let count = middle ? (family == 2 ? 24 : 20) : (family == 2 ? 64 : 48)
             let size: Float = middle ? 0.42 : 0.30
             for _ in 0 ..< count {
+                let patch = patches[Int(random() * Float(patches.count))]
+                let uvLow = SIMD2((Float(patch.x) + 0.5) / Float(atlas.width), (Float(patch.y) + 0.5) / Float(atlas.height))
                 let z = random() * 2 - 1, angle = random() * 2 * Float.pi
                 let radial = sqrt(max(0, 1 - z * z))
                 let outward = SIMD3(radial * cos(angle), radial * sin(angle), z)
@@ -100,7 +121,7 @@ public enum TreeMeshes {
                 let along = tangent * cos(turn) + bitangent * sin(turn)
                 let across = simd_cross(outward, along)
                 let width = size * (0.65 + random() * 0.55), length = size * (0.9 + random() * 0.6)
-                let fold = simd_cross(along, across) * size * 0.16
+                let fold = simd_cross(along, across) * size * 0.04
                 let offsets = [-along * length, across * width + fold, along * length, -across * width + fold]
                 let uv = [SIMD2<Float>(0, 0.5), SIMD2(0.45, 0), SIMD2(1, 0.5), SIMD2(0.45, 1)]
                 let leafScale = SIMD3(scale.x, scale.y, max(scale.z, min(scale.x, scale.y) * 0.55))
@@ -121,9 +142,9 @@ public enum TreeMeshes {
                 for branch in 0 ..< branches {
                     let angle = phase + Float(branch) * 2 * Float.pi / Float(branches)
                     let reach = radius * (family == 0 ? 0.55 : 0.82)
-                    let centre = SIMD3(cos(angle) * reach, sin(angle) * reach, z + 0.038 * sin(angle * 3 + Float(layer)))
+                    let centre = SIMD3(cos(angle) * reach, sin(angle) * reach, z + 0.025 * sin(angle * 3 + Float(layer)))
                     let scale = SIMD3(radius * (family == 0 ? 0.65 : 0.58), radius * 0.60,
-                                      family == 0 ? max(0.009, radius * 0.12) : max(0.006, radius * 0.17))
+                                      family == 0 ? max(0.018, radius * 0.28) : max(0.014, radius * 0.30))
                     if !middle { cylinder(SIMD3(0, 0, z - 0.05), centre, 0.005 * (1 - fraction * 0.7)) }
                     cluster(centre, scale, 0.88 + fraction * 0.12)
                 }

@@ -47,13 +47,7 @@ struct ShadowSwayUniforms {
     float4 time;    // x animation time in seconds
 };
 
-/// Foliage: the forward vertex shader's sway, applied in world space before
-/// the cascade projection, so the shadow of a tree moves with the tree.
-/// The formula must stay identical to Forward.metal's.
-vertex ShadowVarying shadowSwayVertex(uint id [[vertex_id]],
-                                      const device PackedVertex *vertices [[buffer(0)]],
-                                      constant ShadowSwayUniforms &u [[buffer(1)]]) {
-    PackedVertex v = vertices[id];
+inline float4 shadowSwayPosition(PackedVertex v, constant ShadowSwayUniforms &u) {
     float4 world = u.model * float4(float3(v.position), 1.0f);
     float h = float(v.blend.x) * (1.0f / 255.0f);
     float amplitude = float(v.blend.y) * (0.25f / 255.0f);
@@ -61,9 +55,49 @@ vertex ShadowVarying shadowSwayVertex(uint id [[vertex_id]],
     float2 sway = float2(sin(t * 1.1f + world.x * 0.05f + world.y * 0.07f),
                          cos(t * 0.9f + world.y * 0.06f - world.x * 0.04f)) * (h * h * amplitude);
     world.xy += sway;
+    return world;
+}
+
+/// Foliage: the forward vertex shader's sway, applied in world space before
+/// the cascade projection, so the shadow of a tree moves with the tree.
+/// The formula must stay identical to Forward.metal's.
+vertex ShadowVarying shadowSwayVertex(uint id [[vertex_id]],
+                                      const device PackedVertex *vertices [[buffer(0)]],
+                                      constant ShadowSwayUniforms &u [[buffer(1)]]) {
+    float4 world = shadowSwayPosition(vertices[id], u);
     ShadowVarying out;
     out.position = u.viewProjection * world;
     return out;
+}
+
+// Cutout casters need the same alpha threshold as their visible surface.
+// Opaque geometry keeps the fragment-free fast path above.
+struct ShadowCutoutVarying {
+    float4 position [[position, invariant]];
+    float2 uv;
+};
+vertex ShadowCutoutVarying shadowCutoutVertex(uint id [[vertex_id]],
+        const device PackedVertex *vertices [[buffer(0)]],
+        constant float4x4 &modelViewProjection [[buffer(1)]]) {
+    ShadowCutoutVarying out;
+    out.position = modelViewProjection * float4(float3(vertices[id].position), 1.0f);
+    out.uv = float2(vertices[id].uv0);
+    return out;
+}
+vertex ShadowCutoutVarying shadowSwayCutoutVertex(uint id [[vertex_id]],
+        const device PackedVertex *vertices [[buffer(0)]],
+        constant ShadowSwayUniforms &u [[buffer(1)]]) {
+    ShadowCutoutVarying out;
+    out.position = u.viewProjection * shadowSwayPosition(vertices[id], u);
+    out.uv = float2(vertices[id].uv0);
+    return out;
+}
+fragment void shadowCutoutFragment(ShadowCutoutVarying in [[stage_in]],
+        constant float4 &cutout [[buffer(0)]], texture2d<float> albedo [[texture(0)]]) {
+    constexpr sampler leaves(coord::normalized, address::repeat, filter::linear, mip_filter::linear);
+    float alpha = cutout.y;
+    if (cutout.w > 0.0f) { alpha *= albedo.sample(leaves, in.uv * cutout.z).a; }
+    if (alpha <= cutout.x) { discard_fragment(); }
 }
 
 /// Selects the tightest cascade that still contains this fragment.

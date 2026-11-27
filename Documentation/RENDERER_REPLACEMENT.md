@@ -2807,6 +2807,40 @@ fixture; another strips a synthetic scene of its `road1`, `ROAD4` and
 `mur2` batches and keeps the house. Alpine-1's chase view is now the
 generated asphalt with its grid.
 
+## Foliage cutouts and leaf cards
+
+The volumetric Aalborg trees exposed large diamond-shaped cards at close
+range. Every card sampled the same nearly opaque 24-pixel atlas crop. The
+builder now chooses up to six separated 48-pixel crops with roughly half
+their area covered, retaining the original species colours while revealing
+more branch detail and transparent gaps. Shallower folds and deeper branch
+clusters reduce the paper-like layers. Bark samples the bottom of the atlas's
+tree region, where the trunk actually is, instead of the treetop. Tree counts,
+triangle counts, distance transitions and the lighter shadow meshes stay the
+same. No new textures are allocated.
+
+The previous shadow pass had no fragment function even for cutouts, so the
+cards' transparent areas cast solid shadows. Static and swaying cutouts now
+sample texture alpha and material alpha using the surface's threshold and UV
+scale. Opaque geometry retains its fragment-free shadow pass. Two-sided foliage
+also reverses its lighting normal on back faces and receives a small, shadowed
+diffuse transmission term.
+
+`WindShadowTests.testCutoutShadowCoverageForStaticAndSwayingCards` reads the
+actual GPU depth map: opaque cards write depth, fully transparent cards write
+none, half-transparent cards cover about half the area, and material alpha
+works both with and without a texture. Close views of all three Aalborg species
+are saved under `Artifacts/foliage-fix-*.png`. Tree replacement remains specific
+to Aalborg's recognised placements; the cutout shadow correction applies to
+alpha-tested casters on every circuit.
+
+Validation: 22 targeted renderer, tree, wind, cascade, refresh and pipeline
+archive tests pass. The close conifer view retains 24,987 visible triangles,
+88.28 MiB of geometry and 1.6 MiB of textures. A 120-frame 960×720 offscreen
+run measured 3.965 ms median GPU time (5.847 ms p95). This is a scoped render
+check, not an end-to-end gameplay benchmark or a controlled before/after
+performance comparison.
+
 ## Licensing
 
 No third-party artwork is imported by this work. New render source is

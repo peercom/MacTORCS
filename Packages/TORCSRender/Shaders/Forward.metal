@@ -231,6 +231,7 @@ vertex ForwardVarying forwardVertex(uint id [[vertex_id]],
 }
 
 fragment ForwardOutput forwardFragment(ForwardVarying in [[stage_in]],
+                                bool frontFacing [[front_facing]],
                                 constant FrameUniforms &frame [[buffer(1)]],
                                 constant DrawUniforms &draw [[buffer(2)]],
                                 texture2d<float> albedoMap [[texture(0)]],
@@ -266,6 +267,10 @@ fragment ForwardOutput forwardFragment(ForwardVarying in [[stage_in]],
         float2 encoded = normalMap.sample(detailSampler, (in.uv0 * draw.parameters.z * draw.fade.z), bias(frame.renderSize.z)).xy;
         normal = normalize(basis * unpackNormalMap(encoded, draw.parameters.x));
     }
+
+    // Leaf cards are visible from both sides. Their reverse face needs the
+    // reverse normal as well; otherwise half the crown lights as black paper.
+    if ((draw.maps.w & 4u) && !frontFacing) { normal = -normal; }
 
     // Per-leaf tint from the tree builder, so a crown is not one flat colour.
     if (draw.maps.w & 4u) { albedo.rgb *= mix(0.55f, 1.05f, in.attributes.w); }
@@ -407,6 +412,13 @@ fragment ForwardOutput forwardFragment(ForwardVarying in [[stage_in]],
     }
 
     float3 colour = evaluateLight(surface, view, sunDirection, frame.sunIlluminance.rgb) * visibility;
+
+    // A thin leaf transmits a little light from its back face. Keep this
+    // diffuse, shadowed and energy-limited rather than adding a glossy lobe.
+    if (draw.maps.w & 4u) {
+        colour += albedo.rgb * frame.sunIlluminance.rgb *
+                  (0.12f / M_PI_F) * max(0.0f, dot(-normal, sunDirection)) * visibility;
+    }
 
     // Ambient comes from the sky itself, not a constant. SH9 for diffuse, and
     // the sky table sampled along the reflection vector at a roughness-selected

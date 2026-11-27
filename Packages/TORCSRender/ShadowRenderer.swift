@@ -41,6 +41,7 @@ public final class ShadowRenderer {
     /// For foliage: the same sway as the forward vertex shader, so a tree's
     /// shadow moves with the tree.
     let swayPipeline: MTLRenderPipelineState
+    let cutoutPipeline, swayCutoutPipeline: MTLRenderPipelineState
     let depthState: MTLDepthStencilState
     public let comparisonSampler: MTLSamplerState
     public private(set) var lastDrawCount = 0
@@ -84,6 +85,11 @@ public final class ShadowRenderer {
         pipeline = try PipelineArchive.make(pipelineDescriptor, device: device, archive: archive)
         pipelineDescriptor.vertexFunction = library.makeFunction(name: "shadowSwayVertex")
         swayPipeline = try PipelineArchive.make(pipelineDescriptor, device: device, archive: archive)
+        pipelineDescriptor.fragmentFunction = library.makeFunction(name: "shadowCutoutFragment")
+        pipelineDescriptor.vertexFunction = library.makeFunction(name: "shadowCutoutVertex")
+        cutoutPipeline = try PipelineArchive.make(pipelineDescriptor, device: device, archive: archive)
+        pipelineDescriptor.vertexFunction = library.makeFunction(name: "shadowSwayCutoutVertex")
+        swayCutoutPipeline = try PipelineArchive.make(pipelineDescriptor, device: device, archive: archive)
 
         let depth = MTLDepthStencilDescriptor()
         depth.depthCompareFunction = .lessEqual
@@ -191,15 +197,21 @@ public final class ShadowRenderer {
                        !Self.intersects(cascade: cascade, centre: batch.worldCentre, radius: batch.worldRadius) { continue }
                     encoder.setVertexBuffer(batch.vertices, offset: 0, index: 0)
                     if batch.draw.maps.w & 4 != 0 {
-                        encoder.setRenderPipelineState(swayPipeline)
+                        encoder.setRenderPipelineState(batch.needsAlphaTest ? swayCutoutPipeline : swayPipeline)
                         var uniforms = ShadowSwayUniforms(viewProjection: cascade.viewProjection,
                                                           model: instance.transform * batch.draw.model,
                                                           time: SIMD4(animationTime, 0, 0, 0))
                         encoder.setVertexBytes(&uniforms, length: MemoryLayout<ShadowSwayUniforms>.stride, index: 1)
                     } else {
-                        encoder.setRenderPipelineState(pipeline)
+                        encoder.setRenderPipelineState(batch.needsAlphaTest ? cutoutPipeline : pipeline)
                         var modelViewProjection = cascade.viewProjection * instance.transform * batch.draw.model
                         encoder.setVertexBytes(&modelViewProjection, length: MemoryLayout<simd_float4x4>.stride, index: 1)
+                    }
+                    if batch.needsAlphaTest {
+                        var cutout = SIMD4(batch.draw.parameters.y, batch.draw.baseColour.w,
+                                           batch.draw.parameters.z, batch.albedo == nil ? Float(0) : Float(1))
+                        encoder.setFragmentBytes(&cutout, length: MemoryLayout<SIMD4<Float>>.stride, index: 0)
+                        encoder.setFragmentTexture(batch.albedo, index: 0)
                     }
                     encoder.drawIndexedPrimitives(type: .triangle, indexCount: batch.indexCount,
                                                   indexType: .uint32, indexBuffer: batch.indices,
