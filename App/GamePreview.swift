@@ -80,14 +80,20 @@ import TORCSTrackMesh
             let body=pose.body
             let centre=SIMD3(body[3].x,body[3].y,body[3].z),forward=simd_normalize(SIMD3(body[0].x,body[0].y,body[0].z))
             var camera=RenderCamera(eye:centre-forward*6+SIMD3(0,0,2),target:centre+forward*10,verticalFieldOfView:40 * .pi/180,near:1,far:4000)
-            if arguments.contains("--chase") {
-                // The game's own chase camera, settled as it is in the window.
+            // `--chase`, or `--view NAME` for any of the game's cameras
+            // (`driver` is the view from the seat): the camera as the game
+            // has it, at the grid.
+            let named=arguments.firstIndex(of:"--view").flatMap { $0+1<arguments.count ? arguments[$0+1].lowercased():nil }
+            let seat=named.flatMap { name in DrivingCameraPreset.allCases.first { $0.rawValue.lowercased() == name || "\($0)" == name } }
+                ?? (arguments.contains("--chase") ? DrivingCameraPreset.chase:nil)
+            if let seat {
+                // The game's own camera, settled as it is in the window.
                 var rig=DrivingCameraRig()
                 let world=try CameraWorld(bounds:content.simulation.road.bounds)
                 let geometry=content.simulation.road.geometry
                 var scene: SceneCamera?
                 for _ in 0..<200 {
-                    scene=try rig.view(preset:.chase,body:body,bonnetPosition:content.bonnetPosition,driverPosition:content.driverPosition,world:world,
+                    scene=try rig.view(preset:seat,body:body,bonnetPosition:content.bonnetPosition,driverPosition:content.driverPosition,world:world,
                                        roadCameraPosition:nil,yaw:content.simulation.visualSnapshot.body.orientation.z,trackHeading:0) { try geometry.height(at:$0,startingAt:0) }
                 }
                 if let scene {
@@ -157,6 +163,10 @@ import TORCSTrackMesh
                 // comparing the picture before and after a change to the shaders.
                 if let dump,!views.isEmpty,frame%perView==perView-1 {
                     try writePNG(Data(pixels),width:width,height:height,output:dump.appendingPathComponent(String(format:"view-%02d.png",frame/perView)))
+                }
+                // Without `--lap` there is one view, the camera's: its last frame.
+                if let dump,views.isEmpty,frame==total-1 {
+                    try writePNG(Data(pixels),width:width,height:height,output:dump.appendingPathComponent("view-00.png"))
                 }
                 guard views.isEmpty ? frame>=total/3:frame%perView>=perView/3 else { continue }
                 frames.append(renderer.lastGPUTime*1000)

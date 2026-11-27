@@ -129,6 +129,14 @@ public final class SceneResources {
                 detail = materials.detailBinding(choice.material, directory: materialDirectory)
                 detailScale = choice.uvScale
             }
+            // A car's cabin and its driver take a surface made from the
+            // car's own picture, in place of the one weave laid over all of it.
+            var cabin: MTLTexture? = nil
+            if generated == nil, let part = batch.carPart, part == .driver || part == .interior,
+               let texture = batch.baseTexture, let materials, let image = originalImage?(texture) {
+                cabin = materials.cabinStructure(texture: texture, image: image)
+                if cabin != nil { detail = nil; detailScale = 1 }
+            }
             // A building keeps its photograph and takes a structure made
             // from it: glass where the picture has windows.
             var facade: MTLTexture? = nil
@@ -174,14 +182,16 @@ public final class SceneResources {
                                    baseColour: material.baseColour,
                                    // Leaves are matt whatever shine the
                                    // card's material was written with.
-                                   roughness: card ? 0.9 : material.roughness,
-                                   metallic: card ? 0 : metallic,
+                                   // A cabin's map holds each material's
+                                   // own roughness, not a share of one.
+                                   roughness: card ? 0.9 : (cabin != nil ? 1 : material.roughness),
+                                   metallic: card || cabin != nil ? 0 : metallic,
                                    clearcoat: material.clearcoat,
                                    clearcoatRoughness: material.clearcoatRoughness,
                                    normalStrength: material.normalStrength,
                                    alphaThreshold: batch.alphaTestThreshold ?? 0,
                                    maps: SIMD4(albedo == nil ? 0 : 1,
-                                               structure == nil && facade == nil ? 0 : 1,
+                                               structure == nil && facade == nil && cabin == nil ? 0 : 1,
                                                // A card's picture has its leaves' light and
                                                // shade in it already: no tint per leaf.
                                                card ? 1 : 0,
@@ -195,7 +205,7 @@ public final class SceneResources {
                                    // car part under a detail set has none.
                                    macroVariation: generated?.macroVariation ?? 0),
                 needsAlphaTest: batch.alphaTestThreshold != nil,
-                structure: structure?.structure ?? facade,
+                structure: structure?.structure ?? facade ?? cabin,
                 wear: batch.paintsRoadMarkings && generated != nil
                     ? materialDirectory.flatMap { materials?.roadWear(directory: $0) } : nil,
                 culls: batch.culls,

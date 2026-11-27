@@ -463,6 +463,43 @@ its usual 7.5. Interleaved under that load the two builds were level,
 a few thousand vertices a car. In the window a six-car race held 60 fps,
 after a first run at 41 while the new sets were being encoded.
 
+### Cabins and drivers
+
+A car's cabin and its driver are painted on its atlas with everything
+else, and had one surface between them: a cloth weave tiled over
+dashboard, steering wheel, roll cage, dials, helmet and overalls alike,
+all of it matt. From the seat of the 155 DTM the red A-pillar was woven
+red cloth.
+
+The picture says what each thing is, by its colour, well enough to tell
+four materials apart, and a map is made from it for the car's `interior`
+and `driver` parts when the car is loaded (`CabinStructure`, bound in
+`SceneResources`, one map to a picture):
+
+- *paint*, anything strongly coloured, a helmet, a cage, a pillar: smooth
+  and glossy;
+- *trim*, anything dark, dashboard, wheel rim, harness: a fine twill, half
+  matt;
+- *skin*, the tan of a face or a hand: smooth, a little shine;
+- *cloth*, what is left, pale grey to white, overalls and seats: a plain
+  weave quilted in diamonds, quite matt.
+
+The map is finer than the picture, four texels to one for a 256-texel
+atlas, because a weave is finer than anything painted at that size. Two
+things were changed on the way. Trim was first a moulded grain, and where
+the atlas is stretched over a dashboard it was blobs; and the line between
+trim and cloth was first drawn near black, so a grey dashboard was half
+one and half the other, texel by texel.
+
+It shows from the seat, in the few cars that have a cabin modelled (the
+155 DTM, the Impreza), and there mostly as what is no longer cloth. From
+outside, through the glass or over an open cockpit, the difference is
+slight: the open-wheeler's helmet looks as it did. Loading a field of four
+models took 2.8 s where it took 2.6.
+
+`--frame-cost` takes `--view NAME` for any of the game's cameras (`driver`
+is the seat) and writes that view with `--dump`.
+
 ## A field of different cars
 
 A race, a qualifying field and a championship can mix car models. The options

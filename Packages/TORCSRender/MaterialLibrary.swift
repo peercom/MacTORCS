@@ -510,6 +510,25 @@ public final class MaterialLibrary {
         return made
     }
 
+    /// The surface of a car's cabin and its driver, made from the car's own
+    /// picture (`CabinStructure`): paint, trim, skin and cloth, each as it is.
+    public func cabinStructure(texture: String, image: TextureImage) -> MTLTexture? {
+        let key = "cabin:" + texture
+        if let made = facades[key] { return made }
+        guard !facadesFailed.contains(key) else { return nil }
+        let maps = CabinStructure.derive(rgba: image.rgba8, width: image.width, height: image.height)
+        guard let packed = try? TextureImage(width: maps.width, height: maps.height, channels: 4,
+                                             pixels: StructureMap.pack(normal: maps.normal, orm: maps.orm)),
+              let levels = try? TextureLoading.linearMipChain(packed, preserveCutoutCoverage: false, encodeAsColour: false),
+              let made = try? TextureLoading.upload(levels, device: device, srgb: false) else {
+            facadesFailed.insert(key)
+            return nil
+        }
+        uploadedBytes += levels.reduce(0) { $0 + $1.width * $1.height * 4 }
+        facades[key] = made
+        return made
+    }
+
     /// A detail set by name, for car parts: loaded like any other, and the
     /// caller ignores its albedo.
     public func detailBinding(_ material: String, directory: URL) -> Binding? {
