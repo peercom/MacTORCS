@@ -96,4 +96,21 @@ final class CarMaterialsTests: XCTestCase {
                                       camera: camera, lighting: SunLighting(), width: 256, height: 160)
         XCTAssertNotEqual(plain, car)
     }
+
+    /// A modelled wheel is rubber and alloy, told apart by the tyre's name;
+    /// its spoked face is `WIRIM`, which is not a window.
+    func testAModelledWheelIsATyreAndARim() {
+        XCTAssertEqual(CarMaterials.part(name: "TIRE_s_1", texture: "wheel3d.png", isDriver: false), .tyre)
+        for rim in ["RIMTOP_s_1", "RIMSIDE_s_1", "WIRIM_s_0", "WI_s_0", "RIMCENTER_s_0", "DRIVINGCOLL_s_0"] {
+            XCTAssertEqual(CarMaterials.part(name: rim, texture: "wheel3d.png", isDriver: false), .rim, rim)
+        }
+        // On the body the same prefix is still glass, and a tyre's name on the body's atlas is paint.
+        XCTAssertEqual(CarMaterials.part(name: "WIRIM", texture: "car1-trb1.rgb", isDriver: false), .glass)
+        XCTAssertEqual(CarMaterials.part(name: "TIRE", texture: "car1-trb1.rgb", isDriver: false), .paint)
+        let base = ResolvedMaterial(baseColour: SIMD4(1, 1, 1, 1), roughness: 0.5, metallic: 0.5)
+        let tyre = CarMaterials.material(for: .tyre, base: base)
+        XCTAssertGreaterThan(tyre.roughness, 0.8); XCTAssertEqual(tyre.metallic, 0); XCTAssertEqual(tyre.clearcoat, 0)
+        let rim = CarMaterials.material(for: .rim, base: base)
+        XCTAssertLessThan(rim.roughness, 0.5); XCTAssertGreaterThan(rim.metallic, 0.3); XCTAssertEqual(rim.clearcoat, 1)
+    }
 }

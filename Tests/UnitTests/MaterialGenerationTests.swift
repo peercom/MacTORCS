@@ -573,3 +573,72 @@ extension MaterialGenerationTests {
         XCTAssertEqual(halved.rgba[40 * 4 + 3], 0)
     }
 }
+
+/// What a car is made of.
+extension MaterialGenerationTests {
+    /// The tread in its band with four grooves round it, the maker's name
+    /// on the sidewalls and nowhere else; and the same tyre turning is the
+    /// same tyre, drawn out into rings.
+    func testACarsTyreHasATreadAndLetteredSidewalls() throws {
+        let m = try MaterialRecipes.generate("car-tyre", size: 256, seed: 1)
+        let size = m.size, tread = MaterialRecipes.tyreTread
+        func value(_ x: Int, _ y: Int) -> Int { Int(m.albedo[(y * size + x) * 4 + 1]) }
+        func row(_ v: Float) -> Float {
+            let y = Int(v * Float(size))
+            return Float((0 ..< size).reduce(0) { $0 + value($1, y) }) / Float(size)
+        }
+        // Dust lies in the grooves: lighter there than on the ribs between.
+        for groove in [Float(0.2), 0.4, 0.6, 0.8] {
+            let at = tread.lowerBound + (tread.upperBound - tread.lowerBound) * groove
+            let rib = tread.lowerBound + (tread.upperBound - tread.lowerBound) * (groove + 0.1)
+            XCTAssertGreaterThan(row(at), row(rib) + 4, "no groove at \(groove)")
+        }
+        // Paint is on the sidewalls only, and a fair amount of it.
+        var onWalls = 0, onTread = 0
+        for y in 0 ..< size { for x in 0 ..< size where value(x, y) > 110 {
+            let v = Float(y) / Float(size)
+            if tread.contains(v) { onTread += 1 } else { onWalls += 1 }
+        } }
+        XCTAssertEqual(onTread, 0); XCTAssertGreaterThan(onWalls, size * size / 200)
+        // Rubber is black.
+        XCTAssertLessThan(row(0.5), 70)
+
+        let rolling = try MaterialRecipes.generate("car-tyre-rolling", size: 256, seed: 1)
+        XCTAssertEqual(rolling.worldSize, m.worldSize)
+        for y in stride(from: 0, to: size, by: 5) {
+            var low = 255, high = 0
+            for x in 0 ..< size { let g = Int(rolling.albedo[(y * size + x) * 4 + 1]); low = min(low, g); high = max(high, g) }
+            XCTAssertLessThanOrEqual(high - low, 1, "row \(y) is not a ring")
+        }
+        // The grooves round the tyre are still there; the letters are a pale band.
+        let groove = Int((tread.lowerBound + (tread.upperBound - tread.lowerBound) * 0.4) * Float(size))
+        let rib = Int((tread.lowerBound + (tread.upperBound - tread.lowerBound) * 0.5) * Float(size))
+        XCTAssertGreaterThan(Int(rolling.albedo[(groove * size) * 4 + 1]), Int(rolling.albedo[(rib * size) * 4 + 1]) + 4)
+        let letters = Int(0.11 * Float(size))
+        XCTAssertGreaterThan(Int(rolling.albedo[(letters * size) * 4 + 1]), Int(rolling.albedo[(rib * size) * 4 + 1]) + 15)
+    }
+
+    /// Eight flutes up the tile: the normal tips up and down eight times.
+    func testALampsLensIsFluted() throws {
+        let m = try MaterialRecipes.generate("lens", size: 256, seed: 1)
+        let size = m.size
+        var rises = 0, last = 0
+        for y in 0 ..< size {
+            // Down the line between two pillows, where only the flutes are.
+            let tip = Int(m.normal[(y * size) * 4 + 1]) - 128
+            if abs(tip) > 8 { if tip > 0, last <= 0 { rises += 1 }; last = tip }
+        }
+        XCTAssertEqual(rises, 8)
+        XCTAssertFalse(m.isMetal)
+    }
+
+    func testLetteringIsReadFromItsFeetUp() {
+        // The bar of a T is at its head; the foot of an I is as wide as its head.
+        XCTAssertTrue(MaterialRecipes.lettered("T", along: 0.05, up: 0.95)); XCTAssertFalse(MaterialRecipes.lettered("T", along: 0.05, up: 0.2))
+        XCTAssertTrue(MaterialRecipes.lettered("T", along: 0.42, up: 0.2))
+        XCTAssertTrue(MaterialRecipes.lettered("I", along: 0.05, up: 0.05)); XCTAssertTrue(MaterialRecipes.lettered("I", along: 0.05, up: 0.95))
+        // The gap after a letter, a space, and off either end are nothing.
+        XCTAssertFalse(MaterialRecipes.lettered("T", along: 0.95, up: 0.95)); XCTAssertFalse(MaterialRecipes.lettered("T T", along: 0.5, up: 0.95))
+        XCTAssertFalse(MaterialRecipes.lettered("T", along: -0.1, up: 0.5)); XCTAssertFalse(MaterialRecipes.lettered("T", along: 0.5, up: 1.2))
+    }
+}

@@ -116,7 +116,7 @@ final class MaterialCompressionTests: XCTestCase {
     /// roughness map's blue channel used to.
     func testASetsMetalnessComesFromTheManifestNotTheTexture() throws {
         guard let device = MTLCreateSystemDefaultDevice() else { throw XCTSkip("Metal device unavailable") }
-        let directory = try MaterialLibraryTests().materialsDirectory(["paint-flake", "rubber-tread", "fabric", "brick", "asphalt"], metals: ["brick"])
+        let directory = try MaterialLibraryTests().materialsDirectory(["paint-flake", "rubber-tread", "fabric", "lens", "brick", "asphalt"], metals: ["brick"])
         defer { try? FileManager.default.removeItem(at: directory) }
         let library = try MaterialLibrary(device: device, directory: directory)
 

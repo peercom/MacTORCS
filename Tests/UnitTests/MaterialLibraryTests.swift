@@ -42,6 +42,8 @@ final class MaterialLibraryTests: XCTestCase {
             ("walls.rgb", nil), ("walls2.rgb", nil), ("CWALLPT1.png", nil),
             // A stand's steps and the sheet its back is closed in with.
             ("TRIBB01.png", "stand-seats"), ("TRIBB02.png", "corrugated"), ("TRIBB03.png", nil),
+            // A car's own tyre, standing and turning; a wall of tyres is still a wall of tyres.
+            ("car-tyre.rgb", "car-tyre"), ("car-tyre-rolling.rgb", "car-tyre-rolling"), ("tyres.png", "tyre-wall"),
             // A crowd keeps its photograph.
             ("PITPPL.png", nil), ("CROWD5.png", nil), ("GSPAtree.png", nil)]
         for (texture, expected) in cases {
@@ -122,7 +124,11 @@ final class MaterialLibraryTests: XCTestCase {
         XCTAssertEqual(MaterialLibrary.detail(for: .wheel)?.material, "rubber-tread")
         XCTAssertEqual(MaterialLibrary.detail(for: .interior)?.material, "fabric")
         XCTAssertNil(MaterialLibrary.detail(for: .glass))
-        XCTAssertNil(MaterialLibrary.detail(for: .brakeLens))
+        XCTAssertNil(MaterialLibrary.detail(for: .rim))
+        // A lamp's lens is moulded; a tyre without its own set falls back on the tread detail.
+        for lamp in [CarMaterials.Part.lens, .brakeLens, .headLens] { XCTAssertEqual(MaterialLibrary.detail(for: lamp)?.material, "lens") }
+        XCTAssertEqual(MaterialLibrary.detail(for: .tyre)?.material, "rubber-tread")
+        XCTAssertFalse(MaterialLibrary.tilesFreely("car-tyre")); XCTAssertFalse(MaterialLibrary.tilesFreely("car-tyre-rolling"))
         for part in CarMaterials.Part.allCases {
             if let choice = MaterialLibrary.detail(for: part) {
                 XCTAssertTrue(MaterialRecipes.all.contains(choice.material), "\(part)")
@@ -163,7 +169,7 @@ final class MaterialLibraryTests: XCTestCase {
         guard let device = MTLCreateSystemDefaultDevice() else { throw XCTSkip("Metal device unavailable") }
         // No set that replaces scenery is a metal now, so the manifest is
         // made to call one: it is the manifest's word that is under test.
-        let directory = try materialsDirectory(["paint-flake", "rubber-tread", "fabric", "armco", "brick"], metals: ["brick"])
+        let directory = try materialsDirectory(["paint-flake", "rubber-tread", "fabric", "lens", "armco", "brick"], metals: ["brick"])
         defer { try? FileManager.default.removeItem(at: directory) }
         let library = try MaterialLibrary(device: device, directory: directory)
         let marked = try XCTUnwrap(library.resolve(texture: "brick-red.png", directory: directory))

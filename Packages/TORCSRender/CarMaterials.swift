@@ -12,6 +12,8 @@ import simd
 public enum CarMaterials {
     public enum Part: String, Sendable, CaseIterable {
         case paint, glass, lens, brakeLens, headLens, interior, driver, wheel
+        /// The two things a modelled wheel is made of: rubber, and an alloy.
+        case tyre, rim
     }
 
     /// Classifies a car node. `nil` for scenes that are not cars.
@@ -19,6 +21,10 @@ public enum CarMaterials {
         let upper = name.uppercased()
         let tex = (texture ?? "").lowercased()
         if isDriver || upper.hasPrefix("DRIVER") { return .driver }
+        // A modelled wheel (`wheel3d.png`) names its tyre; all the rest of
+        // it is rim, the spoked face included, which is `WIRIM` and by the
+        // rule for windows below would be glass.
+        if tex.contains("wheel3d") { return upper.hasPrefix("TIRE") || upper.hasPrefix("TYRE") ? .tyre : .rim }
         if tex.contains("tex-wheel") || upper.hasPrefix("WHEEL") && !upper.contains("COVER") { return .wheel }
         if upper.hasPrefix("WI") {
             if upper.contains("LIGHTREAR") { return .brakeLens }
@@ -72,6 +78,19 @@ public enum CarMaterials {
             // and painted alloy.
             m.roughness = 0.8
             m.metallic = 0.2
+        case .tyre:
+            // Rubber: matt, and nothing else. It was paint under a clear
+            // coat, with everything else that had no name.
+            m.roughness = 0.88
+            m.metallic = 0
+        case .rim:
+            // Cast alloy under lacquer. All metal and no coat, it took the
+            // colour of the ground it mirrored and every silver rim was
+            // bronze; the lacquer's white reflection is what reads as alloy.
+            m.roughness = 0.36
+            m.metallic = 0.5
+            m.clearcoat = 1
+            m.clearcoatRoughness = 0.08
         }
         return m
     }

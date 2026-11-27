@@ -20,7 +20,8 @@ public enum MaterialRecipes {
         "armco", "tyre-wall", "tyre-top", "chain-link", "catch-fence",
         "concrete-wall", "stone-wall", "brick", "wood", "painted-steel",
         "stand-seats", "corrugated",
-        "rubber-tread", "carbon-weave", "brushed-metal", "chrome", "plastic", "fabric", "paint-flake", "glass"]
+        "rubber-tread", "carbon-weave", "brushed-metal", "chrome", "plastic", "fabric", "paint-flake", "glass",
+        "car-tyre", "car-tyre-rolling", "lens"]
 
     /// Deliberately smooth: allowed a roughness floor below the usual one.
     public static let smooth: Set<String> = ["chrome", "glass"]
@@ -62,6 +63,9 @@ public enum MaterialRecipes {
         case "fabric": return fabric(size: size, seed: seed &+ 89)
         case "paint-flake": return paintFlake(size: size, seed: seed &+ 97)
         case "glass": return glass(size: size, seed: seed &+ 101)
+        case "car-tyre": return carTyre(size: size, seed: seed &+ 149)
+        case "car-tyre-rolling": return carTyreRolling(size: size, seed: seed &+ 149)
+        case "lens": return lampLens(size: size, seed: seed &+ 151)
         default: throw MaterialError.unknown(name)
         }
     }

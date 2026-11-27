@@ -74,6 +74,12 @@ public final class SessionRenderResources {
                     }
                 }
             }
+            // A wheel's tyre takes its own coordinates and its own set,
+            // where there is one: see `TyreUnwrap`.
+            if let level = TyreUnwrap.wheelLevel(resource: index), let library,
+               library.has(MaterialLibrary.material(for: TyreUnwrap.texture(level: level)) ?? "") {
+                flattened = TyreUnwrap.unwrapped(flattened, texture: TyreUnwrap.texture(level: level))
+            }
             built.append(try SceneResources(device: device, scene: flattened, textures: store,
                                             compiled: loaded.textures, materials: library,
                                             materialDirectory: materialDirectory))

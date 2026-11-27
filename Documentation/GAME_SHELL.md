@@ -416,6 +416,53 @@ the circuit's own banks from most of most laps.
 
 `--frame-cost` has an `--overcast` switch for the sky under full cloud.
 
+### The cars: tyres, rims and lamps
+
+A car keeps its own painted atlas; that is the car. What the atlas could
+not give it is its tyres. A modelled wheel (`wheel3d.png`) is textured
+from a picture of a wheel seen from its side, rim and sidewall, and the
+tread, from the side, is the picture's last ring of texels: one colour.
+Nothing drawn in that picture can put a groove on a tyre, and from behind
+a car a tyre is all tread.
+
+- **Parts.** A wheel's nodes had no names the classifier knew, so the tyre
+  was paint under a clear coat with everything else, and the spoked face,
+  `WIRIM`, was glass by the rule for windows. They are now `tyre`, matt
+  rubber, and `rim`, alloy under lacquer (`CarMaterials`). All metal and
+  no coat, a rim took the colour of the ground it mirrored and every
+  silver wheel was bronze.
+- **Its own coordinates.** `TyreUnwrap` makes a tyre's coordinates again
+  from its shape: `u` round the axle, twice round to the texture, `v`
+  across the section from bead over tread to bead, the tread always the
+  same band of `v` whatever the tyre's proportions. The axle is found as
+  the one way the tyre is not round: the wheel models are a unit across
+  every way, scaled to the car's wheel when drawn, so their width says
+  nothing, and going by the shortest side put the sidewall's letters on
+  the open-wheeler's tread. Vertices stay shared but along the line where
+  the angle wraps.
+- **The set** (`car-tyre`, `RecipesCars.swift`), drawn to those
+  coordinates: four grooves round the tread, sipes across its ribs, blocks
+  on its shoulders, polished down the middle with dust in the grooves; on
+  each sidewall a rim protector, ribs under the shoulder, and TORCS RACING
+  in raised white letters, twice round.
+- **Turning.** The wheel has four models by speed, their rims more blurred
+  each. The tyre of the three that turn takes `car-tyre-rolling`, the same
+  tyre averaged round: the grooves stay, the sipes and the letters become
+  bands. A sharp tread on a wheel at speed strobes.
+- **Lamps.** Head, tail and other lamp lenses take a moulded pattern over
+  the atlas's colour (`lens`, a detail set like the paint's flake): rows
+  of flutes crossed by pillows.
+
+Without the sets (`MaterialLibrary.has`) a tyre keeps its atlas and the old
+tread detail.
+
+Not measured cleanly: the Mac was running another workload when this was
+timed, and the previous commit's own frame read 13 ms offscreen against
+its usual 7.5. Interleaved under that load the two builds were level,
+13.19 and 12.92 ms on E-Track 2; the wheels are a few thousand pixels and
+a few thousand vertices a car. In the window a six-car race held 60 fps,
+after a first run at 41 while the new sets were being encoded.
+
 ## A field of different cars
 
 A race, a qualifying field and a championship can mix car models. The options

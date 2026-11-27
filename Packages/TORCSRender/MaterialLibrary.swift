@@ -118,6 +118,8 @@ public final class MaterialLibrary {
         ("concrete2", "concrete-wall"), ("concwall", "concrete-wall"), ("concrete-wall", "concrete-wall"),
         ("concrete", "concrete"), ("beton", "concrete"),
         ("armco", "armco"), ("guardrail", "armco"), ("rail", "armco"),
+        // A car's own tyre, unwrapped (`TyreUnwrap`), standing and turning.
+        ("car-tyre-rolling", "car-tyre-rolling"), ("car-tyre", "car-tyre"),
         // A tyre wall's top is the same tyres from above, a set of its own.
         ("tyre-top", "tyre-top"),
         ("tyre", "tyre-wall"), ("tire", "tyre-wall"), ("pneu", "tyre-wall"),
@@ -152,10 +154,12 @@ public final class MaterialLibrary {
     public static func detail(for part: CarMaterials.Part) -> (material: String, uvScale: Float)? {
         switch part {
         case .paint: return ("paint-flake", 40)
-        case .wheel: return ("rubber-tread", 6)
+        case .wheel, .tyre: return ("rubber-tread", 6)
         case .interior: return ("fabric", 12)
         case .driver: return ("fabric", 8)
-        case .glass, .lens, .brakeLens, .headLens: return nil
+        // A lamp's lens is moulded: flutes and pillows over the atlas's colour.
+        case .lens, .brakeLens, .headLens: return ("lens", 48)
+        case .glass, .rim: return nil
         }
     }
 
@@ -185,7 +189,7 @@ public final class MaterialLibrary {
     /// ground up, is drawn once across that object or it is three rails
     /// where there was one.
     public static func tilesFreely(_ material: String) -> Bool {
-        !["armco", "tyre-wall", "tyre-top", "kerb", "chain-link", "catch-fence"].contains(material)
+        !["armco", "tyre-wall", "tyre-top", "kerb", "chain-link", "catch-fence", "car-tyre", "car-tyre-rolling"].contains(material)
     }
 
     /// Whether a set has holes in it: its albedo's alpha says where, and
@@ -401,6 +405,9 @@ public final class MaterialLibrary {
     }
     private var skyMaps: [String: MTLTexture] = [:]
     private var skyMapsMissing: Set<String> = []
+
+    /// Whether the directory's manifest lists a set.
+    public func has(_ material: String) -> Bool { worldSizes[material] != nil }
 
     /// Resolves a texture reference, recording what was substituted.
     ///
