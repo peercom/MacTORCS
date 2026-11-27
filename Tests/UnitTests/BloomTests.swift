@@ -48,6 +48,27 @@ final class BloomTests: XCTestCase {
         XCTAssertGreaterThan(mean(on), mean(off), "bloom at threshold 0.5 should have lifted something")
     }
 
+    /// With a half-resolution copy of the scene in the frame, the prefilter
+    /// reads that: one tap for four, and the same box of sixteen texels, so
+    /// the same glow.
+    func testPrefilterFromTheHalfResolutionCopyGivesTheSameGlow() throws {
+        func picture(copy: Bool) throws -> [UInt8] {
+            let renderer = try makeRenderer {
+                $0.bloom = true; $0.bloomStrength = 0.3; $0.bloomThreshold = 0.5; $0.motionBlur = true
+            }
+            renderer.motionBlur.usesHalfResolution = copy
+            let image = try render(renderer)
+            XCTAssertEqual(renderer.motionBlur.halfScene != nil, copy)
+            return image
+        }
+        let fromCopy = try picture(copy: true), fromScene = try picture(copy: false)
+        let without = try render(try makeRenderer { $0.bloom = false; $0.motionBlur = true })
+        var worst = 0
+        for i in fromCopy.indices { worst = max(worst, abs(Int(fromCopy[i]) - Int(fromScene[i]))) }
+        XCTAssertLessThanOrEqual(worst, 1, "the glow from the copy strays from the scene's by \(worst) levels")
+        XCTAssertGreaterThan(mean(fromCopy), mean(without) + 0.2, "and there is a glow to compare")
+    }
+
     /// A threshold nothing crosses must produce a frame identical to bloom off,
     /// not merely similar: it pins that the resolve adds exactly zero rather
     /// than sampling an unwritten or stale target.

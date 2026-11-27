@@ -98,8 +98,13 @@ public final class BloomRenderer {
     /// Builds the pyramid from `source`. Returns nil when the source is too
     /// small to halve usefully, in which case the resolve skips bloom entirely
     /// rather than compositing a meaningless single level.
+    ///
+    /// `half` is `source` already at half its size each way, when the frame
+    /// has such a copy. The prefilter then reads it instead: the box it
+    /// takes from sixteen texels of the source is four of the copy's, one
+    /// tap for four and a quarter of the memory read.
     @discardableResult
-    public func encode(into commands: MTLCommandBuffer, source: MTLTexture,
+    public func encode(into commands: MTLCommandBuffer, source: MTLTexture, half: MTLTexture? = nil,
                        threshold: Float, exposure: MTLBuffer, timer: PassTimer? = nil) -> MTLTexture? {
         if chain?.matches(width: source.width, height: source.height) != true {
             chain = try? Chain(device: device, width: source.width, height: source.height)
@@ -110,7 +115,7 @@ public final class BloomRenderer {
         }
 
         func pass(_ label: String, into destination: MTLTexture, load: MTLLoadAction,
-                  state: MTLRenderPipelineState, reading input: MTLTexture) {
+                  state: MTLRenderPipelineState, reading input: MTLTexture, halved: Bool = false) {
             let descriptor = MTLRenderPassDescriptor()
             descriptor.colorAttachments[0].texture = destination
             descriptor.colorAttachments[0].loadAction = load
@@ -125,14 +130,17 @@ public final class BloomRenderer {
             // so offsets are in source texels, not destination texels.
             var uniforms = BloomUniforms(parameters: SIMD4<Float>(1 / Float(input.width),
                                                                  1 / Float(input.height),
-                                                                 threshold, 0))
+                                                                 threshold, halved ? 1 : 0))
             encoder.setFragmentBytes(&uniforms, length: MemoryLayout<BloomUniforms>.stride, index: 0)
             encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
             encoder.endEncoding()
         }
 
+        // A copy of some other size is not this source's; the pyramid is
+        // sized by the source either way.
+        let copy = half.flatMap { $0.width == max(1, source.width / 2) && $0.height == max(1, source.height / 2) ? $0 : nil }
         pass("Bloom prefilter", into: chain.levels[0], load: .dontCare,
-             state: prefilter, reading: source)
+             state: prefilter, reading: copy ?? source, halved: copy != nil)
         for level in 1..<chain.levels.count {
             pass("Bloom downsample \(level)", into: chain.levels[level], load: .dontCare,
                  state: downsample, reading: chain.levels[level - 1])

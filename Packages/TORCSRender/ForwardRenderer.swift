@@ -782,7 +782,10 @@ public final class ForwardRenderer {
         }
 
         // Meter the frame before anything reads the exposure: a cold render
-        // snaps to what it meters, an interactive one adapts.
+        // snaps to what it meters, an interactive one adapts. It meters the
+        // scene, not the half-resolution copy beside it: read from the copy
+        // its own timer fell from 0.17 to 0.04 ms and the frame grew by
+        // 0.04, five runs against five.
         exposureMeter.encode(into: commands, source: targets.colour, deltaTime: presentedFrameInterval,
                              reset: resetsHistoryPerRender || exposureNeedsReset,
                              automatic: settings.autoExposure, manualEV: lighting.exposureEV100,
@@ -803,7 +806,7 @@ public final class ForwardRenderer {
         // resolution instead would be cheaper but would feed the upscaler a
         // glow it then has to track temporally.
         if settings.bloom && settings.bloomStrength > 0 {
-            bloom.encode(into: commands, source: tonemapSource(targets),
+            bloom.encode(into: commands, source: tonemapSource(targets), half: motionBlur.halfScene,
                          threshold: settings.bloomThreshold, exposure: exposureMeter.state, timer: passTimer)
         } else {
             bloom.discard()

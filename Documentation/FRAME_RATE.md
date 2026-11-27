@@ -384,15 +384,57 @@ here that alters the picture.
   and no blur under a one-pixel streak: neither moved the pass by 0.01 ms.
   The taps are the cost, not the arithmetic around them.
 
+## The bloom's prefilter, from the blur's copy
+
+When the blur has made its half-resolution copy of the scene, the bloom's
+prefilter reads that instead of the scene. The prefilter takes the mean of
+a four-by-four box for each pixel of the pyramid's first level, four
+bilinear taps on the scene. A texel of the copy is already the mean of two
+by two, so the same box is one tap at the corner four of them share, from a
+quarter of the memory. For that the copy is no longer clamped as it is made;
+the blur clamps its taps from it, as it always did those from the scene.
+
+Whole frame at 2880 x 1720 and 50 m/s, the same binary reading the scene and
+reading the copy, four runs each, medians:
+
+| | From the scene | From the copy |
+|---|---|---|
+| CG Speedway 1, 100% | 5.95 ms | 5.77 ms |
+| 85% | 5.11 | 5.04 |
+| 67% | 4.05 | 3.99 |
+| 50% | 3.36 | 3.31 |
+| 100% with reflections | 7.22 | 7.09 |
+| Alpine 1, 100% | 6.69 | 6.50 |
+| Street 1, 100% | 6.12 | 5.97 |
+
+The pictures are the same to within one level of 255. Without motion blur
+there is no copy and the prefilter reads the scene as before.
+
+**The exposure meter stays on the scene.** It was to move as well, and its
+own timer fell from 0.17 to 0.04 ms when it did, but the frame grew by
+0.04 ms, five runs against five:
+
+| Meter reads | Prefilter reads | Frame |
+|---|---|---|
+| scene | scene | 5.88 ms |
+| scene | copy | 5.74 |
+| copy | scene | 5.92 |
+| copy | copy | 5.79 |
+
+The meter takes 4096 samples whatever it reads, so there was no memory to
+save; where it sits relative to the copy's pass made no difference either.
+The lesson is about the timers: a pass's time is the span between two
+samples of the GPU's clock, passes overlap, and the spans do not add up to
+the frame. The meter's 0.17 ms was mostly another pass's work. A change is
+costed on the whole frame, interleaved with its baseline.
+
 ## What is left
 
-The scene pass is the frame's largest part at 2.7 ms of 5.8. After it, the
+The scene pass is the frame's largest part at 2.6 ms of 5.8. After it, the
 tonemap pass at 1.05 ms is near what its features cost: each texture sample
 is about 0.1 ms across 2880 x 1720, and it takes four before the blur's.
-
-Three small passes each read the whole scene again: the blur's
-half-resolution copy (0.23 ms), the exposure meter (0.18) and the bloom's
-prefilter (0.16). The meter and the prefilter could read the copy when
-there is one. The HUD costs
+The blur's half-resolution copy is the dearest of the small passes at
+0.23 ms by its timer, which the paragraph above says how far to trust.
+The HUD costs
 about a fifth of the main thread through SwiftUI layout at twenty updates a
 second, which matters to nothing while the GPU is the limit.

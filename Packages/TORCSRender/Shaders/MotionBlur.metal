@@ -40,14 +40,15 @@ struct MotionBlurUniforms {
     float4 coarse;
 };
 
-/// The scene at half its size each way, for the blur's long streaks: one
-/// bilinear sample at the middle of each two-by-two block. Bright values are
-/// clamped here as the blur clamps its taps, so a sun glint does not streak
-/// across the frame with more energy than it had.
+/// The scene at half its size each way: one bilinear sample at the middle
+/// of each two-by-two block, which is their mean and nothing else. Made for
+/// the blur's long streaks, and read as well by the bloom's prefilter, which
+/// wants the scene's averages and nothing else; so it is not clamped here,
+/// and the blur clamps its taps from it as it does those from the scene.
 fragment float4 sceneHalveFragment(FullscreenVarying in [[stage_in]],
                                    texture2d<float> scene [[texture(0)]]) {
     constexpr sampler linearSampler(coord::normalized, address::clamp_to_edge, filter::linear);
-    return float4(min(scene.sample(linearSampler, in.uv, level(0.0f)).rgb, float3(64.0f)), 1.0f);
+    return float4(scene.sample(linearSampler, in.uv, level(0.0f)).rgb, 1.0f);
 }
 
 /// Catmull-Rom from five bilinear taps: the cross of the nine-tap form, the
@@ -132,7 +133,8 @@ inline float3 sceneRadiance(texture2d<float> scene, texture2d<float> sceneHalf, 
                 int taps = clamp(int(ceil(lengthPixels * 0.25f)) + 1, 2, max(most / 2, 2));
                 for (int i = 0; i < taps; ++i) {
                     float t = (float(i) + jitter) / float(taps) - 0.5f;
-                    total += sceneHalf.sample(linearSampler, uv + stepUV * t, level(0.0f)).rgb;
+                    // Clamped like the scene's taps below.
+                    total += min(sceneHalf.sample(linearSampler, uv + stepUV * t, level(0.0f)).rgb, float3(64.0f));
                 }
                 return total / float(taps);
             }

@@ -20,7 +20,9 @@
 using namespace metal;
 
 struct BloomUniforms {
-    /// xy source texel size, z threshold in exposed units, w unused (the exposure comes from its state buffer).
+    /// xy source texel size, z threshold in exposed units (the exposure
+    /// comes from its state buffer), w nonzero when the prefilter's source
+    /// is the scene already at half its size.
     float4 parameters;
 };
 
@@ -71,17 +73,25 @@ fragment float4 bloomPrefilter(FullscreenVarying in [[stage_in]],
     // combined. Four bilinear taps at ±1 source texel cover a 4×4 box exactly,
     // which is a coarser filter than the thirteen-tap halving but the pyramid
     // below blurs far wider than any aliasing this leaves.
-    float2 texel = bloom.parameters.xy;
-    float3 colour = source.sample(linearSampler, in.uv + texel * float2(-1, -1)).rgb
-                  + source.sample(linearSampler, in.uv + texel * float2( 1, -1)).rgb
-                  + source.sample(linearSampler, in.uv + texel * float2(-1,  1)).rgb
-                  + source.sample(linearSampler, in.uv + texel * float2( 1,  1)).rgb;
+    float3 colour;
+    if (bloom.parameters.w > 0.0f) {
+        // From the half-resolution copy the same box is one tap: each of
+        // its texels is the mean of two by two, and the corner four of them
+        // share is the middle of this pixel.
+        colour = source.sample(linearSampler, in.uv, level(0.0f)).rgb;
+    } else {
+        float2 texel = bloom.parameters.xy;
+        colour = (source.sample(linearSampler, in.uv + texel * float2(-1, -1), level(0.0f)).rgb
+                + source.sample(linearSampler, in.uv + texel * float2( 1, -1), level(0.0f)).rgb
+                + source.sample(linearSampler, in.uv + texel * float2(-1,  1), level(0.0f)).rgb
+                + source.sample(linearSampler, in.uv + texel * float2( 1,  1), level(0.0f)).rgb) * 0.25f;
+    }
     // Exposed first, so the threshold is relative to the frame's own white
     // point rather than to absolute radiance. A camera blooms where its sensor
     // saturates, and exposure is what decides where that is; a fixed radiance
     // threshold would bloom nothing at a bright exposure and everything at a
     // dim one.
-    colour *= 0.25f * exposure.scale;
+    colour *= exposure.scale;
     // Clamped before thresholding: one extremely bright texel, such as the sun
     // disc, would otherwise dominate the whole pyramid and produce a flat wash.
     colour = min(colour, float3(64.0f));
