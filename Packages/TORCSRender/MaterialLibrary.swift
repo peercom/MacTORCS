@@ -123,6 +123,9 @@ public final class MaterialLibrary {
         // A tyre wall's top is the same tyres from above, a set of its own.
         ("tyre-top", "tyre-top"),
         ("tyre", "tyre-wall"), ("tire", "tyre-wall"), ("pneu", "tyre-wall"),
+        // A pit building's own sets, by the names its garages are made under.
+        ("roller-door", "roller-door"), ("blockwork", "blockwork"), ("pit-interior", "blockwork"), ("pit-fascia", "pit-fascia"),
+        ("pit-numbers", "pit-numbers"), ("roofing", "roofing"),
         // Wood before fence: a wooden fence is wood.
         ("wood", "wood"), ("bois", "wood"), ("painted-steel", "painted-steel"), ("poutre", "painted-steel"), ("pylon", "painted-steel"),
         // A stand: the steps the people sit on, and the sheet its back is
@@ -221,7 +224,8 @@ public final class MaterialLibrary {
     /// ground up, is drawn once across that object or it is three rails
     /// where there was one.
     public static func tilesFreely(_ material: String) -> Bool {
-        !["armco", "tyre-wall", "tyre-top", "kerb", "chain-link", "catch-fence", "car-tyre", "car-tyre-rolling"].contains(material)
+        !["armco", "tyre-wall", "tyre-top", "kerb", "chain-link", "catch-fence", "car-tyre", "car-tyre-rolling",
+          "pit-fascia", "pit-numbers"].contains(material)
     }
 
     /// Whether a set has holes in it: its albedo's alpha says where, and

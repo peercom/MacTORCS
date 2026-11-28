@@ -270,7 +270,10 @@ public enum TrackSurfaceAssembly {
             // composites the painted content of an original of the same name
             // over a generated albedo, which for the circuit's `concrete.rgb`
             // turned the garage roofs black.
-            batches.append(surfaceBatch(mesh: mesh, texture: "pit-" + material + ".rgb", roughness: 0.8))
+            // Inside a garage with its door part up it is dark: the same
+            // blockwork, a quarter as light.
+            batches.append(surfaceBatch(mesh: mesh, texture: "pit-" + material + ".rgb", roughness: 0.8,
+                                        tint: material == "interior" ? SIMD3(0.22, 0.22, 0.24) : SIMD3(1, 1, 1)))
         }
         return batches
     }
@@ -314,7 +317,8 @@ public enum TrackSurfaceAssembly {
     /// A rough dielectric whose colour comes from the generated set bound by
     /// name; the source state mirrors what trackgen would have written so the
     /// batch reads like any other.
-    static func surfaceBatch(mesh: RenderMesh, texture: String, roughness: Float, markings: Bool = false) -> RenderBatch {
+    static func surfaceBatch(mesh: RenderMesh, texture: String, roughness: Float, markings: Bool = false,
+                             tint: SIMD3<Float> = SIMD3(1, 1, 1)) -> RenderBatch {
         // A fence is seen through and from both sides.
         let cutout = MaterialLibrary.material(for: texture).map(MaterialLibrary.isCutout) ?? false
         let state = ACRenderState(material: [0, 0, 0, 1, 0, 0, 0, 1, 0.2, 0.2, 0.2, 1, 0],
@@ -322,7 +326,7 @@ public enum TrackSurfaceAssembly {
         return RenderBatch(mesh: mesh, baseTexture: texture, blends: false, isDeferred: false,
                            alphaTestThreshold: cutout ? 0.5 : nil, culls: !cutout, isDriver: false,
                            sourceMaterial: state,
-                           material: ResolvedMaterial(baseColour: SIMD4(1, 1, 1, 1), roughness: roughness, metallic: 0),
+                           material: ResolvedMaterial(baseColour: SIMD4(tint, 1), roughness: roughness, metallic: 0),
                            uvInMetres: true, paintsRoadMarkings: markings && !cutout, receivesWeather: true)
     }
 }

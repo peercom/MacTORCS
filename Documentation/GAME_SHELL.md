@@ -260,7 +260,8 @@ at the top of the wall, because what marks a wall runs down it:
 - *brick*: the old one had four bricks to the metre, a quarter of a metre
   long. A brick is 215 by 65 mm: eight to a tile of 1.8 m, twenty-four
   courses, stretcher bond, red and orange and burnt, joints struck back.
-  The pit garages on every circuit are built of it.
+  The pit garages on every circuit were built of it, until they were
+  given blockwork (*Pit buildings and garages* below).
 - *chain-link*: one panel, three metres from post to post: a 60 mm diamond
   of woven wire, a rail along the top, a tension wire along the foot. The
   old one was eight diamonds to the metre, drawn as a mirror, and on
@@ -581,6 +582,60 @@ E-Track 3's. Lettering that was drawn soft stays soft: CTD Racing's gold
 script on Forza's gantry is sharper by little. A banner is told from a
 board by its shape alone. Barriers that are rows of trees or parked cars
 are still concrete walls.
+
+### Pit buildings and garages
+
+The original circuits have no pit buildings; the garages are generated,
+one to a stall, where the pit model says the cars stop (`PitGeneration`).
+A garage was a box: one roller door the whole length of the stall, fifteen
+metres of it, in a set made for painted steel plate, with brick over it
+and round it and a concrete lid. A row of them read as lock-ups.
+
+A garage is now built as one is, and of sets made for it
+(`RecipesPits`):
+
+- Its front is divided into **bays** about five metres wide, three to a
+  fifteen-metre stall, with a pier between each and at each end. The
+  piers, the sides and the back are *blockwork*: concrete blocks forty
+  centimetres by twenty in running bond, painted off-white, greyed in
+  drifts, dark in the pores and the raked joints.
+- Between the piers, set back a quarter of a metre, a **roller door**
+  (*roller-door*): steel laths ten to the metre, each bowed and hooked
+  into the next, painted light grey, with the dirt the rain has run down
+  them. The set is a metre to the tile and the door is laid from the
+  floor, so the laths count up it.
+- Over the doors a **band** a metre high (*pit-fascia*): white pressed
+  panels, a red stripe along the foot, a dark coping along the top, laid
+  once up the band whatever its height. On it, in the middle of the
+  garage, its **number**, a figure to a plate (*pit-numbers*): one sheet
+  of ten enamel plates, white on dark blue, each plate's quad showing its
+  own figure's part of the sheet (`MaterialRecipes.figurePlate`). The
+  figures are five dots by seven joined up, so a stroke has round ends
+  and a diagonal is a line. They read from left to right as the front is
+  looked at, whichever side of the track the pits are on.
+- The **roof** comes out a metre and twenty over the lane and shades the
+  band and the doors; it is mineral felt in metre strips with a line of
+  tar along each lap (*roofing*), seen from the high cameras.
+- One garage in three has **a door part raised**, and not the same bay
+  each time. Behind it is a room, the same blockwork drawn a quarter as
+  light, because nothing but the door's opening lights it.
+
+A garage's footprints still stand thirty centimetres apart; the end
+piers, the band and the roof run on across the gap, so from the lane the
+row is one building. Where the pit model moves the row sideways between
+two stalls there is still a step in it.
+
+Cost: a thousand triangles and three draws more on E-Track 3 (306,840
+and 571). The frame time could not be told apart from the previous
+commit's: taken alternately while the machine was busy with other work,
+the four circuits differed by -1.4, -1.7, 0.0 and +1.9 ms, the noise of
+that hour and of either sign. A six-car race in the window holds 60, and
+starts in 2.8 s once the five sets' encodes are cached (5.3 s the first
+time).
+
+Not done: the garages are empty, with nobody and nothing in them; a
+raised door shows a dark room and no car. Every garage is the same white
+and red, whoever's it is.
 
 ## A field of different cars
 

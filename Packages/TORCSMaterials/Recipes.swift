@@ -20,6 +20,7 @@ public enum MaterialRecipes {
         "armco", "tyre-wall", "tyre-top", "chain-link", "catch-fence",
         "concrete-wall", "stone-wall", "brick", "wood", "painted-steel",
         "stand-seats", "corrugated",
+        "roller-door", "blockwork", "pit-fascia", "pit-numbers", "roofing",
         "rubber-tread", "carbon-weave", "brushed-metal", "chrome", "plastic", "fabric", "paint-flake", "glass",
         "car-tyre", "car-tyre-rolling", "lens"]
 
@@ -53,6 +54,11 @@ public enum MaterialRecipes {
         case "brick": return brickwork(size: size, seed: seed &+ 53)
         case "stand-seats": return standSeats(size: size, seed: seed &+ 137)
         case "corrugated": return ribbedCladding(size: size, seed: seed &+ 139)
+        case "roller-door": return rollerDoor(size: size, seed: seed &+ 157)
+        case "blockwork": return blockwork(size: size, seed: seed &+ 163)
+        case "pit-fascia": return pitFascia(size: size, seed: seed &+ 167)
+        case "pit-numbers": return pitNumbers(size: size, seed: seed &+ 173)
+        case "roofing": return roofing(size: size, seed: seed &+ 179)
         case "wood": return wood(size: size, seed: seed &+ 59)
         case "painted-steel": return paintedSteel(size: size, seed: seed &+ 61)
         case "rubber-tread": return rubberTread(size: size, seed: seed &+ 67)

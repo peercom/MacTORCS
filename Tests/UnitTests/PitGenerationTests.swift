@@ -35,10 +35,11 @@ final class PitGenerationTests: XCTestCase {
         }
     }
 
-    func testGaragesBecomeThreeMaterialBatches() throws {
+    func testGaragesBecomeABatchToEachOfTheirMaterials() throws {
         let road = try RoadGenerationTests().aalborg()
         let groups = PitGeneration.garages(road.geometry, pits: road.pits)
-        XCTAssertEqual(groups.map(\.material), ["brick", "painted-steel", "concrete"])
+        XCTAssertEqual(groups.map(\.material), PitGeneration.materials)
+        XCTAssertEqual(PitGeneration.materials, ["blockwork", "roller-door", "fascia", "numbers", "roofing", "interior"])
         for group in groups {
             XCTAssertEqual(group.geometry.positions.count, group.geometry.normals.count)
             XCTAssertEqual(group.geometry.positions.count, group.geometry.uv0.count)
@@ -50,16 +51,23 @@ final class PitGenerationTests: XCTestCase {
             }
         }
         let batches = try TrackSurfaceAssembly.pitBatches(road.geometry, pits: road.pits)
-        XCTAssertEqual(batches.count, 3)
+        XCTAssertEqual(batches.count, PitGeneration.materials.count)
         XCTAssertTrue(batches.allSatisfy { $0.receivesWeather && $0.uvInMetres })
-        XCTAssertEqual(MaterialLibrary.material(for: "painted-steel.rgb"), "painted-steel")
         // The batch textures must map to the sets and must not be the name of
         // any original artwork, or its paint would be composited over them.
+        var sets: [String] = []
         for batch in batches {
             let texture = try XCTUnwrap(batch.baseTexture)
             XCTAssertTrue(texture.hasPrefix("pit-"), texture)
-            XCTAssertNotNil(MaterialLibrary.material(for: texture), texture)
+            sets.append(try XCTUnwrap(MaterialLibrary.material(for: texture), texture))
         }
+        XCTAssertEqual(sets, ["blockwork", "roller-door", "pit-fascia", "pit-numbers", "roofing", "blockwork"])
+        // Inside a garage it is dark: the same blockwork, a quarter as light.
+        XCTAssertEqual(batches[0].material.baseColour.x, 1)
+        XCTAssertLessThan(batches[5].material.baseColour.x, 0.3)
+        // The band and the plates are laid as they are, not tiled.
+        XCTAssertFalse(MaterialLibrary.tilesFreely("pit-fascia")); XCTAssertFalse(MaterialLibrary.tilesFreely("pit-numbers"))
+        XCTAssertTrue(MaterialLibrary.tilesFreely("blockwork")); XCTAssertTrue(MaterialLibrary.tilesFreely("roller-door"))
     }
 
     /// The track marks the pit-side barrier as a pit building; the road
