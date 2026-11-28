@@ -154,6 +154,16 @@ public final class SceneResources {
                 facade = materials.foliageStructure(texture: texture, image: image)
                 card = facade != nil
             }
+            // A sign keeps its artwork, made larger and sharp, and takes the
+            // surface it is printed on: sheet, cloth, or a painted wall.
+            var sign: (albedo: MTLTexture, structure: MTLTexture)? = nil
+            if generated == nil, detail == nil, facade == nil, batch.carPart == nil, batch.alphaTestThreshold == nil,
+               !batch.blends, let texture = batch.baseTexture, let materials,
+               MaterialLibrary.isSign(texture) || MaterialLibrary.isPaintedWall(texture),
+               let image = originalImage?(texture) {
+                sign = materials.signArtwork(texture: texture, image: image)
+                if let sign { facade = sign.structure }
+            }
             // A generated set is made to tile every two or three metres. The
             // original artwork it replaces was stretched over whatever its
             // author gave it, twenty metres of a field as often as not, and
@@ -165,7 +175,7 @@ public final class SceneResources {
             if let generated, generated.tilesFreely, !batch.uvInMetres, let spread = batch.mesh.metresPerTextureRepeat() {
                 tiling = min(max((spread / max(generated.worldSize, 1e-3)).rounded(), 1), 64)
             }
-            let albedo = generated?.albedo ?? batch.baseTexture.flatMap {
+            let albedo = generated?.albedo ?? sign?.albedo ?? batch.baseTexture.flatMap {
                 resolveTexture($0, batch.alphaTestThreshold != nil)
             }
             let structure = generated ?? detail
@@ -184,8 +194,9 @@ public final class SceneResources {
                                    // card's material was written with.
                                    // A cabin's map holds each material's
                                    // own roughness, not a share of one.
-                                   roughness: card ? 0.9 : (cabin != nil ? 1 : material.roughness),
-                                   metallic: card || cabin != nil ? 0 : metallic,
+                                   // So does a sign's.
+                                   roughness: card ? 0.9 : (cabin != nil || sign != nil ? 1 : material.roughness),
+                                   metallic: card || cabin != nil || sign != nil ? 0 : metallic,
                                    clearcoat: material.clearcoat,
                                    clearcoatRoughness: material.clearcoatRoughness,
                                    normalStrength: material.normalStrength,

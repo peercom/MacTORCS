@@ -149,6 +149,38 @@ public final class MaterialLibrary {
     /// `cwallpt` a pit wall with its windows; as concrete they were grey boxes.
     public static let keeps: [String] = ["walls.", "walls2.", "cwallpt"]
 
+    /// Walls that are pictures of paint: a sponsor's name along a pit wall,
+    /// a wall in stripes, a plank in hazard chevrons. Named for the wall,
+    /// they were drawn as bare concrete and the paint was gone. They keep
+    /// their picture and take a surface under it (`SignArtwork`).
+    public static let paintedWalls: [String] = [
+        "improveyou-wall", "megafuel-wall", "flatspot-wall", "wall-torcs", "wall-green-yellow", "wall-m1.", "barrier-2.",
+    ]
+
+    /// Whether a texture is paint on a wall.
+    public static func isPaintedWall(_ texture: String) -> Bool {
+        let name = (texture as NSString).lastPathComponent.lowercased()
+        return paintedWalls.contains(where: name.contains)
+    }
+
+    /// Whether a texture is printed artwork on a board or a banner: an
+    /// advertisement, a circuit's name over a bridge, a braking-distance
+    /// marker. By how these circuits name them, and no wider.
+    public static func isSign(_ texture: String) -> Bool {
+        let name = (texture as NSString).lastPathComponent.lowercased()
+        guard !name.contains("back") else { return false }
+        return ["logo", "sign", "torcsad", "torcs1.", "torcs2.", "torcs-url", "bridgead", "murpub", "dblogo",
+                "infomich", "pdkka01", "pdkka02", "turn", "dist0"].contains(where: name.hasPrefix)
+            || ["mcn.", "kilo.", "zbrid.", "ref.", "100.", "300."].contains(name.prefix(while: { $0 != "." }) + ".")
+    }
+
+    /// What a picture of printed or painted artwork is on, or nil if the
+    /// texture is neither.
+    public static func signKind(_ texture: String, width: Int, height: Int) -> SignArtwork.Kind? {
+        if isPaintedWall(texture) { return .wall }
+        return isSign(texture) ? SignArtwork.kind(width: width, height: height) : nil
+    }
+
     /// Detail sets for the parts of a car: the atlas keeps the colour, the
     /// set supplies surface structure. Nil keeps the part as it is.
     public static func detail(for part: CarMaterials.Part) -> (material: String, uvScale: Float)? {
@@ -215,7 +247,7 @@ public final class MaterialLibrary {
     /// original.
     public static func material(for texture: String) -> String? {
         let name = (texture as NSString).lastPathComponent.lowercased()
-        for kept in keeps where name.contains(kept) { return nil }
+        for kept in keeps + paintedWalls where name.contains(kept) { return nil }
         for rule in rules where name.contains(rule.fragment) { return rule.material }
         return nil
     }
@@ -524,6 +556,84 @@ public final class MaterialLibrary {
             facadesFailed.insert(key)
             return nil
         }
+        uploadedBytes += levels.reduce(0) { $0 + $1.width * $1.height * 4 }
+        facades[key] = made
+        return made
+    }
+
+    /// A sign's artwork made larger and sharp, and the surface it is
+    /// printed on (`SignArtwork`).
+    ///
+    /// The artwork is block-compressed and the encode kept in `signCache`
+    /// under the picture's own hash, as the original artwork's is: a
+    /// circuit has twenty boards, and uncompressed they were fifty
+    /// megabytes on Brondehach. The surface depends only on what kind of
+    /// sign it is and its shape, so every board of one shape shares one.
+    public func signArtwork(texture: String, image: TextureImage) -> (albedo: MTLTexture, structure: MTLTexture)? {
+        let key = "sign:" + texture
+        if let made = signs[key] { return made }
+        guard !facadesFailed.contains(key),
+              let kind = Self.signKind(texture, width: image.width, height: image.height) else { return nil }
+        let scale = SignArtwork.scale(width: image.width, height: image.height)
+        guard let albedo = signPicture(image, scale: scale),
+              let structure = signSurface(kind, width: image.width * max(scale / 2, 1), height: image.height * max(scale / 2, 1)) else {
+            facadesFailed.insert(key)
+            return nil
+        }
+        signs[key] = (albedo, structure)
+        return (albedo, structure)
+    }
+    private var signs: [String: (albedo: MTLTexture, structure: MTLTexture)] = [:]
+    /// Where enlarged artwork's encodes are kept: the cache the original
+    /// artwork's are in. Nil encodes at every load.
+    public var signCache: URL? = TextureStore.defaultBlockCache()
+    /// Enlarged pictures served from `signCache` rather than made.
+    public private(set) var signCacheHits = 0
+    /// Part of the cache's key: changed when `SignArtwork.enlarged` is.
+    static let signVersion = "sign-artwork-1"
+
+    private func signPicture(_ image: TextureImage, scale: Int) -> MTLTexture? {
+        let rgba = image.rgba8
+        func enlarged() -> [(width: Int, height: Int, pixels: [UInt8])]? {
+            let large = SignArtwork.enlarged(rgba: rgba, width: image.width, height: image.height, scale: scale)
+            guard let picture = try? TextureImage(width: image.width * scale, height: image.height * scale, channels: 4, pixels: large)
+            else { return nil }
+            return try? TextureLoading.linearMipChain(picture, preserveCutoutCoverage: false)
+        }
+        guard TextureStore.compressesUploads else {
+            guard let levels = enlarged(), let made = try? TextureLoading.upload(levels, device: device, srgb: true) else { return nil }
+            uploadedBytes += levels.reduce(0) { $0 + $1.width * $1.height * 4 }
+            return made
+        }
+        var hash = SHA256()
+        hash.update(data: Data("\(Self.signVersion):\(image.width)x\(image.height)x\(scale):".utf8))
+        rgba.withUnsafeBytes { hash.update(bufferPointer: $0) }
+        let sourceHash = Array(hash.finalize())
+        let sidecar = signCache?.appendingPathComponent(sourceHash.map { String(format: "%02x", $0) }.joined() + ".bc1.torcsbc")
+        let chain: TextureLoading.CompressedChain
+        if let sidecar, let kept = MapSidecar.read(sidecar, sourceHash: sourceHash, format: .bc1) {
+            chain = kept
+            signCacheHits += 1
+        } else {
+            guard let levels = enlarged(), let encoded = try? TextureLoading.compress(levels, format: .bc1) else { return nil }
+            chain = encoded
+            if let sidecar {
+                try? FileManager.default.createDirectory(at: sidecar.deletingLastPathComponent(), withIntermediateDirectories: true)
+                MapSidecar.write(chain, to: sidecar, sourceHash: sourceHash)
+            }
+        }
+        uploadedBytes += chain.byteCount
+        return try? TextureLoading.upload(chain, device: device, srgb: true)
+    }
+
+    private func signSurface(_ kind: SignArtwork.Kind, width: Int, height: Int) -> MTLTexture? {
+        let key = "sign-surface:\(kind.rawValue):\(width)x\(height)"
+        if let made = facades[key] { return made }
+        let maps = SignArtwork.surface(kind, width: width, height: height)
+        guard let packed = try? TextureImage(width: width, height: height, channels: 4,
+                                             pixels: StructureMap.pack(normal: maps.normal, orm: maps.orm)),
+              let levels = try? TextureLoading.linearMipChain(packed, preserveCutoutCoverage: false, encodeAsColour: false),
+              let made = try? TextureLoading.upload(levels, device: device, srgb: false) else { return nil }
         uploadedBytes += levels.reduce(0) { $0 + $1.width * $1.height * 4 }
         facades[key] = made
         return made

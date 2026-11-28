@@ -41,6 +41,12 @@ public enum RoadGeneration {
         /// For a fitted group that may be stacked, the height in metres one
         /// tile stands for: a taller barrier takes a whole number of them.
         public var fittedBarrierHeights: [String: Float] = [:]
+        /// Groups that keep the picture their surface declares, with the
+        /// metres one repeat of it runs along the wall: an advertisement
+        /// painted on a pit wall. Such a wall takes the picture as trackgen
+        /// laid it, a third to each of the inner face, the top and the
+        /// outer face (a fence, the whole of it on its one face).
+        public var picturedBarriers: [String: Float] = [:]
         public init() {}
     }
 
@@ -67,6 +73,17 @@ public enum RoadGeneration {
         for index in geometry.segments.indices {
             let segment = geometry.segments[index]
             let spans = segment.role == .main ? parameters.mainSpans : parameters.sideSpans
+            // A border that is a wall stands up: the cars are stopped by it
+            // (`TrackWallCollision`), and drawn flat it stopped them unseen.
+            if segment.style == .wall, segment.curbHeight > 0,
+               segment.role == .leftBorder || segment.role == .rightBorder {
+                let group = parameters.barrierGroups[segment.surface.material] ?? segment.surface.material
+                appendBorderWall(geometry, segment: index, parameters: parameters,
+                                 fit: fit(group, height: segment.curbHeight, parameters: parameters),
+                                 picture: parameters.picturedBarriers[group],
+                                 into: &groups[group, default: GeneratedGeometry()])
+                continue
+            }
             appendRibbon(geometry, segment: index, spans: max(1, spans), parameters: parameters, line: line,
                          into: &groups[segment.surface.material, default: GeneratedGeometry()])
         }
@@ -77,12 +94,10 @@ public enum RoadGeneration {
                 guard let barrier, barrier.height > 0 else { continue }
                 if barrier.style == .pitBuilding, !parameters.pitBuildings { continue }
                 let group = parameters.barrierGroups[barrier.surface.material] ?? barrier.surface.material
-                var fit = parameters.fittedBarriers[group]
-                if let tile = fit, let each = parameters.fittedBarrierHeights[group], each > 0 {
-                    fit = tile * max((barrier.height / each).rounded(), 1)
-                }
                 appendBarrier(geometry, main: index, side: side, barrier: barrier, parameters: parameters,
-                              fit: fit, into: &groups[group, default: GeneratedGeometry()])
+                              fit: fit(group, height: barrier.height, parameters: parameters),
+                              picture: parameters.picturedBarriers[group],
+                              into: &groups[group, default: GeneratedGeometry()])
             }
         }
 
@@ -153,6 +168,84 @@ public enum RoadGeneration {
         orient(&out, from: base)
     }
 
+    /// The span of texture coordinate a fitted group's set takes up a
+    /// barrier of this height, or nil for a set laid in metres.
+    static func fit(_ group: String, height: Float, parameters: Parameters) -> Float? {
+        guard let tile = parameters.fittedBarriers[group] else { return nil }
+        if let each = parameters.fittedBarrierHeights[group], each > 0 {
+            return tile * max((height / each).rounded(), 1)
+        }
+        return tile
+    }
+
+    /// Texture coordinates for the four corners of a wall's section (inner
+    /// foot, inner top, outer top, outer foot) at `along` metres round the
+    /// circuit.
+    ///
+    /// A picture is laid as trackgen laid it, so the artwork made for it
+    /// reads: a third up the inner face, a third across the top, a third
+    /// down the outer face, and along the wall from right to left on the
+    /// right of the track, so that lettering runs forwards seen from the road.
+    public static func wallCoordinates(along: Float, height: Float, thickness: Float, side: TrackSide,
+                                fit: Float?, picture: Float?, fence: Bool = false) -> [SIMD2<Float>] {
+        if let picture, picture > 0 {
+            let u = (side == .right ? -along : along) / picture
+            return fence ? [SIMD2(u, 0), SIMD2(u, 1), SIMD2(u, 1), SIMD2(u, 0)]
+                         : [SIMD2(u, 0), SIMD2(u, 1.0 / 3), SIMD2(u, 2.0 / 3), SIMD2(u, 1)]
+        }
+        // Metres up the wall; or, for a set drawn once up it, the whole
+        // tile from foot to top, and its top edge along the top.
+        let top = fit ?? height
+        return [SIMD2(along, 0), SIMD2(along, top), SIMD2(along, fit ?? (height + thickness)), SIMD2(along, 0)]
+    }
+
+    /// A border that is a wall, as the three strips of a barrier: the face
+    /// to the road, the top across the border's own width, and the back.
+    static func appendBorderWall(_ geometry: TrackGeometry, segment index: Int, parameters: Parameters,
+                                 fit: Float? = nil, picture: Float? = nil, into out: inout GeneratedGeometry) {
+        let segment = geometry.segments[index]
+        let main = geometry.segments[segment.mainIndex]
+        let side: TrackSide = segment.role == .rightBorder ? .right : .left
+        let rowCount = rows(main, step: parameters.step)
+        let base = UInt32(out.positions.count)
+        for row in 0 ... rowCount {
+            let fraction = Float(row) / Float(rowCount)
+            let s = toStart(segment, fraction: fraction)
+            let width = geometry.width(segment: index, toStart: s)
+            // A right-hand strip joins the road at its `toRight == width` edge.
+            let inner = TrackLocalPosition(segment: index, toStart: s, toRight: side == .right ? width : 0)
+            let outer = TrackLocalPosition(segment: index, toStart: s, toRight: side == .right ? 0 : width)
+            let innerXY = geometry.localToGlobal(inner), outerXY = geometry.localToGlobal(outer)
+            // The ground under the wall: only a curb's height is in the surface.
+            let innerZ = geometry.height(inner), outerZ = geometry.height(outer)
+            var outward = outerXY - innerXY
+            let length = simd_length(outward)
+            outward = length > 1e-5 ? outward / length : SIMD2(0, 0)
+            let along = main.distanceFromStart + fraction * main.length
+            out.positions.append(contentsOf: [SIMD3(innerXY.x, innerXY.y, innerZ), SIMD3(innerXY.x, innerXY.y, innerZ + segment.curbHeight),
+                                              SIMD3(outerXY.x, outerXY.y, outerZ + segment.curbHeight), SIMD3(outerXY.x, outerXY.y, outerZ)])
+            out.normals.append(contentsOf: [SIMD3(-outward.x, -outward.y, 0), SIMD3(-outward.x, -outward.y, 0),
+                                            SIMD3(0, 0, 1), SIMD3(outward.x, outward.y, 0)])
+            out.uv0.append(contentsOf: wallCoordinates(along: along, height: segment.curbHeight, thickness: width,
+                                                       side: side, fit: fit, picture: picture))
+            out.attributes.append(contentsOf: Array(repeating: SIMD4<UInt8>(0, 0, 3, 0), count: 4))
+        }
+        appendWallStrips(rows: rowCount, base: base, into: &out)
+    }
+
+    /// The triangles of a wall whose sections are four vertices each.
+    static func appendWallStrips(rows rowCount: Int, base: UInt32, into out: inout GeneratedGeometry) {
+        for row in 0 ..< UInt32(rowCount) {
+            let a = base + row * 4, n = a + 4
+            // Inner face, top, outer face. Winding is fixed up below by the
+            // normals, so the order here only needs to be consistent.
+            for (p, q) in [(0 as UInt32, 1 as UInt32), (1, 2), (2, 3)] {
+                out.indices.append(contentsOf: [a + p, n + p, a + q, a + q, n + p, n + q])
+            }
+        }
+        orient(&out, from: base)
+    }
+
     /// The outermost segment on one hand of a main segment, and which of its
     /// lateral edges faces away from the road.
     static func outerEdge(_ geometry: TrackGeometry, main: Int, side: TrackSide) -> (segment: Int, outerToRightIsZero: Bool) {
@@ -173,7 +266,8 @@ public enum RoadGeneration {
     /// `toStart` parameter of the outer segment is walked with the main
     /// segment's row count so the barrier and the road it bounds share steps.
     static func appendBarrier(_ geometry: TrackGeometry, main: Int, side: TrackSide, barrier: TrackBarrier,
-                              parameters: Parameters, fit: Float? = nil, into out: inout GeneratedGeometry) {
+                              parameters: Parameters, fit: Float? = nil, picture: Float? = nil,
+                              into out: inout GeneratedGeometry) {
         let (outer, outerIsZero) = outerEdge(geometry, main: main, side: side)
         let segment = geometry.segments[outer]
         let rowCount = rows(geometry.segments[main], step: parameters.step)
@@ -205,22 +299,12 @@ public enum RoadGeneration {
             // Four vertices per row, in the order inner foot, inner top, outer top, outer foot.
             out.positions.append(contentsOf: [innerFoot, innerTop, outerTop, outerFoot])
             out.normals.append(contentsOf: [inwardNormal, inwardNormal, SIMD3(0, 0, 1), outwardNormal])
-            // Metres up the wall; or, for a set drawn once up it, the whole
-            // tile from foot to top, and its top edge along the top.
-            let top = fit ?? barrier.height
-            out.uv0.append(contentsOf: [SIMD2(along, 0), SIMD2(along, top),
-                                        SIMD2(along, fit ?? (barrier.height + thickness)), SIMD2(along, 0)])
+            out.uv0.append(contentsOf: wallCoordinates(along: along, height: barrier.height, thickness: thickness,
+                                                       side: side, fit: fit, picture: picture,
+                                                       fence: barrier.style == .fence))
             out.attributes.append(contentsOf: Array(repeating: SIMD4<UInt8>(0, 0, 3, 0), count: 4))
         }
-        for row in 0 ..< UInt32(rowCount) {
-            let a = base + row * 4, n = a + 4
-            // Inner face, top, outer face. Winding is fixed up below by the
-            // normals, so the order here only needs to be consistent.
-            for (p, q) in [(0 as UInt32, 1 as UInt32), (1, 2), (2, 3)] {
-                out.indices.append(contentsOf: [a + p, n + p, a + q, a + q, n + p, n + q])
-            }
-        }
-        orient(&out, from: base)
+        appendWallStrips(rows: rowCount, base: base, into: &out)
     }
 
     /// Makes each triangle's winding agree with its vertices' stored normals.

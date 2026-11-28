@@ -70,7 +70,8 @@ private final class RoadBuilder {
             rebound: number(section, "rebound", 0.5), rollingResistance: number(section, "rolling resistance", 0.001),
             roughness: number(section, "roughness", 0) / 2,
             roughWaveNumber: Float(2 * Double.pi / Double(wavelength)), damage: number(section, "dammage", 10),
-            texture: { let name = string(section, "texture name", ""); return name.isEmpty ? nil : name }())
+            texture: { let name = string(section, "texture name", ""); return name.isEmpty ? nil : name }(),
+            textureSize: { let size = number(section, "texture size", 0); return size > 0 ? size : nil }())
     }
     func blank(curve: TrackCurve, surface: TrackSurface) -> TrackSegment {
         TrackSegment(name: "", upstreamID: 0, curve: curve, role: .main, style: .flat, mainIndex: 0, previous: 0, next: 0,

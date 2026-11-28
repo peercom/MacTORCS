@@ -165,24 +165,55 @@ public enum TrackSurfaceAssembly {
     public static let tallestRail: Float = 1.8
 
     /// One batch per surface material, UVs in metres.
+    ///
+    /// - Parameter pictures: the names of the artwork there is to draw with
+    ///   (the circuit's compiled textures). A wall whose texture is a
+    ///   picture of paint (`MaterialLibrary.isPaintedWall`) keeps it where
+    ///   it is among them, and is a wall of a generated set where it is not.
     public static func roadBatches(_ geometry: TrackGeometry,
-                                   parameters: RoadGeneration.Parameters = .init()) throws -> [RenderBatch] {
+                                   parameters: RoadGeneration.Parameters = .init(),
+                                   pictures: Set<String> = []) throws -> [RenderBatch] {
         // A barrier's surface is named by whoever wrote the circuit, `wall-1`
         // or `barrierg3`; what it is a picture of is in its texture's name.
         // Where that name maps to a set the barrier is grouped under it.
         var parameters = parameters
-        var tallest: [String: (texture: String?, height: Float)] = [:]
+        var tallest: [String: (surface: TrackSurface, height: Float)] = [:]
+        func note(_ surface: TrackSurface, _ height: Float) {
+            var known = tallest[surface.material] ?? (surface, 0)
+            if surface.texture != nil { known.surface = surface }
+            known.height = max(known.height, height)
+            tallest[surface.material] = known
+        }
         for segment in geometry.segments {
             for barrier in [segment.rightBarrier, segment.leftBarrier] {
                 guard let barrier else { continue }
-                let known = tallest[barrier.surface.material]
-                tallest[barrier.surface.material] = (barrier.surface.texture ?? known?.texture, max(barrier.height, known?.height ?? 0))
+                note(barrier.surface, barrier.height)
+            }
+            // A border that is a wall is drawn as one (`RoadGeneration`).
+            if segment.style == .wall, segment.curbHeight > 0,
+               segment.role == .leftBorder || segment.role == .rightBorder {
+                note(segment.surface, segment.curbHeight)
             }
         }
+        let available = Dictionary(pictures.map { ($0.lowercased(), $0) }, uniquingKeysWith: { first, _ in first })
+        var pictured: [String: String] = [:]
         for (material, barrier) in tallest {
             var group = material
-            if let texture = barrier.texture, MaterialLibrary.material(for: texture) != nil {
-                group = ((texture as NSString).lastPathComponent as NSString).deletingPathExtension.lowercased()
+            if let texture = barrier.surface.texture {
+                let file = (texture as NSString).lastPathComponent
+                let name = (file as NSString).deletingPathExtension.lowercased()
+                if MaterialLibrary.isPaintedWall(texture), let picture = available[file.lowercased()] {
+                    group = name
+                    pictured[group] = picture
+                    // A whole number of repeats to the lap, or the word
+                    // on the wall is cut where the lap begins again.
+                    let size = barrier.surface.textureSize ?? Self.paintedRepeat
+                    let lap = geometry.mainSegments.reduce(Float(0)) { $0 + geometry.segments[$1].length }
+                    parameters.picturedBarriers[group] = lap > size ? lap / (lap / size).rounded() : size
+                } else if MaterialLibrary.material(for: texture) != nil || MaterialLibrary.isPaintedWall(texture) {
+                    // Painted, and the picture not to hand: the wall under the paint.
+                    group = MaterialLibrary.isPaintedWall(texture) ? "concrete-wall" : name
+                }
             }
             // Nobody stacks guard rails five metres high. A barrier that
             // tall with a rail for its texture is a rail with a fence on it.
@@ -190,7 +221,8 @@ public enum TrackSurfaceAssembly {
                 group = "barrier-fence"
             }
             if group != material { parameters.barrierGroups[material] = group }
-            if let set = MaterialLibrary.material(for: group + ".rgb"), let fit = MaterialLibrary.fittedTile(for: set) {
+            if pictured[group] == nil, let set = MaterialLibrary.material(for: group + ".rgb"),
+               let fit = MaterialLibrary.fittedTile(for: set) {
                 parameters.fittedBarriers[group] = fit
                 parameters.fittedBarrierHeights[group] = MaterialLibrary.fittedHeight(for: set)
             }
@@ -200,10 +232,17 @@ public enum TrackSurfaceAssembly {
             let mesh = try RenderMesh.build(positions: group.geometry.positions, normals: group.geometry.normals,
                                             uv0: group.geometry.uv0, blend: group.geometry.attributes,
                                             indices: group.geometry.indices, uvInMetres: true)
-            batches.append(surfaceBatch(mesh: mesh, texture: group.material + ".rgb", roughness: 0.85, markings: true))
+            if let picture = pictured[group.material] {
+                batches.append(surfaceBatch(mesh: mesh, texture: picture, roughness: 0.8))
+            } else {
+                batches.append(surfaceBatch(mesh: mesh, texture: group.material + ".rgb", roughness: 0.85, markings: true))
+            }
         }
         return batches
     }
+
+    /// Metres a painted wall's picture runs where its surface gives no size.
+    public static let paintedRepeat: Float = 3
 
     /// Tyre walls along the outside of the corners: their faces as one
     /// batch and their tops as another, each on its own set.

@@ -294,10 +294,10 @@ under each sill became a row of glints). What is left is modest and uneven:
 on a pale front with its blinds down it finds the few windows whose blinds
 are up.
 
-Not done: a barrier whose texture is an advertisement, a row of trees or a
-line of parked cars is still a concrete wall, because a generated barrier
-has no way to draw the circuit's own texture. Wire and bar fences in the
-original scenery keep their artwork.
+Not done: a barrier whose texture is a row of trees or a line of parked
+cars is still a concrete wall. (One whose texture is an advertisement now
+keeps it: see *Advertising* below.) Wire and bar fences in the original
+scenery keep their artwork.
 
 Cost, previous commit against this one, taken alternately: nothing on
 Street 1, Alpine 1, Wheel 1 and E-Track 2 (7.5 ms both); 6.96 to 7.12 ms on
@@ -499,6 +499,88 @@ models took 2.8 s where it took 2.6.
 
 `--frame-cost` takes `--view NAME` for any of the game's cameras (`driver`
 is the seat) and writes that view with `--dump`.
+
+### Advertising: boards, banners and painted walls
+
+The advertisements are the circuits' own artwork and stay so. Three things
+were wrong with how they were drawn, and none of them was the artwork.
+
+**The pit walls were not there.** A circuit's pit wall is a *border* whose
+style is `wall`, a metre high, and five circuits paint a sponsor's name
+along it: MEGAFUEL on E-Track 3, FlatSpot on Wheel 1, IMPROVEYOU on
+E-Track 2, www.torcs.org on Michigan. The cars are stopped by such a
+border (`TrackWallCollision`), but the road generator drew every border
+as a flat strip, so the wall stopped them unseen. `RoadGeneration` now
+stands a wall-style border up, as the three strips of a barrier: the face
+to the road, the top across the border's width, the back. Corkscrew and
+Brondehach gain walls the same way, with no advertisement on them.
+
+**A wall's paint was dropped.** A generated wall was drawn with a set
+chosen by its texture's name, and `megafuel-wall.png` was a wall, so
+concrete. The walls that are pictures of paint are now named
+(`MaterialLibrary.paintedWalls`: the four above, Michigan's red and white
+striped wall, G-Track 1's green and yellow one, E-Track 2's
+hazard-striped plank) and keep their picture,
+where the circuit's compiled textures hold it. The picture is laid as
+trackgen laid it and as it was drawn to be: a third up the inner face, a
+third across the top, a third down the back, one repeat every `texture
+size` metres (`TrackSurface.textureSize`, runtime only, like the name),
+and from right to left on the right of the track so that the lettering
+runs forward seen from the road (`RoadGeneration.wallCoordinates`).
+
+**The lettering was a smear.** A board ten metres long was drawn from a
+picture 256 texels wide: four centimetres to the texel. `SignArtwork`
+makes two things from each sign's picture when the circuit is loaded, for
+boards and banners (`MaterialLibrary.isSign`, by how these circuits name
+them: `logo…`, `sign…`, the `turn` and `dist` markers and a dozen more)
+and for the painted walls:
+
+- *The picture again, four times larger, its edges put back*
+  (`enlarged`). Printed artwork is flat colour meeting flat colour. Round
+  each point the sixteen nearest texels are sorted into two colours, and a
+  point lying between the two is moved toward the nearer, so the edge
+  falls where the blur was half way and is a texel and a half wide. Where
+  there are not two colours, in a gradient, in a photograph's grain, where
+  three colours meet, nothing is moved. Two versions were thrown away:
+  taking the two *extreme* texels for the colours drew a dark rim round
+  every letter, and taking plain means let the half-covered texels of the
+  edge itself pull both colours toward the middle and left the edge soft.
+  The colours are means weighted toward the ends.
+- *A surface to be printed on* (`surface`), by what the sign is. A
+  **board** is sheets butted together, each about half as wide as the
+  board is high, with a joint between, not quite flat, with a film of dirt
+  the rain has drawn downward. A **banner**, any picture six times as long
+  as it is high, is cloth held at eyelets along its hems, billowing a
+  little between. A **wall** is cast concrete under the paint: pores, the
+  grain of the cast, a joint at each repeat.
+
+All three are matt. A board was first given a satin sheen, and a black
+board under a clear sky turned navy blue.
+
+The enlarged artwork is block-compressed and kept in the texture cache
+under the picture's own hash, like the original artwork; uncompressed it
+was fifty megabytes on Brondehach, which has twenty-three signs. A surface
+depends only on the kind of sign and its shape, so all boards of one shape
+share one.
+
+`torcs-matgen --sign board.png` writes what the game makes of one picture.
+
+Cost, previous commit against this one, taken alternately, 2880 × 1720:
+E-Track 3 7.57 → 7.59 ms, Forza 8.57 → 8.53, Wheel 1 7.59 → 7.64,
+Brondehach 7.52 → 7.58, Michigan 7.19 → 7.22; nothing that can be told
+from the noise. Loading Brondehach, the circuit with most signs, takes as
+long as it did once its signs are in the cache (2.7 to 3.0 s for a whole
+tool run, both), and a second longer the first time (4.4 s against 3.4
+with the cache empty). A six-car race in the window holds 60.
+
+Not done, and why: the surfaces are subtle from the road, the joints
+most visible, the banner's folds a faint shading, and the pores of a
+painted wall are sized to the picture, not the wall, so Michigan's wall,
+whose picture runs twelve metres, has pores four times the size of
+E-Track 3's. Lettering that was drawn soft stays soft: CTD Racing's gold
+script on Forza's gantry is sharper by little. A banner is told from a
+board by its shape alone. Barriers that are rows of trees or parked cars
+are still concrete walls.
 
 ## A field of different cars
 

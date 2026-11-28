@@ -72,8 +72,60 @@ func readRGBA(_ data: Data, size: Int) throws -> [UInt8] {
     return bytes
 }
 
+/// Decodes an image at its own size, straight alpha, sRGB bytes, top row first.
+func readRGBA(_ data: Data) throws -> (rgba: [UInt8], width: Int, height: Int) {
+    guard let source = CGImageSourceCreateWithData(data as CFData, nil),
+          let image = CGImageSourceCreateImageAtIndex(source, 0, nil) else {
+        throw MaterialError.unknown("Could not decode the source image")
+    }
+    let width = image.width, height = image.height
+    var bytes = [UInt8](repeating: 0, count: width * height * 4)
+    let space = CGColorSpace(name: CGColorSpace.sRGB)!
+    let drawn = bytes.withUnsafeMutableBytes { raw -> Bool in
+        guard let context = CGContext(data: raw.baseAddress, width: width, height: height, bitsPerComponent: 8,
+                                      bytesPerRow: width * 4, space: space,
+                                      bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return false }
+        context.interpolationQuality = .none
+        context.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
+        return true
+    }
+    guard drawn else { throw MaterialError.unknown("Could not read the source image") }
+    for i in stride(from: 3, to: bytes.count, by: 4) { bytes[i] = 255 }
+    return (bytes, width, height)
+}
+
+/// Writes what the game makes of one sign's picture when it loads it
+/// (`SignArtwork`): the picture enlarged, and the surface for each kind of
+/// sign of that shape. For looking at; the game makes its own.
+func writeSign(_ path: String, to directory: URL) throws {
+    let picture = try readRGBA(try Data(contentsOf: URL(fileURLWithPath: path)))
+    let name = URL(fileURLWithPath: path).deletingPathExtension().lastPathComponent
+    let scale = SignArtwork.scale(width: picture.width, height: picture.height)
+    let large = SignArtwork.enlarged(rgba: picture.rgba, width: picture.width, height: picture.height, scale: scale)
+    try writePNG(large, width: picture.width * scale, height: picture.height * scale,
+                 to: directory.appendingPathComponent("\(name)-large.png"))
+    let half = max(scale / 2, 1)
+    let width = picture.width * half, height = picture.height * half
+    for kind in [SignArtwork.kind(width: picture.width, height: picture.height), .wall] {
+        let maps = SignArtwork.surface(kind, width: width, height: height)
+        // Rows are bottom first; a PNG's are top first.
+        func flipped(_ bytes: [UInt8]) -> [UInt8] {
+            var out = [UInt8](repeating: 0, count: bytes.count)
+            for y in 0 ..< height { out.replaceSubrange((height - 1 - y) * width * 4 ..< (height - y) * width * 4,
+                                                        with: bytes[y * width * 4 ..< (y + 1) * width * 4]) }
+            return out
+        }
+        try writePNG(flipped(maps.normal), width: width, height: height,
+                     to: directory.appendingPathComponent("\(name)-\(kind.rawValue)-normal.png"))
+        try writePNG(flipped(maps.orm), width: width, height: height,
+                     to: directory.appendingPathComponent("\(name)-\(kind.rawValue)-orm.png"))
+    }
+    print("\(name): \(picture.width)x\(picture.height) enlarged \(scale)x")
+}
+
 var options = Options()
 var onlyGiven = false
+var signs: [String] = []
 var arguments = Array(CommandLine.arguments.dropFirst())
 while let argument = arguments.first {
     arguments.removeFirst()
@@ -85,6 +137,7 @@ while let argument = arguments.first {
     case "--only": options.names = next().split(separator: ",").map(String.init); onlyGiven = true
     case "--preview": options.preview = true
     case "--all": break
+    case "--sign": signs.append(next())
     case "--from-image":
         let spec = next()
         if let equals = spec.firstIndex(of: "=") {
@@ -102,6 +155,7 @@ while let argument = arguments.first {
         usage: torcs-matgen [--all] [--only a,b] [--out dir] [--size N] [--seed N] [--preview]
                             [--from-image name=file.png --source-model M --source-prompt P --source-seed S
                              [--image-world metres] [--image-roughness R] [--image-metal] [--image-invert]]
+               torcs-matgen --sign board.png [--sign ...] [--out dir]
 
           --preview     also write a side-by-side albedo/normal/ORM sheet per material
           --from-image  derive a set from a colour image (a photograph or an image model's
@@ -115,6 +169,10 @@ while let argument = arguments.first {
 
 do {
     try FileManager.default.createDirectory(at: options.output, withIntermediateDirectories: true)
+    if !signs.isEmpty {
+        for sign in signs { try writeSign(sign, to: options.output) }
+        exit(0)
+    }
     var manifest: [[String: Any]] = []
     var total = 0
     let clock = Date()

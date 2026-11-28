@@ -89,12 +89,17 @@ public final class SessionRenderResources {
         trackBounds = (low, high)
 
         if let road {
+            // What the generated walls may draw with of the circuit's own
+            // artwork: the pictures of paint, and nothing else of it. A road
+            // given its original by name would have it composited as markings.
+            let painted = scenes.indices.contains(Self.sceneryResource)
+                ? scenes[Self.sceneryResource].textures.filter { MaterialLibrary.isPaintedWall($0.key) } : [:]
             var generated: [RenderBatch] = []
             if let ground = try TrackSurfaceAssembly.terrainBatch(road, parameters: terrain ?? TerrainParameters()) {
                 generated.append(ground)
             }
             if generateRoad {
-                generated += try TrackSurfaceAssembly.roadBatches(road)
+                generated += try TrackSurfaceAssembly.roadBatches(road, pictures: Set(painted.keys))
                 if let pits { generated += try TrackSurfaceAssembly.pitBatches(road, pits: pits) }
                 generated += try TrackSurfaceAssembly.furnitureBatches(road)
                 if materialDirectory != nil {
@@ -104,7 +109,7 @@ public final class SessionRenderResources {
             if !generated.isEmpty {
                 let scene = RenderScene(batches: generated, minimum: low, maximum: high)
                 terrainResource = built.count
-                built.append(try SceneResources(device: device, scene: scene, textures: store,
+                built.append(try SceneResources(device: device, scene: scene, textures: store, compiled: painted,
                                                 materials: library, materialDirectory: materialDirectory))
             }
         }

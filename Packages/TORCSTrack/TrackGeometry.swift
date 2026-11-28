@@ -34,14 +34,19 @@ public struct TrackSurface: Sendable, Codable, Equatable {
     /// compared field for field against the original's, so this stays out
     /// of it.
     public var texture: String? = nil
+    /// The metres one repeat of that texture is laid along the track
+    /// (`texture size`). Runtime only, like the name.
+    public var textureSize: Float? = nil
     enum CodingKeys: String, CodingKey {
         case material, friction, rebound, rollingResistance, roughness, roughWaveNumber, damage
     }
     public init(material: String, friction: Float, rebound: Float, rollingResistance: Float,
-                roughness: Float, roughWaveNumber: Float, damage: Float, texture: String? = nil) {
+                roughness: Float, roughWaveNumber: Float, damage: Float, texture: String? = nil,
+                textureSize: Float? = nil) {
         self.material = material; self.friction = friction; self.rebound = rebound
         self.rollingResistance = rollingResistance; self.roughness = roughness
         self.roughWaveNumber = roughWaveNumber; self.damage = damage; self.texture = texture
+        self.textureSize = textureSize
     }
 }
 /// Indices, never C pointers. mainIndex identifies the road owning a border/side.
